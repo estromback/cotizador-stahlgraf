@@ -455,6 +455,13 @@ function setupEventListeners() {
     document.getElementById('btn-settings').addEventListener('click', () => modal.classList.add('active'));
     document.getElementById('btn-close-settings').addEventListener('click', () => modal.classList.remove('active'));
 
+    const modalHistory = document.getElementById('history-modal');
+    document.getElementById('btn-history').addEventListener('click', () => {
+        modalHistory.classList.add('active');
+        loadHistoryUI();
+    });
+    document.getElementById('btn-close-history').addEventListener('click', () => modalHistory.classList.remove('active'));
+
     // Settings Parameters Listeners
     document.getElementById('setting-margin').addEventListener('change', (e) => {
         appData.margin = parseFloat(e.target.value) || 0;
