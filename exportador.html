@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asana Exporter Pro - Stahlgraf</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="exportador.css">
+</head>
+<body>
+
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <nav class="navbar glass-panel">
+        <div class="nav-content">
+            <h1 class="logo">Asana Export<span>PRO</span></h1>
+            <div class="nav-actions">
+                <button id="btn-login" class="btn btn-outline">
+                    <span id="sync-icon">☁️</span> <span id="sync-text">Iniciar Sesión</span>
+                </button>
+                <button id="btn-settings" class="btn btn-primary" title="Ajustes de Asana" disabled>⚙️ Ajustes</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        
+        <!-- Welcome Screen -->
+        <div id="welcome-state" class="state-panel active">
+            <div class="glass-card text-center">
+                <h2>Exporta proyectos de Asana a Excel</h2>
+                <p>Genera reportes hermosos y estructurados con los comentarios de las tareas incluidos. Inicia sesión para configurar tu Token.</p>
+                <img src="https://www.svgrepo.com/show/353450/asana.svg" alt="Asana" class="hero-icon">
+            </div>
+        </div>
+
+        <!-- Dashboard Screen -->
+        <div id="dashboard-state" class="state-panel">
+            <div class="glass-card">
+                <h2 class="section-title">Generar Nuevo Reporte Excel</h2>
+                
+                <div class="form-grid">
+                    <div class="input-group full-width">
+                        <label for="workspace-select">Espacio de Trabajo Asana</label>
+                        <select id="workspace-select">
+                            <option value="">Selecciona Workspace...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group full-width">
+                        <label for="project-select">Proyecto</label>
+                        <select id="project-select" disabled>
+                            <option value="">Selecciona Proyecto...</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label>Opciones de Exportación</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="opt-comments" checked>
+                            <label for="opt-comments">Incluir comentarios y actualizaciones (Puede demorar más)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-actions">
+                    <div id="export-status" class="status-msg"></div>
+                    <button id="btn-export" class="btn btn-accent" disabled>
+                        <span>📊</span> Generar Excel (.xlsx)
+                    </button>
+                    <!-- Share Button (Hidden initially) -->
+                    <button id="btn-share" class="btn btn-whatsapp hidden">
+                        <span>📤</span> Compartir (WhatsApp/Mail)
+                    </button>
+                    <button id="btn-download" class="btn btn-primary hidden">
+                        <span>💾</span> Descargar Archivo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="glass-card modal-content">
+            <div class="modal-header">
+                <h2>Configuración Asana</h2>
+                <button id="btn-close-settings" class="btn-icon">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="text-sm">Configura tu Token Personal de acceso a Asana para esta aplicación.</p>
+                <div class="input-group full-width">
+                    <label for="setting-asana-token">Token de Acceso Personal (PAT)</label>
+                    <input type="password" id="setting-asana-token" placeholder="1/12345...">
+                </div>
+                <!-- Action Buttons -->
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button id="btn-save-settings" class="btn btn-primary">Guardar y Conectar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Scripts -->
+    <script src="exportador.js"></script>
+</body>
+</html>
