@@ -1,0 +1,544 @@
+// Default Database if localStorage is empty
+// Default Database if localStorage is empty
+const defaultChemicals = [
+    { id: 'c1', name: 'CiperKill 25 EC', type: 'standard', price: 35000, size: 1000, dose: 0.4 },
+    { id: 'c2', name: 'Atonit 2.5% EC', type: 'standard', price: 35000, size: 1000, dose: 0.8 },
+    { id: 'c3', name: 'Mandra SC', type: 'standard', price: 60000, size: 1000, dose: 0.2 },
+    { id: 'c4', name: 'Aquatrin 2.5 SC', type: 'standard', price: 38000, size: 1000, dose: 0.6 }
+];
+
+// App State
+let appData = {
+    margin: 40,
+    minRate: 40000,
+    correlative: 126,
+    baitPrice: 3750,
+    loosePrice: 800,
+    inspectPrice: 1500,
+    snapPrice: 4500,
+    sanitizePrice: 25000,
+    exclusionPrice: 35000,
+    hhPrice: 15000,
+    hhSpeed: 50,
+    chemicals: []
+};
+
+// Formatter for CLP
+const formatter = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' });
+
+// Initialize App
+function initApp() {
+    loadData();
+    setupEventListeners();
+    renderChemicalsList();
+    
+    // Set formatted date
+    const dateOpts = { day: 'numeric', month: 'long', year: 'numeric' };
+    document.getElementById('doc-date').innerText = new Date().toLocaleDateString('es-ES', dateOpts);
+    
+    calculateQuote();
+}
+
+// LocalStorage Management
+function loadData() {
+    const savedData = localStorage.getItem('stahlgraf_data_v4');
+    if (savedData) {
+        appData = JSON.parse(savedData);
+    } else {
+        const oldData = localStorage.getItem('stahlgraf_data_v3');
+        if (oldData) {
+            appData = JSON.parse(oldData);
+            appData.chemicals = [...defaultChemicals];
+            if(appData.loosePrice === undefined) {
+                appData.loosePrice = 800;
+                appData.inspectPrice = 1500;
+                appData.snapPrice = 4500;
+                appData.sanitizePrice = 25000;
+                appData.exclusionPrice = 35000;
+            }
+        } else {
+            appData.margin = 40;
+            appData.minRate = parseInt(document.getElementById('setting-min-rate').value) || 40000;
+            appData.correlative = parseInt(document.getElementById('setting-correlative').value) || 126;
+            appData.baitPrice = 3750;
+            appData.loosePrice = 800;
+            appData.inspectPrice = 1500;
+            appData.snapPrice = 4500;
+            appData.sanitizePrice = 25000;
+            appData.exclusionPrice = 35000;
+            appData.hhPrice = 15000;
+            appData.hhSpeed = 50;
+            appData.chemicals = [...defaultChemicals];
+        }
+        saveData();
+    }
+    
+    document.getElementById('setting-margin').value = appData.margin;
+    document.getElementById('setting-min-rate').value = appData.minRate;
+    document.getElementById('setting-correlative').value = appData.correlative;
+    document.getElementById('setting-bait-price').value = appData.baitPrice;
+    document.getElementById('setting-loose-price').value = appData.loosePrice;
+    document.getElementById('setting-inspect-price').value = appData.inspectPrice;
+    document.getElementById('setting-snap-price').value = appData.snapPrice;
+    document.getElementById('setting-sanitize-price').value = appData.sanitizePrice;
+    document.getElementById('setting-exclusion-price').value = appData.exclusionPrice;
+    document.getElementById('setting-hh-price').value = appData.hhPrice;
+    document.getElementById('setting-hh-speed').value = appData.hhSpeed;
+}
+
+function saveData() {
+    localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
+}
+
+// Logic & Calculations
+function calculateQuote() {
+    // 1. Get Inputs
+    const clientName = document.getElementById('client-name').value || '-';
+    const clientAttention = document.getElementById('client-attention').value || '';
+    const clientPhone = document.getElementById('client-phone').value || '-';
+    const clientAddress = document.getElementById('client-address').value || '-';
+    
+    const size = parseFloat(document.getElementById('property-size').value) || 0;
+    const coverage = document.getElementById('coverage-type').value;
+    const exterior = document.getElementById('exterior-zones').value;
+    
+    const hasRodents = document.getElementById('rodent-control').value === 'yes';
+    const baitStations = parseInt(document.getElementById('bait-stations').value) || 0;
+    const looseStations = parseInt(document.getElementById('loose-stations').value) || 0;
+    const inspectStations = parseInt(document.getElementById('inspect-stations').value) || 0;
+    const snapStations = parseInt(document.getElementById('snap-stations').value) || 0;
+    const rodentExtras = document.getElementById('rodent-extras').value;
+
+    // 2. Adjust effective size based on coverage
+    let interiorSize = 0;
+    let exteriorSize = 0;
+    
+    if (coverage === 'inside' || coverage === 'both') {
+        interiorSize = size;
+    }
+    if (coverage === 'outside' || coverage === 'both') {
+        exteriorSize = size;
+        if (exterior === 'full') exteriorSize *= 1.4; 
+        else if (exterior === 'perimeter') exteriorSize *= 1.1;
+    }
+
+    // 3. Find suitable product
+    const interiorChemId = document.getElementById('interior-chem').value;
+    const exteriorChemId = document.getElementById('exterior-chem').value;
+    
+    // Get Techniques
+    const interiorTech = document.getElementById('interior-tech').value || 'Nebulización ULV + Aspersión Manual';
+    const exteriorTech = document.getElementById('exterior-tech').value || 'Motopulverización + Aspersión Manual';
+
+    const selectedChem = appData.chemicals.find(c => c.id === interiorChemId) || appData.chemicals[0] || defaultChemicals[0];
+    const exteriorChem = appData.chemicals.find(c => c.id === exteriorChemId) || appData.chemicals[0] || defaultChemicals[0];
+
+    // Apply Margin
+    const marginMultiplier = 1 + (appData.margin / 100);
+
+    // Calculate Interior
+    let interiorCost = 0;
+    let interiorText = '';
+    if (interiorSize > 0) {
+        let interiorTime = interiorSize / appData.hhSpeed;
+        let cost_HH_interior = interiorTime * appData.hhPrice;
+        let cost_chem_interior = (interiorSize * selectedChem.dose / selectedChem.size) * selectedChem.price;
+
+        let baseCostInterior = cost_HH_interior + cost_chem_interior;
+        interiorCost = Math.round(baseCostInterior * marginMultiplier);
+        if (interiorCost > 0 && interiorCost < appData.minRate) interiorCost = appData.minRate; 
+        
+        interiorText = `Técnica(s): ${interiorTech} para control de insectos rastreros y voladores, utilizando producto ${selectedChem.name}.`;
+    }
+
+    // Calculate Exterior
+    let exteriorCost = 0;
+    let exteriorText = '';
+    if (exteriorSize > 0) {
+        let exteriorTime = exteriorSize / appData.hhSpeed;
+        let cost_HH_exterior = exteriorTime * appData.hhPrice;
+        let cost_chem_exterior = (exteriorSize * exteriorChem.dose / exteriorChem.size) * exteriorChem.price;
+
+        let baseCostExterior = cost_HH_exterior + cost_chem_exterior;
+        exteriorCost = Math.round(baseCostExterior * marginMultiplier);
+        if (exteriorCost > 0 && exteriorCost < appData.minRate) exteriorCost = appData.minRate;
+
+        exteriorText = `Técnica(s): ${exteriorTech} para control perimetral/focalizado asegurando residualidad, utilizando producto ${exteriorChem.name}.`;
+    }
+
+    // Calculate Rodents
+    let rodentsCost = 0;
+    if (hasRodents) {
+        if(baitStations > 0) rodentsCost += baitStations * appData.baitPrice;
+        if(looseStations > 0) rodentsCost += looseStations * appData.loosePrice;
+        if(inspectStations > 0) rodentsCost += inspectStations * appData.inspectPrice;
+        if(snapStations > 0) rodentsCost += snapStations * appData.snapPrice;
+        if(rodentExtras === 'sanitize' || rodentExtras === 'both') rodentsCost += appData.sanitizePrice;
+        if(rodentExtras === 'exclusion' || rodentExtras === 'both') rodentsCost += appData.exclusionPrice;
+    }
+
+    const totalCost = interiorCost + exteriorCost + rodentsCost;
+
+    // --- UPDATE UI DOCUMENT ---
+    document.getElementById('doc-correlative').innerText = appData.correlative;
+    document.getElementById('doc-client-name').innerText = clientName;
+    document.getElementById('doc-client-phone').innerText = clientPhone;
+    document.getElementById('doc-client-address').innerText = clientAddress;
+    
+    if(clientAttention) {
+        document.getElementById('row-attention').classList.remove('hidden');
+        document.getElementById('doc-client-attention').innerText = clientAttention;
+    } else {
+        document.getElementById('row-attention').classList.add('hidden');
+    }
+
+    // Generate Table Rows
+    const tbody = document.getElementById('doc-services-body');
+    tbody.innerHTML = '';
+
+    if (hasRodents) {
+        const renderRow = (concept, desc, qty, priceUnit, totalRow) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${concept}</td>
+                <td>${desc}</td>
+                <td class="text-right">${qty}</td>
+                <td class="text-right">${formatter.format(priceUnit)}</td>
+                <td class="text-right"><strong>${formatter.format(totalRow)}</strong></td>
+            `;
+            tbody.appendChild(tr);
+        };
+
+        if(baitStations > 0) renderRow('Control de roedores', 'Cebaderos de Seguridad (Instalación)', baitStations, appData.baitPrice, baitStations * appData.baitPrice);
+        if(looseStations > 0) renderRow('Control de roedores', 'Cebos Sueltos', looseStations, appData.loosePrice, looseStations * appData.loosePrice);
+        if(inspectStations > 0) renderRow('Control de roedores', 'Servicio de Inspección/Reposición', inspectStations, appData.inspectPrice, inspectStations * appData.inspectPrice);
+        if(snapStations > 0) renderRow('Control de roedores', 'Trampas Físicas/Captura', snapStations, appData.snapPrice, snapStations * appData.snapPrice);
+        if(rodentExtras === 'sanitize' || rodentExtras === 'both') renderRow('S. Complementario', 'Retiro de cadáveres y sanitización focalizada', 1, appData.sanitizePrice, appData.sanitizePrice);
+        if(rodentExtras === 'exclusion' || rodentExtras === 'both') renderRow('S. Complementario', 'Sellado físico de accesos y exclusión', 1, appData.exclusionPrice, appData.exclusionPrice);
+    }
+    
+    if (interiorSize > 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>Control de Insectos Rastreros y voladores en interior</td>
+            <td>${interiorText}</td>
+            <td class="text-right">1</td>
+            <td class="text-right">${formatter.format(interiorCost)}</td>
+            <td class="text-right"><strong>${formatter.format(interiorCost)}</strong></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    if (exteriorSize > 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>Control de Insectos Rastreros y voladores en exterior</td>
+            <td>${exteriorText}</td>
+            <td class="text-right">1</td>
+            <td class="text-right">${formatter.format(exteriorCost)}</td>
+            <td class="text-right"><strong>${formatter.format(exteriorCost)}</strong></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    document.getElementById('doc-subtotal').innerText = formatter.format(totalCost);
+    document.getElementById('doc-total').innerText = formatter.format(totalCost);
+
+    const hasFumigation = interiorSize > 0 || exteriorSize > 0;
+
+    // Metodología y Garantía
+    const methList = document.getElementById('doc-methodology-list');
+    methList.innerHTML = '';
+    
+    // Techniques
+    let finalTech = '';
+    if(hasFumigation) {
+        let fumiTechs = [];
+        if(interiorSize > 0) fumiTechs.push(`Interior: ${interiorTech}`);
+        if(exteriorSize > 0) fumiTechs.push(`Exterior: ${exteriorTech}`);
+        finalTech += fumiTechs.join(' | ') + '. ';
+    }
+    if(hasRodents) {
+        let rTechs = [];
+        if(baitStations > 0) rTechs.push('Cebado en bloques de seguridad');
+        if(looseStations > 0) rTechs.push('Cebado suelto en puntos clave');
+        if(inspectStations > 0) rTechs.push('Reposición/Inspección');
+        if(snapStations > 0) rTechs.push('Trampas Físicas de golpe/captura');
+        if(rodentExtras === 'sanitize' || rodentExtras === 'both') rTechs.push('Sanitización Local de Rastros/Cadáveres');
+        if(rodentExtras === 'exclusion' || rodentExtras === 'both') rTechs.push('Sellado Estructural (Exclusión)');
+        finalTech += `Para roedores: ${rTechs.join(', ')}.`;
+    }
+    
+    if(finalTech) {
+        methList.innerHTML += `<li><strong>Técnica(s) Empleada(s):</strong> ${finalTech}</li>`;
+    }
+
+    // Products
+    let finalProd = '';
+    if(hasFumigation) {
+        let fumiProds = [];
+        if(interiorSize > 0) fumiProds.push(selectedChem.name);
+        if(exteriorSize > 0 && exteriorChem.id !== selectedChem.id) fumiProds.push(exteriorChem.name);
+        finalProd += `Utilizamos insecticidas de grado profesional, biodegradables y autorizados por SAG (${fumiProds.join(' y ')}). `;
+    }
+    if(hasRodents) finalProd += `Rodenticida anticoagulante de segunda generación (Bromadiolona).`;
+
+    if(finalProd) {
+        methList.innerHTML += `<li><strong>Productos:</strong> ${finalProd}</li>`;
+    }
+
+    // Warranty
+    let finalWarranty = '';
+    if(hasFumigation) finalWarranty += `Fumigación: Después de los 15 días corridos de la aplicación, si la plaga no se ha controlado efectivamente, se ofrece una reaplicación localizada en la zona de reaparición. `;
+    if(hasRodents) finalWarranty += `Rodentización: Puede contratar un servicio de visita cada 30 días para inspección y reposición de los cebos (Valor base mensual de $1.500 por cebadero tras instalación inicial).`;
+
+    if(finalWarranty) {
+        methList.innerHTML += `<li><strong>Garantía / Mantención:</strong> ${finalWarranty}</li>`;
+    }
+
+    // Section 4 toggles (Preparation and Post)
+    const fumiRules = document.querySelectorAll('.fumi-rule');
+    fumiRules.forEach(el => hasFumigation ? el.classList.remove('hidden') : el.classList.add('hidden'));
+    
+    const rodentElems = document.querySelectorAll('.rodent-rule');
+    rodentElems.forEach(el => hasRodents ? el.classList.remove('hidden') : el.classList.add('hidden'));
+
+}
+
+// Event Listeners
+function setupEventListeners() {
+    // Form Real-time calculation
+    const inputs = document.querySelectorAll('#quote-form input, #quote-form select');
+    inputs.forEach(input => {
+        input.addEventListener('input', calculateQuote);
+        input.addEventListener('change', calculateQuote);
+    });
+
+    // Coverage changes (disable/enable exterior select)
+    document.getElementById('coverage-type').addEventListener('change', (e) => {
+        const extSelect = document.getElementById('exterior-zones');
+        if (e.target.value === 'inside') {
+            extSelect.value = 'none';
+            extSelect.disabled = true;
+        } else {
+            if(extSelect.value === 'none') extSelect.value = 'perimeter';
+            extSelect.disabled = false;
+        }
+        calculateQuote();
+    });
+
+    // Rodent changes
+    document.getElementById('rodent-control').addEventListener('change', (e) => {
+        const isYes = e.target.value === 'yes';
+        const fields = ['bait-stations', 'loose-stations', 'inspect-stations', 'snap-stations', 'rodent-extras'];
+        fields.forEach(f => {
+            document.getElementById(f).disabled = !isYes;
+        });
+        
+        if (isYes) {
+            const baitInput = document.getElementById('bait-stations');
+            if(baitInput.value === '') baitInput.value = 10;
+        }
+        
+        calculateQuote();
+    });
+
+    // Modal Triggers
+    const modal = document.getElementById('settings-modal');
+    document.getElementById('btn-settings').addEventListener('click', () => modal.classList.add('active'));
+    document.getElementById('btn-close-settings').addEventListener('click', () => modal.classList.remove('active'));
+
+    // Settings Parameters Listeners
+    document.getElementById('setting-margin').addEventListener('change', (e) => {
+        appData.margin = parseFloat(e.target.value) || 0;
+        saveData();
+        calculateQuote();
+    });
+
+    document.getElementById('setting-min-rate').addEventListener('change', (e) => {
+        appData.minRate = parseFloat(e.target.value) || 0;
+        saveData();
+        calculateQuote();
+    });
+
+    document.getElementById('setting-correlative').addEventListener('change', (e) => {
+        appData.correlative = parseInt(e.target.value) || 1;
+        saveData();
+        calculateQuote();
+    });
+
+    document.getElementById('setting-bait-price').addEventListener('change', (e) => {
+        appData.baitPrice = parseInt(e.target.value) || 3750;
+        saveData();
+        calculateQuote();
+    });
+
+    document.getElementById('setting-hh-price').addEventListener('change', (e) => {
+        appData.hhPrice = parseFloat(e.target.value) || 15000;
+        saveData();
+        calculateQuote();
+    });
+
+    document.getElementById('setting-hh-speed').addEventListener('change', (e) => {
+        appData.hhSpeed = parseFloat(e.target.value) || 50;
+        saveData();
+        calculateQuote();
+    });
+
+
+    // DB Form Actions
+    document.getElementById('btn-add-chemical').addEventListener('click', () => {
+        document.getElementById('chemical-form').classList.remove('hidden');
+        document.getElementById('chem-id').value = '';
+        document.getElementById('chem-name').value = '';
+        document.getElementById('chem-price').value = '';
+        document.getElementById('chem-size').value = '1000';
+        document.getElementById('chem-dose').value = '';
+    });
+
+    document.getElementById('btn-cancel-chem').addEventListener('click', () => {
+        document.getElementById('chemical-form').classList.add('hidden');
+    });
+
+    document.getElementById('btn-save-chem').addEventListener('click', saveChemical);
+    document.getElementById('btn-calculate').addEventListener('click', calculateQuote);
+    document.getElementById('btn-generate-pdf').addEventListener('click', generatePDF);
+}
+
+// Database Actions
+function renderChemicalsList() {
+    const list = document.getElementById('db-chemicals-list');
+    list.innerHTML = '';
+    
+    appData.chemicals.forEach(chem => {
+        const div = document.createElement('div');
+        div.className = 'db-item';
+        div.innerHTML = `
+            <div class="db-item-info">
+                <strong>${chem.name}</strong>
+                <span>Precio: $${chem.price} | Envase: ${chem.size}ml | Dosis: ${chem.dose}ml/m²</span>
+            </div>
+            <div class="db-item-actions">
+                <button onclick="deleteChemical('${chem.id}')">Eliminar</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+    
+    populateChemSelects();
+}
+
+function populateChemSelects() {
+    const intSelect = document.getElementById('interior-chem');
+    const extSelect = document.getElementById('exterior-chem');
+    
+    // Preserve current selection if any
+    const currInt = intSelect.value;
+    const currExt = extSelect.value;
+    
+    intSelect.innerHTML = '';
+    extSelect.innerHTML = '';
+    
+    appData.chemicals.forEach(chem => {
+        const opt1 = document.createElement('option');
+        opt1.value = chem.id;
+        opt1.textContent = chem.name;
+        intSelect.appendChild(opt1);
+        
+        const opt2 = document.createElement('option');
+        opt2.value = chem.id;
+        opt2.textContent = chem.name;
+        extSelect.appendChild(opt2);
+    });
+    
+    if(currInt && appData.chemicals.some(c => c.id === currInt)) intSelect.value = currInt;
+    if(currExt && appData.chemicals.some(c => c.id === currExt)) extSelect.value = currExt;
+}
+
+function saveChemical() {
+    const name = document.getElementById('chem-name').value;
+    const type = document.getElementById('chem-type').value;
+    const price = parseFloat(document.getElementById('chem-price').value);
+    const size = parseFloat(document.getElementById('chem-size').value);
+    const dose = parseFloat(document.getElementById('chem-dose').value);
+
+    if (!name || isNaN(price) || isNaN(size) || isNaN(dose)) {
+        alert("Por favor completa todos los campos numéricos y el nombre.");
+        return;
+    }
+
+    const newChem = {
+        id: 'c' + Date.now(),
+        name,
+        type,
+        price,
+        size,
+        dose
+    };
+
+    appData.chemicals.push(newChem);
+    saveData();
+    renderChemicalsList();
+    document.getElementById('chemical-form').classList.add('hidden');
+    calculateQuote();
+}
+
+window.deleteChemical = function(id) {
+    if (confirm("¿Seguro que deseas eliminar este producto?")) {
+        appData.chemicals = appData.chemicals.filter(c => c.id !== id);
+        saveData();
+        renderChemicalsList();
+        calculateQuote();
+    }
+};
+
+// PDF Generation
+function generatePDF() {
+    const name = document.getElementById('client-name').value;
+    if(!name) {
+        alert("Por favor ingresa al menos el nombre del cliente para exportar.");
+        return;
+    }
+
+    const element = document.getElementById('pdf-content');
+    const container = document.getElementById('pdf-container');
+
+    const opt = {
+        margin:       [10, 0, 15, 0],
+        filename:     `Cotizacion_Stahlgraf_${appData.correlative}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // Temporarily fix transform and constraints for exact A4 capture on small screens
+    const originalTransform = element.style.transform;
+    const originalMarginBottom = element.style.marginBottom;
+    const originalOverflow = container.style.overflow;
+    const originalMaxHeight = container.style.maxHeight;
+
+    element.style.transform = 'none';
+    element.style.marginBottom = '0px';
+    container.style.overflow = 'visible';
+    container.style.maxHeight = 'none';
+    
+    // Slight timeout to ensure browser reflows before render
+    setTimeout(() => {
+        html2pdf().set(opt).from(element).save().then(() => {
+            // Restore styling
+            element.style.transform = originalTransform;
+            element.style.marginBottom = originalMarginBottom;
+            container.style.overflow = originalOverflow;
+            container.style.maxHeight = originalMaxHeight;
+            
+            // Auto-increment correlative
+            appData.correlative++;
+            document.getElementById('setting-correlative').value = appData.correlative;
+            saveData();
+            calculateQuote();
+        }).catch(err => console.error("PDF generation error: ", err));
+    }, 100);
+}
+
+// Run
+document.addEventListener('DOMContentLoaded', initApp);

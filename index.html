@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotizador Premium - Stahlgraf</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- html2pdf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <h1 class="logo">Stahlgraf <span>Cotizador</span></h1>
+            <div class="nav-actions">
+                <button id="btn-settings" class="btn btn-secondary">Ajustes & BD</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        
+        <!-- Application Form Area -->
+        <div class="glass-panel form-panel">
+            <h2 class="section-title">Nueva Cotización</h2>
+            
+            <form id="quote-form">
+                <!-- Cliente Info -->
+                <div class="form-section">
+                    <h3>1. Datos del Cliente</h3>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label for="client-name">Nombre / Razón Social</label>
+                            <input type="text" id="client-name" placeholder="Ej. Juan Pérez" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="client-attention">Atención a (Opcional)</label>
+                            <input type="text" id="client-attention" placeholder="Ej. Depto. de Compras">
+                        </div>
+                        <div class="input-group">
+                            <label for="client-phone">Teléfono</label>
+                            <input type="tel" id="client-phone" placeholder="+56 9 1234 5678" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="client-address">Dirección del Servicio</label>
+                            <input type="text" id="client-address" placeholder="Av. Principal 1234" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Servicio Info -->
+                <div class="form-section">
+                    <h3>2. Detalles de Fumigación</h3>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label for="property-size">Tamaño Aprox. Propiedad (m²)</label>
+                            <input type="number" id="property-size" placeholder="Ej. 120" min="1" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="coverage-type">Cobertura</label>
+                            <select id="coverage-type">
+                                <option value="both">Interior y Exterior</option>
+                                <option value="inside">Solo Interior</option>
+                                <option value="outside">Solo Exterior</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="exterior-zones">Zonas de Exterior a Tratar</label>
+                            <select id="exterior-zones">
+                                <option value="full">Patio completo, árboles y terrazas</option>
+                                <option value="perimeter">Solo perímetro de la casa</option>
+                                <option value="none" disabled>No aplica</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="interior-chem">Producto para Interior</label>
+                            <select id="interior-chem">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="interior-tech">Técnica para Interior</label>
+                            <select id="interior-tech">
+                                <option value="Nebulización ULV + Aspersión Manual">Nebulización ULV + Aspersión Manual</option>
+                                <option value="Aspersión Manual">Aspersión Manual</option>
+                                <option value="Nebulización ULV">Nebulización ULV</option>
+                                <option value="Motopulverización">Motopulverización</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="exterior-chem">Producto para Exterior</label>
+                            <select id="exterior-chem">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="exterior-tech">Técnica para Exterior</label>
+                            <select id="exterior-tech">
+                                <option value="Motopulverización + Aspersión Manual">Motopulverización + Aspersión Manual</option>
+                                <option value="Motopulverización">Motopulverización</option>
+                                <option value="Aspersión Manual">Aspersión Manual</option>
+                                <option value="Nebulización ULV">Nebulización ULV</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Roedores Info -->
+                <div class="form-section">
+                    <h3>3. Control de Roedores</h3>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label for="rodent-control">¿Incluir control de roedores?</label>
+                            <select id="rodent-control">
+                                <option value="no">No</option>
+                                <option value="yes">Sí</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="bait-stations">Cebaderos de Seguridad (Cant.)</label>
+                            <input type="number" id="bait-stations" placeholder="Ej. 10" min="0" disabled>
+                        </div>
+                        <div class="input-group">
+                            <label for="loose-stations">Cebos Sueltos (Cant.)</label>
+                            <input type="number" id="loose-stations" placeholder="Ej. 5" min="0" disabled>
+                        </div>
+                        <div class="input-group">
+                            <label for="inspect-stations">Inspección / Reposición (Cant.)</label>
+                            <input type="number" id="inspect-stations" placeholder="Ej. 15" min="0" disabled>
+                        </div>
+                        <div class="input-group">
+                            <label for="snap-stations">Trampas Físicas / Captura (Cant.)</label>
+                            <input type="number" id="snap-stations" placeholder="Ej. 2" min="0" disabled>
+                        </div>
+                        <div class="input-group">
+                            <label for="rodent-extras">Servicios Complementarios</label>
+                            <select id="rodent-extras" disabled>
+                                <option value="none">Ninguno</option>
+                                <option value="sanitize">Retiro Cadáveres y Sanitización Local</option>
+                                <option value="exclusion">Sellado de Accesos (Exclusión)</option>
+                                <option value="both">Ambos Servicios Extra</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- Quote Summary Area -->
+        <div class="glass-panel summary-panel">
+            <h2 class="section-title">Vista Previa PDF</h2>
+            
+            <div id="pdf-container" class="pdf-container">
+                <div id="pdf-content" class="formal-document">
+                    
+                    <div class="doc-header">
+                        <h1>COTIZACIÓN DE SERVICIOS: CONTROL DE PLAGAS Y FUMIGACIÓN</h1>
+                        <div class="doc-meta">
+                            <div class="meta-box">
+                                <strong>Número de Cotización:</strong><br>#<span id="doc-correlative">0001</span>
+                            </div>
+                            <div class="meta-box">
+                                <strong>Fecha de Emisión:</strong><br><span id="doc-date">-</span>
+                            </div>
+                            <div class="meta-box">
+                                <strong>Validez de la Oferta:</strong><br>10 días corridos
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="doc-section">
+                        <h2>1. Partes Involucradas (Cliente)</h2>
+                        <table class="doc-table-simple">
+                            <tr><th>Nombre</th><td id="doc-client-name">-</td></tr>
+                            <tr id="row-attention"><th>Atención a</th><td id="doc-client-attention">-</td></tr>
+                            <tr><th>Dirección del Servicio</th><td id="doc-client-address">-</td></tr>
+                            <tr><th>Teléfono</th><td id="doc-client-phone">-</td></tr>
+                        </table>
+                    </div>
+
+                    <div class="doc-section">
+                        <h2>2. Descripción Detallada del Servicio</h2>
+                        <p>De acuerdo con la inspección previa (o solicitud del cliente), se propone el siguiente plan de acción:</p>
+                        
+                        <table class="doc-table-services">
+                            <thead>
+                                <tr>
+                                    <th>Servicio</th>
+                                    <th>Descripción Técnica</th>
+                                    <th class="text-right">Ctd</th>
+                                    <th class="text-right">Precio Unitario</th>
+                                    <th class="text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="doc-services-body">
+                                <!-- Dynamic Rows Go Here -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="4" class="text-right">Subtotal</th>
+                                    <td class="text-right"><strong id="doc-subtotal">$0</strong></td>
+                                </tr>
+                                <tr>
+                                    <th colspan="4" class="text-right">TOTAL FINAL</th>
+                                    <td class="text-right"><strong id="doc-total">$0</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="doc-section">
+                        <h2>3. Metodología y Garantía</h2>
+                        <ul class="methodology-list" id="doc-methodology-list">
+                            <!-- Populated dynamically via JS -->
+                        </ul>
+                    </div>
+
+                    <div class="doc-section">
+                        <h2>4. Preparación y Seguimiento del Servicio</h2>
+                        <h3>4.1. Antes del servicio (Preparación del Cliente):</h3>
+                        <ul>
+                            <li class="fumi-rule hidden">Retirar o cubrir alimentos y utensilios de cocina.</li>
+                            <li class="fumi-rule hidden">Retirar mascotas y plantas sensibles del área de aplicación.</li>
+                            <li class="fumi-rule hidden">Despejar zócalos y rincones de muebles pesados si es posible.</li>
+                            <li class="rodent-rule hidden">No mueva ni limpie las zonas donde ha visto rastros de roedores (heces, manchas) justo antes de la visita, para que el técnico identifique las rutas activas.</li>
+                            <li class="rodent-rule hidden">Elimine fuentes de agua o comida expuesta (sobras de mascotas, basura abierta) para que el cebo sea el único alimento disponible.</li>
+                        </ul>
+                        
+                        <h3>4.2. Después del servicio (Recomendaciones Post-Tratamiento):</h3>
+                        <ul>
+                            <li class="fumi-rule hidden">Mantener el área cerrada por un periodo de 2 a 4 horas.</li>
+                            <li class="fumi-rule hidden">Ventilar el lugar por 90 minutos antes de ingresar.</li>
+                            <li class="fumi-rule hidden">No realizar aseo profundo en las áreas tratadas durante las primeras 48 horas (para no remover el efecto residual).</li>
+                            <li class="fumi-rule hidden">Lavar con agua y jabón utensilios de cocina, cubiertos y platos que estuvieran expuestos durante la aplicación.</li>
+                            <li class="rodent-rule hidden"><strong>NO MANIPULAR NI MOVER:</strong> Para garantizar la eficacia del tratamiento y su seguridad, le agradeceremos no manipular ni desplazar las estaciones de cebado, ya que su ubicación responde a un análisis estratégico del área.</li>
+                            <li class="rodent-rule hidden"><strong>Seguridad:</strong> Aunque los cebaderos son de seguridad, vigile que niños o mascotas no intenten jugar con ellos.</li>
+                            <li class="rodent-rule hidden"><strong>Manejo de hallazgos:</strong> En caso de encontrar un roedor muerto, no lo toque directamente. Use guantes, doble bolsa de plástico y deposítelo en la basura externa.</li>
+                            <li class="rodent-rule hidden"><strong>Almacenamiento:</strong> Mantenga todos los alimentos secos en recipientes herméticos de plástico duro o vidrio. Para evitar alimentar por otra vía a los roedores.</li>
+                        </ul>
+                    </div>
+
+                    <div class="doc-section">
+                        <h2>5. Condiciones Comerciales</h2>
+                        <ul>
+                            <li><strong>Forma de Pago:</strong> 100% al finalizar el servicio.</li>
+                            <li><strong>Métodos de Pago:</strong> Transferencia bancaria, Efectivo.</li>
+                            <li><strong>Cancelaciones:</strong> Favor de avisar con 24 horas de antelación.</li>
+                        </ul>
+                        <p style="text-align: center; margin-top: 30px; font-weight: bold; color: #333;">
+                            Gracias por confiar en Stahlgraf Control de Plagas. Su salud y tranquilidad son nuestra prioridad.
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="summary-actions" style="margin-top: 20px;">
+                <button type="button" id="btn-calculate" class="btn btn-primary-outline">Actualizar Cálculo</button>
+                <button type="button" id="btn-generate-pdf" class="btn btn-primary">Generar PDF</button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Configuración y Base de Datos</h2>
+                <button id="btn-close-settings" class="close-btn">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="settings-grid">
+                    <div class="settings-section">
+                        <h3>Parámetros Generales</h3>
+                        <div class="input-group">
+                            <label for="setting-margin">Margen de Ganancia Fumigación (%)</label>
+                            <input type="number" id="setting-margin" value="40" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label for="setting-correlative">Correlativo Actual Cotización</label>
+                            <input type="number" id="setting-correlative" value="1" min="1">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-min-rate">Tarifa Base Mínima por Salida ($)</label>
+                            <input type="number" id="setting-min-rate" value="40000" min="0">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-bait-price">Precio Unitario Cebadero ($)</label>
+                            <input type="number" id="setting-bait-price" value="3750" min="0">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-loose-price">Valor Cebo Suelto ($)</label>
+                            <input type="number" id="setting-loose-price" value="800" min="0">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-inspect-price">Valor Inspección/Reposición ($)</label>
+                            <input type="number" id="setting-inspect-price" value="1500" min="0">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-snap-price">Valor Trampa Física Captura ($)</label>
+                            <input type="number" id="setting-snap-price" value="4500" min="0">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-sanitize-price">Base Retiro Cadáveres/Sanitización ($)</label>
+                            <input type="number" id="setting-sanitize-price" value="25000" min="0">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-exclusion-price">Base Sellado/Exclusión ($)</label>
+                            <input type="number" id="setting-exclusion-price" value="35000" min="0">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-hh-price">Valor Hora Hombre (HH) ($)</label>
+                            <input type="number" id="setting-hh-price" value="15000" min="0">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-hh-speed">Rendimiento Trabajo (m² por Hora)</label>
+                            <input type="number" id="setting-hh-speed" value="50" min="1">
+                        </div>
+                    </div>
+
+                    <div class="settings-section database-section">
+                        <h3>Base de Datos de Químicos (Insecticidas)</h3>
+                        <div class="db-list" id="db-chemicals-list">
+                            <!-- Populated via JS -->
+                        </div>
+                        <button id="btn-add-chemical" class="btn btn-secondary btn-sm">+ Agregar Producto</button>
+                    </div>
+                </div>
+                
+                <!-- Add Chemical Form (Hidden by default) -->
+                <div id="chemical-form" class="chemical-form hidden">
+                    <h4>Nuevo Producto</h4>
+                    <input type="hidden" id="chem-id">
+                    <div class="input-group">
+                        <label>Nombre y Descripción del Producto</label>
+                        <input type="text" id="chem-name" placeholder="Ej. DELTAMETRINA 2.5%SC">
+                    </div>
+                    <div class="input-group">
+                        <label>Tipo (Estándar o Hipoalergénico)</label>
+                        <select id="chem-type">
+                            <option value="standard">Estándar</option>
+                            <option value="hypo">Hipoalergénico/Sensible</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Precio del Envase ($)</label>
+                        <input type="number" id="chem-price" placeholder="Ej. 15000">
+                    </div>
+                    <div class="input-group" style="margin-top: 15px;">
+                        <label>Tamaño del Envase (ml o cc)</label>
+                        <input type="number" id="chem-size" placeholder="Ej. 1000" value="1000">
+                    </div>
+                    <div class="input-group" style="margin-top: 15px;">
+                        <label>Dosis (ml de producto por m²)</label>
+                        <input type="number" id="chem-dose" placeholder="Ej. 10">
+                    </div>
+                    <div class="flex-actions" style="margin-top: 20px;">
+                        <button id="btn-save-chem" class="btn btn-primary btn-sm">Guardar</button>
+                        <button id="btn-cancel-chem" class="btn btn-secondary btn-sm">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Application -->
+    <script src="app.js"></script>
+</body>
+</html>
