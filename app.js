@@ -505,7 +505,7 @@ function generatePDF() {
 
     const opt = {
         margin:       [10, 0, 15, 0],
-        filename:     `Cotizacion_Stahlgraf_${appData.correlative}.pdf`,
+        filename:     `COTIZACION DE SERVICIOS_${appData.correlative}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
