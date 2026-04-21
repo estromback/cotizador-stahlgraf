@@ -45,6 +45,8 @@ let appData = {
     exclusionPrice: 35000,
     hhPrice: 15000,
     hhSpeed: 50,
+    asanaToken: '',
+    asanaProject: '',
     chemicals: []
 };
 
@@ -109,8 +111,13 @@ function loadData() {
             appData.exclusionPrice = 35000;
             appData.hhPrice = 15000;
             appData.hhSpeed = 50;
+            appData.asanaToken = appData.asanaToken || '';
+            appData.asanaProject = appData.asanaProject || '';
             appData.chemicals = [...defaultChemicals];
         }
+        
+        appData.asanaToken = appData.asanaToken || '';
+        appData.asanaProject = appData.asanaProject || '';
         saveData();
     }
     
@@ -129,6 +136,8 @@ function updateSettingsUI() {
     document.getElementById('setting-exclusion-price').value = appData.exclusionPrice;
     document.getElementById('setting-hh-price').value = appData.hhPrice;
     document.getElementById('setting-hh-speed').value = appData.hhSpeed;
+    document.getElementById('setting-asana-token').value = appData.asanaToken || '';
+    document.getElementById('setting-asana-project').value = appData.asanaProject || '';
 }
 
 function saveData() {
@@ -480,6 +489,16 @@ function setupEventListeners() {
         calculateQuote();
     });
 
+    document.getElementById('setting-asana-token').addEventListener('change', (e) => {
+        appData.asanaToken = e.target.value.trim();
+        saveData();
+    });
+
+    document.getElementById('setting-asana-project').addEventListener('change', (e) => {
+        appData.asanaProject = e.target.value.trim();
+        saveData();
+    });
+
 
     // DB Form Actions
     document.getElementById('btn-add-chemical').addEventListener('click', () => {
@@ -498,6 +517,7 @@ function setupEventListeners() {
     document.getElementById('btn-save-chem').addEventListener('click', saveChemical);
     document.getElementById('btn-calculate').addEventListener('click', calculateQuote);
     document.getElementById('btn-generate-pdf').addEventListener('click', generatePDF);
+    document.getElementById('btn-asana').addEventListener('click', uploadToAsana);
 }
 
 // Database Actions
@@ -633,6 +653,117 @@ function generatePDF() {
             calculateQuote();
         }).catch(err => console.error("PDF generation error: ", err));
     }, 100);
+}
+
+// Asana Upload Flow
+async function uploadToAsana() {
+    if (!appData.asanaToken || !appData.asanaProject) {
+        alert("Por favor configura tu Token Personal (PAT) y el Project ID de Asana en 'Ajustes & BD' primero.");
+        return;
+    }
+
+    const clientName = document.getElementById('client-name').value || 'Cliente sin nombre';
+    if(clientName === 'Cliente sin nombre' || !document.getElementById('client-name').value) {
+        alert("Por favor ingresa al menos el nombre del cliente para crear la tarea.");
+        return;
+    }
+
+    const btn = document.getElementById('btn-asana');
+    const originalText = btn.innerText;
+    btn.innerText = "Subiendo...";
+    btn.disabled = true;
+
+    try {
+        // 1. Create Task
+        const taskData = {
+            data: {
+                name: `Cotización: ${clientName}`,
+                notes: `Atención a: ${document.getElementById('client-attention').value || '-'}
+Teléfono: ${document.getElementById('client-phone').value || '-'}
+Dirección: ${document.getElementById('client-address').value || '-'}
+Total Cotizado: ${document.getElementById('doc-total').innerText}
+
+Creado desde Cotizador Stahlgraf.`,
+                projects: [appData.asanaProject]
+            }
+        };
+
+        const taskRes = await fetch('https://app.asana.com/api/1.0/tasks', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${appData.asanaToken}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(taskData)
+        });
+
+        if (!taskRes.ok) throw new Error("Error creando tarea en Asana: " + (await taskRes.text()));
+        
+        const taskJson = await taskRes.json();
+        const taskGid = taskJson.data.gid;
+
+        // 2. Generate PDF Blob directly from html2pdf
+        const element = document.getElementById('pdf-content');
+        const container = document.getElementById('pdf-container');
+        
+        const originalTransform = element.style.transform;
+        const originalMarginBottom = element.style.marginBottom;
+        const originalOverflow = container.style.overflow;
+        const originalMaxHeight = container.style.maxHeight;
+
+        element.style.transform = 'none';
+        element.style.marginBottom = '0px';
+        container.style.overflow = 'visible';
+        container.style.maxHeight = 'none';
+
+        const opt = {
+            margin:       [10, 0, 15, 0],
+            filename:     `COTIZACION_${appData.correlative}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // await html2pdf generator Promise
+        const worker = html2pdf().set(opt).from(element);
+        const pdfBlob = await worker.outputPdf('blob');
+        
+        element.style.transform = originalTransform;
+        element.style.marginBottom = originalMarginBottom;
+        container.style.overflow = originalOverflow;
+        container.style.maxHeight = originalMaxHeight;
+
+        // 3. Upload Attachment to Asana Task
+        const formData = new FormData();
+        const fileName = `Cotizacion_${appData.correlative}_${clientName.replace(/\s+/g, '_')}.pdf`;
+        formData.append('file', pdfBlob, fileName);
+
+        const attachRes = await fetch(`https://app.asana.com/api/1.0/tasks/${taskGid}/attachments`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${appData.asanaToken}`,
+                'Accept': 'application/json'
+            },
+            body: formData
+        });
+
+        if (!attachRes.ok) throw new Error("Error subiendo PDF a Asana: " + (await attachRes.text()));
+
+        // Success: Increment correlative
+        appData.correlative++;
+        document.getElementById('setting-correlative').value = appData.correlative;
+        saveData();
+        calculateQuote();
+
+        alert("¡Éxito! Tarea y Cotización subidas a Asana.");
+    } catch (err) {
+        console.error("Asana Flow Error:", err);
+        alert("Ocurrió un error al enviar a Asana. Revisa la consola para más detalles.\n\n" + err.message);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
 }
 
 // Run

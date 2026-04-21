@@ -276,6 +276,7 @@
 
             <div class="summary-actions" style="margin-top: 20px;">
                 <button type="button" id="btn-calculate" class="btn btn-primary-outline">Actualizar Cálculo</button>
+                <button type="button" id="btn-asana" class="btn btn-primary-outline" style="background-color: #f06a6a; color: white; border-color: #f06a6a; margin-right: 10px;">Subir a Asana</button>
                 <button type="button" id="btn-generate-pdf" class="btn btn-primary">Generar PDF</button>
             </div>
         </div>
@@ -301,6 +302,14 @@
                         <div class="input-group">
                             <label for="setting-correlative">Correlativo Actual Cotización</label>
                             <input type="number" id="setting-correlative" value="1" min="1">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-asana-token">Token Personal Asana (PAT)</label>
+                            <input type="password" id="setting-asana-token" placeholder="Ej. 1/12345...">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-asana-project">Asana Project ID</label>
+                            <input type="text" id="setting-asana-project" placeholder="Ej. 12012345...">
                         </div>
                         <div class="input-group" style="margin-top: 15px;">
                             <label for="setting-min-rate">Tarifa Base Mínima por Salida ($)</label>
