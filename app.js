@@ -793,36 +793,86 @@ async function uploadToAsana() {
     btn.disabled = true;
 
     try {
-        // 1. Create Task
-        const taskData = {
-            data: {
-                name: clientName,
-                notes: `Atención a: ${document.getElementById('client-attention').value || '-'}
+        // 0. Search for existing task
+        btn.innerText = "Buscando...";
+        let taskGid = null;
+        let searchUrl = `https://app.asana.com/api/1.0/tasks?project=${appData.asanaProject}&opt_fields=name&limit=100`;
+        
+        while (searchUrl && !taskGid) {
+            const getTasksRes = await fetch(searchUrl, {
+                headers: {
+                    'Authorization': `Bearer ${appData.asanaToken}`,
+                    'Accept': 'application/json'
+                }
+            });
+            if (!getTasksRes.ok) {
+                console.warn("No se pudo buscar tareas existentes, se procederá a crear una nueva.");
+                break;
+            }
+            const tasksJson = await getTasksRes.json();
+            const existingTask = tasksJson.data.find(t => t.name.trim().toLowerCase() === clientName.trim().toLowerCase());
+            
+            if (existingTask) {
+                taskGid = existingTask.gid;
+                break;
+            }
+            searchUrl = tasksJson.next_page ? tasksJson.next_page.uri : null;
+        }
+
+        if (!taskGid) {
+            // 1. Create Task (Not Found)
+            btn.innerText = "Creando tarea...";
+            const taskData = {
+                data: {
+                    name: clientName,
+                    notes: `Atención a: ${document.getElementById('client-attention').value || '-'}
 Teléfono: ${document.getElementById('client-phone').value || '-'}
 Dirección: ${document.getElementById('client-address').value || '-'}
 Total Cotizado: ${document.getElementById('doc-total').innerText}
 
 Creado desde Cotizador Stahlgraf.`,
-                projects: [appData.asanaProject]
+                    projects: [appData.asanaProject]
+                }
+            };
+
+            const taskRes = await fetch('https://app.asana.com/api/1.0/tasks', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${appData.asanaToken}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(taskData)
+            });
+
+            if (!taskRes.ok) throw new Error("Error creando tarea en Asana: " + (await taskRes.text()));
+            
+            const taskJson = await taskRes.json();
+            taskGid = taskJson.data.gid;
+        } else {
+            // Found existing task, add a comment indicating a new quote was added
+            btn.innerText = "Actualizando...";
+            try {
+                await fetch(`https://app.asana.com/api/1.0/tasks/${taskGid}/stories`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${appData.asanaToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        data: {
+                            text: `Se ha generado y adjuntado una nueva versión de cotización (#${loadedCorrelative !== null ? loadedCorrelative : appData.correlative}) por ${document.getElementById('doc-total').innerText}.`
+                        }
+                    })
+                });
+            } catch (e) {
+                console.warn("No se pudo añadir el comentario a la tarea existente.", e);
             }
-        };
-
-        const taskRes = await fetch('https://app.asana.com/api/1.0/tasks', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${appData.asanaToken}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(taskData)
-        });
-
-        if (!taskRes.ok) throw new Error("Error creando tarea en Asana: " + (await taskRes.text()));
-        
-        const taskJson = await taskRes.json();
-        const taskGid = taskJson.data.gid;
+        }
 
         // 2. Generate PDF Blob directly from html2pdf
+        btn.innerText = "Generando PDF...";
         const element = document.getElementById('pdf-content');
         const container = document.getElementById('pdf-container');
         
