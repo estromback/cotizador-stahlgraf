@@ -446,6 +446,23 @@ function calculateQuote() {
 
 // Event Listeners
 function setupEventListeners() {
+    // Setup Tabs
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.settings-tab-content');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+            
+            btn.classList.add('active');
+            const targetId = btn.getAttribute('data-tab');
+            if(document.getElementById(targetId)) {
+                document.getElementById(targetId).classList.add('active');
+            }
+        });
+    });
+
     // Form Real-time calculation
     const inputs = document.querySelectorAll('#quote-form input, #quote-form select');
     inputs.forEach(input => {

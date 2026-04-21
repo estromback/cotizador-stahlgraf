@@ -342,81 +342,106 @@
             </div>
             
             <div class="modal-body">
-                <div class="settings-grid">
-                    <div class="settings-section">
-                        <h3>Parámetros Generales</h3>
-                        <div class="input-group">
-                            <label for="setting-margin">Margen de Ganancia Fumigación (%)</label>
-                            <input type="number" id="setting-margin" value="40" min="0">
-                        </div>
-                        <div class="input-group">
-                            <label for="setting-correlative">Correlativo Actual Cotización</label>
-                            <input type="number" id="setting-correlative" value="1" min="1">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-asana-token">Token Personal Asana (PAT)</label>
-                            <input type="password" id="setting-asana-token" placeholder="Ej. 1/12345...">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-asana-project">Asana Project ID</label>
-                            <input type="text" id="setting-asana-project" placeholder="Ej. 12012345...">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-min-rate">Tarifa Base Mínima por Salida ($)</label>
-                            <input type="number" id="setting-min-rate" value="40000" min="0">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-bait-price">Precio Unitario Cebadero ($)</label>
-                            <input type="number" id="setting-bait-price" value="3750" min="0">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-loose-price">Valor Cebo Suelto ($)</label>
-                            <input type="number" id="setting-loose-price" value="800" min="0">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-inspect-price">Valor Inspección/Reposición ($)</label>
-                            <input type="number" id="setting-inspect-price" value="1500" min="0">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-snap-price">Valor Trampa Física Captura ($)</label>
-                            <input type="number" id="setting-snap-price" value="4500" min="0">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-sanitize-price">Base Retiro Cadáveres/Sanitización ($)</label>
-                            <input type="number" id="setting-sanitize-price" value="25000" min="0">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-exclusion-price">Base Sellado/Exclusión ($)</label>
-                            <input type="number" id="setting-exclusion-price" value="35000" min="0">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-moth-prep-price">Servicio Vaciado/Limpieza Polillas ($)</label>
-                            <input type="number" id="setting-moth-prep-price" value="15000" min="0">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-moth-trap-price">Instalación Trampa Polillas ($)</label>
-                            <input type="number" id="setting-moth-trap-price" value="5000" min="0">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-moth-chem-price">Base Aplicación Polillas (Tratamiento) ($)</label>
-                            <input type="number" id="setting-moth-chem-price" value="25000" min="0">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-hh-price">Valor Hora Hombre (HH) ($)</label>
-                            <input type="number" id="setting-hh-price" value="15000" min="0">
-                        </div>
-                        <div class="input-group" style="margin-top: 15px;">
-                            <label for="setting-hh-speed">Rendimiento Trabajo (m² por Hora)</label>
-                            <input type="number" id="setting-hh-speed" value="50" min="1">
+                <div class="settings-layout">
+                    <div class="settings-tabs">
+                        <button class="tab-btn active" data-tab="tab-general">General</button>
+                        <button class="tab-btn" data-tab="tab-roedores">Roedores</button>
+                        <button class="tab-btn" data-tab="tab-polillas">Polillas</button>
+                        <button class="tab-btn" data-tab="tab-asana">Asana & Nube</button>
+                        <button class="tab-btn" data-tab="tab-quimicos">Químicos</button>
+                    </div>
+
+                    <div class="settings-tab-content active" id="tab-general">
+                        <div class="settings-grid">
+                            <div class="input-group">
+                                <label for="setting-margin">Margen de Ganancia Fumigación (%)</label>
+                                <input type="number" id="setting-margin" value="40" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-correlative">Correlativo Actual Cotización</label>
+                                <input type="number" id="setting-correlative" value="1" min="1">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-min-rate">Tarifa Base Mínima por Salida ($)</label>
+                                <input type="number" id="setting-min-rate" value="40000" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-hh-price">Valor Hora Hombre (HH) ($)</label>
+                                <input type="number" id="setting-hh-price" value="15000" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-hh-speed">Rendimiento Trabajo (m² por Hora)</label>
+                                <input type="number" id="setting-hh-speed" value="50" min="1">
+                            </div>
                         </div>
                     </div>
 
-                    <div class="settings-section database-section">
-                        <h3>Base de Datos de Químicos (Insecticidas)</h3>
-                        <div class="db-list" id="db-chemicals-list">
-                            <!-- Populated via JS -->
+                    <div class="settings-tab-content" id="tab-roedores">
+                        <div class="settings-grid">
+                            <div class="input-group">
+                                <label for="setting-bait-price">Precio Unitario Cebadero ($)</label>
+                                <input type="number" id="setting-bait-price" value="3750" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-loose-price">Valor Cebo Suelto ($)</label>
+                                <input type="number" id="setting-loose-price" value="800" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-inspect-price">Valor Inspección/Reposición ($)</label>
+                                <input type="number" id="setting-inspect-price" value="1500" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-snap-price">Valor Trampa Física Captura ($)</label>
+                                <input type="number" id="setting-snap-price" value="4500" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-sanitize-price">Base Retiro Cadáveres/Sanitización ($)</label>
+                                <input type="number" id="setting-sanitize-price" value="25000" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-exclusion-price">Base Sellado/Exclusión ($)</label>
+                                <input type="number" id="setting-exclusion-price" value="35000" min="0">
+                            </div>
                         </div>
-                        <button id="btn-add-chemical" class="btn btn-secondary btn-sm">+ Agregar Producto</button>
+                    </div>
+
+                    <div class="settings-tab-content" id="tab-polillas">
+                        <div class="settings-grid">
+                            <div class="input-group">
+                                <label for="setting-moth-prep-price">Servicio Vaciado/Limpieza Polillas ($)</label>
+                                <input type="number" id="setting-moth-prep-price" value="15000" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-moth-trap-price">Instalación Trampa Polillas ($)</label>
+                                <input type="number" id="setting-moth-trap-price" value="5000" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-moth-chem-price">Base Aplicación Polillas (Tratamiento) ($)</label>
+                                <input type="number" id="setting-moth-chem-price" value="25000" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-tab-content" id="tab-asana">
+                        <div class="settings-grid">
+                            <div class="input-group">
+                                <label for="setting-asana-token">Token Personal Asana (PAT)</label>
+                                <input type="password" id="setting-asana-token" placeholder="Ej. 1/12345...">
+                            </div>
+                            <div class="input-group">
+                                <label for="setting-asana-project">Asana Project ID</label>
+                                <input type="text" id="setting-asana-project" placeholder="Ej. 12012345...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-tab-content" id="tab-quimicos">
+                        <div class="database-section">
+                            <div class="db-list" id="db-chemicals-list">
+                                <!-- Populated via JS -->
+                            </div>
+                            <button id="btn-add-chemical" class="btn btn-secondary btn-sm">+ Agregar Producto</button>
+                        </div>
                     </div>
                 </div>
                 
