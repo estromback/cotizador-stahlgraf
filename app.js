@@ -677,7 +677,7 @@ async function uploadToAsana() {
         // 1. Create Task
         const taskData = {
             data: {
-                name: `Cotización: ${clientName}`,
+                name: clientName,
                 notes: `Atención a: ${document.getElementById('client-attention').value || '-'}
 Teléfono: ${document.getElementById('client-phone').value || '-'}
 Dirección: ${document.getElementById('client-address').value || '-'}
