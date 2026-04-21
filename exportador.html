@@ -71,7 +71,18 @@
                     </div>
 
                     <div class="input-group full-width">
-                        <label>Opciones de Exportación</label>
+                        <label>Columnas a Exportar</label>
+                        <div class="checkbox-group cols-options">
+                            <label><input type="checkbox" id="col-name" checked disabled> Tarea (Obligatorio)</label>
+                            <label><input type="checkbox" id="col-assignee" checked> Responsable</label>
+                            <label><input type="checkbox" id="col-due" checked> Fecha Entrega</label>
+                            <label><input type="checkbox" id="col-status" checked> Estado</label>
+                            <label><input type="checkbox" id="col-notes" checked> Descripción</label>
+                        </div>
+                    </div>
+
+                    <div class="input-group full-width">
+                        <label>Comentarios Extras</label>
                         <div class="checkbox-group">
                             <input type="checkbox" id="opt-comments" checked>
                             <label for="opt-comments">Incluir comentarios y actualizaciones (Puede demorar más)</label>

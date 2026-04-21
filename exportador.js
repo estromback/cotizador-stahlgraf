@@ -41,6 +41,12 @@ const dashboardState = document.getElementById('dashboard-state');
 const wsSelect = document.getElementById('workspace-select');
 const projSelect = document.getElementById('project-select');
 const optComments = document.getElementById('opt-comments');
+
+const colAssignee = document.getElementById('col-assignee');
+const colDue = document.getElementById('col-due');
+const colStatus = document.getElementById('col-status');
+const colNotes = document.getElementById('col-notes');
+
 const btnExport = document.getElementById('btn-export');
 const btnShare = document.getElementById('btn-share');
 const btnDownload = document.getElementById('btn-download');
@@ -260,14 +266,17 @@ async function generateExcel() {
                 }
             }
 
-            excelData.push({
-                'Nombre Tarea': task.name || '',
-                'Responsable': task.assignee ? task.assignee.name : 'Sin Asignar',
-                'Fecha de Entrega': task.due_on || 'Sin Fecha',
-                'Estado': task.completed ? 'Completado' : 'Pendiente',
-                'Descripción': task.notes || '',
-                ...(includeComments ? { 'Comentarios': commentsStr } : {})
-            });
+            const rowData = {
+                'Nombre Tarea': task.name || ''
+            };
+
+            if (colAssignee.checked) rowData['Responsable'] = task.assignee ? task.assignee.name : 'Sin Asignar';
+            if (colDue.checked) rowData['Fecha Entrega'] = task.due_on || 'Sin Fecha';
+            if (colStatus.checked) rowData['Estado'] = task.completed ? 'Completado' : 'Pendiente';
+            if (colNotes.checked) rowData['Descripción'] = task.notes || '';
+            if (includeComments) rowData['Comentarios'] = commentsStr;
+            
+            excelData.push(rowData);
             
             index++;
             
@@ -282,15 +291,16 @@ async function generateExcel() {
         // 3. Create Excel Worksheet uses SheetJS
         const worksheet = XLSX.utils.json_to_sheet(excelData);
         
-        // Adjust column widths roughly
+        // Adjust column widths roughly based on selection
         const wscols = [
-            {wch: 40}, // Nombre
-            {wch: 25}, // Responsable
-            {wch: 15}, // Fecha
-            {wch: 15}, // Estado
-            {wch: 50}, // Descripcion
-            ...(includeComments ? [{wch: 60}] : []) // Comentarios
+            {wch: 40} // Nombre (always)
         ];
+        if (colAssignee.checked) wscols.push({wch: 25});
+        if (colDue.checked) wscols.push({wch: 15});
+        if (colStatus.checked) wscols.push({wch: 15});
+        if (colNotes.checked) wscols.push({wch: 50});
+        if (includeComments) wscols.push({wch: 60});
+
         worksheet['!cols'] = wscols;
 
         const workbook = XLSX.utils.book_new();
