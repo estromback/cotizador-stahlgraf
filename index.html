@@ -164,6 +164,31 @@
                     </div>
                 </div>
 
+                <!-- Polillas Info -->
+                <div class="form-section">
+                    <h3>4. Control de Polillas de Despensa</h3>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label for="moth-control">¿Incluir control de polillas de despensa?</label>
+                            <select id="moth-control">
+                                <option value="no">No</option>
+                                <option value="yes">Sí</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="moth-prep-service">Servicio Preparación (Vaciado/Aspirado)</label>
+                            <select id="moth-prep-service" disabled>
+                                <option value="yes">Incluido (Recomendado)</option>
+                                <option value="no">No Incluido (Lo hace el cliente)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="moth-traps">Trampas Feromonas de Polilla (Cant.)</label>
+                            <input type="number" id="moth-traps" placeholder="Ej. 2" min="0" disabled>
+                        </div>
+                    </div>
+                </div>
+
             </form>
         </div>
 
@@ -245,6 +270,9 @@
                             <li class="fumi-rule hidden">Despejar zócalos y rincones de muebles pesados si es posible.</li>
                             <li class="rodent-rule hidden">No mueva ni limpie las zonas donde ha visto rastros de roedores (heces, manchas) justo antes de la visita, para que el técnico identifique las rutas activas.</li>
                             <li class="rodent-rule hidden">Elimine fuentes de agua o comida expuesta (sobras de mascotas, basura abierta) para que el cebo sea el único alimento disponible.</li>
+                            <li class="moth-rule hidden"><strong>Vaciamiento total despensa:</strong> Retire todos los alimentos, platos y cubiertos de los muebles a tratar.</li>
+                            <li class="moth-rule hidden"><strong>Descarte preventivo:</strong> Elimine envases abiertos, dañados o con signos de contaminación (sedas, larvas, etc.).</li>
+                            <li class="moth-rule hidden"><strong>Limpieza previa:</strong> Si no incluyó el servicio, asegúrese de aspirar a fondo rincones de la despensa (el producto funciona mejor sobre superficie limpia).</li>
                         </ul>
                         
                         <h3>4.2. Después del servicio (Recomendaciones Post-Tratamiento):</h3>
@@ -257,6 +285,9 @@
                             <li class="rodent-rule hidden"><strong>Seguridad:</strong> Aunque los cebaderos son de seguridad, vigile que niños o mascotas no intenten jugar con ellos.</li>
                             <li class="rodent-rule hidden"><strong>Manejo de hallazgos:</strong> En caso de encontrar un roedor muerto, no lo toque directamente. Use guantes, doble bolsa de plástico y deposítelo en la basura externa.</li>
                             <li class="rodent-rule hidden"><strong>Almacenamiento:</strong> Mantenga todos los alimentos secos en recipientes herméticos de plástico duro o vidrio. Para evitar alimentar por otra vía a los roedores.</li>
+                            <li class="moth-rule hidden"><strong>Secado absoluto despensa:</strong> Espere a que el producto aplicado esté completamente seco al tacto antes de volver a colocar cualquier objeto.</li>
+                            <li class="moth-rule hidden"><strong>Ventilación:</strong> Deje que la despensa/cocina se ventile por al menos 30 a 60 minutos tras la aplicación.</li>
+                            <li class="moth-rule hidden"><strong>Forrado de estantes:</strong> Coloque papel de cocina o manteles plásticos sobre las repisas secas antes de almacenar. Evite el contacto directo de envases con la superficie.</li>
                         </ul>
                     </div>
 
@@ -357,6 +388,18 @@
                         <div class="input-group" style="margin-top: 15px;">
                             <label for="setting-exclusion-price">Base Sellado/Exclusión ($)</label>
                             <input type="number" id="setting-exclusion-price" value="35000" min="0">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-moth-prep-price">Servicio Vaciado/Limpieza Polillas ($)</label>
+                            <input type="number" id="setting-moth-prep-price" value="15000" min="0">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-moth-trap-price">Instalación Trampa Polillas ($)</label>
+                            <input type="number" id="setting-moth-trap-price" value="5000" min="0">
+                        </div>
+                        <div class="input-group" style="margin-top: 15px;">
+                            <label for="setting-moth-chem-price">Base Aplicación Polillas (Tratamiento) ($)</label>
+                            <input type="number" id="setting-moth-chem-price" value="25000" min="0">
                         </div>
                         <div class="input-group" style="margin-top: 15px;">
                             <label for="setting-hh-price">Valor Hora Hombre (HH) ($)</label>

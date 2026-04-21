@@ -49,6 +49,9 @@ let appData = {
     hhSpeed: 50,
     asanaToken: '',
     asanaProject: '',
+    mothPrepPrice: 15000,
+    mothTrapPrice: 5000,
+    mothChemPrice: 25000,
     chemicals: []
 };
 
@@ -113,6 +116,9 @@ function loadData() {
             appData.exclusionPrice = 35000;
             appData.hhPrice = 15000;
             appData.hhSpeed = 50;
+            appData.mothPrepPrice = 15000;
+            appData.mothTrapPrice = 5000;
+            appData.mothChemPrice = 25000;
             appData.asanaToken = appData.asanaToken || '';
             appData.asanaProject = appData.asanaProject || '';
             appData.chemicals = [...defaultChemicals];
@@ -136,6 +142,9 @@ function updateSettingsUI() {
     document.getElementById('setting-snap-price').value = appData.snapPrice;
     document.getElementById('setting-sanitize-price').value = appData.sanitizePrice;
     document.getElementById('setting-exclusion-price').value = appData.exclusionPrice;
+    document.getElementById('setting-moth-prep-price').value = appData.mothPrepPrice || 15000;
+    document.getElementById('setting-moth-trap-price').value = appData.mothTrapPrice || 5000;
+    document.getElementById('setting-moth-chem-price').value = appData.mothChemPrice || 25000;
     document.getElementById('setting-hh-price').value = appData.hhPrice;
     document.getElementById('setting-hh-speed').value = appData.hhSpeed;
     document.getElementById('setting-asana-token').value = appData.asanaToken || '';
@@ -193,6 +202,10 @@ function calculateQuote() {
     const inspectStations = parseInt(document.getElementById('inspect-stations').value) || 0;
     const snapStations = parseInt(document.getElementById('snap-stations').value) || 0;
     const rodentExtras = document.getElementById('rodent-extras').value;
+
+    const hasMoths = document.getElementById('moth-control') ? document.getElementById('moth-control').value === 'yes' : false;
+    const mothPrep = document.getElementById('moth-prep-service') ? document.getElementById('moth-prep-service').value : 'no';
+    const mothTraps = document.getElementById('moth-traps') ? parseInt(document.getElementById('moth-traps').value) || 0 : 0;
 
     // 2. Adjust effective size based on coverage
     let interiorSize = 0;
@@ -262,7 +275,15 @@ function calculateQuote() {
         if(rodentExtras === 'exclusion' || rodentExtras === 'both') rodentsCost += appData.exclusionPrice;
     }
 
-    const totalCost = interiorCost + exteriorCost + rodentsCost;
+    // Calculate Moths
+    let mothsCost = 0;
+    if (hasMoths) {
+        mothsCost += appData.mothChemPrice || 25000; // Base tratment
+        if (mothPrep === 'yes') mothsCost += appData.mothPrepPrice || 15000;
+        if (mothTraps > 0) mothsCost += (mothTraps * (appData.mothTrapPrice || 5000));
+    }
+
+    const totalCost = interiorCost + exteriorCost + rodentsCost + mothsCost;
 
     // --- UPDATE UI DOCUMENT ---
     const displayCorr = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
@@ -303,6 +324,31 @@ function calculateQuote() {
         if(rodentExtras === 'exclusion' || rodentExtras === 'both') renderRow('S. Complementario', 'Sellado físico de accesos y exclusión', 1, appData.exclusionPrice, appData.exclusionPrice);
     }
     
+    if (hasMoths) {
+        const renderRow = (concept, desc, qty, priceUnit, totalRow) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${concept}</td>
+                <td>${desc}</td>
+                <td class="text-right">${qty}</td>
+                <td class="text-right">${formatter.format(priceUnit)}</td>
+                <td class="text-right"><strong>${formatter.format(totalRow)}</strong></td>
+            `;
+            tbody.appendChild(tr);
+        };
+        const basePrice = appData.mothChemPrice || 25000;
+        renderRow('Control Polillas de Despensa', 'Tratamiento base: Aplicación localizada con atomizador (esquema de barrera no "al aire").', 1, basePrice, basePrice);
+        
+        if (mothPrep === 'yes') {
+            const prepPrice = appData.mothPrepPrice || 15000;
+            renderRow('Protección Polillas', 'Servicio de vaciado de despensa y aspirado minucioso de rincones y grietas.', 1, prepPrice, prepPrice);
+        }
+        if (mothTraps > 0) {
+            const trapPrice = appData.mothTrapPrice || 5000;
+            renderRow('Monitoreo Polillas', 'Instalación de trampas de feromonas para polillas.', mothTraps, trapPrice, mothTraps * trapPrice);
+        }
+    }
+
     if (interiorSize > 0) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -352,7 +398,10 @@ function calculateQuote() {
         if(snapStations > 0) rTechs.push('Trampas Físicas de golpe/captura');
         if(rodentExtras === 'sanitize' || rodentExtras === 'both') rTechs.push('Sanitización Local de Rastros/Cadáveres');
         if(rodentExtras === 'exclusion' || rodentExtras === 'both') rTechs.push('Sellado Estructural (Exclusión)');
-        finalTech += `Para roedores: ${rTechs.join(', ')}.`;
+        finalTech += `Para roedores: ${rTechs.join(', ')}. `;
+    }
+    if(hasMoths) {
+        finalTech += `Para polillas: Tratamiento de alta precisión en muebles y despensa. Aplicación en formato abanico cerrado exclusivo en grietas, uniones y esquinas (técnica de barrera de contacto/repelencia, no aerotransportada). Instalación de trampas de feromenas (si aplica). `;
     }
     
     if(finalTech) {
@@ -367,7 +416,8 @@ function calculateQuote() {
         if(exteriorSize > 0 && exteriorChem.id !== selectedChem.id) fumiProds.push(exteriorChem.name);
         finalProd += `Utilizamos insecticidas de grado profesional, biodegradables y autorizados por SAG (${fumiProds.join(' y ')}). `;
     }
-    if(hasRodents) finalProd += `Rodenticida anticoagulante de segunda generación (Bromadiolona).`;
+    if(hasRodents) finalProd += `Para roedores: Rodenticida anticoagulante de segunda generación (Bromadiolona). `;
+    if(hasMoths) finalProd += `Para polillas: Insecticida Piretroide de rápido volteo (Lambda-cialotrina). Este químico es altamente recomendado por su letalidad inmediata por contacto contra adultos y larvas. `;
 
     if(finalProd) {
         methList.innerHTML += `<li><strong>Productos:</strong> ${finalProd}</li>`;
@@ -375,8 +425,9 @@ function calculateQuote() {
 
     // Warranty
     let finalWarranty = '';
-    if(hasFumigation) finalWarranty += `Fumigación: Después de los 15 días corridos de la aplicación, si la plaga no se ha controlado efectivamente, se ofrece una reaplicación localizada en la zona de reaparición. `;
-    if(hasRodents) finalWarranty += `Rodentización: Puede contratar un servicio de visita cada 30 días para inspección y reposición de los cebos (Valor base mensual de $1.500 por cebadero tras instalación inicial).`;
+    if(hasFumigation) finalWarranty += `Fumigación general: Después de los 15 días corridos de la aplicación, si la plaga no se ha controlado efectivamente, se ofrece una reaplicación localizada en la zona de reaparición. `;
+    if(hasRodents) finalWarranty += `Rodentización: Puede contratar un servicio de visita cada 30 días para inspección y reposición de los cebos (Valor base mensual de $1.500 por cebadero tras instalación inicial). `;
+    if(hasMoths) finalWarranty += `Control de Polillas: Nuestra técnica y química empleada garantizan el corte drástico del ciclo reproductivo tras el secado de la barrera. El control difiere según la higiene y hábitos de descarte futuro. `;
 
     if(finalWarranty) {
         methList.innerHTML += `<li><strong>Garantía / Mantención:</strong> ${finalWarranty}</li>`;
@@ -389,6 +440,8 @@ function calculateQuote() {
     const rodentElems = document.querySelectorAll('.rodent-rule');
     rodentElems.forEach(el => hasRodents ? el.classList.remove('hidden') : el.classList.add('hidden'));
 
+    const mothElems = document.querySelectorAll('.moth-rule');
+    mothElems.forEach(el => hasMoths ? el.classList.remove('hidden') : el.classList.add('hidden'));
 }
 
 // Event Listeners
@@ -450,6 +503,17 @@ function setupEventListeners() {
         calculateQuote();
     });
 
+    // Moth changes
+    const mothControlEl = document.getElementById('moth-control');
+    if (mothControlEl) {
+        mothControlEl.addEventListener('change', (e) => {
+            const isYes = e.target.value === 'yes';
+            document.getElementById('moth-prep-service').disabled = !isYes;
+            document.getElementById('moth-traps').disabled = !isYes;
+            calculateQuote();
+        });
+    }
+
     // Modal Triggers
     const modal = document.getElementById('settings-modal');
     document.getElementById('btn-settings').addEventListener('click', () => modal.classList.add('active'));
@@ -483,6 +547,24 @@ function setupEventListeners() {
 
     document.getElementById('setting-bait-price').addEventListener('change', (e) => {
         appData.baitPrice = parseInt(e.target.value) || 3750;
+        saveData();
+        calculateQuote();
+    });
+    
+    document.getElementById('setting-moth-prep-price')?.addEventListener('change', (e) => {
+        appData.mothPrepPrice = parseInt(e.target.value) || 15000;
+        saveData();
+        calculateQuote();
+    });
+
+    document.getElementById('setting-moth-trap-price')?.addEventListener('change', (e) => {
+        appData.mothTrapPrice = parseInt(e.target.value) || 5000;
+        saveData();
+        calculateQuote();
+    });
+
+    document.getElementById('setting-moth-chem-price')?.addEventListener('change', (e) => {
+        appData.mothChemPrice = parseInt(e.target.value) || 25000;
         saveData();
         calculateQuote();
     });
