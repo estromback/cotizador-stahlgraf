@@ -1,4 +1,29 @@
-// Default Database if localStorage is empty
+// --- FIREBASE CONFIGURATION ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDxz0JQhHBMCZi5kKb4Mtp2bFyZuJ5wfbA",
+  authDomain: "stahlgraf-apps.firebaseapp.com",
+  projectId: "stahlgraf-apps",
+  storageBucket: "stahlgraf-apps.firebasestorage.app",
+  messagingSenderId: "501285299028",
+  appId: "1:501285299028:web:b7adda0826e638d80a5ec1",
+  measurementId: "G-X0X7E48C64"
+};
+
+let db = null;
+let auth = null;
+let currentUser = null;
+
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        auth = firebase.auth();
+    } catch (e) {
+        console.warn("Firebase config is incomplete or invalid.");
+    }
+}
+// ------------------------------
+
 // Default Database if localStorage is empty
 const defaultChemicals = [
     { id: 'c1', name: 'CiperKill 25 EC', type: 'standard', price: 35000, size: 1000, dose: 0.4 },
@@ -37,6 +62,22 @@ function initApp() {
     document.getElementById('doc-date').innerText = new Date().toLocaleDateString('es-ES', dateOpts);
     
     calculateQuote();
+
+    // Firebase Auth Listener
+    if (auth) {
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('sync-text').innerText = "Conectado";
+                document.getElementById('sync-icon').innerText = "✅";
+                syncFromFirebase();
+            } else {
+                currentUser = null;
+                document.getElementById('sync-text').innerText = "Ingresar para Sync";
+                document.getElementById('sync-icon').innerText = "☁️";
+            }
+        });
+    }
 }
 
 // LocalStorage Management
@@ -71,8 +112,14 @@ function loadData() {
             appData.chemicals = [...defaultChemicals];
         }
         saveData();
+        }
+        saveData();
     }
     
+    updateSettingsUI();
+}
+
+function updateSettingsUI() {
     document.getElementById('setting-margin').value = appData.margin;
     document.getElementById('setting-min-rate').value = appData.minRate;
     document.getElementById('setting-correlative').value = appData.correlative;
@@ -88,6 +135,35 @@ function loadData() {
 
 function saveData() {
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
+    
+    // Sync to Firebase if logged in
+    if (currentUser && db) {
+        db.collection('users').doc(currentUser.uid).set(appData)
+            .catch(err => console.error("Error saving to Firebase:", err));
+    }
+}
+
+function syncFromFirebase() {
+    if (!currentUser || !db) return;
+    
+    db.collection('users').doc(currentUser.uid).get().then(doc => {
+        if (doc.exists) {
+            const cloudData = doc.data();
+            appData = { ...appData, ...cloudData };
+            
+            // Save to local cache
+            localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
+            
+            // Re-render UI
+            updateSettingsUI();
+            renderChemicalsList();
+            calculateQuote();
+            console.log("Datos sincronizados desde Firebase.");
+        } else {
+            // No data in cloud yet, initialize user document with local data
+            saveData();
+        }
+    }).catch(err => console.error("Error fetching from Firebase:", err));
 }
 
 // Logic & Calculations
@@ -312,6 +388,27 @@ function setupEventListeners() {
     inputs.forEach(input => {
         input.addEventListener('input', calculateQuote);
         input.addEventListener('change', calculateQuote);
+    });
+
+    // Sync Login Button
+    document.getElementById('btn-sync-login').addEventListener('click', () => {
+        if (!auth) return alert("Firebase no está configurado. Revisa la consola y las claves (firebaseConfig).");
+        
+        if (currentUser) {
+            if(confirm("¿Deseas cerrar sesión de sincronización?")) {
+                auth.signOut().then(() => {
+                    alert('Sesión cerrada.');
+                });
+            }
+        } else {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then(() => {
+                // UI automatically updates via onAuthStateChanged
+            }).catch(err => {
+                console.error("Login failed", err);
+                alert("Error al iniciar sesión: " + err.message);
+            });
+        }
     });
 
     // Coverage changes (disable/enable exterior select)
