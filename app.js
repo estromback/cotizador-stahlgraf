@@ -518,12 +518,10 @@ function setupEventListeners() {
     });
 
     document.getElementById('btn-save-chem').addEventListener('click', saveChemical);
-    document.getElementById('btn-calculate').addEventListener('click', calculateQuote);
     document.getElementById('btn-generate-pdf').addEventListener('click', generatePDF);
     document.getElementById('btn-asana').addEventListener('click', uploadToAsana);
     
     document.getElementById('btn-new-quote').addEventListener('click', resetForm);
-    document.getElementById('btn-save-quote').addEventListener('click', saveQuote);
 }
 
 // Database Actions
@@ -882,6 +880,7 @@ async function loadHistoryUI() {
                 </div>
                 <div style="display: flex; gap: 5px;">
                     <button class="btn btn-primary-outline btn-sm" onclick="loadQuoteFromDB('${doc.id}')">🔄 Cargar</button>
+                    <button class="btn btn-primary btn-sm" style="background-color: #25D366; border-color: #25D366; color: white;" onclick="resendWhatsAppFromDB('${doc.id}')">▶️ WhatsApp</button>
                     <button class="btn btn-secondary btn-sm" onclick="deleteQuoteFromDB('${doc.id}')">❌</button>
                 </div>
             </div>`;
@@ -894,7 +893,7 @@ async function loadHistoryUI() {
     }
 }
 
-window.loadQuoteFromDB = function(id) {
+window.loadQuoteFromDB = function(id, silent = false) {
     if (!window.tempHistorySnap) return;
     const doc = window.tempHistorySnap.docs.find(d => d.id === id);
     if (!doc) return;
@@ -912,7 +911,7 @@ window.loadQuoteFromDB = function(id) {
     calculateQuote();
     
     document.getElementById('history-modal').classList.remove('active');
-    alert("Cotización restaurada. Cualquier cambio y nueva guardada sobrescribirá el archivo original sin gastar un número de folio nuevo.");
+    if (!silent) alert("Cotización restaurada. Cualquier cambio y nueva guardada sobrescribirá el archivo original sin gastar un número de folio nuevo.");
 };
 
 window.deleteQuoteFromDB = async function(id) {
@@ -925,6 +924,14 @@ window.deleteQuoteFromDB = async function(id) {
         console.error(err);
         alert("Error al eliminar.");
     }
+};
+
+window.resendWhatsAppFromDB = async function(id) {
+    window.loadQuoteFromDB(id, true);
+    // Allow DOM to process the changes immediately before generating PDF
+    setTimeout(async () => {
+        await generatePDF();
+    }, 200);
 };
 
 // Run
