@@ -12,6 +12,8 @@ const firebaseConfig = {
 let db = null;
 let auth = null;
 let currentUser = null;
+let currentQuoteId = null;
+let loadedCorrelative = null;
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
@@ -263,7 +265,8 @@ function calculateQuote() {
     const totalCost = interiorCost + exteriorCost + rodentsCost;
 
     // --- UPDATE UI DOCUMENT ---
-    document.getElementById('doc-correlative').innerText = appData.correlative;
+    const displayCorr = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
+    document.getElementById('doc-correlative').innerText = displayCorr;
     document.getElementById('doc-client-name').innerText = clientName;
     document.getElementById('doc-client-phone').innerText = clientPhone;
     document.getElementById('doc-client-address').innerText = clientAddress;
@@ -518,6 +521,9 @@ function setupEventListeners() {
     document.getElementById('btn-calculate').addEventListener('click', calculateQuote);
     document.getElementById('btn-generate-pdf').addEventListener('click', generatePDF);
     document.getElementById('btn-asana').addEventListener('click', uploadToAsana);
+    
+    document.getElementById('btn-new-quote').addEventListener('click', resetForm);
+    document.getElementById('btn-save-quote').addEventListener('click', saveQuote);
 }
 
 // Database Actions
@@ -765,6 +771,138 @@ Creado desde Cotizador Stahlgraf.`,
         btn.disabled = false;
     }
 }
+
+// Quote History & Save Flow
+function resetForm() {
+    document.getElementById('quote-form').reset();
+    currentQuoteId = null;
+    loadedCorrelative = null;
+    calculateQuote();
+    alert("Formulario limpiado. Listo para una nueva cotización.");
+}
+
+async function saveQuote() {
+    if (!currentUser || !db) {
+        alert("Debes iniciar sesión con Google (botón superior) para guardar cotizaciones en la nube.");
+        return;
+    }
+    
+    const inputs = document.querySelectorAll('#quote-form input, #quote-form select');
+    const quoteData = {};
+    inputs.forEach(input => {
+        if(input.id) quoteData[input.id] = input.value;
+    });
+    
+    quoteData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
+    quoteData.clientName = document.getElementById('client-name').value || 'Sin nombre';
+    quoteData.totalStr = document.getElementById('doc-total').innerText;
+    
+    const btn = document.getElementById('btn-save-quote');
+    const oldText = btn.innerText;
+    btn.innerText = "Guardando...";
+    btn.disabled = true;
+
+    try {
+        if (!currentQuoteId) {
+            quoteData.correlative = appData.correlative;
+            const ref = await db.collection('users').doc(currentUser.uid).collection('quotes').add(quoteData);
+            currentQuoteId = ref.id;
+            loadedCorrelative = appData.correlative; // Lock it visually
+            
+            // Increment global setting
+            appData.correlative++;
+            document.getElementById('setting-correlative').value = appData.correlative;
+            saveData();
+        } else {
+            quoteData.correlative = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
+            await db.collection('users').doc(currentUser.uid).collection('quotes').doc(currentQuoteId).set(quoteData, { merge: true });
+        }
+        
+        alert("✅ Cotización guardada exitosamente en Firestore.");
+        calculateQuote();
+    } catch(err) {
+        console.error(err);
+        alert("Error al guardar: " + err.message);
+    } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
+    }
+}
+
+window.tempHistorySnap = null;
+async function loadHistoryUI() {
+    if (!currentUser || !db) {
+        document.getElementById('history-list').innerHTML = '<p>Inicia sesión primero para ver tu historial.</p>';
+        return;
+    }
+    
+    document.getElementById('history-list').innerHTML = '<p>Cargando de la nube...</p>';
+    try {
+        const snap = await db.collection('users').doc(currentUser.uid).collection('quotes')
+          .orderBy('timestamp', 'desc').limit(50).get();
+          
+        if (snap.empty) {
+            document.getElementById('history-list').innerHTML = '<p>No tienes cotizaciones guardadas aún.</p>';
+            return;
+        }
+        
+        window.tempHistorySnap = snap;
+        let html = '';
+        snap.forEach(doc => {
+            const data = doc.data();
+            const date = data.timestamp && data.timestamp.toDate ? data.timestamp.toDate().toLocaleDateString('es-ES') : 'Reciente';
+            html += `
+            <div class="db-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #ddd; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <strong>#${data.correlative || '?'} - ${data.clientName}</strong>
+                    <div style="font-size: 0.85em; color: #666;">Fecha: ${date} | Total: ${data.totalStr || '$0'}</div>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <button class="btn btn-primary-outline btn-sm" onclick="loadQuoteFromDB('${doc.id}')">🔄 Cargar</button>
+                    <button class="btn btn-secondary btn-sm" onclick="deleteQuoteFromDB('${doc.id}')">❌</button>
+                </div>
+            </div>`;
+        });
+        document.getElementById('history-list').innerHTML = html;
+        
+    } catch(err) {
+        document.getElementById('history-list').innerHTML = '<p>Error cargando historial.</p>';
+        console.error("Load History Error:", err);
+    }
+}
+
+window.loadQuoteFromDB = function(id) {
+    if (!window.tempHistorySnap) return;
+    const doc = window.tempHistorySnap.docs.find(d => d.id === id);
+    if (!doc) return;
+    
+    const data = doc.data();
+    Object.keys(data).forEach(key => {
+        const input = document.getElementById(key);
+        if (input) {
+            input.value = data[key];
+        }
+    });
+    
+    currentQuoteId = id;
+    loadedCorrelative = data.correlative || null;
+    calculateQuote();
+    
+    document.getElementById('history-modal').classList.remove('active');
+    alert("Cotización restaurada. Cualquier cambio y nueva guardada sobrescribirá el archivo original sin gastar un número de folio nuevo.");
+};
+
+window.deleteQuoteFromDB = async function(id) {
+    if(!confirm("¿Estás seguro de eliminar esta cotización definitivamente?")) return;
+    try {
+        await db.collection('users').doc(currentUser.uid).collection('quotes').doc(id).delete();
+        if (currentQuoteId === id) resetForm(); // If it was loaded, reset UI
+        loadHistoryUI();
+    } catch(err) {
+        console.error(err);
+        alert("Error al eliminar.");
+    }
+};
 
 // Run
 document.addEventListener('DOMContentLoaded', initApp);

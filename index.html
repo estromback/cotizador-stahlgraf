@@ -31,6 +31,7 @@
                 <button id="btn-sync-login" class="btn btn-primary-outline" style="margin-right: 10px; display: inline-flex; align-items: center; gap: 5px;">
                     <span id="sync-icon">☁️</span> <span id="sync-text">Ingresar para Sync</span>
                 </button>
+                <button id="btn-history" class="btn btn-primary-outline" style="margin-right: 10px;">Historial</button>
                 <button id="btn-settings" class="btn btn-secondary">Ajustes & BD</button>
             </div>
         </div>
@@ -274,14 +275,34 @@
                 </div>
             </div>
 
-            <div class="summary-actions" style="margin-top: 20px;">
+            <div class="summary-actions" style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end;">
+                <button type="button" id="btn-new-quote" class="btn btn-secondary">Nueva</button>
+                <button type="button" id="btn-save-quote" class="btn btn-secondary">Guardar Cotización</button>
+                <!-- Separator -->
+                <div style="flex-grow: 1;"></div>
                 <button type="button" id="btn-calculate" class="btn btn-primary-outline">Actualizar Cálculo</button>
-                <button type="button" id="btn-asana" class="btn btn-primary-outline" style="background-color: #f06a6a; color: white; border-color: #f06a6a; margin-right: 10px;">Subir a Asana</button>
+                <button type="button" id="btn-asana" class="btn btn-primary-outline" style="background-color: #f06a6a; color: white; border-color: #f06a6a;">Subir a Asana</button>
                 <button type="button" id="btn-generate-pdf" class="btn btn-primary">Generar PDF</button>
             </div>
         </div>
 
     </main>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="modal">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Historial de Cotizaciones</h2>
+                <button id="btn-close-history" class="close-btn">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="db-list" id="history-list">
+                    <p style="color: #666; font-size: 0.95rem;">Cargando historial...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal">
