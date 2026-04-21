@@ -613,52 +613,75 @@ window.deleteChemical = function(id) {
     }
 };
 
-// PDF Generation
-function generatePDF() {
+// PDF Generation & Web Share
+async function generatePDF() {
     const name = document.getElementById('client-name').value;
     if(!name) {
         alert("Por favor ingresa al menos el nombre del cliente para exportar.");
         return;
     }
 
-    const element = document.getElementById('pdf-content');
-    const container = document.getElementById('pdf-container');
+    const saved = await saveQuote(true);
+    if (!saved && !confirm("No se ha podido guardar en la nube. ¿Deseas exportar el archivo de todas formas?")) return;
 
-    const opt = {
-        margin:       [10, 0, 15, 0],
-        filename:     `COTIZACION DE SERVICIOS_${appData.correlative}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+    const btn = document.getElementById('btn-generate-pdf');
+    const oldText = btn.innerText;
+    btn.innerText = "Exportando...";
+    btn.disabled = true;
 
-    // Temporarily fix transform and constraints for exact A4 capture on small screens
-    const originalTransform = element.style.transform;
-    const originalMarginBottom = element.style.marginBottom;
-    const originalOverflow = container.style.overflow;
-    const originalMaxHeight = container.style.maxHeight;
+    try {
+        const element = document.getElementById('pdf-content');
+        const container = document.getElementById('pdf-container');
 
-    element.style.transform = 'none';
-    element.style.marginBottom = '0px';
-    container.style.overflow = 'visible';
-    container.style.maxHeight = 'none';
-    
-    // Slight timeout to ensure browser reflows before render
-    setTimeout(() => {
-        html2pdf().set(opt).from(element).save().then(() => {
-            // Restore styling
-            element.style.transform = originalTransform;
-            element.style.marginBottom = originalMarginBottom;
-            container.style.overflow = originalOverflow;
-            container.style.maxHeight = originalMaxHeight;
-            
-            // Auto-increment correlative
-            appData.correlative++;
-            document.getElementById('setting-correlative').value = appData.correlative;
-            saveData();
-            calculateQuote();
-        }).catch(err => console.error("PDF generation error: ", err));
-    }, 100);
+        const opt = {
+            margin:       [10, 0, 15, 0],
+            filename:     `COTIZACION_DE_SERVICIOS_${loadedCorrelative !== null ? loadedCorrelative : appData.correlative}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        const originalTransform = element.style.transform;
+        const originalMarginBottom = element.style.marginBottom;
+        const originalOverflow = container.style.overflow;
+        const originalMaxHeight = container.style.maxHeight;
+
+        element.style.transform = 'none';
+        element.style.marginBottom = '0px';
+        container.style.overflow = 'visible';
+        container.style.maxHeight = 'none';
+        
+        const worker = html2pdf().set(opt).from(element);
+        const pdfBlob = await worker.outputPdf('blob');
+        
+        element.style.transform = originalTransform;
+        element.style.marginBottom = originalMarginBottom;
+        container.style.overflow = originalOverflow;
+        container.style.maxHeight = originalMaxHeight;
+
+        const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+               await navigator.share({
+                   title: 'Cotización Stahlgraf',
+                   text: `Adjunto cotización para ${name}.`,
+                   files: [file]
+               });
+            } catch(e) {
+               // User cancelled or share failed, fallback to download
+               await worker.save();
+            }
+        } else {
+            // Fallback for PC Safari/Chrome/Edge where file sharing might be disabled
+            await worker.save();
+            alert("El navegador no soporta el envío directo en este dispositivo. El PDF se ha guardado en tus Descargas para que puedas enviarlo.");
+        }
+    } catch(err) {
+        console.error("PDF generation error: ", err);
+    } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
+    }
 }
 
 // Asana Upload Flow
@@ -673,6 +696,9 @@ async function uploadToAsana() {
         alert("Por favor ingresa al menos el nombre del cliente para crear la tarea.");
         return;
     }
+
+    const saved = await saveQuote(true);
+    if (!saved && !confirm("No se ha podido guardar la cotización antes de subir. ¿Deseas subir el archivo a Asana de todas formas?")) return;
 
     const btn = document.getElementById('btn-asana');
     const originalText = btn.innerText;
@@ -756,12 +782,7 @@ Creado desde Cotizador Stahlgraf.`,
 
         if (!attachRes.ok) throw new Error("Error subiendo PDF a Asana: " + (await attachRes.text()));
 
-        // Success: Increment correlative
-        appData.correlative++;
-        document.getElementById('setting-correlative').value = appData.correlative;
-        saveData();
-        calculateQuote();
-
+        // Correlativo es autoincrementado silenciosamente por saveQuote().
         alert("¡Éxito! Tarea y Cotización subidas a Asana.");
     } catch (err) {
         console.error("Asana Flow Error:", err);
@@ -781,10 +802,10 @@ function resetForm() {
     alert("Formulario limpiado. Listo para una nueva cotización.");
 }
 
-async function saveQuote() {
+async function saveQuote(silent = false) {
     if (!currentUser || !db) {
-        alert("Debes iniciar sesión con Google (botón superior) para guardar cotizaciones en la nube.");
-        return;
+        if (!silent) alert("Debes iniciar sesión con Google (botón superior) para guardar cotizaciones en la nube.");
+        return false;
     }
     
     const inputs = document.querySelectorAll('#quote-form input, #quote-form select');
@@ -818,11 +839,13 @@ async function saveQuote() {
             await db.collection('users').doc(currentUser.uid).collection('quotes').doc(currentQuoteId).set(quoteData, { merge: true });
         }
         
-        alert("✅ Cotización guardada exitosamente en Firestore.");
+        if (!silent) alert("✅ Cotización guardada exitosamente en Firestore.");
         calculateQuote();
+        return true;
     } catch(err) {
         console.error(err);
-        alert("Error al guardar: " + err.message);
+        if (!silent) alert("Error al guardar: " + err.message);
+        return false;
     } finally {
         btn.innerText = oldText;
         btn.disabled = false;
