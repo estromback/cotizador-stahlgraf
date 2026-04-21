@@ -815,6 +815,9 @@ async function uploadToAsana() {
         let taskGid = null;
         let searchUrl = `https://app.asana.com/api/1.0/tasks?project=${appData.asanaProject}&opt_fields=name&limit=100`;
         
+        const normalizeText = (text) => text ? text.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+        const targetName = normalizeText(clientName);
+
         while (searchUrl && !taskGid) {
             const getTasksRes = await fetch(searchUrl, {
                 headers: {
@@ -823,15 +826,18 @@ async function uploadToAsana() {
                 }
             });
             if (!getTasksRes.ok) {
-                console.warn("No se pudo buscar tareas existentes, se procederá a crear una nueva.");
+                const errText = await getTasksRes.text();
+                console.warn("No se pudo buscar tareas existentes. Status:", getTasksRes.status, errText);
                 break;
             }
             const tasksJson = await getTasksRes.json();
-            const existingTask = tasksJson.data.find(t => t.name.trim().toLowerCase() === clientName.trim().toLowerCase());
             
-            if (existingTask) {
-                taskGid = existingTask.gid;
-                break;
+            if (tasksJson.data && tasksJson.data.length > 0) {
+                const existingTask = tasksJson.data.find(t => normalizeText(t.name) === targetName);
+                if (existingTask) {
+                    taskGid = existingTask.gid;
+                    break;
+                }
             }
             searchUrl = tasksJson.next_page ? tasksJson.next_page.uri : null;
         }
