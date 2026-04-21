@@ -112,8 +112,6 @@ function loadData() {
             appData.chemicals = [...defaultChemicals];
         }
         saveData();
-        }
-        saveData();
     }
     
     updateSettingsUI();
