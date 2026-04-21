@@ -817,9 +817,12 @@ async function saveQuote(silent = false) {
     quoteData.totalStr = document.getElementById('doc-total').innerText;
     
     const btn = document.getElementById('btn-save-quote');
-    const oldText = btn.innerText;
-    btn.innerText = "Guardando...";
-    btn.disabled = true;
+    let oldText = "";
+    if (btn) {
+        oldText = btn.innerText;
+        btn.innerText = "Guardando...";
+        btn.disabled = true;
+    }
 
     try {
         if (!currentQuoteId) {
@@ -845,8 +848,10 @@ async function saveQuote(silent = false) {
         if (!silent) alert("Error al guardar: " + err.message);
         return false;
     } finally {
-        btn.innerText = oldText;
-        btn.disabled = false;
+        if (btn) {
+            btn.innerText = oldText;
+            btn.disabled = false;
+        }
     }
 }
 
