@@ -885,7 +885,7 @@ Creado desde Cotizador Stahlgraf.`,
                     },
                     body: JSON.stringify({
                         data: {
-                            text: `Se ha generado y adjuntado una nueva versión de cotización (#${loadedCorrelative !== null ? loadedCorrelative : appData.correlative}) por ${document.getElementById('doc-total').innerText}.`
+                            text: `Se ha generado y adjuntado una nueva versión de cotización (#${finalCorrelative}) por ${document.getElementById('doc-total').innerText}.`
                         }
                     })
                 });
@@ -898,6 +898,7 @@ Creado desde Cotizador Stahlgraf.`,
         btn.innerText = "Generando PDF...";
         const element = document.getElementById('pdf-content');
         const container = document.getElementById('pdf-container');
+        const finalCorrelativeForPdf = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
         
         const originalTransform = element.style.transform;
         const originalMarginBottom = element.style.marginBottom;
@@ -911,7 +912,7 @@ Creado desde Cotizador Stahlgraf.`,
 
         const opt = {
             margin:       [10, 0, 15, 0],
-            filename:     `COTIZACION_${appData.correlative}.pdf`,
+            filename:     `COTIZACION_${finalCorrelativeForPdf}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -928,7 +929,7 @@ Creado desde Cotizador Stahlgraf.`,
 
         // 3. Upload Attachment to Asana Task
         const formData = new FormData();
-        const fileName = `Cotizacion_${appData.correlative}_${clientName.replace(/\s+/g, '_')}.pdf`;
+        const fileName = `Cotizacion_${finalCorrelativeForPdf}_${clientName.replace(/\s+/g, '_')}.pdf`;
         formData.append('file', pdfBlob, fileName);
 
         const attachRes = await fetch(`https://app.asana.com/api/1.0/tasks/${taskGid}/attachments`, {
