@@ -41,6 +41,7 @@ const dashboardState = document.getElementById('dashboard-state');
 const wsSelect = document.getElementById('workspace-select');
 const projSelect = document.getElementById('project-select');
 const optComments = document.getElementById('opt-comments');
+const customExtractInput = document.getElementById('custom-extract');
 
 const colAssignee = document.getElementById('col-assignee');
 const colDue = document.getElementById('col-due');
@@ -221,6 +222,10 @@ async function generateExcel() {
     const projectName = projSelect.options[projSelect.selectedIndex].text;
     const includeComments = optComments.checked;
     
+    // Configuración de campos personalizados a extraer
+    const customExtractVal = customExtractInput ? customExtractInput.value : '';
+    const customKeys = customExtractVal.split(',').map(s => s.trim()).filter(s => s);
+    
     if(!projectGid) return;
     
     btnExport.disabled = true;
@@ -276,6 +281,30 @@ async function generateExcel() {
             if (colNotes.checked) rowData['Descripción'] = task.notes || '';
             if (includeComments) rowData['Comentarios'] = commentsStr;
             
+            // Lógica de Extracción Personalizada
+            if (task.notes && customKeys.length > 0) {
+                customKeys.forEach(key => {
+                    const colName = key.replace(/:$/, '').trim(); 
+                    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
+                    
+                    const regex = new RegExp(`${escapedKey}\\s*(?:\\:|-)?\\s*(.*)`, 'gi');
+                    
+                    const matches = [];
+                    let match;
+                    while ((match = regex.exec(task.notes)) !== null) {
+                        const val = match[1].trim();
+                        if (val) matches.push(val);
+                    }
+                    
+                    rowData[colName] = matches.length > 0 ? matches.join(', ') : '';
+                });
+            } else {
+                customKeys.forEach(key => {
+                    const colName = key.replace(/:$/, '').trim();
+                    rowData[colName] = '';
+                });
+            }
+            
             excelData.push(rowData);
             
             index++;
@@ -300,6 +329,10 @@ async function generateExcel() {
         if (colStatus.checked) wscols.push({wch: 15});
         if (colNotes.checked) wscols.push({wch: 50});
         if (includeComments) wscols.push({wch: 60});
+        
+        customKeys.forEach(() => {
+            wscols.push({wch: 30});
+        });
 
         worksheet['!cols'] = wscols;
 
