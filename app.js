@@ -833,7 +833,7 @@ async function generatePDF() {
             try {
                await navigator.share({
                    title: 'Cotización Stahlgraf',
-                   text: `Adjunto cotización para ${name}.`,
+                   text: `Adjunto cotización solicitada.`,
                    files: [file]
                });
             } catch(e) {
