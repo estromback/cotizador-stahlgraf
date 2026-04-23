@@ -340,7 +340,7 @@ function calculateQuote() {
         if(baitStations > 0) renderRow('Control de roedores', 'Cebaderos de Seguridad (Instalación)', baitStations, appData.baitPrice, baitStations * appData.baitPrice);
         if(looseStations > 0) renderRow('Control de roedores', 'Cebos Sueltos', looseStations, appData.loosePrice, looseStations * appData.loosePrice);
         if(inspectStations > 0) renderRow('Control de roedores', 'Servicio de Inspección/Reposición', inspectStations, appData.inspectPrice, inspectStations * appData.inspectPrice);
-        if(snapStations > 0) renderRow('Control de roedores', 'Servicio de Instalación de Trampas Físicas/Captura (Incluye cebado, revisión, retiro de cadáveres y retiro de la trampa. No es venta del insumo físico)', snapStations, appData.snapPrice, snapStations * appData.snapPrice);
+        if(snapStations > 0) renderRow('Control de roedores', 'Servicio de Instalación de Trampas Físicas/Captura (Incluye cebado, revisión y retiro de la trampa.)', snapStations, appData.snapPrice, snapStations * appData.snapPrice);
         if(rodentExtras === 'sanitize' || rodentExtras === 'both') renderRow('S. Complementario', 'Retiro de cadáveres y sanitización focalizada', 1, appData.sanitizePrice, appData.sanitizePrice);
         if(rodentExtras === 'exclusion' || rodentExtras === 'both') renderRow('S. Complementario', 'Sellado físico de accesos y exclusión', 1, appData.exclusionPrice, appData.exclusionPrice);
     }
