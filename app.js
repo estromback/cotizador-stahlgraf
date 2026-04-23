@@ -207,6 +207,11 @@ function calculateQuote() {
     const mothPrep = document.getElementById('moth-prep-service') ? document.getElementById('moth-prep-service').value : 'no';
     const mothTraps = document.getElementById('moth-traps') ? parseInt(document.getElementById('moth-traps').value) || 0 : 0;
 
+    const hasSanitization = document.getElementById('sanitization-control') ? document.getElementById('sanitization-control').value === 'yes' : false;
+    const saniSize = parseFloat(document.getElementById('sanitization-size')?.value) || 0;
+    const saniChemId = document.getElementById('sanitization-chem')?.value;
+    const saniTech = document.getElementById('sanitization-tech')?.value || 'Nebulización ULV';
+
     // 2. Adjust effective size based on coverage
     let interiorSize = 0;
     let exteriorSize = 0;
@@ -283,7 +288,23 @@ function calculateQuote() {
         if (mothTraps > 0) mothsCost += (mothTraps * (appData.mothTrapPrice || 5000));
     }
 
-    const totalCost = interiorCost + exteriorCost + rodentsCost + mothsCost;
+    // Calculate Sanitization
+    let saniCost = 0;
+    let saniText = '';
+    if (hasSanitization && saniSize > 0) {
+        const saniChem = appData.chemicals.find(c => c.id === saniChemId) || appData.chemicals[0] || defaultChemicals[0];
+        let saniTime = saniSize / appData.hhSpeed;
+        let cost_HH_sani = saniTime * appData.hhPrice;
+        let cost_chem_sani = (saniSize * saniChem.dose / saniChem.size) * saniChem.price;
+
+        let baseCostSani = cost_HH_sani + cost_chem_sani;
+        saniCost = Math.round(baseCostSani * marginMultiplier);
+        if (saniCost > 0 && saniCost < appData.minRate) saniCost = appData.minRate; 
+        
+        saniText = `Aplicación mediante ${saniTech} de producto sanitizante y desodorizante ambiental (${saniChem.name}), enfocado en reducción de carga microbiológica y malos olores.`;
+    }
+
+    const totalCost = interiorCost + exteriorCost + rodentsCost + mothsCost + saniCost;
 
     // --- UPDATE UI DOCUMENT ---
     const displayCorr = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
@@ -319,7 +340,7 @@ function calculateQuote() {
         if(baitStations > 0) renderRow('Control de roedores', 'Cebaderos de Seguridad (Instalación)', baitStations, appData.baitPrice, baitStations * appData.baitPrice);
         if(looseStations > 0) renderRow('Control de roedores', 'Cebos Sueltos', looseStations, appData.loosePrice, looseStations * appData.loosePrice);
         if(inspectStations > 0) renderRow('Control de roedores', 'Servicio de Inspección/Reposición', inspectStations, appData.inspectPrice, inspectStations * appData.inspectPrice);
-        if(snapStations > 0) renderRow('Control de roedores', 'Trampas Físicas/Captura', snapStations, appData.snapPrice, snapStations * appData.snapPrice);
+        if(snapStations > 0) renderRow('Control de roedores', 'Servicio de Instalación de Trampas Físicas/Captura (Incluye cebado, revisión, retiro de cadáveres y retiro de la trampa. No es venta del insumo físico)', snapStations, appData.snapPrice, snapStations * appData.snapPrice);
         if(rodentExtras === 'sanitize' || rodentExtras === 'both') renderRow('S. Complementario', 'Retiro de cadáveres y sanitización focalizada', 1, appData.sanitizePrice, appData.sanitizePrice);
         if(rodentExtras === 'exclusion' || rodentExtras === 'both') renderRow('S. Complementario', 'Sellado físico de accesos y exclusión', 1, appData.exclusionPrice, appData.exclusionPrice);
     }
@@ -347,6 +368,18 @@ function calculateQuote() {
             const trapPrice = appData.mothTrapPrice || 5000;
             renderRow('Monitoreo Polillas', 'Instalación de trampas de feromonas para polillas.', mothTraps, trapPrice, mothTraps * trapPrice);
         }
+    }
+
+    if (hasSanitization && saniSize > 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>Sanitización y Desodorización</td>
+            <td>${saniText}</td>
+            <td class="text-right">1</td>
+            <td class="text-right">${formatter.format(saniCost)}</td>
+            <td class="text-right"><strong>${formatter.format(saniCost)}</strong></td>
+        `;
+        tbody.appendChild(tr);
     }
 
     if (interiorSize > 0) {
@@ -395,13 +428,16 @@ function calculateQuote() {
         if(baitStations > 0) rTechs.push('Cebado en bloques de seguridad');
         if(looseStations > 0) rTechs.push('Cebado suelto en puntos clave');
         if(inspectStations > 0) rTechs.push('Reposición/Inspección');
-        if(snapStations > 0) rTechs.push('Trampas Físicas de golpe/captura');
+        if(snapStations > 0) rTechs.push('Servicio integral de trampas físicas de golpe/captura');
         if(rodentExtras === 'sanitize' || rodentExtras === 'both') rTechs.push('Sanitización Local de Rastros/Cadáveres');
         if(rodentExtras === 'exclusion' || rodentExtras === 'both') rTechs.push('Sellado Estructural (Exclusión)');
         finalTech += `Para roedores: ${rTechs.join(', ')}. `;
     }
     if(hasMoths) {
         finalTech += `Para polillas: Tratamiento de alta precisión en muebles y despensa. Aplicación en formato abanico cerrado exclusivo en grietas, uniones y esquinas (técnica de barrera de contacto/repelencia, no aerotransportada). Instalación de trampas de feromenas (si aplica). `;
+    }
+    if(hasSanitization) {
+        finalTech += `Para sanitización ambiental: Aplicación de producto desinfectante mediante equipo especializado asegurando la correcta cobertura espacial y superficial. `;
     }
     
     if(finalTech) {
@@ -418,6 +454,10 @@ function calculateQuote() {
     }
     if(hasRodents) finalProd += `Para roedores: Rodenticida anticoagulante de segunda generación (Bromadiolona). `;
     if(hasMoths) finalProd += `Para polillas: Insecticida Piretroide de rápido volteo (Lambda-cialotrina). Este químico es altamente recomendado por su letalidad inmediata por contacto contra adultos y larvas. `;
+    if(hasSanitization) {
+        const saniChem = appData.chemicals.find(c => c.id === saniChemId) || appData.chemicals[0] || defaultChemicals[0];
+        finalProd += `Para sanitización: Producto sanitizante/desodorizante (${saniChem.name}) efectivo contra microorganismos y malos olores. `;
+    }
 
     if(finalProd) {
         methList.innerHTML += `<li><strong>Productos:</strong> ${finalProd}</li>`;
@@ -428,6 +468,7 @@ function calculateQuote() {
     if(hasFumigation) finalWarranty += `Fumigación general: Después de los 15 días corridos de la aplicación, si la plaga no se ha controlado efectivamente, se ofrece una reaplicación localizada en la zona de reaparición. `;
     if(hasRodents) finalWarranty += `Rodentización: Puede contratar un servicio de visita cada 30 días para inspección y reposición de los cebos (Valor base mensual de $1.500 por cebadero tras instalación inicial). `;
     if(hasMoths) finalWarranty += `Control de Polillas: Nuestra técnica y química empleada garantizan el corte drástico del ciclo reproductivo tras el secado de la barrera. El control difiere según la higiene y hábitos de descarte futuro. `;
+    if(hasSanitization) finalWarranty += `Sanitización: Eficacia comprobada para abatir cargas bacterianas y desodorizar al momento de la aplicación; el mantenimiento de los resultados dependerá de los procesos de higiene habituales del cliente. `;
 
     if(finalWarranty) {
         methList.innerHTML += `<li><strong>Garantía / Mantención:</strong> ${finalWarranty}</li>`;
@@ -442,6 +483,9 @@ function calculateQuote() {
 
     const mothElems = document.querySelectorAll('.moth-rule');
     mothElems.forEach(el => hasMoths ? el.classList.remove('hidden') : el.classList.add('hidden'));
+
+    const saniElems = document.querySelectorAll('.sani-rule');
+    saniElems.forEach(el => hasSanitization ? el.classList.remove('hidden') : el.classList.add('hidden'));
 }
 
 // Event Listeners
@@ -527,6 +571,18 @@ function setupEventListeners() {
             const isYes = e.target.value === 'yes';
             document.getElementById('moth-prep-service').disabled = !isYes;
             document.getElementById('moth-traps').disabled = !isYes;
+            calculateQuote();
+        });
+    }
+
+    // Sanitization changes
+    const saniControlEl = document.getElementById('sanitization-control');
+    if (saniControlEl) {
+        saniControlEl.addEventListener('change', (e) => {
+            const isYes = e.target.value === 'yes';
+            document.getElementById('sanitization-size').disabled = !isYes;
+            document.getElementById('sanitization-chem').disabled = !isYes;
+            document.getElementById('sanitization-tech').disabled = !isYes;
             calculateQuote();
         });
     }
@@ -656,28 +712,37 @@ function renderChemicalsList() {
 function populateChemSelects() {
     const intSelect = document.getElementById('interior-chem');
     const extSelect = document.getElementById('exterior-chem');
+    const saniSelect = document.getElementById('sanitization-chem');
     
     // Preserve current selection if any
-    const currInt = intSelect.value;
-    const currExt = extSelect.value;
+    const currInt = intSelect?.value;
+    const currExt = extSelect?.value;
+    const currSani = saniSelect?.value;
     
-    intSelect.innerHTML = '';
-    extSelect.innerHTML = '';
+    if(intSelect) intSelect.innerHTML = '';
+    if(extSelect) extSelect.innerHTML = '';
+    if(saniSelect) saniSelect.innerHTML = '';
     
     appData.chemicals.forEach(chem => {
         const opt1 = document.createElement('option');
         opt1.value = chem.id;
         opt1.textContent = chem.name;
-        intSelect.appendChild(opt1);
+        if(intSelect) intSelect.appendChild(opt1);
         
         const opt2 = document.createElement('option');
         opt2.value = chem.id;
         opt2.textContent = chem.name;
-        extSelect.appendChild(opt2);
+        if(extSelect) extSelect.appendChild(opt2);
+
+        const opt3 = document.createElement('option');
+        opt3.value = chem.id;
+        opt3.textContent = chem.name;
+        if(saniSelect) saniSelect.appendChild(opt3);
     });
     
-    if(currInt && appData.chemicals.some(c => c.id === currInt)) intSelect.value = currInt;
-    if(currExt && appData.chemicals.some(c => c.id === currExt)) extSelect.value = currExt;
+    if(currInt && appData.chemicals.some(c => c.id === currInt) && intSelect) intSelect.value = currInt;
+    if(currExt && appData.chemicals.some(c => c.id === currExt) && extSelect) extSelect.value = currExt;
+    if(currSani && appData.chemicals.some(c => c.id === currSani) && saniSelect) saniSelect.value = currSani;
 }
 
 function saveChemical() {

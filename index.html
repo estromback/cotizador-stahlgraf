@@ -149,7 +149,7 @@
                             <input type="number" id="inspect-stations" placeholder="Ej. 15" min="0" disabled>
                         </div>
                         <div class="input-group">
-                            <label for="snap-stations">Trampas Físicas / Captura (Cant.)</label>
+                            <label for="snap-stations">Servicio Trampas Físicas/Captura (Cant.)</label>
                             <input type="number" id="snap-stations" placeholder="Ej. 2" min="0" disabled>
                         </div>
                         <div class="input-group">
@@ -185,6 +185,38 @@
                         <div class="input-group">
                             <label for="moth-traps">Trampas Feromonas de Polilla (Cant.)</label>
                             <input type="number" id="moth-traps" placeholder="Ej. 2" min="0" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sanitización Info -->
+                <div class="form-section">
+                    <h3>5. Sanitización y Desodorización Ambiental</h3>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label for="sanitization-control">¿Incluir sanitización ambiental?</label>
+                            <select id="sanitization-control">
+                                <option value="no">No</option>
+                                <option value="yes">Sí</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="sanitization-size">Tamaño Aprox. a Sanitizar (m²)</label>
+                            <input type="number" id="sanitization-size" placeholder="Ej. 120" min="1" disabled>
+                        </div>
+                        <div class="input-group">
+                            <label for="sanitization-chem">Producto Sanitizante</label>
+                            <select id="sanitization-chem" disabled>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="sanitization-tech">Técnica de Sanitización</label>
+                            <select id="sanitization-tech" disabled>
+                                <option value="Nebulización ULV">Nebulización ULV</option>
+                                <option value="Termonebulización">Termonebulización</option>
+                                <option value="Pulverización Manual">Pulverización Manual</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -273,6 +305,7 @@
                             <li class="moth-rule hidden"><strong>Vaciamiento total despensa:</strong> Si no incluyó el servicio, Retire todos los alimentos, platos y cubiertos de los muebles a tratar.</li>
                             <li class="moth-rule hidden"><strong>Descarte preventivo:</strong> Si no incluyó el servicio, Elimine envases abiertos, dañados o con signos de contaminación (sedas, larvas, etc.).</li>
                             <li class="moth-rule hidden"><strong>Limpieza previa:</strong> Si no incluyó el servicio, asegúrese de aspirar a fondo rincones de la despensa (el producto funciona mejor sobre superficie limpia).</li>
+                            <li class="sani-rule hidden"><strong>Despeje de superficies:</strong> Previo a la sanitización, las superficies a tratar deben estar despejadas de papeles y elementos sensibles a la humedad, y razonablemente limpias de polvo o suciedad gruesa.</li>
                         </ul>
                         
                         <h3>4.2. Después del servicio (Recomendaciones Post-Tratamiento):</h3>
@@ -288,6 +321,7 @@
                             <li class="moth-rule hidden"><strong>Secado absoluto despensa:</strong> Espere a que el producto aplicado esté completamente seco al tacto antes de volver a colocar cualquier objeto.</li>
                             <li class="moth-rule hidden"><strong>Ventilación:</strong> Deje que la despensa/cocina se ventile por al menos 30 a 60 minutos tras la aplicación.</li>
                             <li class="moth-rule hidden"><strong>Forrado de estantes:</strong> Coloque papel de cocina o manteles plásticos sobre las repisas secas antes de almacenar. Evite el contacto directo de envases con la superficie.</li>
+                            <li class="sani-rule hidden"><strong>Tiempo de reingreso (Sanitización):</strong> Esperar el tiempo de secado y ventilar el recinto al menos 30 minutos antes de hacer uso habitual de las instalaciones tratadas.</li>
                         </ul>
                     </div>
 
