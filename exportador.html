@@ -83,7 +83,11 @@
 
                     <div class="input-group full-width">
                         <label for="custom-extract">Extracción Inteligente desde Descripción (Opcional)</label>
-                        <input type="text" id="custom-extract" placeholder="Ej: País de importación, Puerto de origen">
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="custom-extract" placeholder="Ej: País de importación, Puerto de origen" style="flex: 1;">
+                            <button type="button" id="btn-save-extract" class="btn btn-outline" style="padding: 0 15px; font-size: 0.9rem;" title="Guardar lista de campos actual">💾 Guardar</button>
+                        </div>
+                        <div id="saved-extracts-list" class="saved-extracts"></div>
                         <small style="color: var(--text-muted); font-size: 0.85rem; margin-top: 5px; display: block;">
                             Si anotas datos como "País de importación: China" dentro de la descripción, ingresa las etiquetas (separadas por coma) para generar columnas con esos valores.
                         </small>

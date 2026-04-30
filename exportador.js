@@ -14,6 +14,7 @@ let auth = null;
 let currentUser = null;
 let asanaToken = '';
 let generatedFile = null;
+let savedExtracts = [];
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
@@ -90,6 +91,12 @@ async function syncUserData() {
         const doc = await db.collection('users').doc(currentUser.uid).get();
         if (doc.exists) {
             const data = doc.data();
+            
+            if (data.exportadorSavedExtracts) {
+                savedExtracts = data.exportadorSavedExtracts;
+                renderSavedExtracts();
+            }
+            
             if (data.exportadorAsanaToken) {
                 asanaToken = data.exportadorAsanaToken;
                 inputToken.value = asanaToken;
@@ -142,6 +149,25 @@ function setupEventListeners() {
         
         loadWorkspaces();
     });
+
+    const btnSaveExtract = document.getElementById('btn-save-extract');
+    if (btnSaveExtract) {
+        btnSaveExtract.addEventListener('click', async () => {
+            const val = customExtractInput.value.trim();
+            if (!val) return;
+            
+            if (!savedExtracts.includes(val)) {
+                savedExtracts.push(val);
+                renderSavedExtracts();
+                
+                if (currentUser) {
+                    try {
+                        await db.collection('users').doc(currentUser.uid).set({ exportadorSavedExtracts: savedExtracts }, { merge: true });
+                    } catch(e) { console.error("Error saving extracts", e); }
+                }
+            }
+        });
+    }
 
     wsSelect.addEventListener('change', () => {
         if (wsSelect.value) {
@@ -393,6 +419,52 @@ function downloadExcel() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+function renderSavedExtracts() {
+    const container = document.getElementById('saved-extracts-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    if (savedExtracts.length > 0) {
+        const label = document.createElement('span');
+        label.innerText = 'Guardados:';
+        label.style.fontSize = '0.85rem';
+        label.style.color = 'var(--text-muted)';
+        container.appendChild(label);
+    }
+
+    savedExtracts.forEach((extractStr, index) => {
+        const tag = document.createElement('div');
+        tag.className = 'extract-tag';
+        
+        const textSpan = document.createElement('span');
+        textSpan.innerText = extractStr;
+        textSpan.style.cursor = 'pointer';
+        textSpan.title = "Click para usar estos campos";
+        textSpan.addEventListener('click', () => {
+            if (customExtractInput) customExtractInput.value = extractStr;
+        });
+        
+        const removeSpan = document.createElement('span');
+        removeSpan.innerText = '×';
+        removeSpan.className = 'remove-tag';
+        removeSpan.title = "Eliminar de guardados";
+        removeSpan.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            savedExtracts.splice(index, 1);
+            renderSavedExtracts();
+            if (currentUser) {
+                try {
+                    await db.collection('users').doc(currentUser.uid).set({ exportadorSavedExtracts: savedExtracts }, { merge: true });
+                } catch(err) { console.error("Error updating extracts", err); }
+            }
+        });
+        
+        tag.appendChild(textSpan);
+        tag.appendChild(removeSpan);
+        container.appendChild(tag);
+    });
 }
 
 // Start

@@ -348,3 +348,42 @@ select:disabled {
         justify-content: center;
     }
 }
+
+/* Extract Tags */
+.saved-extracts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    align-items: center;
+}
+
+.extract-tag {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--glass-border);
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.extract-tag:hover {
+    border-color: var(--primary);
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.extract-tag .remove-tag {
+    color: var(--secondary);
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 4px;
+    border-radius: 50%;
+}
+
+.extract-tag .remove-tag:hover {
+    background: rgba(236, 72, 153, 0.2);
+}
