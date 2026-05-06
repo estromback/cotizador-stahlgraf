@@ -1191,8 +1191,6 @@ window.resendWhatsAppFromDB = async function(id) {
         await generatePDF();
     }, 200);
 };
-};
-
 // --- Client Directory Management ---
 
 window.saveClientToDirectory = function(silent = false) {
