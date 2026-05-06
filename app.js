@@ -725,15 +725,19 @@ function setupEventListeners() {
                 }
                 
                 let added = 0;
+                if (!appData.clients || !Array.isArray(appData.clients)) {
+                    appData.clients = [];
+                }
+                
                 snap.forEach(doc => {
                     const data = doc.data();
                     const name = (data['client-name'] || data.clientName || '').trim();
-                    if (!name) return;
+                    if (!name || name.toLowerCase() === 'sin nombre' || name === '-') return;
                     
-                    const existingIndex = appData.clients.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+                    const existingIndex = appData.clients.findIndex(c => (c.name || '').toLowerCase() === name.toLowerCase());
                     if (existingIndex === -1) {
                         appData.clients.push({
-                            id: 'cl_' + Date.now() + Math.floor(Math.random() * 1000),
+                            id: 'cl_' + Date.now() + Math.floor(Math.random() * 10000),
                             name: name,
                             attention: (data['client-attention'] || '').trim(),
                             phone: (data['client-phone'] || '').trim(),
@@ -1267,7 +1271,7 @@ window.saveClientToDirectory = function(silent = false) {
     };
 
     // Check if client with same name already exists to update it instead of duplicate
-    const existingIndex = appData.clients.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+    const existingIndex = appData.clients.findIndex(c => (c.name || '').toLowerCase() === name.toLowerCase());
     if (existingIndex >= 0) {
         if (!silent) {
             if(confirm(`El cliente "${name}" ya existe en tu directorio. ¿Deseas actualizar sus datos?`)) {
@@ -1301,7 +1305,7 @@ window.renderClientsList = function() {
     }
 
     // Sort alphabetically by name
-    const sortedClients = [...appData.clients].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedClients = [...appData.clients].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     sortedClients.forEach(client => {
         const div = document.createElement('div');
@@ -1333,11 +1337,11 @@ window.renderClientsSelect = function(searchTerm = '') {
     let filteredClients = appData.clients;
     if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        filteredClients = appData.clients.filter(c => c.name.toLowerCase().includes(term));
+        filteredClients = appData.clients.filter(c => (c.name || '').toLowerCase().includes(term));
     }
 
     // Sort alphabetically by name
-    filteredClients.sort((a, b) => a.name.localeCompare(b.name));
+    filteredClients.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     if (filteredClients.length === 0) {
         list.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No se encontraron clientes.</p>';
