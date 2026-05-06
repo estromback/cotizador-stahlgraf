@@ -705,6 +705,60 @@ function setupEventListeners() {
     document.getElementById('btn-asana').addEventListener('click', uploadToAsana);
     
     document.getElementById('btn-new-quote').addEventListener('click', resetForm);
+
+    const btnImport = document.getElementById('btn-import-clients');
+    if (btnImport) {
+        btnImport.addEventListener('click', async () => {
+            if (!currentUser || !db) {
+                alert("Debes iniciar sesión con Google primero para importar desde la nube.");
+                return;
+            }
+            const origText = btnImport.innerText;
+            btnImport.innerText = "Importando...";
+            btnImport.disabled = true;
+
+            try {
+                const snap = await db.collection('users').doc(currentUser.uid).collection('quotes').get();
+                if (snap.empty) {
+                    alert("No se encontraron cotizaciones previas en la nube.");
+                    return;
+                }
+                
+                let added = 0;
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const name = (data['client-name'] || data.clientName || '').trim();
+                    if (!name) return;
+                    
+                    const existingIndex = appData.clients.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+                    if (existingIndex === -1) {
+                        appData.clients.push({
+                            id: 'cl_' + Date.now() + Math.floor(Math.random() * 1000),
+                            name: name,
+                            attention: (data['client-attention'] || '').trim(),
+                            phone: (data['client-phone'] || '').trim(),
+                            address: (data['client-address'] || '').trim()
+                        });
+                        added++;
+                    }
+                });
+                
+                if (added > 0) {
+                    saveData();
+                    if(typeof renderClientsList === 'function') renderClientsList();
+                    alert(`¡Éxito! Se importaron ${added} clientes únicos desde tu historial de cotizaciones.`);
+                } else {
+                    alert("No se encontraron clientes nuevos para importar (o ya están todos en tu directorio).");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error al importar clientes: " + err.message);
+            } finally {
+                btnImport.innerText = origText;
+                btnImport.disabled = false;
+            }
+        });
+    }
 }
 
 // Database Actions
