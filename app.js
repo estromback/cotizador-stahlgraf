@@ -779,7 +779,7 @@ function renderChemicalsList() {
                 <span>Precio: $${chem.price} | Envase: ${chem.size}ml | Dosis: ${chem.dose}ml/m²</span>
             </div>
             <div class="db-item-actions">
-                <button onclick="deleteChemical('${chem.id}')">Eliminar</button>
+                <button class="action-danger" onclick="deleteChemical('${chem.id}')">Eliminar</button>
             </div>
         `;
         list.appendChild(div);
@@ -1317,7 +1317,7 @@ window.renderClientsList = function() {
             </div>
             <div class="db-item-actions">
                 <button onclick="loadClientToForm('${client.id}'); document.getElementById('settings-modal').classList.remove('active');">Cargar</button>
-                <button onclick="deleteClient('${client.id}')">Eliminar</button>
+                <button class="action-danger" onclick="deleteClient('${client.id}')">Eliminar</button>
             </div>
         `;
         list.appendChild(div);
