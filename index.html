@@ -26,7 +26,10 @@
     <!-- Header Navigation -->
     <nav class="navbar">
         <div class="nav-content">
-            <h1 class="logo">Stahlgraf <span>Cotizador</span></h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="logo.png" alt="Stahlgraf Logo" style="height: 45px; object-fit: contain;" onerror="this.style.display='none'">
+                <h1 class="logo" style="margin: 0;">Stahlgraf <span>Cotizador</span></h1>
+            </div>
             <div class="nav-actions">
                 <button id="btn-sync-login" class="btn btn-primary-outline" style="margin-right: 10px; display: inline-flex; align-items: center; gap: 5px;">
                     <span id="sync-icon">☁️</span> <span id="sync-text">Ingresar para Sync</span>
