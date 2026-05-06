@@ -52,7 +52,8 @@ let appData = {
     mothPrepPrice: 15000,
     mothTrapPrice: 5000,
     mothChemPrice: 25000,
-    chemicals: []
+    chemicals: [],
+    clients: []
 };
 
 // Formatter for CLP
@@ -63,6 +64,7 @@ function initApp() {
     loadData();
     setupEventListeners();
     renderChemicalsList();
+    if(typeof renderClientsList === 'function') renderClientsList();
     
     // Set formatted date
     const dateOpts = { day: 'numeric', month: 'long', year: 'numeric' };
@@ -92,6 +94,7 @@ function loadData() {
     const savedData = localStorage.getItem('stahlgraf_data_v4');
     if (savedData) {
         appData = JSON.parse(savedData);
+        if(!appData.clients) appData.clients = [];
     } else {
         const oldData = localStorage.getItem('stahlgraf_data_v3');
         if (oldData) {
@@ -126,6 +129,7 @@ function loadData() {
         
         appData.asanaToken = appData.asanaToken || '';
         appData.asanaProject = appData.asanaProject || '';
+        if(!appData.clients) appData.clients = [];
         saveData();
     }
     
@@ -175,6 +179,7 @@ function syncFromFirebase() {
             // Re-render UI
             updateSettingsUI();
             renderChemicalsList();
+            if(typeof renderClientsList === 'function') renderClientsList();
             calculateQuote();
             console.log("Datos sincronizados desde Firebase.");
         } else {
@@ -598,6 +603,22 @@ function setupEventListeners() {
         loadHistoryUI();
     });
     document.getElementById('btn-close-history').addEventListener('click', () => modalHistory.classList.remove('active'));
+
+    const modalClients = document.getElementById('clients-modal');
+    if (document.getElementById('btn-load-client')) {
+        document.getElementById('btn-load-client').addEventListener('click', () => {
+            modalClients.classList.add('active');
+            renderClientsSelect();
+        });
+    }
+    if (document.getElementById('btn-close-clients')) {
+        document.getElementById('btn-close-clients').addEventListener('click', () => modalClients.classList.remove('active'));
+    }
+    if (document.getElementById('client-search')) {
+        document.getElementById('client-search').addEventListener('input', (e) => {
+            if (typeof renderClientsSelect === 'function') renderClientsSelect(e.target.value);
+        });
+    }
 
     // Settings Parameters Listeners
     document.getElementById('setting-margin').addEventListener('change', (e) => {
@@ -1069,6 +1090,10 @@ async function saveQuote(silent = false) {
         }
         
         if (!silent) alert("✅ Cotización guardada exitosamente en Firestore.");
+        
+        // Auto-save client info to directory silently
+        if(typeof saveClientToDirectory === 'function') saveClientToDirectory(true);
+        
         calculateQuote();
         return true;
     } catch(err) {
@@ -1165,6 +1190,150 @@ window.resendWhatsAppFromDB = async function(id) {
     setTimeout(async () => {
         await generatePDF();
     }, 200);
+};
+};
+
+// --- Client Directory Management ---
+
+window.saveClientToDirectory = function(silent = false) {
+    const name = document.getElementById('client-name').value.trim();
+    const attention = document.getElementById('client-attention').value.trim();
+    const phone = document.getElementById('client-phone').value.trim();
+    const address = document.getElementById('client-address').value.trim();
+
+    if (!name || (!silent && (!phone || !address))) {
+        if(!silent) alert("Por favor completa al menos Nombre, Teléfono y Dirección para guardar el cliente.");
+        return;
+    }
+
+    const newClient = {
+        id: 'cl_' + Date.now(),
+        name,
+        attention,
+        phone,
+        address
+    };
+
+    // Check if client with same name already exists to update it instead of duplicate
+    const existingIndex = appData.clients.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+    if (existingIndex >= 0) {
+        if (!silent) {
+            if(confirm(`El cliente "${name}" ya existe en tu directorio. ¿Deseas actualizar sus datos?`)) {
+                newClient.id = appData.clients[existingIndex].id; // preserve ID
+                appData.clients[existingIndex] = newClient;
+            } else {
+                return;
+            }
+        } else {
+            // Silently update if we are auto-saving
+            newClient.id = appData.clients[existingIndex].id; // preserve ID
+            appData.clients[existingIndex] = newClient;
+        }
+    } else {
+        appData.clients.push(newClient);
+    }
+
+    saveData();
+    if(typeof renderClientsList === 'function') renderClientsList();
+    if (!silent) alert("Cliente guardado en tu directorio.");
+};
+
+window.renderClientsList = function() {
+    const list = document.getElementById('db-clients-settings-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+    if (!appData.clients || appData.clients.length === 0) {
+        list.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No hay clientes guardados. Usa el botón "Guardar Cliente" en la pantalla principal.</p>';
+        return;
+    }
+
+    // Sort alphabetically by name
+    const sortedClients = [...appData.clients].sort((a, b) => a.name.localeCompare(b.name));
+
+    sortedClients.forEach(client => {
+        const div = document.createElement('div');
+        div.className = 'db-item';
+        div.innerHTML = `
+            <div class="db-item-info">
+                <strong>${client.name}</strong>
+                <span>${client.attention ? 'Atención: ' + client.attention + ' | ' : ''}Tel: ${client.phone} | Dir: ${client.address}</span>
+            </div>
+            <div class="db-item-actions">
+                <button onclick="loadClientToForm('${client.id}'); document.getElementById('settings-modal').classList.remove('active');">Cargar</button>
+                <button onclick="deleteClient('${client.id}')">Eliminar</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+};
+
+window.renderClientsSelect = function(searchTerm = '') {
+    const list = document.getElementById('client-select-list');
+    if (!list) return;
+
+    list.innerHTML = '';
+    if (!appData.clients || appData.clients.length === 0) {
+        list.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No hay clientes guardados.</p>';
+        return;
+    }
+
+    let filteredClients = appData.clients;
+    if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        filteredClients = appData.clients.filter(c => c.name.toLowerCase().includes(term));
+    }
+
+    // Sort alphabetically by name
+    filteredClients.sort((a, b) => a.name.localeCompare(b.name));
+
+    if (filteredClients.length === 0) {
+        list.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No se encontraron clientes.</p>';
+        return;
+    }
+
+    filteredClients.forEach(client => {
+        const div = document.createElement('div');
+        div.className = 'db-item';
+        div.style.cursor = 'pointer';
+        div.onclick = () => {
+            loadClientToForm(client.id);
+            document.getElementById('clients-modal').classList.remove('active');
+        };
+        div.innerHTML = `
+            <div class="db-item-info">
+                <strong>${client.name}</strong>
+                <span>Tel: ${client.phone} | Dir: ${client.address}</span>
+            </div>
+            <div class="db-item-actions">
+                <button class="btn btn-primary btn-sm">Seleccionar</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+};
+
+window.loadClientToForm = function(id) {
+    const client = appData.clients.find(c => c.id === id);
+    if (!client) return;
+
+    document.getElementById('client-name').value = client.name || '';
+    document.getElementById('client-attention').value = client.attention || '';
+    document.getElementById('client-phone').value = client.phone || '';
+    document.getElementById('client-address').value = client.address || '';
+    
+    calculateQuote();
+};
+
+window.deleteClient = function(id) {
+    if (confirm("¿Estás seguro de eliminar a este cliente del directorio?")) {
+        appData.clients = appData.clients.filter(c => c.id !== id);
+        saveData();
+        renderClientsList();
+        if(document.getElementById('clients-modal').classList.contains('active')) {
+            renderClientsSelect();
+        }
+    }
 };
 
 // Run
