@@ -309,7 +309,22 @@ function calculateQuote() {
         saniText = `Aplicación mediante ${saniTech} de producto sanitizante y desodorizante ambiental (${saniChem.name}), enfocado en reducción de carga microbiológica y malos olores.`;
     }
 
-    const totalCost = interiorCost + exteriorCost + rodentsCost + mothsCost + saniCost;
+    // Calculate General Services
+    let genServicesCost = 0;
+    const genServicesData = [];
+    const generalServicesRows = document.querySelectorAll('.general-service-row');
+    generalServicesRows.forEach(row => {
+        const name = row.querySelector('.gs-name').value;
+        const desc = row.querySelector('.gs-desc').value;
+        const price = parseFloat(row.querySelector('.gs-price').value) || 0;
+        
+        if(name) {
+            genServicesCost += price;
+            genServicesData.push({name, desc, price});
+        }
+    });
+
+    const totalCost = interiorCost + exteriorCost + rodentsCost + mothsCost + saniCost + genServicesCost;
 
     // --- UPDATE UI DOCUMENT ---
     const displayCorr = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
@@ -317,6 +332,9 @@ function calculateQuote() {
     document.getElementById('doc-client-name').innerText = clientName;
     document.getElementById('doc-client-phone').innerText = clientPhone;
     document.getElementById('doc-client-address').innerText = clientAddress;
+    
+    const quoteTitle = document.getElementById('quote-title')?.value || "COTIZACIÓN DE SERVICIOS: CONTROL DE PLAGAS Y FUMIGACIÓN";
+    document.getElementById('doc-title').innerHTML = quoteTitle.replace(':', ':<br>');
     
     if(clientAttention) {
         document.getElementById('row-attention').classList.remove('hidden');
@@ -410,6 +428,18 @@ function calculateQuote() {
         `;
         tbody.appendChild(tr);
     }
+
+    genServicesData.forEach(gs => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${gs.name}</td>
+            <td>${gs.desc || '-'}</td>
+            <td class="text-right">1</td>
+            <td class="text-right">${formatter.format(gs.price)}</td>
+            <td class="text-right"><strong>${formatter.format(gs.price)}</strong></td>
+        `;
+        tbody.appendChild(tr);
+    });
 
     document.getElementById('doc-subtotal').innerText = formatter.format(totalCost);
     document.getElementById('doc-total').innerText = formatter.format(totalCost);
@@ -592,6 +622,16 @@ function setupEventListeners() {
         });
     }
 
+    // General Services
+    const btnAddGenServ = document.getElementById('btn-add-general-service');
+    if (btnAddGenServ) {
+        btnAddGenServ.addEventListener('click', () => {
+            if(typeof window.addGeneralService === 'function') {
+                window.addGeneralService();
+            }
+        });
+    }
+
     // Modal Triggers
     const modal = document.getElementById('settings-modal');
     document.getElementById('btn-settings').addEventListener('click', () => modal.classList.add('active'));
@@ -764,6 +804,45 @@ function setupEventListeners() {
         });
     }
 }
+
+// --- General Services Logic ---
+window.addGeneralService = function(data = null) {
+    const container = document.getElementById('general-services-container');
+    if(!container) return;
+
+    const div = document.createElement('div');
+    div.className = 'general-service-row form-grid';
+    div.style.position = 'relative';
+    div.style.border = '1px solid rgba(255,255,255,0.1)';
+    div.style.padding = '15px';
+    div.style.borderRadius = '8px';
+    div.style.marginBottom = '15px';
+    div.style.background = 'rgba(0,0,0,0.1)';
+
+    div.innerHTML = `
+        <button type="button" class="btn btn-secondary btn-sm" style="position: absolute; top: 10px; right: 10px; padding: 2px 8px; background: #e74c3c; border-color: #e74c3c; color: white;" onclick="this.parentElement.remove(); calculateQuote();">X</button>
+        <div class="input-group">
+            <label>Nombre del Servicio</label>
+            <input type="text" class="gs-name" placeholder="Ej. Reparación de techumbre" value="${data ? data.name : ''}" required>
+        </div>
+        <div class="input-group">
+            <label>Descripción (Opcional)</label>
+            <input type="text" class="gs-desc" placeholder="Ej. Sellado de grietas y limpieza" value="${data ? (data.desc || '') : ''}">
+        </div>
+        <div class="input-group">
+            <label>Precio Total ($)</label>
+            <input type="number" class="gs-price" placeholder="Ej. 85000" value="${data ? data.price : ''}" min="0" required>
+        </div>
+    `;
+
+    div.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('input', calculateQuote);
+        inp.addEventListener('change', calculateQuote);
+    });
+
+    container.appendChild(div);
+    calculateQuote();
+};
 
 // Database Actions
 function renderChemicalsList() {
@@ -1101,6 +1180,8 @@ Creado desde Cotizador Stahlgraf.`,
 // Quote History & Save Flow
 function resetForm() {
     document.getElementById('quote-form').reset();
+    const gsContainer = document.getElementById('general-services-container');
+    if(gsContainer) gsContainer.innerHTML = '';
     currentQuoteId = null;
     loadedCorrelative = null;
     calculateQuote();
@@ -1122,6 +1203,15 @@ async function saveQuote(silent = false) {
     quoteData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
     quoteData.clientName = document.getElementById('client-name').value || 'Sin nombre';
     quoteData.totalStr = document.getElementById('doc-total').innerText;
+    
+    const genServices = [];
+    document.querySelectorAll('.general-service-row').forEach(row => {
+        const name = row.querySelector('.gs-name').value;
+        const desc = row.querySelector('.gs-desc').value;
+        const price = parseFloat(row.querySelector('.gs-price').value) || 0;
+        if(name) genServices.push({name, desc, price});
+    });
+    quoteData.generalServices = genServices;
     
     const btn = document.getElementById('btn-save-quote');
     let oldText = "";
@@ -1221,6 +1311,12 @@ window.loadQuoteFromDB = function(id, silent = false) {
             input.value = data[key];
         }
     });
+    
+    const gsContainer = document.getElementById('general-services-container');
+    if(gsContainer) gsContainer.innerHTML = '';
+    if(data.generalServices && data.generalServices.length > 0) {
+        data.generalServices.forEach(gs => window.addGeneralService(gs));
+    }
     
     currentQuoteId = id;
     loadedCorrelative = data.correlative || null;

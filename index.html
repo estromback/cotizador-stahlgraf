@@ -73,6 +73,10 @@
                             <label for="client-address">Dirección del Servicio</label>
                             <input type="text" id="client-address" placeholder="Av. Principal 1234" required>
                         </div>
+                        <div class="input-group" style="grid-column: 1 / -1;">
+                            <label for="quote-title">Título del Documento</label>
+                            <input type="text" id="quote-title" value="COTIZACIÓN DE SERVICIOS: CONTROL DE PLAGAS Y FUMIGACIÓN" required>
+                        </div>
                     </div>
                 </div>
 
@@ -227,6 +231,15 @@
                             </select>
                         </div>
                     </div>
+                <!-- Servicios Generales Info -->
+                <div class="form-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                        <h3 style="margin: 0;">6. Servicios Generales / Otros</h3>
+                        <button type="button" id="btn-add-general-service" class="btn btn-secondary btn-sm" style="padding: 5px 15px; font-size: 0.9rem;">+ Agregar Servicio</button>
+                    </div>
+                    <div id="general-services-container">
+                        <!-- Dynamic instances go here -->
+                    </div>
                 </div>
 
             </form>
@@ -242,7 +255,7 @@
                     <div class="doc-header">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                             <img src="logo.png" alt="Stahlgraf Logo" style="max-height: 90px; width: auto; object-fit: contain;" onerror="this.style.display='none'">
-                            <h1 style="margin: 0; text-align: right; font-size: 16pt; color: #222; text-transform: uppercase; max-width: 65%; line-height: 1.2;">COTIZACIÓN DE SERVICIOS:<br>CONTROL DE PLAGAS Y FUMIGACIÓN</h1>
+                            <h1 id="doc-title" style="margin: 0; text-align: right; font-size: 16pt; color: #222; text-transform: uppercase; max-width: 65%; line-height: 1.2;">COTIZACIÓN DE SERVICIOS:<br>CONTROL DE PLAGAS Y FUMIGACIÓN</h1>
                         </div>
                         <div class="doc-meta">
                             <div class="meta-box">
