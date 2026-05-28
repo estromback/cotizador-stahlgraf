@@ -385,8 +385,10 @@ function openCardModal(card = null) {
             const fd = card.formDetails;
             let html = `
                 <div><strong>Ubicación:</strong> ${fd.clientAddress || '-'}</div>
-                <div><strong>Propiedad:</strong> ${fd.propertyType || '-'} (${fd.propertySize || '-'} m², ${fd.propertyFloors || '-'})</div>
-                <div><strong>Área a tratar:</strong> ${fd.treatmentArea || '-'}</div>
+                <div><strong>Propiedad:</strong> ${fd.propertyType || '-'} (${fd.propertyFloors || '-'})</div>
+                <div><strong>Construcción:</strong> ${fd.propertySizeConstruction || fd.propertySize || '-'} m²</div>
+                <div><strong>Terreno:</strong> ${fd.propertySizeTerrain || '-'} m²</div>
+                <div><strong>Área a tratar:</strong> ${Array.isArray(fd.treatmentArea) ? fd.treatmentArea.join(', ') : (fd.treatmentArea || '-')}</div>
                 <div><strong>Plagas:</strong> ${Array.isArray(fd.plagas) ? fd.plagas.join(', ') : (fd.plagas || '-')}</div>
                 <div><strong>Infestación:</strong> ${fd.infestationLevel || '-'}</div>
                 <div><strong>Pob. Riesgo:</strong> ${fd.riskPopulation || '-'}</div>
@@ -404,7 +406,19 @@ function openCardModal(card = null) {
                 prefillUrl.searchParams.set('phone', fd.clientPhone || card.phone || '');
                 prefillUrl.searchParams.set('email', fd.clientEmail || card.email || '');
                 prefillUrl.searchParams.set('address', fd.clientAddress || '');
-                prefillUrl.searchParams.set('desc', `Servicio de control de plagas para propiedad ${fd.propertyType} de ${fd.propertySize} m². Áreas: ${fd.treatmentArea}. Plagas detectadas: ${Array.isArray(fd.plagas) ? fd.plagas.join(', ') : fd.plagas}. Infestación: ${fd.infestationLevel}.`);
+                
+                // Pass construction size to populate property-size input in cotizador
+                const constSize = fd.propertySizeConstruction || fd.propertySize || '';
+                if (constSize && constSize !== '-') {
+                    prefillUrl.searchParams.set('size', constSize);
+                }
+                
+                // Format a robust technical description
+                const areasStr = Array.isArray(fd.treatmentArea) ? fd.treatmentArea.join(', ') : fd.treatmentArea;
+                const plagasStr = Array.isArray(fd.plagas) ? fd.plagas.join(', ') : fd.plagas;
+                const descText = `Control de plagas (${plagasStr || 'No identificadas'}) en propiedad ${fd.propertyType || '-'}. Construcción: ${fd.propertySizeConstruction || '-'} m², Terreno: ${fd.propertySizeTerrain || '-'} m² (${fd.propertyFloors || '-'}). Áreas: ${areasStr || '-'}. Infestación: ${fd.infestationLevel || '-'}.`;
+                
+                prefillUrl.searchParams.set('desc', descText);
                 
                 window.open(prefillUrl.toString(), '_blank');
             };

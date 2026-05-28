@@ -83,12 +83,16 @@ function initApp() {
         const phone = urlParams.get('phone');
         const email = urlParams.get('email');
         const address = urlParams.get('address');
+        const size = urlParams.get('size');
         const desc = urlParams.get('desc');
         
         if (name) document.getElementById('client-name').value = name;
         if (phone) document.getElementById('client-phone').value = phone;
         if (email) document.getElementById('client-email').value = email;
         if (address) document.getElementById('client-address').value = address;
+        if (size && document.getElementById('property-size')) {
+            document.getElementById('property-size').value = size;
+        }
         
         if (desc && document.getElementById('quote-title')) {
             document.getElementById('quote-title').value = desc;

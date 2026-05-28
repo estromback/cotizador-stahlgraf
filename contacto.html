@@ -296,8 +296,12 @@
 
                 <div class="form-grid">
                     <div class="input-group">
-                        <label for="property-size">Tamaño Aprox. Inmueble (m²)</label>
-                        <input type="number" id="property-size" placeholder="Ej. 140" min="1">
+                        <label for="property-size-construction">Tamaño de la Construcción (m²)</label>
+                        <input type="number" id="property-size-construction" placeholder="Ej. 120" min="1" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="property-size-terrain">Tamaño del Terreno (m² - Opcional)</label>
+                        <input type="number" id="property-size-terrain" placeholder="Ej. 500" min="0">
                     </div>
                     <div class="input-group">
                         <label for="property-floors">Cantidad de Pisos</label>
@@ -317,23 +321,19 @@
                 </div>
                 
                 <div class="input-group" style="margin-bottom: 20px;">
-                    <label>Áreas a Tratar</label>
+                    <label>Áreas a Tratar (Selección Múltiple)</label>
                     <div class="option-grid">
                         <label class="custom-option">
-                            <input type="radio" name="treatment-area" value="Solo interior" required>
-                            <span>Solo interior</span>
+                            <input type="checkbox" name="treatment-area" value="Interior">
+                            <span>Interior</span>
                         </label>
                         <label class="custom-option">
-                            <input type="radio" name="treatment-area" value="Solo exterior (Perimetro casa)">
-                            <span>Solo exterior</span>
+                            <input type="checkbox" name="treatment-area" value="Exterior Perímetro">
+                            <span>Exterior Perímetro</span>
                         </label>
                         <label class="custom-option">
-                            <input type="radio" name="treatment-area" value="Ambas (Interior y Exterior)">
-                            <span>Interior y Exterior</span>
-                        </label>
-                        <label class="custom-option">
-                            <input type="radio" name="treatment-area" value="Jardines y terrazas">
-                            <span>Jardín / Terraza</span>
+                            <input type="checkbox" name="treatment-area" value="Exterior Jardines & Terrazas">
+                            <span>Exterior Jardines & Terrazas</span>
                         </label>
                     </div>
                 </div>
@@ -497,11 +497,21 @@
                 const propertyTypeEl = document.querySelector('input[name="property-type"]:checked');
                 const propertyType = propertyTypeEl ? propertyTypeEl.value : '-';
                 
-                const propertySize = document.getElementById('property-size').value || '-';
+                const propertySizeConstruction = document.getElementById('property-size-construction').value || '-';
+                const propertySizeTerrain = document.getElementById('property-size-terrain').value || '-';
                 const propertyFloors = document.getElementById('property-floors').value;
                 
-                const treatmentAreaEl = document.querySelector('input[name="treatment-area"]:checked');
-                const treatmentArea = treatmentAreaEl ? treatmentAreaEl.value : '-';
+                const treatmentAreaChecked = [];
+                document.querySelectorAll('input[name="treatment-area"]:checked').forEach(cb => {
+                    treatmentAreaChecked.push(cb.value);
+                });
+                
+                if (treatmentAreaChecked.length === 0) {
+                    alert("Por favor, seleccione al menos una área a tratar.");
+                    btn.disabled = false;
+                    btn.innerText = 'Enviar Solicitud de Cotización';
+                    return;
+                }
                 
                 const plagasChecked = [];
                 document.querySelectorAll('input[name="plagas"]:checked').forEach(cb => {
@@ -519,9 +529,10 @@
                     clientEmail: email,
                     clientAddress: address,
                     propertyType: propertyType,
-                    propertySize: propertySize,
+                    propertySizeConstruction: propertySizeConstruction,
+                    propertySizeTerrain: propertySizeTerrain,
                     propertyFloors: propertyFloors,
-                    treatmentArea: treatmentArea,
+                    treatmentArea: treatmentAreaChecked,
                     plagas: plagasChecked,
                     infestationLevel: infestationLevel,
                     riskPopulation: riskPopulation,
@@ -532,8 +543,8 @@
                 // Build clean notes/description for general CRM
                 let description = `[Formulario de Contacto]\n`;
                 description += `Dirección: ${address}\n`;
-                description += `Propiedad: ${propertyType} (${propertySize} m², ${propertyFloors})\n`;
-                description += `Tratamiento: ${treatmentArea}\n`;
+                description += `Propiedad: ${propertyType} (Construcción: ${propertySizeConstruction} m², Terreno: ${propertySizeTerrain} m², ${propertyFloors})\n`;
+                description += `Tratamiento: ${treatmentAreaChecked.join(', ')}\n`;
                 description += `Plagas: ${plagasChecked.join(', ') || 'No identificadas'}\n`;
                 description += `Infestación: ${infestationLevel}\n`;
                 description += `Pob. Riesgo: ${riskPopulation}\n`;
