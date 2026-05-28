@@ -94,8 +94,8 @@ function initApp() {
             document.getElementById('property-size').value = size;
         }
         
-        if (desc && document.getElementById('quote-title')) {
-            document.getElementById('quote-title').value = desc;
+        if (desc && document.getElementById('quote-notes')) {
+            document.getElementById('quote-notes').value = desc;
         }
         
         calculateQuote();
@@ -559,6 +559,19 @@ function calculateQuote() {
 
     const saniElems = document.querySelectorAll('.sani-rule');
     saniElems.forEach(el => hasSanitization ? el.classList.remove('hidden') : el.classList.add('hidden'));
+
+    // Render Technical Observations
+    const quoteNotes = document.getElementById('quote-notes')?.value || '';
+    const docSectionNotes = document.getElementById('doc-section-notes');
+    const docQuoteNotes = document.getElementById('doc-quote-notes');
+    if (docSectionNotes && docQuoteNotes) {
+        if (quoteNotes.trim()) {
+            docQuoteNotes.innerText = quoteNotes;
+            docSectionNotes.style.display = 'block';
+        } else {
+            docSectionNotes.style.display = 'none';
+        }
+    }
 }
 
 // Event Listeners
@@ -581,7 +594,7 @@ function setupEventListeners() {
     });
 
     // Form Real-time calculation
-    const inputs = document.querySelectorAll('#quote-form input, #quote-form select');
+    const inputs = document.querySelectorAll('#quote-form input, #quote-form select, #quote-form textarea');
     inputs.forEach(input => {
         input.addEventListener('input', calculateQuote);
         input.addEventListener('change', calculateQuote);
@@ -1265,7 +1278,7 @@ async function saveQuote(silent = false) {
         return false;
     }
     
-    const inputs = document.querySelectorAll('#quote-form input, #quote-form select');
+    const inputs = document.querySelectorAll('#quote-form input, #quote-form select, #quote-form textarea');
     const quoteData = {};
     inputs.forEach(input => {
         if(input.id) quoteData[input.id] = input.value;

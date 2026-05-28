@@ -80,6 +80,10 @@
                             <label for="quote-title">Título del Documento</label>
                             <input type="text" id="quote-title" value="COTIZACIÓN DE SERVICIOS: CONTROL DE PLAGAS Y FUMIGACIÓN" required>
                         </div>
+                        <div class="input-group" style="grid-column: 1 / -1;">
+                            <label for="quote-notes">Observaciones / Comentarios Técnicos (Opcional)</label>
+                            <textarea id="quote-notes" rows="3" placeholder="Ej. Presencia de arañas en rincones exteriores. Terreno de 500m2."></textarea>
+                        </div>
                     </div>
                 </div>
 
@@ -351,6 +355,11 @@
                             <li class="moth-rule hidden"><strong>Forrado de estantes:</strong> Coloque papel de cocina o manteles plásticos sobre las repisas secas antes de almacenar. Evite el contacto directo de envases con la superficie.</li>
                             <li class="sani-rule hidden"><strong>Tiempo de reingreso (Sanitización):</strong> Esperar el tiempo de secado y ventilar el recinto al menos 30 minutos antes de hacer uso habitual de las instalaciones tratadas.</li>
                         </ul>
+                    </div>
+
+                    <div class="doc-section" id="doc-section-notes" style="display: none;">
+                        <h2>Observaciones / Comentarios Adicionales</h2>
+                        <p id="doc-quote-notes" style="font-size: 0.9rem; color: #334155; white-space: pre-wrap; line-height: 1.5; margin: 0;"></p>
                     </div>
 
                     <div class="doc-section">
