@@ -56,7 +56,7 @@ let appData = {
 };
 
 function loadData() {
-    const saved = localStorage.getItem('stahlgraf_data');
+    const saved = localStorage.getItem('stahlgraf_data_v4');
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
@@ -68,7 +68,7 @@ function loadData() {
 }
 
 function saveData() {
-    localStorage.setItem('stahlgraf_data', JSON.stringify(appData));
+    localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
 }
 
 // Authentication State

@@ -32,7 +32,7 @@ let crmCards = [];
 let draggingCardId = null;
 
 function loadData() {
-    const saved = localStorage.getItem('stahlgraf_data');
+    const saved = localStorage.getItem('stahlgraf_data_v4');
     if (saved) {
         try {
             appData = { ...appData, ...JSON.parse(saved) };

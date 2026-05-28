@@ -201,6 +201,7 @@ function updatePDFPreview() {
     // Basic Info
     const cName = document.getElementById('client-name').value || '-';
     const cAddress = document.getElementById('client-address').value || '-';
+    const cPhone = document.getElementById('client-phone').value || '-';
     const cTech = document.getElementById('technician-name').value || '-';
     const rawDate = document.getElementById('report-date').value;
     
@@ -212,6 +213,7 @@ function updatePDFPreview() {
 
     document.getElementById('doc-client-name').innerText = cName;
     document.getElementById('doc-client-address').innerText = cAddress;
+    document.getElementById('doc-client-phone').innerText = cPhone;
     document.getElementById('doc-technician-name').innerText = cTech;
     document.getElementById('doc-date').innerText = dateStr;
 
@@ -289,6 +291,7 @@ async function saveReportToCloud() {
             id: reportId,
             clientName: clientName,
             clientAddress: document.getElementById('client-address').value,
+            clientPhone: document.getElementById('client-phone').value,
             technicianName: document.getElementById('technician-name').value,
             date: document.getElementById('report-date').value,
             pestsDetected: selectedPests,
@@ -316,6 +319,9 @@ async function saveReportToCloud() {
             loadedReportCorrelative = appData.reportCorrelative;
             document.getElementById('doc-correlative').innerText = loadedReportCorrelative;
         }
+
+        // Auto-guardar cliente en el directorio
+        saveClientToDirectorySilently(clientName, document.getElementById('client-address').value, document.getElementById('client-phone').value);
 
         // Sincronizar con CRM
         await syncReportToCRM(reportData, reportId, loadedReportCorrelative || 1);
@@ -477,7 +483,7 @@ function renderClientsSelect(filter = '') {
     listEl.innerHTML = '';
     
     if (clientsList.length === 0) {
-        listEl.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No hay clientes guardados. Guárdalos desde la Configuración del Cotizador.</p>';
+        listEl.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No hay clientes guardados. Guárdalos desde la Configuración del Cotizador o el Informador.</p>';
         return;
     }
 
@@ -498,11 +504,50 @@ function renderClientsSelect(filter = '') {
         div.addEventListener('click', () => {
             document.getElementById('client-name').value = client.name || '';
             document.getElementById('client-address').value = client.address || '';
+            document.getElementById('client-phone').value = client.phone || '';
             document.getElementById('clients-modal').classList.remove('active');
             updatePDFPreview();
         });
         listEl.appendChild(div);
     });
+}
+
+function saveClientToDirectorySilently(name, address, phone) {
+    if (!name) return;
+    
+    let appData = {};
+    const savedData = localStorage.getItem('stahlgraf_data_v4');
+    if (savedData) {
+        try { appData = JSON.parse(savedData); } catch(e) {}
+    }
+    if (!appData.clients) appData.clients = [];
+
+    const newClient = {
+        id: 'cl_' + Date.now(),
+        name: name,
+        attention: '',
+        phone: phone || '',
+        address: address || ''
+    };
+
+    const existingIndex = appData.clients.findIndex(c => (c.name || '').toLowerCase() === name.toLowerCase());
+    if (existingIndex >= 0) {
+        newClient.id = appData.clients[existingIndex].id; // preserve ID
+        newClient.attention = appData.clients[existingIndex].attention || '';
+        if (!phone && appData.clients[existingIndex].phone) newClient.phone = appData.clients[existingIndex].phone;
+        if (!address && appData.clients[existingIndex].address) newClient.address = appData.clients[existingIndex].address;
+        appData.clients[existingIndex] = newClient;
+    } else {
+        appData.clients.push(newClient);
+    }
+
+    clientsList = appData.clients;
+    localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
+    
+    if (currentUser && db) {
+        db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
+            .catch(err => console.error("Error saving client directory from Informador:", err));
+    }
 }
 
 function loadUserConfig() {
