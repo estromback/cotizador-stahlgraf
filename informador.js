@@ -495,11 +495,27 @@ async function loadHistoryUI() {
                     <strong>${data.clientName || 'Sin Nombre'}</strong> <span style="color:#aaa; font-size:0.85rem;">(${dateStr})</span><br>
                     <span style="font-size: 0.85rem; color: #888;">Plagas: ${(data.pestsDetected || []).join(', ') || 'Ninguna'}</span>
                 </div>
-                <div class="db-item-actions">
+                <div class="db-item-actions" style="display: flex; gap: 5px;">
                     <button class="btn btn-secondary btn-sm btn-load-historic" data-id="${doc.id}">Ver Resumen</button>
+                    <button class="btn btn-sm btn-delete-historic" data-id="${doc.id}" style="background: transparent; border: 1px solid var(--danger); color: var(--danger);">Eliminar</button>
                 </div>
             `;
             listEl.appendChild(div);
+        });
+
+        // Event listener para eliminar
+        document.querySelectorAll('.btn-delete-historic').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.getAttribute('data-id');
+                if (confirm('¿Estás seguro de que deseas eliminar este informe del historial de forma permanente?')) {
+                    try {
+                        await db.collection('users').doc(currentUser.uid).collection('reports').doc(id).delete();
+                        loadHistoryUI(); // Reload list
+                    } catch (error) {
+                        alert("Error al eliminar: " + error.message);
+                    }
+                }
+            });
         });
 
         // Event listener para ver resumen o cargar
