@@ -141,6 +141,30 @@ h1, h2, h3, h4 {
     gap: 30px;
 }
 
+@media (max-width: 768px) {
+    .nav-content {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    .nav-content > div:first-child {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px !important;
+    }
+    .global-nav {
+        margin-left: 0 !important;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .nav-actions {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+}
+
 /* Form Styles */
 .form-panel, .summary-panel {
     padding: 25px;

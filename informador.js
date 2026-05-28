@@ -135,13 +135,37 @@ function handlePhotoUpload(e) {
     files.forEach(file => {
         const reader = new FileReader();
         reader.onload = (event) => {
-            currentPhotos.push({
-                file: file,
-                dataUrl: event.target.result,
-                id: Date.now() + Math.random().toString()
-            });
-            renderPhotoGrid();
-            updatePDFPreview();
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const MAX_SIZE = 800; // Compress images to max 800px
+
+                if (width > height && width > MAX_SIZE) {
+                    height *= MAX_SIZE / width;
+                    width = MAX_SIZE;
+                } else if (height > MAX_SIZE) {
+                    width *= MAX_SIZE / height;
+                    height = MAX_SIZE;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6); // 60% quality jpeg
+
+                currentPhotos.push({
+                    file: file,
+                    dataUrl: compressedDataUrl,
+                    id: Date.now() + Math.random().toString()
+                });
+                renderPhotoGrid();
+                updatePDFPreview();
+            };
+            img.src = event.target.result;
         };
         reader.readAsDataURL(file);
     });
@@ -249,16 +273,11 @@ async function saveReportToCloud() {
         const reportId = 'rep_' + timestamp;
         const photoUrls = [];
 
-        // Upload photos to Storage
-        if (storage && currentPhotos.length > 0) {
-            btn.innerText = "Subiendo fotos...";
+        // Save compressed photos as base64 in Firestore directly to prevent Storage hangs
+        if (currentPhotos.length > 0) {
+            btn.innerText = "Procesando fotos...";
             for (let i = 0; i < currentPhotos.length; i++) {
-                const photoObj = currentPhotos[i];
-                const fileExt = photoObj.file.name.split('.').pop() || 'jpg';
-                const storageRef = storage.ref(`users/${currentUser.uid}/reports/${reportId}/img_${i}.${fileExt}`);
-                const snapshot = await storageRef.put(photoObj.file);
-                const downloadUrl = await snapshot.ref.getDownloadURL();
-                photoUrls.push(downloadUrl);
+                photoUrls.push(currentPhotos[i].dataUrl);
             }
         }
 
@@ -313,11 +332,10 @@ async function saveReportToCloud() {
 function generatePDF() {
     const element = document.getElementById('pdf-content');
     
-    // Temporarily adjust styles for better PDF layout
-    element.style.padding = '20px 40px';
-    element.style.backgroundColor = 'white';
-    element.style.color = 'black';
-    
+    // Remove transform temporarily for PDF generation to fix blank pages on mobile
+    const oldTransform = element.style.transform;
+    element.style.transform = 'none';
+
     const clientName = document.getElementById('client-name').value || 'Sin_Nombre';
     const rawDate = document.getElementById('report-date').value;
     const dateStr = rawDate ? rawDate.replace(/-/g, '') : 'Fecha';
@@ -326,13 +344,13 @@ function generatePDF() {
         margin:       10,
         filename:     `Informe_${clientName.replace(/\s+/g, '_')}_${dateStr}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     html2pdf().set(opt).from(element).save().then(() => {
         // Revert styles
-        element.style.padding = '30px';
+        element.style.transform = oldTransform;
     });
 }
 
