@@ -355,10 +355,10 @@ async function generatePDF() {
         const dateStr = rawDate ? rawDate.replace(/-/g, '') : 'Fecha';
 
         const opt = {
-            margin:       10,
+            margin:       [10, 0, 15, 0],
             filename:     `Informe_${clientName.replace(/\s+/g, '_')}_${dateStr}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, logging: false, scrollY: 0, windowWidth: document.documentElement.offsetWidth },
+            html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
