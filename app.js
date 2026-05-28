@@ -139,7 +139,10 @@ function loadData() {
 }
 
 function updateSettingsUI() {
-    document.getElementById('setting-margin').value = appData.margin;
+    const marginInput = document.getElementById('setting-margin');
+    if (!marginInput) return; // Exit early if we are not on the Hub page
+    
+    marginInput.value = appData.margin;
     document.getElementById('setting-min-rate').value = appData.minRate;
     document.getElementById('setting-correlative').value = appData.correlative;
     if(document.getElementById('setting-report-correlative')) document.getElementById('setting-report-correlative').value = appData.reportCorrelative || 1;
@@ -637,8 +640,10 @@ function setupEventListeners() {
 
     // Modal Triggers
     const modal = document.getElementById('settings-modal');
-    document.getElementById('btn-settings').addEventListener('click', () => modal.classList.add('active'));
-    document.getElementById('btn-close-settings').addEventListener('click', () => modal.classList.remove('active'));
+    if (modal) {
+        document.getElementById('btn-settings').addEventListener('click', () => modal.classList.add('active'));
+        document.getElementById('btn-close-settings').addEventListener('click', () => modal.classList.remove('active'));
+    }
 
     const modalHistory = document.getElementById('history-modal');
     document.getElementById('btn-history').addEventListener('click', () => {
@@ -664,93 +669,98 @@ function setupEventListeners() {
     }
 
     // Settings Parameters Listeners
-    document.getElementById('setting-margin').addEventListener('change', (e) => {
-        appData.margin = parseFloat(e.target.value) || 0;
-        saveData();
-        calculateQuote();
-    });
+    if (document.getElementById('setting-margin')) {
+        document.getElementById('setting-margin').addEventListener('change', (e) => {
+            appData.margin = parseFloat(e.target.value) || 0;
+            saveData();
+            calculateQuote();
+        });
 
-    document.getElementById('setting-min-rate').addEventListener('change', (e) => {
-        appData.minRate = parseFloat(e.target.value) || 0;
-        saveData();
-        calculateQuote();
-    });
+        document.getElementById('setting-min-rate').addEventListener('change', (e) => {
+            appData.minRate = parseFloat(e.target.value) || 0;
+            saveData();
+            calculateQuote();
+        });
 
-    document.getElementById('setting-correlative').addEventListener('change', (e) => {
-        appData.correlative = parseInt(e.target.value) || 1;
-        saveData();
-        calculateQuote();
-    });
+        document.getElementById('setting-correlative').addEventListener('change', (e) => {
+            appData.correlative = parseInt(e.target.value) || 1;
+            saveData();
+            calculateQuote();
+        });
 
-    if (document.getElementById('setting-report-correlative')) {
-        document.getElementById('setting-report-correlative').addEventListener('change', (e) => {
-            appData.reportCorrelative = parseInt(e.target.value) || 1;
+        if (document.getElementById('setting-report-correlative')) {
+            document.getElementById('setting-report-correlative').addEventListener('change', (e) => {
+                appData.reportCorrelative = parseInt(e.target.value) || 1;
+                saveData();
+            });
+        }
+
+        document.getElementById('setting-bait-price').addEventListener('change', (e) => {
+            appData.baitPrice = parseInt(e.target.value) || 3750;
+            saveData();
+            calculateQuote();
+        });
+        
+        document.getElementById('setting-moth-prep-price')?.addEventListener('change', (e) => {
+            appData.mothPrepPrice = parseInt(e.target.value) || 15000;
+            saveData();
+            calculateQuote();
+        });
+
+        document.getElementById('setting-moth-trap-price')?.addEventListener('change', (e) => {
+            appData.mothTrapPrice = parseInt(e.target.value) || 5000;
+            saveData();
+            calculateQuote();
+        });
+
+        document.getElementById('setting-moth-chem-price')?.addEventListener('change', (e) => {
+            appData.mothChemPrice = parseInt(e.target.value) || 25000;
+            saveData();
+            calculateQuote();
+        });
+
+        document.getElementById('setting-hh-price').addEventListener('change', (e) => {
+            appData.hhPrice = parseFloat(e.target.value) || 15000;
+            saveData();
+            calculateQuote();
+        });
+
+        document.getElementById('setting-hh-speed').addEventListener('change', (e) => {
+            appData.hhSpeed = parseFloat(e.target.value) || 50;
+            saveData();
+            calculateQuote();
+        });
+
+        document.getElementById('setting-asana-token').addEventListener('change', (e) => {
+            appData.asanaToken = e.target.value.trim();
+            saveData();
+        });
+
+        document.getElementById('setting-asana-project').addEventListener('change', (e) => {
+            appData.asanaProject = e.target.value.trim();
             saveData();
         });
     }
 
-    document.getElementById('setting-bait-price').addEventListener('change', (e) => {
-        appData.baitPrice = parseInt(e.target.value) || 3750;
-        saveData();
-        calculateQuote();
-    });
-    
-    document.getElementById('setting-moth-prep-price')?.addEventListener('change', (e) => {
-        appData.mothPrepPrice = parseInt(e.target.value) || 15000;
-        saveData();
-        calculateQuote();
-    });
-
-    document.getElementById('setting-moth-trap-price')?.addEventListener('change', (e) => {
-        appData.mothTrapPrice = parseInt(e.target.value) || 5000;
-        saveData();
-        calculateQuote();
-    });
-
-    document.getElementById('setting-moth-chem-price')?.addEventListener('change', (e) => {
-        appData.mothChemPrice = parseInt(e.target.value) || 25000;
-        saveData();
-        calculateQuote();
-    });
-
-    document.getElementById('setting-hh-price').addEventListener('change', (e) => {
-        appData.hhPrice = parseFloat(e.target.value) || 15000;
-        saveData();
-        calculateQuote();
-    });
-
-    document.getElementById('setting-hh-speed').addEventListener('change', (e) => {
-        appData.hhSpeed = parseFloat(e.target.value) || 50;
-        saveData();
-        calculateQuote();
-    });
-
-    document.getElementById('setting-asana-token').addEventListener('change', (e) => {
-        appData.asanaToken = e.target.value.trim();
-        saveData();
-    });
-
-    document.getElementById('setting-asana-project').addEventListener('change', (e) => {
-        appData.asanaProject = e.target.value.trim();
-        saveData();
-    });
-
 
     // DB Form Actions
-    document.getElementById('btn-add-chemical').addEventListener('click', () => {
-        document.getElementById('chemical-form').classList.remove('hidden');
-        document.getElementById('chem-id').value = '';
-        document.getElementById('chem-name').value = '';
-        document.getElementById('chem-price').value = '';
-        document.getElementById('chem-size').value = '1000';
-        document.getElementById('chem-dose').value = '';
-    });
+    const btnAddChem = document.getElementById('btn-add-chemical');
+    if (btnAddChem) {
+        btnAddChem.addEventListener('click', () => {
+            document.getElementById('chemical-form').classList.remove('hidden');
+            document.getElementById('chem-id').value = '';
+            document.getElementById('chem-name').value = '';
+            document.getElementById('chem-price').value = '';
+            document.getElementById('chem-size').value = '1000';
+            document.getElementById('chem-dose').value = '';
+        });
 
-    document.getElementById('btn-cancel-chem').addEventListener('click', () => {
-        document.getElementById('chemical-form').classList.add('hidden');
-    });
+        document.getElementById('btn-cancel-chem').addEventListener('click', () => {
+            document.getElementById('chemical-form').classList.add('hidden');
+        });
 
-    document.getElementById('btn-save-chem').addEventListener('click', saveChemical);
+        document.getElementById('btn-save-chem').addEventListener('click', saveChemical);
+    }
     document.getElementById('btn-generate-pdf').addEventListener('click', generatePDF);
     document.getElementById('btn-asana').addEventListener('click', uploadToAsana);
     

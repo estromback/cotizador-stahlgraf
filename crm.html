@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stahlgraf - CRM Kanban</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body { margin: 0; padding: 0; overflow-x: hidden; }
+        
+        .crm-container {
+            display: flex;
+            height: calc(100vh - 80px); /* Minus navbar */
+            overflow: hidden;
+            background: var(--bg-main);
+        }
+
+        .kanban-board {
+            display: flex;
+            flex: 1;
+            overflow-x: auto;
+            padding: 20px;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .kanban-column {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            min-width: 300px;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            max-height: 100%;
+        }
+
+        .kanban-header {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px 12px 0 0;
+        }
+
+        .kanban-cards {
+            padding: 15px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 150px;
+        }
+
+        .kanban-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: grab;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .kanban-card:active {
+            cursor: grabbing;
+        }
+
+        .kanban-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border-color: var(--primary);
+        }
+
+        .card-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        .card-date {
+            font-size: 0.8rem;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 8px;
+        }
+
+        .card-date.overdue {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        
+        .card-date.today {
+            color: #f1c40f;
+            font-weight: 600;
+        }
+
+        .card-desc {
+            font-size: 0.85rem;
+            color: #ccc;
+            line-height: 1.4;
+        }
+
+        .calendar-sidebar {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* Drag and Drop visually */
+        .kanban-cards.drag-over {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .dragging {
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="logo.png" alt="Stahlgraf Logo" style="height: 120px; object-fit: contain;" onerror="this.style.display='none'">
+                <h1 class="logo" style="margin: 0;"> <span>CRM</span></h1>
+                <div class="global-nav" style="margin-left: 20px; display: flex; gap: 15px; background: rgba(255,255,255,0.05); padding: 5px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                    <a href="index.html" class="nav-link" style="text-decoration: none; color: #bbb; font-weight: 500; padding: 5px 12px; border-radius: 15px; font-size: 0.9rem;">🏠 Hub Central</a>
+                    <a href="crm.html" class="nav-link" style="text-decoration: none; color: #fff; font-weight: 600; background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 15px; font-size: 0.9rem;">Kanban</a>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <button id="btn-add-card" class="btn btn-primary">+ Nuevo Trato / Tarea</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="crm-container">
+        <!-- Kanban Board -->
+        <div class="kanban-board" id="kanban-board">
+            <!-- Columns injected by JS -->
+        </div>
+
+        <!-- Calendar / Next Steps Sidebar -->
+        <div class="calendar-sidebar">
+            <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                📅 Próximos Pasos
+            </h3>
+            <p style="font-size: 0.85rem; color: #aaa;">Tareas y seguimientos agendados por fecha.</p>
+            <div id="upcoming-tasks">
+                <!-- Injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit/Add Card Modal -->
+    <div id="card-modal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="modal-card-title">Nuevo Registro CRM</h2>
+                <button id="btn-close-card" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="card-id">
+                <div class="input-group">
+                    <label>Cliente / Título</label>
+                    <input type="text" id="card-client" placeholder="Ej. Juan Pérez - Cotización Roedores">
+                </div>
+                <div class="input-group">
+                    <label>Estado (Columna)</label>
+                    <select id="card-column">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Fecha de Seguimiento (Próximo paso)</label>
+                    <input type="date" id="card-date">
+                </div>
+                <div class="input-group">
+                    <label>Notas / Descripción</label>
+                    <textarea id="card-desc" rows="4" placeholder="Ej. Llamar el martes para confirmar si aprobó el presupuesto."></textarea>
+                </div>
+                <div class="flex-actions" style="margin-top: 20px;">
+                    <button id="btn-save-card" class="btn btn-primary">Guardar</button>
+                    <button id="btn-delete-card" class="btn btn-secondary" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; border-color: rgba(231, 76, 60, 0.5); display: none;">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="crm.js"></script>
+</body>
+</html>
