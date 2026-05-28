@@ -948,8 +948,17 @@ async function generatePDF() {
         return;
     }
 
+    // Consumir correlativo localmente si es una cotización nueva, incluso si la nube falla
+    if (!currentQuoteId && loadedCorrelative === null) {
+        loadedCorrelative = appData.correlative;
+        appData.correlative++;
+        document.getElementById('setting-correlative').value = appData.correlative;
+        saveData();
+        calculateQuote();
+    }
+
     const saved = await saveQuote(true);
-    if (!saved && !confirm("No se ha podido guardar en la nube. ¿Deseas exportar el archivo de todas formas?")) return;
+    if (!saved && !confirm("No se ha podido guardar en la nube (revisa tu sesión o conexión). ¿Deseas exportar el PDF de todas formas?")) return;
 
     const btn = document.getElementById('btn-generate-pdf');
     const oldText = btn.innerText;
@@ -1024,8 +1033,17 @@ async function uploadToAsana() {
         return;
     }
 
+    // Consumir correlativo localmente si es una cotización nueva
+    if (!currentQuoteId && loadedCorrelative === null) {
+        loadedCorrelative = appData.correlative;
+        appData.correlative++;
+        document.getElementById('setting-correlative').value = appData.correlative;
+        saveData();
+        calculateQuote();
+    }
+
     const saved = await saveQuote(true);
-    if (!saved && !confirm("No se ha podido guardar la cotización antes de subir. ¿Deseas subir el archivo a Asana de todas formas?")) return;
+    if (!saved && !confirm("No se ha podido guardar la cotización en la nube. ¿Deseas subir el archivo a Asana de todas formas?")) return;
 
     const btn = document.getElementById('btn-asana');
     const originalText = btn.innerText;
@@ -1190,7 +1208,7 @@ function resetForm() {
 
 async function saveQuote(silent = false) {
     if (!currentUser || !db) {
-        if (!silent) alert("Debes iniciar sesión con Google (botón superior) para guardar cotizaciones en la nube.");
+        alert("Atención: No has iniciado sesión con Google. La cotización NO se guardará en la nube, pero el PDF sí se generará.");
         return false;
     }
     
@@ -1223,15 +1241,17 @@ async function saveQuote(silent = false) {
 
     try {
         if (!currentQuoteId) {
-            quoteData.correlative = appData.correlative;
+            // Lock correlative if not already locked
+            if (loadedCorrelative === null) {
+                loadedCorrelative = appData.correlative;
+                appData.correlative++;
+                document.getElementById('setting-correlative').value = appData.correlative;
+                saveData();
+            }
+            quoteData.correlative = loadedCorrelative;
+            
             const ref = await db.collection('users').doc(currentUser.uid).collection('quotes').add(quoteData);
             currentQuoteId = ref.id;
-            loadedCorrelative = appData.correlative; // Lock it visually
-            
-            // Increment global setting
-            appData.correlative++;
-            document.getElementById('setting-correlative').value = appData.correlative;
-            saveData();
         } else {
             quoteData.correlative = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
             await db.collection('users').doc(currentUser.uid).collection('quotes').doc(currentQuoteId).set(quoteData, { merge: true });
@@ -1246,7 +1266,7 @@ async function saveQuote(silent = false) {
         return true;
     } catch(err) {
         console.error(err);
-        if (!silent) alert("Error al guardar: " + err.message);
+        alert("Error de Firebase al guardar la cotización: " + err.message + "\n(Puede que las reglas de la base de datos hayan expirado o haya un problema de conexión)");
         return false;
     } finally {
         if (btn) {
