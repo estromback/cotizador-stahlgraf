@@ -204,6 +204,7 @@ function calculateQuote() {
     const clientName = document.getElementById('client-name').value || '-';
     const clientAttention = document.getElementById('client-attention').value || '';
     const clientPhone = document.getElementById('client-phone').value || '-';
+    const clientEmail = document.getElementById('client-email')?.value || '-';
     const clientAddress = document.getElementById('client-address').value || '-';
     
     const size = parseFloat(document.getElementById('property-size').value) || 0;
@@ -340,6 +341,9 @@ function calculateQuote() {
     document.getElementById('doc-correlative').innerText = displayCorr;
     document.getElementById('doc-client-name').innerText = clientName;
     document.getElementById('doc-client-phone').innerText = clientPhone;
+    if (document.getElementById('doc-client-email')) {
+        document.getElementById('doc-client-email').innerText = clientEmail;
+    }
     document.getElementById('doc-client-address').innerText = clientAddress;
     
     const quoteTitle = document.getElementById('quote-title')?.value || "COTIZACIÓN DE SERVICIOS: CONTROL DE PLAGAS Y FUMIGACIÓN";
@@ -1310,6 +1314,7 @@ async function syncToCRM(quoteData, quoteId) {
     const totalStr = quoteData.totalStr;
     const correlative = quoteData.correlative;
     const phone = (quoteData['client-phone'] || '').trim();
+    const email = (quoteData['client-email'] || '').trim();
     const dateStr = new Date().toLocaleString();
     
     try {
@@ -1320,6 +1325,7 @@ async function syncToCRM(quoteData, quoteId) {
             await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
                 client: clientName,
                 phone: phone,
+                email: email,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             return;
@@ -1341,6 +1347,7 @@ async function syncToCRM(quoteData, quoteId) {
         if (targetDoc) {
             const docId = targetDoc.id;
             await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
+                email: email,
                 comments: firebase.firestore.FieldValue.arrayUnion({
                     text: `Se generó la Cotización #${correlative} por un total de ${totalStr}.`,
                     date: dateStr
@@ -1351,6 +1358,7 @@ async function syncToCRM(quoteData, quoteId) {
             const payload = {
                 client: clientName,
                 phone: phone,
+                email: email,
                 column: 'Cotizados',
                 date: new Date().toISOString().split('T')[0],
                 desc: `Cotización #${correlative} generada automáticamente.\nTotal: ${totalStr}`,
@@ -1461,6 +1469,7 @@ window.saveClientToDirectory = function(silent = false) {
     const name = document.getElementById('client-name').value.trim();
     const attention = document.getElementById('client-attention').value.trim();
     const phone = document.getElementById('client-phone').value.trim();
+    const email = document.getElementById('client-email') ? document.getElementById('client-email').value.trim() : '';
     const address = document.getElementById('client-address').value.trim();
 
     if (!name || (!silent && (!phone || !address))) {
@@ -1473,6 +1482,7 @@ window.saveClientToDirectory = function(silent = false) {
         name,
         attention,
         phone,
+        email,
         address
     };
 
@@ -1489,6 +1499,10 @@ window.saveClientToDirectory = function(silent = false) {
         } else {
             // Silently update if we are auto-saving
             newClient.id = appData.clients[existingIndex].id; // preserve ID
+            // Preserve fields if not provided in auto-save
+            if (!email && appData.clients[existingIndex].email) newClient.email = appData.clients[existingIndex].email;
+            if (!phone && appData.clients[existingIndex].phone) newClient.phone = appData.clients[existingIndex].phone;
+            if (!address && appData.clients[existingIndex].address) newClient.address = appData.clients[existingIndex].address;
             appData.clients[existingIndex] = newClient;
         }
     } else {
@@ -1565,7 +1579,7 @@ window.renderClientsSelect = function(searchTerm = '') {
         div.innerHTML = `
             <div class="db-item-info">
                 <strong>${client.name}</strong>
-                <span>Tel: ${client.phone} | Dir: ${client.address}</span>
+                <span>Tel: ${client.phone} | Dir: ${client.address}${client.email ? ` | Email: ${client.email}` : ''}</span>
             </div>
             <div class="db-item-actions">
                 <button class="btn btn-primary btn-sm">Seleccionar</button>
@@ -1582,6 +1596,9 @@ window.loadClientToForm = function(id) {
     document.getElementById('client-name').value = client.name || '';
     document.getElementById('client-attention').value = client.attention || '';
     document.getElementById('client-phone').value = client.phone || '';
+    if (document.getElementById('client-email')) {
+        document.getElementById('client-email').value = client.email || '';
+    }
     document.getElementById('client-address').value = client.address || '';
     
     calculateQuote();

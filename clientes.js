@@ -87,6 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-add-client').addEventListener('click', () => openModal());
     document.getElementById('btn-close-modal').addEventListener('click', closeModal);
     document.getElementById('btn-save-client').addEventListener('click', saveClient);
+    document.getElementById('btn-export-emails').addEventListener('click', openEmailsModal);
+    document.getElementById('btn-close-emails-modal').addEventListener('click', closeEmailsModal);
+    document.getElementById('btn-copy-emails').addEventListener('click', copyEmailsToClipboard);
 
     // Sync button logic
     const syncBtn = document.getElementById('btn-sync-login');
@@ -115,6 +118,7 @@ function renderClients() {
         (c.name || '').toLowerCase().includes(searchVal) ||
         (c.address || '').toLowerCase().includes(searchVal) ||
         (c.phone || '').toLowerCase().includes(searchVal) ||
+        (c.email || '').toLowerCase().includes(searchVal) ||
         (c.attention || '').toLowerCase().includes(searchVal)
     );
 
@@ -141,6 +145,10 @@ function renderClients() {
                     <span>${c.phone || '-'}</span>
                 </div>
                 <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span>${c.email || '-'}</span>
+                </div>
+                <div class="info-row">
                     <span class="info-label">Dirección:</span>
                     <span>${c.address || '-'}</span>
                 </div>
@@ -164,6 +172,7 @@ function openModal(id = null) {
             document.getElementById('client-name').value = client.name || '';
             document.getElementById('client-attention').value = client.attention || '';
             document.getElementById('client-phone').value = client.phone || '';
+            document.getElementById('client-email').value = client.email || '';
             document.getElementById('client-address').value = client.address || '';
         }
     } else {
@@ -172,6 +181,7 @@ function openModal(id = null) {
         document.getElementById('client-name').value = '';
         document.getElementById('client-attention').value = '';
         document.getElementById('client-phone').value = '';
+        document.getElementById('client-email').value = '';
         document.getElementById('client-address').value = '';
     }
 }
@@ -185,6 +195,7 @@ function saveClient() {
     const name = document.getElementById('client-name').value.trim();
     const attention = document.getElementById('client-attention').value.trim();
     const phone = document.getElementById('client-phone').value.trim();
+    const email = document.getElementById('client-email').value.trim();
     const address = document.getElementById('client-address').value.trim();
 
     if (!name || !phone || !address) {
@@ -193,7 +204,7 @@ function saveClient() {
 
     const payload = {
         id: id || 'cl_' + Date.now(),
-        name, attention, phone, address
+        name, attention, phone, email, address
     };
 
     if (id) {
@@ -257,6 +268,55 @@ async function deleteClientCascading(id) {
     renderClients();
 }
 
+function openEmailsModal() {
+    const modal = document.getElementById('emails-modal');
+    const text = document.getElementById('emails-list-area');
+    
+    const emailList = (appData.clients || [])
+        .map(c => (c.email || '').trim())
+        .filter(e => e.length > 0);
+        
+    if (emailList.length === 0) {
+        text.value = "No hay correos electrónicos registrados en tu directorio de clientes.";
+    } else {
+        text.value = emailList.join(', ');
+    }
+    
+    modal.classList.add('active');
+}
+
+function closeEmailsModal() {
+    document.getElementById('emails-modal').classList.remove('active');
+}
+
+function copyEmailsToClipboard() {
+    const text = document.getElementById('emails-list-area').value;
+    const btn = document.getElementById('btn-copy-emails');
+    
+    const emailCount = (appData.clients || []).filter(c => (c.email || '').trim()).length;
+    if (emailCount === 0) {
+        return alert("No hay correos para copiar.");
+    }
+    
+    navigator.clipboard.writeText(text)
+        .then(() => {
+            const origText = btn.innerText;
+            btn.innerText = "¡Copiado! ✓";
+            btn.style.background = "#10b981"; // Success green accent
+            setTimeout(() => {
+                btn.innerText = origText;
+                btn.style.background = ""; // Revert to primary
+            }, 2000);
+        })
+        .catch(err => {
+            console.error("Error copying to clipboard:", err);
+            alert("Ocurrió un error al copiar al portapapeles. Por favor, cópialo manualmente.");
+        });
+}
+
 // Map globally so onclick handlers work in HTML template strings
 window.openModal = openModal;
 window.deleteClientCascading = deleteClientCascading;
+window.openEmailsModal = openEmailsModal;
+window.closeEmailsModal = closeEmailsModal;
+window.copyEmailsToClipboard = copyEmailsToClipboard;

@@ -286,6 +286,7 @@ function openCardModal(card = null) {
         document.getElementById('card-id').value = card.id;
         document.getElementById('card-client').value = card.client;
         document.getElementById('card-phone').value = card.phone || '';
+        document.getElementById('card-email').value = card.email || '';
         document.getElementById('card-column').value = card.column;
         document.getElementById('card-date').value = card.date || '';
         document.getElementById('card-desc').value = card.desc || '';
@@ -309,6 +310,7 @@ function openCardModal(card = null) {
         document.getElementById('card-id').value = '';
         document.getElementById('card-client').value = '';
         document.getElementById('card-phone').value = '';
+        document.getElementById('card-email').value = '';
         document.getElementById('card-column').selectedIndex = 0;
         document.getElementById('card-date').value = '';
         document.getElementById('card-desc').value = '';
@@ -323,6 +325,7 @@ async function saveCard() {
     const id = document.getElementById('card-id').value;
     const client = document.getElementById('card-client').value.trim();
     const phone = document.getElementById('card-phone').value.trim();
+    const email = document.getElementById('card-email').value.trim();
     const column = document.getElementById('card-column').value;
     const date = document.getElementById('card-date').value;
     const desc = document.getElementById('card-desc').value.trim();
@@ -335,7 +338,7 @@ async function saveCard() {
 
     try {
         const payload = {
-            client, phone, column, date, desc,
+            client, phone, email, column, date, desc,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 

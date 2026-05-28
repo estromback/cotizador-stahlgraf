@@ -127,6 +127,10 @@
                     <span id="sync-icon">☁️</span>
                     <span id="sync-text">Ingresar para Sync</span>
                 </button>
+                <button id="btn-export-emails" class="btn btn-secondary" style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 6px 12px;">
+                    <span>✉️</span>
+                    <span>Exportar Correos</span>
+                </button>
                 <button id="btn-add-client" class="btn btn-primary">+ Agregar Cliente</button>
             </div>
         </div>
@@ -165,11 +169,34 @@
                     <input type="tel" id="client-phone" placeholder="Ej. +56 9 1234 5678" required>
                 </div>
                 <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="client-email" placeholder="Ej. contacto@cliente.cl">
+                </div>
+                <div class="input-group">
                     <label>Dirección</label>
                     <input type="text" id="client-address" placeholder="Ej. Av. Matta 450, Santiago" required>
                 </div>
                 <div class="flex-actions" style="margin-top: 25px;">
                     <button id="btn-save-client" class="btn btn-primary">Guardar Cliente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Emails Modal -->
+    <div id="emails-modal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Exportar Correos de Clientes</h2>
+                <button id="btn-close-emails-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: #ccc; margin-bottom: 15px;">Aquí tienes la lista de todos los correos electrónicos de tus clientes separados por comas. Úsalos para tus campañas de emailing.</p>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <textarea id="emails-list-area" rows="6" readonly style="width:100%; padding: 10px; background: rgba(0,0,0,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-family: monospace; font-size: 0.9rem; resize: none;"></textarea>
+                </div>
+                <div class="flex-actions" style="margin-top: 20px;">
+                    <button id="btn-copy-emails" class="btn btn-primary" style="width:100%;">Copiar al Portapapeles</button>
                 </div>
             </div>
         </div>

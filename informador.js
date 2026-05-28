@@ -286,12 +286,14 @@ async function saveReportToCloud() {
         btn.innerText = "Guardando Datos...";
 
         const selectedPests = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+        const clientEmail = document.getElementById('client-email') ? document.getElementById('client-email').value.trim() : '';
 
         const reportData = {
             id: reportId,
             clientName: clientName,
             clientAddress: document.getElementById('client-address').value,
             clientPhone: document.getElementById('client-phone').value,
+            clientEmail: clientEmail,
             technicianName: document.getElementById('technician-name').value,
             date: document.getElementById('report-date').value,
             pestsDetected: selectedPests,
@@ -321,7 +323,7 @@ async function saveReportToCloud() {
         }
 
         // Auto-guardar cliente en el directorio
-        saveClientToDirectorySilently(clientName, document.getElementById('client-address').value, document.getElementById('client-phone').value);
+        saveClientToDirectorySilently(clientName, document.getElementById('client-address').value, document.getElementById('client-phone').value, clientEmail);
 
         // Sincronizar con CRM
         await syncReportToCRM(reportData, reportId, loadedReportCorrelative || 1);
@@ -343,6 +345,7 @@ async function syncReportToCRM(reportData, reportId, correlative) {
     
     const clientName = reportData.clientName;
     const phone = (reportData.clientPhone || '').trim();
+    const email = (reportData.clientEmail || '').trim();
     const dateStr = new Date().toLocaleString();
     
     try {
@@ -352,6 +355,7 @@ async function syncReportToCRM(reportData, reportId, correlative) {
             await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
                 client: clientName,
                 phone: phone,
+                email: email,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             return;
@@ -373,6 +377,7 @@ async function syncReportToCRM(reportData, reportId, correlative) {
         if (targetDoc) {
             const docId = targetDoc.id;
             await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
+                email: email,
                 comments: firebase.firestore.FieldValue.arrayUnion({
                     text: `Se generó el Informe Técnico #${correlative}.\nRecomendaciones: ${reportData.recommendations || 'Sin recomendaciones'}`,
                     date: dateStr
@@ -383,6 +388,7 @@ async function syncReportToCRM(reportData, reportId, correlative) {
             const payload = {
                 client: clientName,
                 phone: phone,
+                email: email,
                 column: 'Cotizados',
                 date: reportData.date || new Date().toISOString().split('T')[0],
                 desc: `Informe Técnico #${correlative} generado.`,
@@ -519,7 +525,7 @@ function renderClientsSelect(filter = '') {
         div.innerHTML = `
             <div class="db-item-content">
                 <strong>${client.name}</strong><br>
-                <span style="font-size: 0.85rem; color: #888;">${client.address || ''}</span>
+                <span style="font-size: 0.85rem; color: #888;">${client.address || ''}${client.email ? ` | Email: ${client.email}` : ''}</span>
             </div>
             <button class="btn btn-primary-outline btn-sm" style="padding: 3px 8px;">Seleccionar</button>
         `;
@@ -527,6 +533,9 @@ function renderClientsSelect(filter = '') {
             document.getElementById('client-name').value = client.name || '';
             document.getElementById('client-address').value = client.address || '';
             document.getElementById('client-phone').value = client.phone || '';
+            if (document.getElementById('client-email')) {
+                document.getElementById('client-email').value = client.email || '';
+            }
             document.getElementById('clients-modal').classList.remove('active');
             updatePDFPreview();
         });
@@ -534,7 +543,7 @@ function renderClientsSelect(filter = '') {
     });
 }
 
-function saveClientToDirectorySilently(name, address, phone) {
+function saveClientToDirectorySilently(name, address, phone, email) {
     if (!name) return;
     
     let appData = {};
@@ -549,6 +558,7 @@ function saveClientToDirectorySilently(name, address, phone) {
         name: name,
         attention: '',
         phone: phone || '',
+        email: email || '',
         address: address || ''
     };
 
@@ -558,6 +568,7 @@ function saveClientToDirectorySilently(name, address, phone) {
         newClient.attention = appData.clients[existingIndex].attention || '';
         if (!phone && appData.clients[existingIndex].phone) newClient.phone = appData.clients[existingIndex].phone;
         if (!address && appData.clients[existingIndex].address) newClient.address = appData.clients[existingIndex].address;
+        if (!email && appData.clients[existingIndex].email) newClient.email = appData.clients[existingIndex].email;
         appData.clients[existingIndex] = newClient;
     } else {
         appData.clients.push(newClient);
@@ -639,6 +650,12 @@ async function loadHistoryUI() {
                         const rData = docInfo.data();
                         document.getElementById('client-name').value = rData.clientName || '';
                         document.getElementById('client-address').value = rData.clientAddress || '';
+                        if (document.getElementById('client-phone')) {
+                            document.getElementById('client-phone').value = rData.clientPhone || '';
+                        }
+                        if (document.getElementById('client-email')) {
+                            document.getElementById('client-email').value = rData.clientEmail || '';
+                        }
                         document.getElementById('technician-name').value = rData.technicianName || '';
                         document.getElementById('report-date').value = rData.date || '';
                         
