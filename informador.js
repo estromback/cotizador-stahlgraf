@@ -317,6 +317,9 @@ async function saveReportToCloud() {
             document.getElementById('doc-correlative').innerText = loadedReportCorrelative;
         }
 
+        // Sincronizar con CRM
+        await syncReportToCRM(reportData, reportId, loadedReportCorrelative || 1);
+
         alert("¡Informe guardado exitosamente!");
         btn.innerText = originalText;
         btn.disabled = false;
@@ -326,6 +329,47 @@ async function saveReportToCloud() {
         alert("Error al guardar: " + error.message);
         btn.innerText = originalText;
         btn.disabled = false;
+    }
+}
+
+async function syncReportToCRM(reportData, reportId, correlative) {
+    if (!currentUser || !db) return;
+    
+    const clientName = reportData.clientName;
+    const dateStr = new Date().toLocaleString();
+    
+    try {
+        const snap = await db.collection('users').doc(currentUser.uid).collection('crm').where('client', '==', clientName).limit(1).get();
+        if (snap.empty) {
+            const snap2 = await db.collection('users').doc(currentUser.uid).collection('crm').where('reportId', '==', reportId).limit(1).get();
+            if (snap2.empty) {
+                const payload = {
+                    client: clientName,
+                    column: 'Cotizados', // Columna por defecto
+                    date: reportData.date,
+                    desc: `Informe Técnico #${correlative} generado.`,
+                    reportId: reportId,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    comments: [{
+                        text: `Se generó el Informe Técnico #${correlative}.\nRecomendaciones: ${reportData.recommendations || 'Sin recomendaciones'}`,
+                        date: dateStr
+                    }]
+                };
+                await db.collection('users').doc(currentUser.uid).collection('crm').add(payload);
+            }
+        } else {
+            const docId = snap.docs[0].id;
+            await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
+                comments: firebase.firestore.FieldValue.arrayUnion({
+                    text: `Se generó el Informe Técnico #${correlative}.\nRecomendaciones: ${reportData.recommendations || 'Sin recomendaciones'}`,
+                    date: dateStr
+                }),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    } catch(e) {
+        console.error("No se pudo sincronizar el informe con CRM", e);
     }
 }
 
