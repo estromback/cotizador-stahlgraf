@@ -531,3 +531,37 @@ h1, h2, h3, h4 {
     gap: 10px;
     margin-top: 10px;
 }
+
+/* PDF Page Break Rules to avoid text/image/table splitting */
+.formal-document tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+}
+
+.formal-document li {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+}
+
+.formal-document img {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+}
+
+.formal-document h1,
+.formal-document h2,
+.formal-document h3,
+.formal-document h4 {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+}
+
+.formal-document .finding-block {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+}
+
+.formal-document .pdf-photo-wrapper {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+}
