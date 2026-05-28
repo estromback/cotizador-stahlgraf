@@ -27,7 +27,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 
 // Global state
 let currentPhotos = []; // Array of { file, dataUrl }
-let loadedCorrelative = null;
+let loadedReportCorrelative = null;
 let clientsList = [];
 
 // DOM Elements
@@ -272,6 +272,21 @@ async function saveReportToCloud() {
 
         await db.collection('users').doc(currentUser.uid).collection('reports').doc(reportId).set(reportData);
 
+        // Increment correlative
+        const savedData = localStorage.getItem('stahlgraf_data_v4');
+        if (savedData) {
+            const appData = JSON.parse(savedData);
+            appData.reportCorrelative = (appData.reportCorrelative || 1) + 1;
+            localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
+            
+            if (currentUser && db) {
+                db.collection('users').doc(currentUser.uid).set(appData, { merge: true }).catch(e => console.error(e));
+            }
+            
+            loadedReportCorrelative = appData.reportCorrelative;
+            document.getElementById('doc-correlative').innerText = loadedReportCorrelative;
+        }
+
         alert("¡Informe guardado exitosamente!");
         btn.innerText = originalText;
         btn.disabled = false;
@@ -378,13 +393,11 @@ function renderClientsSelect(filter = '') {
 }
 
 function loadUserConfig() {
-    // Just to get correlative if needed (Optional for Reports, we use a simple N° for now)
     const savedData = localStorage.getItem('stahlgraf_data_v4');
     if (savedData) {
         const appData = JSON.parse(savedData);
-        if (appData.correlative) {
-            document.getElementById('doc-correlative').innerText = appData.correlative;
-        }
+        loadedReportCorrelative = appData.reportCorrelative || 1;
+        document.getElementById('doc-correlative').innerText = loadedReportCorrelative;
     }
 }
 

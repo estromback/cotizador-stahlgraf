@@ -39,6 +39,7 @@ let appData = {
     margin: 40,
     minRate: 40000,
     correlative: 126,
+    reportCorrelative: 1,
     baitPrice: 3750,
     loosePrice: 800,
     inspectPrice: 1500,
@@ -111,6 +112,7 @@ function loadData() {
             appData.margin = 40;
             appData.minRate = parseInt(document.getElementById('setting-min-rate').value) || 40000;
             appData.correlative = parseInt(document.getElementById('setting-correlative').value) || 126;
+            appData.reportCorrelative = parseInt(document.getElementById('setting-report-correlative')?.value) || 1;
             appData.baitPrice = 3750;
             appData.loosePrice = 800;
             appData.inspectPrice = 1500;
@@ -140,6 +142,7 @@ function updateSettingsUI() {
     document.getElementById('setting-margin').value = appData.margin;
     document.getElementById('setting-min-rate').value = appData.minRate;
     document.getElementById('setting-correlative').value = appData.correlative;
+    if(document.getElementById('setting-report-correlative')) document.getElementById('setting-report-correlative').value = appData.reportCorrelative || 1;
     document.getElementById('setting-bait-price').value = appData.baitPrice;
     document.getElementById('setting-loose-price').value = appData.loosePrice;
     document.getElementById('setting-inspect-price').value = appData.inspectPrice;
@@ -678,6 +681,13 @@ function setupEventListeners() {
         saveData();
         calculateQuote();
     });
+
+    if (document.getElementById('setting-report-correlative')) {
+        document.getElementById('setting-report-correlative').addEventListener('change', (e) => {
+            appData.reportCorrelative = parseInt(e.target.value) || 1;
+            saveData();
+        });
+    }
 
     document.getElementById('setting-bait-price').addEventListener('change', (e) => {
         appData.baitPrice = parseInt(e.target.value) || 3750;
