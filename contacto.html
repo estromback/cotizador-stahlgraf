@@ -203,17 +203,18 @@
 </head>
 <body>
 
-    <div class="glass-panel form-container" id="app-content">
-        <!-- Header & Logo -->
-        <div class="header-logo">
-            <img src="logo.png" alt="Stahlgraf Logo" id="form-logo" onerror="this.style.display='none'">
-            <h2 style="font-size: 1.5rem; color: #fff; margin: 0; font-weight: 700; letter-spacing: 1px;" id="logo-text">STAHLGRAF</h2>
+    <div class="glass-panel form-container" id="app-content" style="padding: 0; overflow: hidden;">
+        <!-- Header Blanco con Logo y Título -->
+        <div style="background: #ffffff; padding: 25px 20px; text-align: center; border-bottom: 1px solid rgba(0, 0, 0, 0.08); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+            <img src="logo.png" alt="Stahlgraf Logo" style="max-height: 80px; width: auto; object-fit: contain;" onerror="this.style.display='none'">
+            <h2 style="font-size: 1.6rem; color: #0f172a; margin: 0; font-weight: 800; letter-spacing: 2px; font-family: var(--font-family);">STAHLGRAF</h2>
         </div>
 
-        <h1 class="form-title">Solicitud de Cotización</h1>
-        <p class="form-subtitle">Complete este formulario para recibir una cotización detallada y sin compromiso para su servicio de control de plagas y sanitización.</p>
+        <div style="padding: 30px 40px;" id="form-body-wrapper">
+            <h1 class="form-title" style="margin-top: 0; font-size: 1.6rem;">Solicitud de Cotización</h1>
+            <p class="form-subtitle" style="margin-bottom: 25px;">Complete este formulario para recibir una cotización detallada y sin compromiso para su servicio de control de plagas y sanitización.</p>
 
-        <form id="public-contact-form">
+            <form id="public-contact-form">
             <!-- 1. DATOS DE CONTACTO -->
             <div class="section-box">
                 <div class="section-box-title">
@@ -381,6 +382,7 @@
             <button type="submit" class="btn btn-primary btn-submit" id="btn-submit-form">Enviar Solicitud de Cotización</button>
         </form>
     </div>
+</div>
 
     <!-- Firebase App Configuration -->
     <script>
@@ -406,14 +408,14 @@
         // Get UID from URL query string
         const urlParams = new URLSearchParams(window.location.search);
         const uid = urlParams.get('uid');
-        const appContent = document.getElementById('app-content');
+        const formBodyWrapper = document.getElementById('form-body-wrapper');
 
         // Check if UID is valid
         if (!uid) {
-            appContent.innerHTML = `
+            formBodyWrapper.innerHTML = `
                 <div class="error-container">
                     <div class="error-icon">⚠️</div>
-                    <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--danger); margin-bottom: 10px;">Enlace Invalido</h2>
+                    <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--danger); margin-bottom: 10px;">Enlace Inválido</h2>
                     <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Este formulario no se encuentra vinculado a ninguna cuenta activa de Stahlgraf. Por favor, solicite un enlace válido al proveedor de su servicio.</p>
                 </div>
             `;
@@ -531,7 +533,7 @@
                     });
 
                     // Render beautiful success view
-                    appContent.innerHTML = `
+                    formBodyWrapper.innerHTML = `
                         <div class="success-container">
                             <div class="success-icon">✓</div>
                             <h2 style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 10px;">¡Solicitud Recibida!</h2>
