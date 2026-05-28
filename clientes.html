@@ -18,7 +18,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
     <style>
-        body { margin: 0; padding: 0; background: var(--bg-main); min-height: 100vh; }
+        body { margin: 0; padding: 0; min-height: 100vh; }
         
         .client-manager-container {
             max-width: 1200px;
@@ -58,8 +58,10 @@
         }
 
         .client-card {
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border-radius: 12px;
             padding: 20px;
             transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
@@ -75,8 +77,8 @@
         }
 
         .client-info h3 {
-            margin: 0 0 10px 0;
-            font-size: 1.2rem;
+            margin: 0 0 12px 0;
+            font-size: 1.25rem;
             font-weight: 600;
             color: #fff;
         }
@@ -87,11 +89,11 @@
             gap: 8px;
             margin-bottom: 8px;
             font-size: 0.9rem;
-            color: #ccc;
+            color: #e2e8f0;
         }
 
         .info-label {
-            color: #777;
+            color: var(--text-muted);
             font-weight: 500;
             width: 80px;
             flex-shrink: 0;
@@ -105,6 +107,10 @@
             border-top: 1px solid rgba(255,255,255,0.05);
             padding-top: 15px;
         }
+
+        .modal-body .input-group {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -112,14 +118,10 @@
     <!-- Header Navigation -->
     <nav class="navbar">
         <div class="nav-content">
-            <div style="display: flex; align-items: center; gap: 15px;">
+            <a href="index.html" style="display: flex; align-items: center; gap: 15px; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
                 <img src="logo.png" alt="Stahlgraf Logo" style="height: 120px; object-fit: contain;" onerror="this.style.display='none'">
                 <h1 class="logo" style="margin: 0;"> <span>Directorio</span></h1>
-                <div class="global-nav" style="margin-left: 20px; display: flex; gap: 15px; background: rgba(255,255,255,0.05); padding: 5px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);">
-                    <a href="index.html" class="nav-link" style="text-decoration: none; color: #bbb; font-weight: 500; padding: 5px 12px; border-radius: 15px; font-size: 0.9rem;">🏠 Hub Central</a>
-                    <a href="clientes.html" class="nav-link" style="text-decoration: none; color: #fff; font-weight: 600; background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 15px; font-size: 0.9rem;">Clientes</a>
-                </div>
-            </div>
+            </a>
             <div class="nav-actions" style="display: flex; gap: 10px; align-items: center;">
                 <button id="btn-sync-login" class="btn btn-primary-outline" style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 6px 12px;">
                     <span id="sync-icon">☁️</span>

@@ -140,14 +140,10 @@
     <!-- Header Navigation -->
     <nav class="navbar">
         <div class="nav-content">
-            <div style="display: flex; align-items: center; gap: 15px;">
+            <a href="index.html" style="display: flex; align-items: center; gap: 15px; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
                 <img src="logo.png" alt="Stahlgraf Logo" style="height: 120px; object-fit: contain;" onerror="this.style.display='none'">
                 <h1 class="logo" style="margin: 0;"> <span>CRM</span></h1>
-                <div class="global-nav" style="margin-left: 20px; display: flex; gap: 15px; background: rgba(255,255,255,0.05); padding: 5px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);">
-                    <a href="index.html" class="nav-link" style="text-decoration: none; color: #bbb; font-weight: 500; padding: 5px 12px; border-radius: 15px; font-size: 0.9rem;">🏠 Hub Central</a>
-                    <a href="crm.html" class="nav-link" style="text-decoration: none; color: #fff; font-weight: 600; background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 15px; font-size: 0.9rem;">Kanban</a>
-                </div>
-            </div>
+            </a>
             <div class="nav-actions" style="display: flex; gap: 10px; align-items: center;">
                 <button id="btn-sync-login" class="btn btn-primary-outline" style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 6px 12px;">
                     <span id="sync-icon">☁️</span>
