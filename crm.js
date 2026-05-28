@@ -63,15 +63,18 @@ if (auth) {
         currentUser = user;
         const syncText = document.getElementById('sync-text');
         const syncIcon = document.getElementById('sync-icon');
+        const copyFormBtn = document.getElementById('btn-copy-form-link');
         
         if (user) {
             if (syncText) syncText.innerText = "Conectado";
             if (syncIcon) syncIcon.innerText = "🟢";
+            if (copyFormBtn) copyFormBtn.style.display = 'flex';
             loadCardsFromFirebase();
             loadUserConfig();
         } else {
             if (syncText) syncText.innerText = "Ingresar para Sync";
             if (syncIcon) syncIcon.innerText = "☁️";
+            if (copyFormBtn) copyFormBtn.style.display = 'none';
             document.getElementById('kanban-board').innerHTML = '<p style="padding: 20px;">Por favor, inicia sesión para ver tu CRM.</p>';
         }
     });
@@ -92,6 +95,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 const provider = new firebase.auth.GoogleAuthProvider();
                 auth.signInWithPopup(provider);
             }
+        });
+    }
+    
+    // Copy Form Link Button
+    const copyFormBtn = document.getElementById('btn-copy-form-link');
+    if (copyFormBtn) {
+        copyFormBtn.addEventListener('click', () => {
+            if (!currentUser) return alert("Debes iniciar sesión primero.");
+            
+            // Build the URL to contacto.html
+            const formUrl = window.location.origin + window.location.pathname.replace('crm.html', 'contacto.html') + '?uid=' + currentUser.uid;
+            
+            navigator.clipboard.writeText(formUrl).then(() => {
+                const oldHTML = copyFormBtn.innerHTML;
+                copyFormBtn.style.background = 'rgba(16, 185, 129, 0.2)';
+                copyFormBtn.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+                copyFormBtn.style.color = '#10b981';
+                copyFormBtn.innerHTML = '<span>✓</span> ¡Enlace Copiado!';
+                
+                setTimeout(() => {
+                    copyFormBtn.style.background = 'rgba(59, 130, 246, 0.15)';
+                    copyFormBtn.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                    copyFormBtn.style.color = '#3b82f6';
+                    copyFormBtn.innerHTML = oldHTML;
+                }, 2000);
+            }).catch(e => {
+                console.error("Clipboard copy failed: ", e);
+                alert("No se pudo copiar de forma automática. Aquí tienes tu enlace:\n" + formUrl);
+            });
         });
     }
     
@@ -126,10 +158,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function getColumns() {
-    return (appData.crmColumns || 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos')
+    const defaultCols = (appData.crmColumns || 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos')
         .split(',')
         .map(c => c.trim())
         .filter(c => c.length > 0);
+        
+    // Also include any column names from crmCards that aren't already in the list
+    crmCards.forEach(card => {
+        if (card.column && !defaultCols.includes(card.column)) {
+            defaultCols.push(card.column);
+        }
+    });
+    
+    return defaultCols;
 }
 
 function renderBoardSkeleton() {
@@ -193,6 +234,7 @@ async function loadCardsFromFirebase() {
             snap.forEach(doc => {
                 crmCards.push({ id: doc.id, ...doc.data() });
             });
+            renderBoardSkeleton(); // Redraw board dynamically to draw any new columns
             renderCards();
             renderSidebar();
         });
@@ -236,7 +278,13 @@ function renderCards() {
                 }
             }
 
+            let badgeHtml = '';
+            if (card.source === 'form' || card.formDetails) {
+                badgeHtml = `<span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #3b82f6; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 5px; font-weight: 500;">📝 Formulario</span>`;
+            }
+
             cardEl.innerHTML = `
+                ${badgeHtml}
                 <div class="card-title">${card.client}</div>
                 ${dateHtml}
                 <div class="card-desc">${card.desc ? card.desc.substring(0,60) + (card.desc.length > 60 ? '...' : '') : ''}</div>
@@ -318,6 +366,9 @@ function openCardModal(card = null) {
     commentsList.innerHTML = '';
     document.getElementById('new-comment-text').value = '';
 
+    const formContainer = document.getElementById('form-details-container');
+    const formContent = document.getElementById('form-details-content');
+
     if (card) {
         document.getElementById('modal-card-title').innerText = 'Editar Registro';
         document.getElementById('card-id').value = card.id;
@@ -329,6 +380,39 @@ function openCardModal(card = null) {
         document.getElementById('card-desc').value = card.desc || '';
         document.getElementById('btn-delete-card').style.display = 'block';
         
+        if (card.formDetails) {
+            formContainer.style.display = 'block';
+            const fd = card.formDetails;
+            let html = `
+                <div><strong>Ubicación:</strong> ${fd.clientAddress || '-'}</div>
+                <div><strong>Propiedad:</strong> ${fd.propertyType || '-'} (${fd.propertySize || '-'} m², ${fd.propertyFloors || '-'})</div>
+                <div><strong>Área a tratar:</strong> ${fd.treatmentArea || '-'}</div>
+                <div><strong>Plagas:</strong> ${Array.isArray(fd.plagas) ? fd.plagas.join(', ') : (fd.plagas || '-')}</div>
+                <div><strong>Infestación:</strong> ${fd.infestationLevel || '-'}</div>
+                <div><strong>Pob. Riesgo:</strong> ${fd.riskPopulation || '-'}</div>
+                <div><strong>Comentarios:</strong> ${fd.comments || '-'}</div>
+                <div style="font-size:0.75rem; color:#888; margin-top:5px;">Enviado el: ${fd.submittedAt || '-'}</div>
+            `;
+            formContent.innerHTML = html;
+            
+            // Wire Prefill button
+            const prefillBtn = document.getElementById('btn-prefill-quote');
+            prefillBtn.onclick = () => {
+                const prefillUrl = new URL(window.location.origin + window.location.pathname.replace('crm.html', 'cotizador.html'));
+                prefillUrl.searchParams.set('prefill', 'true');
+                prefillUrl.searchParams.set('name', fd.clientName || card.client);
+                prefillUrl.searchParams.set('phone', fd.clientPhone || card.phone || '');
+                prefillUrl.searchParams.set('email', fd.clientEmail || card.email || '');
+                prefillUrl.searchParams.set('address', fd.clientAddress || '');
+                prefillUrl.searchParams.set('desc', `Servicio de control de plagas para propiedad ${fd.propertyType} de ${fd.propertySize} m². Áreas: ${fd.treatmentArea}. Plagas detectadas: ${Array.isArray(fd.plagas) ? fd.plagas.join(', ') : fd.plagas}. Infestación: ${fd.infestationLevel}.`);
+                
+                window.open(prefillUrl.toString(), '_blank');
+            };
+        } else {
+            formContainer.style.display = 'none';
+            formContent.innerHTML = '';
+        }
+
         if (card.comments && card.comments.length > 0) {
             card.comments.forEach(c => {
                 const cDiv = document.createElement('div');
@@ -352,6 +436,10 @@ function openCardModal(card = null) {
         document.getElementById('card-date').value = '';
         document.getElementById('card-desc').value = '';
         document.getElementById('btn-delete-card').style.display = 'none';
+        
+        formContainer.style.display = 'none';
+        formContent.innerHTML = '';
+        
         commentsList.innerHTML = '<p style="color:#666; font-size:0.9rem;">Guarda la tarjeta para poder agregar comentarios.</p>';
     }
 }

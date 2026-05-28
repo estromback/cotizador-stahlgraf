@@ -76,6 +76,27 @@ function initApp() {
     
     calculateQuote();
 
+    // Intercept CRM Form prefill parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('prefill') === 'true') {
+        const name = urlParams.get('name');
+        const phone = urlParams.get('phone');
+        const email = urlParams.get('email');
+        const address = urlParams.get('address');
+        const desc = urlParams.get('desc');
+        
+        if (name) document.getElementById('client-name').value = name;
+        if (phone) document.getElementById('client-phone').value = phone;
+        if (email) document.getElementById('client-email').value = email;
+        if (address) document.getElementById('client-address').value = address;
+        
+        if (desc && document.getElementById('quote-title')) {
+            document.getElementById('quote-title').value = desc;
+        }
+        
+        calculateQuote();
+    }
+
     // Firebase Auth Listener
     if (auth) {
         auth.onAuthStateChanged((user) => {

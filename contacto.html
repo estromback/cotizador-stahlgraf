@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stahlgraf - Solicitud de Cotización</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 750px;
+            padding: 40px;
+            margin: 0 auto;
+        }
+
+        .header-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header-logo img {
+            max-height: 80px;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+
+        .form-title {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .form-subtitle {
+            text-align: center;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 35px;
+            line-height: 1.5;
+        }
+
+        .section-box {
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 25px;
+        }
+
+        .section-box:last-of-type {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .section-box-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Radio & Checkbox Custom Styling */
+        .option-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 5px;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-top: 5px;
+        }
+
+        .custom-option {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--glass-border);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .custom-option:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .custom-option input[type="radio"],
+        .custom-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .custom-option.selected {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.15);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.1);
+        }
+
+        .custom-option span {
+            font-size: 0.9rem;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        /* Error state */
+        .error-container {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        /* Success state */
+        .success-container {
+            text-align: center;
+            padding: 40px 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .success-icon {
+            font-size: 5rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        textarea {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 12px 15px;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            resize: vertical;
+            width: 100%;
+        }
+
+        textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-top: 25px;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glass-panel form-container" id="app-content">
+        <!-- Header & Logo -->
+        <div class="header-logo">
+            <img src="logo.png" alt="Stahlgraf Logo" id="form-logo" onerror="this.style.display='none'">
+            <h2 style="font-size: 1.5rem; color: #fff; margin: 0; font-weight: 700; letter-spacing: 1px;" id="logo-text">STAHLGRAF</h2>
+        </div>
+
+        <h1 class="form-title">Solicitud de Cotización</h1>
+        <p class="form-subtitle">Complete este formulario para recibir una cotización detallada y sin compromiso para su servicio de control de plagas y sanitización.</p>
+
+        <form id="public-contact-form">
+            <!-- 1. DATOS DE CONTACTO -->
+            <div class="section-box">
+                <div class="section-box-title">
+                    <span>👤</span> 1. Datos de Contacto
+                </div>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="client-name">Nombre y Apellido</label>
+                        <input type="text" id="client-name" placeholder="Ej. Juan Pérez" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="client-phone">Teléfono de Contacto</label>
+                        <input type="tel" id="client-phone" placeholder="Ej. +56 9 1234 5678" required>
+                    </div>
+                    <div class="input-group" style="grid-column: span 2;">
+                        <label for="client-email">Correo Electrónico (Opcional)</label>
+                        <input type="email" id="client-email" placeholder="Ej. contacto@cliente.cl">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. DETALLES DE LA PROPIEDAD -->
+            <div class="section-box">
+                <div class="section-box-title">
+                    <span>🏠</span> 2. Detalles de la Propiedad
+                </div>
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label for="client-address">Ubicación / Sector de la Propiedad</label>
+                    <input type="text" id="client-address" placeholder="Ej. Av. Principal 1234, Vitacura" required>
+                </div>
+                
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label>Tipo de Propiedad</label>
+                    <div class="option-grid">
+                        <label class="custom-option">
+                            <input type="radio" name="property-type" value="Casa Ciudad" required>
+                            <span>Casa Ciudad</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="radio" name="property-type" value="Casa Parcela">
+                            <span>Casa Parcela</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="radio" name="property-type" value="Local comercial">
+                            <span>Local comercial</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="radio" name="property-type" value="Otro">
+                            <span>Otro</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="property-size">Tamaño Aprox. Inmueble (m²)</label>
+                        <input type="number" id="property-size" placeholder="Ej. 140" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label for="property-floors">Cantidad de Pisos</label>
+                        <select id="property-floors">
+                            <option value="1 piso">1 piso</option>
+                            <option value="2 pisos">2 pisos</option>
+                            <option value="3 o más pisos">3 o más pisos</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. DETALLES DEL SERVICIO -->
+            <div class="section-box">
+                <div class="section-box-title">
+                    <span>🦂</span> 3. Diagnóstico y Plagas
+                </div>
+                
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label>Áreas a Tratar</label>
+                    <div class="option-grid">
+                        <label class="custom-option">
+                            <input type="radio" name="treatment-area" value="Solo interior" required>
+                            <span>Solo interior</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="radio" name="treatment-area" value="Solo exterior (Perimetro casa)">
+                            <span>Solo exterior</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="radio" name="treatment-area" value="Ambas (Interior y Exterior)">
+                            <span>Interior y Exterior</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="radio" name="treatment-area" value="Jardines y terrazas">
+                            <span>Jardín / Terraza</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label>Identificación de la Plaga (Selección Múltiple)</label>
+                    <div class="checkbox-grid">
+                        <label class="custom-option">
+                            <input type="checkbox" name="plagas" value="Arañas">
+                            <span>Arañas</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="checkbox" name="plagas" value="Hormigas">
+                            <span>Hormigas</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="checkbox" name="plagas" value="Cucarachas">
+                            <span>Cucarachas</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="checkbox" name="plagas" value="Roedores (Ratones/Ratas)">
+                            <span>Roedores</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="checkbox" name="plagas" value="Avispas">
+                            <span>Avispas</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="checkbox" name="plagas" value="Termitas">
+                            <span>Termitas</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="checkbox" name="plagas" value="Moscas/Mosquitos">
+                            <span>Voladores</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="checkbox" name="plagas" value="Pulgas/Garrapatas">
+                            <span>Pulgas / Garrapatas</span>
+                        </label>
+                        <label class="custom-option">
+                            <input type="checkbox" name="plagas" value="Otro">
+                            <span>Otro</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-grid" style="margin-bottom: 20px;">
+                    <div class="input-group">
+                        <label for="infestation-level">Nivel de Infestación Percibido</label>
+                        <select id="infestation-level">
+                            <option value="Bajo (Aparición ocasional de plagas)">Bajo (Ocasional)</option>
+                            <option value="Moderado (Aparición recurrente, pero manejable)">Moderado (Recurrente)</option>
+                            <option value="Alto (Plagas visibles constantemente o en gran número)">Alto (Constante)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="risk-population">¿Población de riesgo en el lugar?</label>
+                        <select id="risk-population">
+                            <option value="No">No</option>
+                            <option value="Sí (Infantes, ancianos, alergias o problemas respiratorios)">Sí (Bebés, Ancianos, Alergias)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="additional-comments">Comentarios Adicionales o Detalles Específicos</label>
+                    <textarea id="additional-comments" rows="4" placeholder="Ej. Detalle cualquier situación especial, comportamiento de la plaga, mascotas, etc..."></textarea>
+                </div>
+            </div>
+
+            <!-- SUBMIT BUTTON -->
+            <button type="submit" class="btn btn-primary btn-submit" id="btn-submit-form">Enviar Solicitud de Cotización</button>
+        </form>
+    </div>
+
+    <!-- Firebase App Configuration -->
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyDxz0JQhHBMCZi5kKb4Mtp2bFyZuJ5wfbA",
+          authDomain: "stahlgraf-apps.firebaseapp.com",
+          projectId: "stahlgraf-apps",
+          storageBucket: "stahlgraf-apps.firebasestorage.app",
+          messagingSenderId: "501285299028",
+          appId: "1:501285299028:web:b7adda0826e638d80a5ec1",
+          measurementId: "G-X0X7E48C64"
+        };
+
+        // Initialize Firebase
+        let db = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+        } catch (e) {
+            console.error("Firebase failed to load: ", e);
+        }
+
+        // Get UID from URL query string
+        const urlParams = new URLSearchParams(window.location.search);
+        const uid = urlParams.get('uid');
+        const appContent = document.getElementById('app-content');
+
+        // Check if UID is valid
+        if (!uid) {
+            appContent.innerHTML = `
+                <div class="error-container">
+                    <div class="error-icon">⚠️</div>
+                    <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--danger); margin-bottom: 10px;">Enlace Invalido</h2>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Este formulario no se encuentra vinculado a ninguna cuenta activa de Stahlgraf. Por favor, solicite un enlace válido al proveedor de su servicio.</p>
+                </div>
+            `;
+        }
+
+        // Add visual select styling to custom checkboxes and radios
+        document.querySelectorAll('.custom-option').forEach(element => {
+            const input = element.querySelector('input');
+            
+            // Check initial status
+            if (input && input.checked) {
+                element.classList.add('selected');
+            }
+
+            element.addEventListener('click', () => {
+                if (!input) return;
+                
+                // If it is a radio, we need to uncheck others in the same group
+                if (input.type === 'radio') {
+                    document.querySelectorAll(`input[name="${input.name}"]`).forEach(radio => {
+                        radio.closest('.custom-option').classList.remove('selected');
+                    });
+                }
+                
+                // Toggle state
+                setTimeout(() => {
+                    if (input.checked) {
+                        element.classList.add('selected');
+                    } else {
+                        element.classList.remove('selected');
+                    }
+                }, 50);
+            });
+        });
+
+        // Form Submit Handler
+        const form = document.getElementById('public-contact-form');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!db || !uid) return alert("Error en el sistema. Intente más tarde.");
+
+                const btn = document.getElementById('btn-submit-form');
+                btn.disabled = true;
+                btn.innerText = 'Enviando Solicitud...';
+
+                // Extract form values
+                const name = document.getElementById('client-name').value.trim();
+                const phone = document.getElementById('client-phone').value.trim();
+                const email = document.getElementById('client-email').value.trim();
+                const address = document.getElementById('client-address').value.trim();
+                
+                const propertyTypeEl = document.querySelector('input[name="property-type"]:checked');
+                const propertyType = propertyTypeEl ? propertyTypeEl.value : '-';
+                
+                const propertySize = document.getElementById('property-size').value || '-';
+                const propertyFloors = document.getElementById('property-floors').value;
+                
+                const treatmentAreaEl = document.querySelector('input[name="treatment-area"]:checked');
+                const treatmentArea = treatmentAreaEl ? treatmentAreaEl.value : '-';
+                
+                const plagasChecked = [];
+                document.querySelectorAll('input[name="plagas"]:checked').forEach(cb => {
+                    plagasChecked.push(cb.value);
+                });
+                
+                const infestationLevel = document.getElementById('infestation-level').value;
+                const riskPopulation = document.getElementById('risk-population').value;
+                const comments = document.getElementById('additional-comments').value.trim() || 'Sin comentarios adicionales.';
+
+                // Build a structured form details object
+                const formDetails = {
+                    clientName: name,
+                    clientPhone: phone,
+                    clientEmail: email,
+                    clientAddress: address,
+                    propertyType: propertyType,
+                    propertySize: propertySize,
+                    propertyFloors: propertyFloors,
+                    treatmentArea: treatmentArea,
+                    plagas: plagasChecked,
+                    infestationLevel: infestationLevel,
+                    riskPopulation: riskPopulation,
+                    comments: comments,
+                    submittedAt: new Date().toLocaleString()
+                };
+
+                // Build clean notes/description for general CRM
+                let description = `[Formulario de Contacto]\n`;
+                description += `Dirección: ${address}\n`;
+                description += `Propiedad: ${propertyType} (${propertySize} m², ${propertyFloors})\n`;
+                description += `Tratamiento: ${treatmentArea}\n`;
+                description += `Plagas: ${plagasChecked.join(', ') || 'No identificadas'}\n`;
+                description += `Infestación: ${infestationLevel}\n`;
+                description += `Pob. Riesgo: ${riskPopulation}\n`;
+                description += `Detalles: ${comments}`;
+
+                try {
+                    // We write directly to crm collection under the targeted user's node
+                    await db.collection('users').doc(uid).collection('crm').add({
+                        client: name,
+                        phone: phone,
+                        email: email,
+                        column: 'Formulario', // Default column for public requests
+                        date: new Date().toISOString().split('T')[0], // Set follow up date to today
+                        desc: description,
+                        source: 'form',
+                        formDetails: formDetails,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        comments: [{
+                            date: new Date().toLocaleString(),
+                            text: "Prospecto creado automáticamente desde el Formulario Público de Contacto."
+                        }]
+                    });
+
+                    // Render beautiful success view
+                    appContent.innerHTML = `
+                        <div class="success-container">
+                            <div class="success-icon">✓</div>
+                            <h2 style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 10px;">¡Solicitud Recibida!</h2>
+                            <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.6; margin-bottom: 25px;">Muchas gracias <strong>${name}</strong>, hemos registrado su solicitud de cotización para control de plagas correctamente en nuestro sistema. Uno de nuestros técnicos evaluará los detalles y nos contactaremos con usted a la brevedad.</p>
+                            <p style="color: var(--primary); font-size: 0.9rem; font-weight: 500;">Stahlgraf - Soluciones Profesionales en Fumigación</p>
+                        </div>
+                    `;
+
+                } catch (e) {
+                    console.error("Error submitting form: ", e);
+                    alert("Ocurrió un error al enviar la solicitud. Por favor verifique su conexión e intente nuevamente.");
+                    btn.disabled = false;
+                    btn.innerText = 'Enviar Solicitud de Cotización';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
