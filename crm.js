@@ -62,6 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-close-card').addEventListener('click', () => modal.classList.remove('active'));
     document.getElementById('btn-save-card').addEventListener('click', saveCard);
     document.getElementById('btn-delete-card').addEventListener('click', deleteCard);
+    
+    // Comments
+    document.getElementById('btn-add-comment').addEventListener('click', addComment);
 });
 
 function getColumns() {
@@ -252,6 +255,11 @@ function renderSidebar() {
 
 function openCardModal(card = null) {
     document.getElementById('card-modal').classList.add('active');
+    
+    const commentsList = document.getElementById('card-comments-list');
+    commentsList.innerHTML = '';
+    document.getElementById('new-comment-text').value = '';
+
     if (card) {
         document.getElementById('modal-card-title').innerText = 'Editar Registro';
         document.getElementById('card-id').value = card.id;
@@ -260,6 +268,20 @@ function openCardModal(card = null) {
         document.getElementById('card-date').value = card.date || '';
         document.getElementById('card-desc').value = card.desc || '';
         document.getElementById('btn-delete-card').style.display = 'block';
+        
+        if (card.comments && card.comments.length > 0) {
+            card.comments.forEach(c => {
+                const cDiv = document.createElement('div');
+                cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+                cDiv.style.paddingBottom = '5px';
+                cDiv.style.marginBottom = '5px';
+                cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${c.date}</span><p style="margin: 3px 0; font-size: 0.9rem;">${c.text}</p>`;
+                commentsList.appendChild(cDiv);
+            });
+            commentsList.scrollTop = commentsList.scrollHeight;
+        } else {
+            commentsList.innerHTML = '<p style="color:#666; font-size:0.9rem;">No hay comentarios aún.</p>';
+        }
     } else {
         document.getElementById('modal-card-title').innerText = 'Nuevo Registro';
         document.getElementById('card-id').value = '';
@@ -268,6 +290,7 @@ function openCardModal(card = null) {
         document.getElementById('card-date').value = '';
         document.getElementById('card-desc').value = '';
         document.getElementById('btn-delete-card').style.display = 'none';
+        commentsList.innerHTML = '<p style="color:#666; font-size:0.9rem;">Guarda la tarjeta para poder agregar comentarios.</p>';
     }
 }
 
@@ -341,5 +364,54 @@ async function moveCard(cardId, newCol) {
         console.error("Error moving card", e);
         // Revert on error
         loadCardsFromFirebase();
+    }
+}
+
+async function addComment() {
+    if (!currentUser) return;
+    const cardId = document.getElementById('card-id').value;
+    if (!cardId) {
+        alert("Debes guardar el registro nuevo antes de agregar comentarios.");
+        return;
+    }
+
+    const textInput = document.getElementById('new-comment-text');
+    const text = textInput.value.trim();
+    if (!text) return;
+
+    const btn = document.getElementById('btn-add-comment');
+    btn.disabled = true;
+
+    try {
+        const now = new Date();
+        const dateStr = now.toLocaleString(); // e.g. "10/24/2023, 10:30:00 AM"
+
+        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+            comments: firebase.firestore.FieldValue.arrayUnion({
+                text: text,
+                date: dateStr
+            }),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        textInput.value = '';
+        // Automatically close/reopen or rely on loadCardsFromFirebase snapshot to update UI?
+        // Let's just update the modal UI manually so it feels instant
+        const commentsList = document.getElementById('card-comments-list');
+        if (commentsList.innerHTML.includes('No hay comentarios aún')) commentsList.innerHTML = '';
+        
+        const cDiv = document.createElement('div');
+        cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+        cDiv.style.paddingBottom = '5px';
+        cDiv.style.marginBottom = '5px';
+        cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${dateStr}</span><p style="margin: 3px 0; font-size: 0.9rem;">${text}</p>`;
+        commentsList.appendChild(cDiv);
+        commentsList.scrollTop = commentsList.scrollHeight;
+
+    } catch (e) {
+        console.error(e);
+        alert("Error al guardar el comentario.");
+    } finally {
+        btn.disabled = false;
     }
 }

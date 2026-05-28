@@ -1282,6 +1282,9 @@ async function saveQuote(silent = false) {
         // Auto-save client info to directory silently
         if(typeof saveClientToDirectory === 'function') saveClientToDirectory(true);
         
+        // Sync quote to our own CRM
+        await syncToCRM(quoteData, currentQuoteId);
+        
         calculateQuote();
         return true;
     } catch(err) {
@@ -1293,6 +1296,40 @@ async function saveQuote(silent = false) {
             btn.innerText = oldText;
             btn.disabled = false;
         }
+    }
+}
+
+async function syncToCRM(quoteData, quoteId) {
+    if (!currentUser || !db) return;
+    
+    const clientName = quoteData.clientName;
+    const totalStr = quoteData.totalStr;
+    const correlative = quoteData.correlative;
+    
+    try {
+        const snap = await db.collection('users').doc(currentUser.uid).collection('crm').where('quoteId', '==', quoteId).limit(1).get();
+        if (snap.empty) {
+            const payload = {
+                client: clientName,
+                column: 'Cotizados',
+                date: new Date().toISOString().split('T')[0],
+                desc: `Cotización #${correlative} generada automáticamente.\nTotal: ${totalStr}`,
+                quoteId: quoteId,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                comments: []
+            };
+            await db.collection('users').doc(currentUser.uid).collection('crm').add(payload);
+        } else {
+            const docId = snap.docs[0].id;
+            // Optionally append to desc instead of overwriting, but overwriting is cleaner for auto-generated part
+            await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
+                client: clientName,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    } catch(e) {
+        console.error("No se pudo sincronizar con CRM automáticamente", e);
     }
 }
 

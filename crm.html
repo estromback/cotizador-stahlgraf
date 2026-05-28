@@ -199,6 +199,20 @@
                     <label>Notas / Descripción</label>
                     <textarea id="card-desc" rows="4" placeholder="Ej. Llamar el martes para confirmar si aprobó el presupuesto."></textarea>
                 </div>
+                
+                <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+                
+                <div class="input-group">
+                    <label>Comentarios / Bitácora de Seguimiento</label>
+                    <div id="card-comments-list" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px;">
+                        <!-- Injected by JS -->
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="new-comment-text" placeholder="Agregar un comentario..." style="flex: 1;">
+                        <button id="btn-add-comment" class="btn btn-secondary btn-sm" style="white-space: nowrap;">Agregar Comentario</button>
+                    </div>
+                </div>
+
                 <div class="flex-actions" style="margin-top: 20px;">
                     <button id="btn-save-card" class="btn btn-primary">Guardar</button>
                     <button id="btn-delete-card" class="btn btn-secondary" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; border-color: rgba(231, 76, 60, 0.5); display: none;">Eliminar</button>
