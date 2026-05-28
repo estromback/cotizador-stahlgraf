@@ -30,14 +30,31 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 let appData = { crmColumns: 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos' };
 let crmCards = [];
 let draggingCardId = null;
+let clientsList = [];
 
 function loadData() {
     const saved = localStorage.getItem('stahlgraf_data_v4');
     if (saved) {
         try {
             appData = { ...appData, ...JSON.parse(saved) };
+            if (appData.clients) {
+                clientsList = appData.clients;
+            }
         } catch(e) {}
     }
+}
+
+function loadUserConfig() {
+    if (!currentUser) return;
+    db.collection('users').doc(currentUser.uid).get().then(doc => {
+        if (doc.exists) {
+            const cloudData = doc.data();
+            if (cloudData.clients) {
+                clientsList = cloudData.clients;
+                localStorage.setItem('stahlgraf_data_v4', JSON.stringify({ ...JSON.parse(localStorage.getItem('stahlgraf_data_v4') || '{}'), clients: clientsList }));
+            }
+        }
+    }).catch(e => console.error("Error loading clients from Firestore: ", e));
 }
 
 // Authentication
@@ -51,6 +68,7 @@ if (auth) {
             if (syncText) syncText.innerText = "Conectado";
             if (syncIcon) syncIcon.innerText = "🟢";
             loadCardsFromFirebase();
+            loadUserConfig();
         } else {
             if (syncText) syncText.innerText = "Ingresar para Sync";
             if (syncIcon) syncIcon.innerText = "☁️";
@@ -83,6 +101,25 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-close-card').addEventListener('click', () => modal.classList.remove('active'));
     document.getElementById('btn-save-card').addEventListener('click', saveCard);
     document.getElementById('btn-delete-card').addEventListener('click', deleteCard);
+    
+    // Select Client Modal Listeners
+    const modalClients = document.getElementById('clients-modal');
+    if (document.getElementById('btn-load-client')) {
+        document.getElementById('btn-load-client').addEventListener('click', () => {
+            modalClients.classList.add('active');
+            renderClientsSelect();
+        });
+    }
+    if (document.getElementById('btn-close-clients')) {
+        document.getElementById('btn-close-clients').addEventListener('click', () => {
+            modalClients.classList.remove('active');
+        });
+    }
+    if (document.getElementById('client-search')) {
+        document.getElementById('client-search').addEventListener('input', (e) => {
+            renderClientsSelect(e.target.value);
+        });
+    }
     
     // Comments
     document.getElementById('btn-add-comment').addEventListener('click', addComment);
@@ -442,4 +479,55 @@ async function addComment() {
     } finally {
         btn.disabled = false;
     }
+}
+
+function renderClientsSelect(filter = '') {
+    const listEl = document.getElementById('client-select-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    
+    if (clientsList.length === 0) {
+        listEl.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No hay clientes guardados. Guárdalos desde la Configuración del Cotizador o el Informador.</p>';
+        return;
+    }
+
+    const term = filter.toLowerCase();
+    const filtered = clientsList.filter(c => c.name.toLowerCase().includes(term) || (c.address && c.address.toLowerCase().includes(term)));
+
+    if (filtered.length === 0) {
+        listEl.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No se encontraron clientes.</p>';
+        return;
+    }
+
+    // Sort alphabetically
+    filtered.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+
+    filtered.forEach(client => {
+        const div = document.createElement('div');
+        div.className = 'db-item';
+        div.style.cursor = 'pointer';
+        div.onclick = () => {
+            loadClientToForm(client.id);
+            document.getElementById('clients-modal').classList.remove('active');
+        };
+        div.innerHTML = `
+            <div class="db-item-info">
+                <strong>${client.name}</strong>
+                <span style="font-size: 0.85rem; color: #888;">Tel: ${client.phone || ''} | ${client.address || ''}${client.email ? ` | Email: ${client.email}` : ''}</span>
+            </div>
+            <div class="db-item-actions">
+                <button class="btn btn-primary btn-sm">Seleccionar</button>
+            </div>
+        `;
+        listEl.appendChild(div);
+    });
+}
+
+function loadClientToForm(id) {
+    const client = clientsList.find(c => c.id === id);
+    if (!client) return;
+
+    document.getElementById('card-client').value = client.name || '';
+    document.getElementById('card-phone').value = client.phone || '';
+    document.getElementById('card-email').value = client.email || '';
 }
