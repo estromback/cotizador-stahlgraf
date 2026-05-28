@@ -285,6 +285,7 @@ function openCardModal(card = null) {
         document.getElementById('modal-card-title').innerText = 'Editar Registro';
         document.getElementById('card-id').value = card.id;
         document.getElementById('card-client').value = card.client;
+        document.getElementById('card-phone').value = card.phone || '';
         document.getElementById('card-column').value = card.column;
         document.getElementById('card-date').value = card.date || '';
         document.getElementById('card-desc').value = card.desc || '';
@@ -307,6 +308,7 @@ function openCardModal(card = null) {
         document.getElementById('modal-card-title').innerText = 'Nuevo Registro';
         document.getElementById('card-id').value = '';
         document.getElementById('card-client').value = '';
+        document.getElementById('card-phone').value = '';
         document.getElementById('card-column').selectedIndex = 0;
         document.getElementById('card-date').value = '';
         document.getElementById('card-desc').value = '';
@@ -320,6 +322,7 @@ async function saveCard() {
     
     const id = document.getElementById('card-id').value;
     const client = document.getElementById('card-client').value.trim();
+    const phone = document.getElementById('card-phone').value.trim();
     const column = document.getElementById('card-column').value;
     const date = document.getElementById('card-date').value;
     const desc = document.getElementById('card-desc').value.trim();
@@ -332,7 +335,7 @@ async function saveCard() {
 
     try {
         const payload = {
-            client, column, date, desc,
+            client, phone, column, date, desc,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -340,6 +343,7 @@ async function saveCard() {
             await db.collection('users').doc(currentUser.uid).collection('crm').doc(id).update(payload);
         } else {
             payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            payload.comments = [];
             await db.collection('users').doc(currentUser.uid).collection('crm').add(payload);
         }
         document.getElementById('card-modal').classList.remove('active');

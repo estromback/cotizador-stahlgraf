@@ -1309,12 +1309,48 @@ async function syncToCRM(quoteData, quoteId) {
     const clientName = quoteData.clientName;
     const totalStr = quoteData.totalStr;
     const correlative = quoteData.correlative;
+    const phone = (quoteData['client-phone'] || '').trim();
+    const dateStr = new Date().toLocaleString();
     
     try {
-        const snap = await db.collection('users').doc(currentUser.uid).collection('crm').where('quoteId', '==', quoteId).limit(1).get();
-        if (snap.empty) {
+        const snapQuote = await db.collection('users').doc(currentUser.uid).collection('crm').where('quoteId', '==', quoteId).limit(1).get();
+        
+        if (!snapQuote.empty) {
+            const docId = snapQuote.docs[0].id;
+            await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
+                client: clientName,
+                phone: phone,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            return;
+        }
+
+        const snapClient = await db.collection('users').doc(currentUser.uid).collection('crm').where('client', '==', clientName).get();
+        let targetDoc = null;
+
+        if (!snapClient.empty) {
+            snapClient.forEach(doc => {
+                const docData = doc.data();
+                const docPhone = (docData.phone || '').trim();
+                if (docPhone === phone) {
+                    targetDoc = doc;
+                }
+            });
+        }
+
+        if (targetDoc) {
+            const docId = targetDoc.id;
+            await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
+                comments: firebase.firestore.FieldValue.arrayUnion({
+                    text: `Se generó la Cotización #${correlative} por un total de ${totalStr}.`,
+                    date: dateStr
+                }),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
             const payload = {
                 client: clientName,
+                phone: phone,
                 column: 'Cotizados',
                 date: new Date().toISOString().split('T')[0],
                 desc: `Cotización #${correlative} generada automáticamente.\nTotal: ${totalStr}`,
@@ -1324,13 +1360,6 @@ async function syncToCRM(quoteData, quoteId) {
                 comments: []
             };
             await db.collection('users').doc(currentUser.uid).collection('crm').add(payload);
-        } else {
-            const docId = snap.docs[0].id;
-            // Optionally append to desc instead of overwriting, but overwriting is cleaner for auto-generated part
-            await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
-                client: clientName,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
         }
     } catch(e) {
         console.error("No se pudo sincronizar con CRM automáticamente", e);
