@@ -93,10 +93,7 @@ function initApp() {
         if (size && document.getElementById('property-size')) {
             document.getElementById('property-size').value = size;
         }
-        
-        if (desc && document.getElementById('quote-notes')) {
-            document.getElementById('quote-notes').value = desc;
-        }
+
         
         calculateQuote();
     }
