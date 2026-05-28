@@ -135,9 +135,9 @@ function loadData() {
             }
         } else {
             appData.margin = 40;
-            appData.minRate = parseInt(document.getElementById('setting-min-rate').value) || 40000;
-            appData.correlative = parseInt(document.getElementById('setting-correlative').value) || 126;
-            appData.reportCorrelative = parseInt(document.getElementById('setting-report-correlative')?.value) || 1;
+            appData.minRate = 40000;
+            appData.correlative = 126;
+            appData.reportCorrelative = 1;
             appData.baitPrice = 3750;
             appData.loosePrice = 800;
             appData.inspectPrice = 1500;
