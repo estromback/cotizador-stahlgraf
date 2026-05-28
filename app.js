@@ -870,22 +870,23 @@ window.addGeneralService = function(data = null) {
 // Database Actions
 function renderChemicalsList() {
     const list = document.getElementById('db-chemicals-list');
-    list.innerHTML = '';
-    
-    appData.chemicals.forEach(chem => {
-        const div = document.createElement('div');
-        div.className = 'db-item';
-        div.innerHTML = `
-            <div class="db-item-info">
-                <strong>${chem.name}</strong>
-                <span>Precio: $${chem.price} | Envase: ${chem.size}ml | Dosis: ${chem.dose}ml/m²</span>
-            </div>
-            <div class="db-item-actions">
-                <button class="action-danger" onclick="deleteChemical('${chem.id}')">Eliminar</button>
-            </div>
-        `;
-        list.appendChild(div);
-    });
+    if (list) {
+        list.innerHTML = '';
+        appData.chemicals.forEach(chem => {
+            const div = document.createElement('div');
+            div.className = 'db-item';
+            div.innerHTML = `
+                <div class="db-item-info">
+                    <strong>${chem.name}</strong>
+                    <span>Precio: $${chem.price} | Envase: ${chem.size}ml | Dosis: ${chem.dose}ml/m²</span>
+                </div>
+                <div class="db-item-actions">
+                    <button class="action-danger" onclick="deleteChemical('${chem.id}')">Eliminar</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
     
     populateChemSelects();
 }
