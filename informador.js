@@ -329,29 +329,69 @@ async function saveReportToCloud() {
     }
 }
 
-function generatePDF() {
-    const element = document.getElementById('pdf-content');
-    
-    // Remove transform temporarily for PDF generation to fix blank pages on mobile
-    const oldTransform = element.style.transform;
-    element.style.transform = 'none';
+async function generatePDF() {
+    const btn = document.getElementById('btn-generate-pdf');
+    const oldText = btn.innerText;
+    btn.innerText = "Generando...";
+    btn.disabled = true;
 
-    const clientName = document.getElementById('client-name').value || 'Sin_Nombre';
-    const rawDate = document.getElementById('report-date').value;
-    const dateStr = rawDate ? rawDate.replace(/-/g, '') : 'Fecha';
+    try {
+        const element = document.getElementById('pdf-content');
+        const container = element.parentElement; // .pdf-container
+        
+        // Remove transform and overflow temporarily for PDF generation to fix blank pages on mobile
+        const originalTransform = element.style.transform;
+        const originalMarginBottom = element.style.marginBottom;
+        const originalOverflow = container.style.overflow;
+        const originalMaxHeight = container.style.maxHeight;
 
-    const opt = {
-        margin:       10,
-        filename:     `Informe_${clientName.replace(/\s+/g, '_')}_${dateStr}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+        element.style.transform = 'none';
+        element.style.marginBottom = '0px';
+        container.style.overflow = 'visible';
+        container.style.maxHeight = 'none';
 
-    html2pdf().set(opt).from(element).save().then(() => {
+        const clientName = document.getElementById('client-name').value || 'Sin_Nombre';
+        const rawDate = document.getElementById('report-date').value;
+        const dateStr = rawDate ? rawDate.replace(/-/g, '') : 'Fecha';
+
+        const opt = {
+            margin:       10,
+            filename:     `Informe_${clientName.replace(/\s+/g, '_')}_${dateStr}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, logging: false },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        const worker = html2pdf().set(opt).from(element);
+        const pdfBlob = await worker.outputPdf('blob');
+
         // Revert styles
-        element.style.transform = oldTransform;
-    });
+        element.style.transform = originalTransform;
+        element.style.marginBottom = originalMarginBottom;
+        container.style.overflow = originalOverflow;
+        container.style.maxHeight = originalMaxHeight;
+
+        const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+               await navigator.share({
+                   title: 'Informe de Inspección Stahlgraf',
+                   text: `Adjunto informe de plagas.`,
+                   files: [file]
+               });
+            } catch(e) {
+               await worker.save();
+            }
+        } else {
+            await worker.save();
+        }
+    } catch(err) {
+        console.error("PDF error: ", err);
+        alert("Error al generar PDF: " + err.message);
+    } finally {
+        btn.innerText = oldText;
+        btn.disabled = false;
+    }
 }
 
 function resetForm() {
@@ -466,8 +506,43 @@ async function loadHistoryUI() {
         document.querySelectorAll('.btn-load-historic').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const id = e.target.getAttribute('data-id');
-                alert(`Para ver el reporte completo ${id}, puedes implementar la carga de datos de vuelta al formulario.`);
-                // Implementación futura: Cargar `data` en los inputs y `currentPhotos`
+                try {
+                    const docInfo = await db.collection('users').doc(currentUser.uid).collection('reports').doc(id).get();
+                    if(docInfo.exists) {
+                        const rData = docInfo.data();
+                        document.getElementById('client-name').value = rData.clientName || '';
+                        document.getElementById('client-address').value = rData.clientAddress || '';
+                        document.getElementById('technician-name').value = rData.technicianName || '';
+                        document.getElementById('report-date').value = rData.date || '';
+                        
+                        document.getElementById('access-points').value = rData.accessPoints || '';
+                        document.getElementById('nesting-places').value = rData.nestingPlaces || '';
+                        document.getElementById('weak-points').value = rData.weakPoints || '';
+                        document.getElementById('recommendations').value = rData.recommendations || '';
+
+                        checkboxes.forEach(cb => {
+                            cb.checked = (rData.pestsDetected && rData.pestsDetected.includes(cb.value));
+                        });
+
+                        currentPhotos = [];
+                        if (rData.photoUrls && rData.photoUrls.length > 0) {
+                            rData.photoUrls.forEach(url => {
+                                currentPhotos.push({
+                                    file: null,
+                                    dataUrl: url,
+                                    id: Date.now() + Math.random().toString()
+                                });
+                            });
+                        }
+                        
+                        renderPhotoGrid();
+                        updatePDFPreview();
+                        
+                        document.getElementById('history-modal').classList.remove('active');
+                    }
+                } catch(error) {
+                    alert("Error cargando informe: " + error.message);
+                }
             });
         });
 
