@@ -358,7 +358,7 @@ async function generatePDF() {
             margin:       10,
             filename:     `Informe_${clientName.replace(/\s+/g, '_')}_${dateStr}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true, logging: false },
+            html2canvas:  { scale: 2, useCORS: true, logging: false, scrollY: 0, windowWidth: document.documentElement.offsetWidth },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
