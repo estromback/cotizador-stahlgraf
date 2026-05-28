@@ -569,6 +569,36 @@
                         }]
                     });
 
+                    // Send Email Notification via FormSubmit (AJAX) to estromback@gmail.com
+                    try {
+                        await fetch("https://formsubmit.co/ajax/estromback@gmail.com", {
+                            method: "POST",
+                            headers: { 
+                                "Content-Type": "application/json",
+                                "Accept": "application/json"
+                            },
+                            body: JSON.stringify({
+                                _subject: "Nuevo Formulario de Contacto - Stahlgraf",
+                                "Cliente": name,
+                                "Teléfono": phone,
+                                "Email": email,
+                                "Dirección": address,
+                                "Tipo Propiedad": propertyType,
+                                "Construcción": `${propertySizeConstruction} m²`,
+                                "Terreno": `${propertySizeTerrain} m²`,
+                                "Pisos": propertyFloors,
+                                "Áreas a Tratar": treatmentAreaChecked.join(', '),
+                                "Plagas": plagasChecked.join(', ') || 'No indicadas',
+                                "Infestación": infestationLevel,
+                                "Pob. Riesgo": riskPopulation,
+                                "Comentarios": comments,
+                                "_honey": "" // Honeypot spam protection
+                            })
+                        });
+                    } catch (mailErr) {
+                        console.warn("FormSubmit email notification failed:", mailErr);
+                    }
+
                     // Render beautiful success view
                     formBodyWrapper.innerHTML = `
                         <div class="success-container">
