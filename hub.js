@@ -159,53 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Clients Import
-    document.getElementById('btn-import-clients')?.addEventListener('click', async () => {
-        if (!currentUser || !db) return alert("Inicia sesión para importar.");
-        const btnImport = document.getElementById('btn-import-clients');
-        const origText = btnImport.innerText;
-        btnImport.innerText = "Importando...";
-        btnImport.disabled = true;
 
-        try {
-            const snap = await db.collection('users').doc(currentUser.uid).collection('quotes').get();
-            if (snap.empty) {
-                alert("No hay cotizaciones previas en la nube.");
-                return;
-            }
-            let added = 0;
-            snap.forEach(doc => {
-                const data = doc.data();
-                const name = (data['client-name'] || data.clientName || '').trim();
-                if (!name || name.toLowerCase() === 'sin nombre' || name === '-') return;
-                
-                const existingIndex = appData.clients.findIndex(c => (c.name || '').toLowerCase() === name.toLowerCase());
-                if (existingIndex === -1) {
-                    appData.clients.push({
-                        id: 'cl_' + Date.now() + Math.floor(Math.random() * 10000),
-                        name: name,
-                        attention: (data['client-attention'] || '').trim(),
-                        phone: (data['client-phone'] || '').trim(),
-                        address: (data['client-address'] || '').trim()
-                    });
-                    added++;
-                }
-            });
-            if (added > 0) {
-                saveData();
-                renderClientsSettings();
-                alert(`¡Éxito! Se importaron ${added} clientes únicos.`);
-            } else {
-                alert("No se encontraron clientes nuevos para importar.");
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Error: " + err.message);
-        } finally {
-            btnImport.innerText = origText;
-            btnImport.disabled = false;
-        }
-    });
 });
 
 function updateSettingsUI() {
@@ -235,7 +189,6 @@ function updateSettingsUI() {
     }
 
     renderChemicalsSettings();
-    renderClientsSettings();
 }
 
 function saveSettingsFromUI() {
@@ -297,14 +250,6 @@ function deleteChemical(id) {
     }
 }
 
-function deleteClient(id) {
-    if(confirm("¿Seguro que deseas eliminar este cliente?")) {
-        appData.clients = appData.clients.filter(c => c.id !== id);
-        saveData();
-        renderClientsSettings();
-    }
-}
-
 function renderChemicalsSettings() {
     const list = document.getElementById('db-chemicals-list');
     list.innerHTML = '';
@@ -318,29 +263,6 @@ function renderChemicalsSettings() {
             </div>
             <div class="db-item-actions">
                 <button class="action-danger" onclick="deleteChemical('${chem.id}')">Eliminar</button>
-            </div>
-        `;
-        list.appendChild(div);
-    });
-}
-
-function renderClientsSettings() {
-    const list = document.getElementById('db-clients-settings-list');
-    list.innerHTML = '';
-    if(!appData.clients || appData.clients.length === 0) {
-        list.innerHTML = '<p style="color:#aaa;">No hay clientes en la base de datos local.</p>';
-        return;
-    }
-    appData.clients.forEach(cl => {
-        const div = document.createElement('div');
-        div.className = 'db-item';
-        div.innerHTML = `
-            <div class="db-item-info">
-                <strong>${cl.name}</strong>
-                <span>Tel: ${cl.phone || '-'} | Dir: ${cl.address || '-'}</span>
-            </div>
-            <div class="db-item-actions">
-                <button class="action-danger" onclick="deleteClient('${cl.id}')">Eliminar</button>
             </div>
         `;
         list.appendChild(div);
