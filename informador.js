@@ -191,15 +191,26 @@ function updatePDFPreview() {
     document.getElementById('doc-technician-name').innerText = cTech;
     document.getElementById('doc-date').innerText = dateStr;
 
+    // Helper function to show/hide blocks
+    const toggleBlock = (docId, value) => {
+        const pEl = document.getElementById(docId);
+        if (value && value.trim() !== '') {
+            pEl.innerText = value;
+            pEl.parentElement.style.display = 'block';
+        } else {
+            pEl.parentElement.style.display = 'none';
+        }
+    };
+
     // Checkboxes
     const selectedPests = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-    document.getElementById('doc-pests-detected').innerText = selectedPests.length > 0 ? selectedPests.join(', ') : 'Ninguna especificada.';
+    toggleBlock('doc-pests-detected', selectedPests.join(', '));
 
     // Text areas
-    document.getElementById('doc-access-points').innerText = document.getElementById('access-points').value || 'Sin observaciones.';
-    document.getElementById('doc-nesting-places').innerText = document.getElementById('nesting-places').value || 'Sin observaciones.';
-    document.getElementById('doc-weak-points').innerText = document.getElementById('weak-points').value || 'Sin observaciones.';
-    document.getElementById('doc-recommendations').innerText = document.getElementById('recommendations').value || 'Sin recomendaciones específicas.';
+    toggleBlock('doc-access-points', document.getElementById('access-points').value);
+    toggleBlock('doc-nesting-places', document.getElementById('nesting-places').value);
+    toggleBlock('doc-weak-points', document.getElementById('weak-points').value);
+    toggleBlock('doc-recommendations', document.getElementById('recommendations').value);
 
     // Photos
     const docPhotoGrid = document.getElementById('doc-photo-grid');
