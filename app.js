@@ -23,6 +23,9 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     } catch (e) {
         console.warn("Firebase config is incomplete or invalid.");
     }
+} else if (typeof firebase !== 'undefined' && firebase.apps.length) {
+    db = firebase.firestore();
+    auth = firebase.auth();
 }
 // ------------------------------
 

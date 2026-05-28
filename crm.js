@@ -44,10 +44,17 @@ function loadData() {
 if (auth) {
     auth.onAuthStateChanged(user => {
         currentUser = user;
+        const syncText = document.getElementById('sync-text');
+        const syncIcon = document.getElementById('sync-icon');
+        
         if (user) {
+            if (syncText) syncText.innerText = "Conectado";
+            if (syncIcon) syncIcon.innerText = "🟢";
             loadCardsFromFirebase();
         } else {
-            document.getElementById('kanban-board').innerHTML = '<p style="padding: 20px;">Por favor, inicia sesión en el Hub Central para ver tu CRM.</p>';
+            if (syncText) syncText.innerText = "Ingresar para Sync";
+            if (syncIcon) syncIcon.innerText = "☁️";
+            document.getElementById('kanban-board').innerHTML = '<p style="padding: 20px;">Por favor, inicia sesión para ver tu CRM.</p>';
         }
     });
 }
@@ -55,6 +62,20 @@ if (auth) {
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
     renderBoardSkeleton();
+    
+    // Login Sync Button
+    const syncBtn = document.getElementById('btn-sync-login');
+    if (syncBtn) {
+        syncBtn.addEventListener('click', () => {
+            if (!auth) return alert("Firebase no está configurado.");
+            if (currentUser) {
+                if (confirm("¿Deseas cerrar sesión?")) auth.signOut();
+            } else {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider);
+            }
+        });
+    }
     
     // Modal Listeners
     const modal = document.getElementById('card-modal');
