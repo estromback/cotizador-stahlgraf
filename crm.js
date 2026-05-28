@@ -1,7 +1,31 @@
 // crm.js - Logic for the CRM Kanban Board
-const db = firebase.firestore();
-const auth = firebase.auth();
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDxz0JQhHBMCZi5kKb4Mtp2bFyZuJ5wfbA",
+  authDomain: "stahlgraf-apps.firebaseapp.com",
+  projectId: "stahlgraf-apps",
+  storageBucket: "stahlgraf-apps.firebasestorage.app",
+  messagingSenderId: "501285299028",
+  appId: "1:501285299028:web:b7adda0826e638d80a5ec1",
+  measurementId: "G-X0X7E48C64"
+};
+
+let db = null;
+let auth = null;
 let currentUser = null;
+
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        auth = firebase.auth();
+    } catch (e) {
+        console.warn("Firebase config is incomplete or invalid.");
+    }
+} else if (firebase.apps.length) {
+    db = firebase.firestore();
+    auth = firebase.auth();
+}
 
 let appData = { crmColumns: 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos' };
 let crmCards = [];
@@ -17,14 +41,16 @@ function loadData() {
 }
 
 // Authentication
-auth.onAuthStateChanged(user => {
-    currentUser = user;
-    if (user) {
-        loadCardsFromFirebase();
-    } else {
-        document.getElementById('kanban-board').innerHTML = '<p style="padding: 20px;">Por favor, inicia sesión en el Hub Central para ver tu CRM.</p>';
-    }
-});
+if (auth) {
+    auth.onAuthStateChanged(user => {
+        currentUser = user;
+        if (user) {
+            loadCardsFromFirebase();
+        } else {
+            document.getElementById('kanban-board').innerHTML = '<p style="padding: 20px;">Por favor, inicia sesión en el Hub Central para ver tu CRM.</p>';
+        }
+    });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     loadData();

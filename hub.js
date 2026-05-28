@@ -1,7 +1,31 @@
 // hub.js - Logic for the Stahlgraf Hub Central
-const db = firebase.firestore();
-const auth = firebase.auth();
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDxz0JQhHBMCZi5kKb4Mtp2bFyZuJ5wfbA",
+  authDomain: "stahlgraf-apps.firebaseapp.com",
+  projectId: "stahlgraf-apps",
+  storageBucket: "stahlgraf-apps.firebasestorage.app",
+  messagingSenderId: "501285299028",
+  appId: "1:501285299028:web:b7adda0826e638d80a5ec1",
+  measurementId: "G-X0X7E48C64"
+};
+
+let db = null;
+let auth = null;
 let currentUser = null;
+
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        auth = firebase.auth();
+    } catch (e) {
+        console.warn("Firebase config is incomplete or invalid.");
+    }
+} else if (firebase.apps.length) {
+    db = firebase.firestore();
+    auth = firebase.auth();
+}
 
 // Default App Data (same structure as app.js)
 let appData = {
@@ -48,31 +72,33 @@ function saveData() {
 }
 
 // Authentication State
-auth.onAuthStateChanged(user => {
-    currentUser = user;
-    const syncText = document.getElementById('sync-text');
-    const syncIcon = document.getElementById('sync-icon');
-    
-    if (user) {
-        syncText.innerText = user.email;
-        syncIcon.innerText = '🟢';
-        document.getElementById('btn-sync-login').classList.remove('btn-primary-outline');
-        document.getElementById('btn-sync-login').classList.add('btn-secondary');
+if (auth) {
+    auth.onAuthStateChanged(user => {
+        currentUser = user;
+        const syncText = document.getElementById('sync-text');
+        const syncIcon = document.getElementById('sync-icon');
         
-        loadDashboardStats();
-    } else {
-        syncText.innerText = "Ingresar para Sync";
-        syncIcon.innerText = '☁️';
-        document.getElementById('btn-sync-login').classList.add('btn-primary-outline');
-        document.getElementById('btn-sync-login').classList.remove('btn-secondary');
-        
-        document.getElementById('dashboard-stats').innerHTML = `
-            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
-                <p style="margin: 0; color: #ccc;">Inicia sesión para ver las estadísticas en la nube.</p>
-            </div>
-        `;
-    }
-});
+        if (user) {
+            syncText.innerText = user.email;
+            syncIcon.innerText = '🟢';
+            document.getElementById('btn-sync-login').classList.remove('btn-primary-outline');
+            document.getElementById('btn-sync-login').classList.add('btn-secondary');
+            
+            loadDashboardStats();
+        } else {
+            syncText.innerText = "Ingresar para Sync";
+            syncIcon.innerText = '☁️';
+            document.getElementById('btn-sync-login').classList.add('btn-primary-outline');
+            document.getElementById('btn-sync-login').classList.remove('btn-secondary');
+            
+            document.getElementById('dashboard-stats').innerHTML = `
+                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
+                    <p style="margin: 0; color: #ccc;">Inicia sesión para ver las estadísticas en la nube.</p>
+                </div>
+            `;
+        }
+    });
+}
 
 // UI Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
@@ -80,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Login Sync Button
     document.getElementById('btn-sync-login').addEventListener('click', () => {
+        if (!auth) return alert("Firebase no está configurado.");
         if (currentUser) {
             if (confirm("¿Deseas cerrar sesión?")) auth.signOut();
         } else {
