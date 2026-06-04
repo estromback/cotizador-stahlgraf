@@ -175,13 +175,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Installation Mode events
     const chkInstallMode = document.getElementById('chk-install-mode');
     const installClientContainer = document.getElementById('install-client-selector-container');
+    const gpsStatusBox = document.getElementById('gps-status-box');
     if (chkInstallMode && installClientContainer) {
         chkInstallMode.addEventListener('change', () => {
             if (chkInstallMode.checked) {
                 installClientContainer.style.display = 'block';
+                if (gpsStatusBox) gpsStatusBox.style.display = 'flex';
                 updateStationClientInfo();
+                requestGPSLock();
             } else {
                 installClientContainer.style.display = 'none';
+                if (gpsStatusBox) gpsStatusBox.style.display = 'none';
             }
         });
     }
@@ -296,14 +300,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Request GPS lock asynchronously to cache user's current location
+// Request GPS lock asynchronously to cache user's current location and update UI status
 function requestGPSLock() {
     if (!navigator.geolocation) {
         console.warn("Geolocation is not supported by this browser.");
+        updateGPSUIStatus('error', 'El navegador no soporta geolocalización');
         return;
     }
     
-    console.log("Requesting GPS coordinates lock...");
+    updateGPSUIStatus('searching', 'Buscando señal GPS de alta precisión...');
+    
     navigator.geolocation.getCurrentPosition(
         (position) => {
             lastKnownGPS = {
@@ -313,16 +319,54 @@ function requestGPSLock() {
                 timestamp: Date.now()
             };
             console.log("GPS Lock acquired successfully:", lastKnownGPS);
+            
+            if (position.coords.accuracy <= 20) {
+                updateGPSUIStatus('success', `GPS Listo (Precisión: ±${position.coords.accuracy.toFixed(1)} m)`);
+            } else {
+                updateGPSUIStatus('warning', `Precisión GPS regular (±${position.coords.accuracy.toFixed(1)} m). Espera un momento...`);
+            }
         },
         (error) => {
             console.warn("Could not acquire GPS position:", error.message);
+            let errMsg = 'Sin señal GPS o permisos denegados';
+            if (error.code === error.PERMISSION_DENIED) errMsg = 'Permiso de ubicación denegado';
+            else if (error.code === error.POSITION_UNAVAILABLE) errMsg = 'Señal de GPS no disponible';
+            else if (error.code === error.TIMEOUT) errMsg = 'Tiempo de espera de GPS agotado';
+            updateGPSUIStatus('error', `Error: ${errMsg}`);
         },
         {
             enableHighAccuracy: true,
             timeout: 10000,
-            maximumAge: 60000 // Cache position for up to 1 minute
+            maximumAge: 5000 // Force fresh reading if older than 5 seconds
         }
     );
+}
+
+// Helper to update GPS UI indicator in the form
+function updateGPSUIStatus(state, message) {
+    const dot = document.getElementById('gps-status-dot');
+    const txt = document.getElementById('gps-status-text');
+    if (!dot || !txt) return;
+    
+    txt.textContent = message;
+    
+    // Reset keyframe animation class if any
+    dot.style.animation = 'none';
+    
+    if (state === 'searching') {
+        dot.style.background = '#3b82f6';
+        dot.style.boxShadow = '0 0 8px #3b82f6';
+        dot.style.animation = 'gpsPulse 1.2s infinite ease-in-out';
+    } else if (state === 'success') {
+        dot.style.background = '#10b981';
+        dot.style.boxShadow = '0 0 8px #10b981';
+    } else if (state === 'warning') {
+        dot.style.background = '#fbbf24';
+        dot.style.boxShadow = '0 0 8px #fbbf24';
+    } else { // error or disabled
+        dot.style.background = '#ef4444';
+        dot.style.boxShadow = '0 0 8px #ef4444';
+    }
 }
 
 // Get the latest coordinates for a station from its inspections history
@@ -392,10 +436,10 @@ function initOrUpdateMap() {
             scrollWheelZoom: false
         });
         
-        // Add Esri World Imagery (Satellite) tile layer
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-            maxZoom: 19
+        // Add Google Maps Hybrid (Satellite + Roads/Labels) tile layer
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            attribution: 'Map data &copy; Google',
+            maxZoom: 20
         }).addTo(leafletMap);
         
         leafletMarkerGroup = L.layerGroup().addTo(leafletMap);
@@ -420,13 +464,30 @@ function initOrUpdateMap() {
             // Draw markers
             mapStations.forEach(s => {
                 const avgColor = getColorForAvg(s.analytics.avg);
-                const marker = L.circleMarker([s.coords.lat, s.coords.lng], {
-                    radius: 10,
-                    fillColor: avgColor,
-                    color: '#fff',
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.85
+                const numStr = String(s.num).padStart(2, '0');
+                
+                // DivIcon containing a styled circle with the station number
+                const customIcon = L.divIcon({
+                    className: 'custom-station-icon',
+                    html: `<div style="background-color: ${avgColor}; width: 22px; height: 22px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.55);">${numStr}</div>`,
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11]
+                });
+
+                const marker = L.marker([s.coords.lat, s.coords.lng], {
+                    icon: customIcon,
+                    draggable: true
+                });
+
+                // Listen for drag end to allow correcting/updating the coordinates
+                marker.on('dragend', function(event) {
+                    const newPos = event.target.getLatLng();
+                    if (confirm(`¿Deseas corregir la ubicación de la Estación #${numStr} a estas nuevas coordenadas?\n\nLatitud: ${newPos.lat.toFixed(6)}\nLongitud: ${newPos.lng.toFixed(6)}`)) {
+                        updateStationCoordinates(s.key, newPos.lat, newPos.lng);
+                    } else {
+                        // Reset marker position if cancelled by redrawing the map
+                        initOrUpdateMap();
+                    }
                 });
 
                 // Trend icon
@@ -435,14 +496,13 @@ function initOrUpdateMap() {
                 else if (s.analytics.trend === 'down') trendIcon = '📉';
                 else if (s.analytics.trend === 'stable') trendIcon = '➡️';
                 
-                const numStr = String(s.num).padStart(2, '0');
                 const tooltipText = `${numStr} ${trendIcon}`;
 
                 marker.bindTooltip(tooltipText, {
                     permanent: true,
                     direction: 'top',
                     className: 'premium-map-tooltip',
-                    offset: [0, -10]
+                    offset: [0, -12]
                 });
 
                 const popupContent = `
@@ -456,6 +516,9 @@ function initOrUpdateMap() {
                         <p style="margin: 8px 0 4px 0; font-size: 0.75rem; color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-family: monospace; word-break: break-all; display: flex; justify-content: space-between; align-items: center;">
                             <span>${s.coords.lat.toFixed(6)}, ${s.coords.lng.toFixed(6)}</span>
                             <button onclick="navigator.clipboard.writeText('${s.coords.lat},${s.coords.lng}'); alert('Coordenadas copiadas');" style="margin-left: 8px; cursor: pointer; border: none; background: transparent; font-size: 0.8rem; color: #3b82f6;">📋</button>
+                        </p>
+                        <p style="margin: 6px 0 0 0; font-size: 0.7rem; color: #e11d48; font-weight: 500; font-style: italic; border-top: 1px solid #f1f5f9; padding-top: 5px;">
+                            💡 Mantén presionado y arrastra este marcador para corregir su ubicación.
                         </p>
                     </div>
                 `;
@@ -475,6 +538,42 @@ function initOrUpdateMap() {
             }
         }
     }, 100);
+}
+
+// Correct coordinates of a station (updates the latest inspection record with coords)
+function updateStationCoordinates(stationKey, lat, lng) {
+    // Find all inspections of this station that contain valid coords
+    const stationRecords = inspections.filter(r => r.station === stationKey && r.coords && r.coords.lat && r.coords.lng);
+    if (stationRecords.length > 0) {
+        // Sort newest first
+        const sorted = [...stationRecords].sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+        const latestRecord = sorted[0];
+        
+        // Find it in the master inspections array
+        const recordIndex = inspections.findIndex(r => r.id === latestRecord.id);
+        if (recordIndex !== -1) {
+            inspections[recordIndex].coords = {
+                lat: lat,
+                lng: lng,
+                accuracy: 0, // Manual correction accuracy indicator
+                timestamp: Date.now()
+            };
+            inspections[recordIndex].status = 'pendiente'; // Set as pending so it syncs to cloud
+            
+            localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
+            
+            // Re-render and show success alert
+            renderMonitoreo();
+            alert(`✅ La ubicación de la Estación #${stationKey.replace('ESTACION-', '')} ha sido corregida.`);
+            
+            if (navigator.onLine && currentUser) {
+                syncWithCloud(true);
+            }
+        }
+    } else {
+        alert("⚠️ No se encontró un historial de geolocalización previo para esta estación.");
+        initOrUpdateMap();
+    }
 }
 
 // Load inspections queue from LocalStorage
@@ -666,6 +765,26 @@ function saveInspection() {
     
     if (!station) return alert("Selecciona una estación.");
     
+    // Check installation mode for GPS recording and accuracy verification
+    const chkInstall = document.getElementById('chk-install-mode');
+    const isInstallationMode = chkInstall ? chkInstall.checked : false;
+    
+    let coordsToSave = null;
+    if (isInstallationMode) {
+        if (!lastKnownGPS) {
+            if (!confirm("⚠️ El GPS aún no ha obtenido coordenadas (señal débil o permisos denegados). ¿Deseas registrar la estación sin geolocalización?")) {
+                return; // Cancel registration
+            }
+        } else if (lastKnownGPS.accuracy > 20) { // Precision threshold: 20 meters
+            if (!confirm(`⚠️ La precisión del GPS es baja (±${lastKnownGPS.accuracy.toFixed(1)} metros). Se recomienda esperar unos segundos a que mejore la señal. ¿Deseas registrar la ubicación actual de todos modos?`)) {
+                return; // Cancel registration to retry
+            }
+            coordsToSave = { ...lastKnownGPS };
+        } else {
+            coordsToSave = { ...lastKnownGPS };
+        }
+    }
+
     const newRecord = {
         id: 'ins_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
         station,
@@ -673,7 +792,7 @@ function saveInspection() {
         maintenance,
         evidence,
         notes,
-        coords: lastKnownGPS ? { ...lastKnownGPS } : null,
+        coords: coordsToSave,
         timestamp: new Date().toLocaleString('es-CL'),
         status: 'pendiente'
     };
