@@ -66,17 +66,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (confirm("¿Deseas cerrar sesión?")) auth.signOut();
         } else {
             const provider = new firebase.auth.GoogleAuthProvider();
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || isInAppBrowser();
-            
-            if (isMobile) {
-                // Use redirect on mobile to prevent in-app browsers popup blocking
+            // Prioritize signInWithPopup on both desktop and mobile to bypass third-party cookie partition issues.
+            // Fallback to redirect only if popup is blocked (e.g. inside webviews).
+            auth.signInWithPopup(provider).catch(err => {
+                console.warn("Popup blocked or failed, retrying with redirect...", err);
                 auth.signInWithRedirect(provider);
-            } else {
-                auth.signInWithPopup(provider).catch(err => {
-                    console.warn("Popup blocked or failed, retrying with redirect...", err);
-                    auth.signInWithRedirect(provider);
-                });
-            }
+            });
         }
     });
 
