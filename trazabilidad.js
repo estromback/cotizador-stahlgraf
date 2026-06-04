@@ -31,11 +31,176 @@ let inspections = [];
 let lastKnownGPS = null;
 let leafletMap = null;
 let leafletMarkerGroup = null;
+let activeTileLayer = null;
 
 let globalAppData = {
     clients: [],
     stationAssignments: []
 };
+
+// Seed mock data for demonstration if empty
+function seedMockDataIfEmpty() {
+    const savedGlobal = localStorage.getItem('stahlgraf_data_v4');
+    const savedInspections = localStorage.getItem('stahlgraf_qr_inspecciones');
+    
+    let needsSeeding = false;
+    let globalDataParsed = {};
+    
+    if (savedGlobal) {
+        try {
+            globalDataParsed = JSON.parse(savedGlobal);
+            if (!globalDataParsed.clients || globalDataParsed.clients.length === 0) {
+                needsSeeding = true;
+            }
+        } catch (e) {
+            needsSeeding = true;
+        }
+    } else {
+        needsSeeding = true;
+    }
+    
+    if (needsSeeding) {
+        console.log("Seeding mock clients, assignments and history for testing...");
+        const mockClients = [
+            { id: 'cli_1', name: 'Agropecuaria Los Ángeles', address: 'Camino Las Industrias Km 4.5, Los Ángeles' },
+            { id: 'cli_2', name: 'Fundo El Roble', address: 'Ruta Q-180 Sector El Roble, Los Ángeles' }
+        ];
+        
+        const mockAssignments = [
+            { start: 1, end: 3, clientId: 'cli_1', clientName: 'Agropecuaria Los Ángeles' },
+            { start: 4, end: 5, clientId: 'cli_2', clientName: 'Fundo El Roble' }
+        ];
+        
+        const mergedGlobal = {
+            ...globalDataParsed,
+            clients: mockClients,
+            stationAssignments: mockAssignments
+        };
+        
+        localStorage.setItem('stahlgraf_data_v4', JSON.stringify(mergedGlobal));
+        globalAppData = mergedGlobal;
+        
+        if (!savedInspections || savedInspections === '[]') {
+            const now = new Date();
+            const formatDate = (offsetDays) => {
+                const d = new Date();
+                d.setDate(now.getDate() - offsetDays);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const hours = String(d.getHours()).padStart(2, '0');
+                const minutes = String(d.getMinutes()).padStart(2, '0');
+                const seconds = String(d.getSeconds()).padStart(2, '0');
+                return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            };
+            
+            const mockInspections = [
+                {
+                    id: 'ins_' + (Date.now() - 500000000) + '_1',
+                    station: 'ESTACION-01',
+                    consumption: '0%',
+                    maintenance: ['Limpieza'],
+                    evidence: ['Ninguna'],
+                    notes: 'Estación en buen estado.',
+                    timestamp: formatDate(30),
+                    coords: { lat: -37.4612, lng: -72.3514 },
+                    status: 'sincronizado'
+                },
+                {
+                    id: 'ins_' + (Date.now() - 250000000) + '_2',
+                    station: 'ESTACION-01',
+                    consumption: '25-50%',
+                    maintenance: ['Reemplazo de cebo'],
+                    evidence: ['Excrementos'],
+                    notes: 'Consumo parcial detectado.',
+                    timestamp: formatDate(15),
+                    coords: { lat: -37.4612, lng: -72.3514 },
+                    status: 'sincronizado'
+                },
+                {
+                    id: 'ins_' + (Date.now() - 100000) + '_3',
+                    station: 'ESTACION-01',
+                    consumption: '75%',
+                    maintenance: ['Reemplazo de cebo', 'Limpieza'],
+                    evidence: ['Excrementos', 'Roeduras'],
+                    notes: 'Alta actividad de roedores.',
+                    timestamp: formatDate(1),
+                    coords: { lat: -37.4612, lng: -72.3514 },
+                    status: 'pendiente'
+                },
+                {
+                    id: 'ins_' + (Date.now() - 400000000) + '_4',
+                    station: 'ESTACION-02',
+                    consumption: '0%',
+                    maintenance: ['Limpieza'],
+                    evidence: ['Ninguna'],
+                    notes: 'Sin actividad.',
+                    timestamp: formatDate(20),
+                    coords: { lat: -37.4621, lng: -72.3525 },
+                    status: 'sincronizado'
+                },
+                {
+                    id: 'ins_' + (Date.now() - 50000) + '_5',
+                    station: 'ESTACION-02',
+                    consumption: '0%',
+                    maintenance: ['Limpieza'],
+                    evidence: ['Ninguna'],
+                    notes: 'Estación limpia.',
+                    timestamp: formatDate(1),
+                    coords: { lat: -37.4621, lng: -72.3525 },
+                    status: 'pendiente'
+                },
+                {
+                    id: 'ins_' + (Date.now() - 300000000) + '_6',
+                    station: 'ESTACION-03',
+                    consumption: '25-50%',
+                    maintenance: ['Reemplazo de cebo'],
+                    evidence: ['Roeduras'],
+                    notes: 'Actividad baja.',
+                    timestamp: formatDate(15),
+                    coords: null,
+                    status: 'sincronizado'
+                },
+                {
+                    id: 'ins_' + (Date.now() - 20000) + '_7',
+                    station: 'ESTACION-03',
+                    consumption: '100%',
+                    maintenance: ['Reemplazo de cebo', 'Reubicación'],
+                    evidence: ['Excrementos', 'Huellas', 'Roeduras'],
+                    notes: 'Cebo consumido completamente, estación reubicada 2 metros.',
+                    timestamp: formatDate(1),
+                    coords: { lat: -37.4605, lng: -72.3501 },
+                    status: 'pendiente'
+                },
+                {
+                    id: 'ins_' + (Date.now() - 600000000) + '_8',
+                    station: 'ESTACION-04',
+                    consumption: '0%',
+                    maintenance: ['Limpieza'],
+                    evidence: ['Ninguna'],
+                    notes: 'Primera visita.',
+                    timestamp: formatDate(40),
+                    coords: { lat: -37.4635, lng: -72.3536 },
+                    status: 'sincronizado'
+                },
+                {
+                    id: 'ins_' + (Date.now() - 10000) + '_9',
+                    station: 'ESTACION-04',
+                    consumption: '25-50%',
+                    maintenance: ['Reemplazo de cebo'],
+                    evidence: ['Roeduras'],
+                    notes: 'Consumo parcial.',
+                    timestamp: formatDate(1),
+                    coords: { lat: -37.4635, lng: -72.3536 },
+                    status: 'pendiente'
+                }
+            ];
+            
+            localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(mockInspections));
+            inspections = mockInspections;
+        }
+    }
+}
 
 // Load global configuration (clients & assignments) from LocalStorage
 function loadGlobalAppData() {
@@ -109,6 +274,7 @@ if (auth) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    seedMockDataIfEmpty();
     loadGlobalAppData();
     loadLocalInspections();
     generateStationDropdown();
@@ -154,6 +320,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectFilter.dispatchEvent(new Event('change'));
             }
         });
+    }
+    
+    const btnGeneratePdf = document.getElementById('btn-generate-pdf-report');
+    if (btnGeneratePdf) {
+        btnGeneratePdf.addEventListener('click', generatePDFReport);
     }
     
     // Auto-sync when connection is restored
@@ -448,7 +619,7 @@ function initOrUpdateMap() {
         });
         
         // Add Google Maps Hybrid (Satellite + Roads/Labels) tile layer
-        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        activeTileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
             attribution: 'Map data &copy; Google',
             maxZoom: 20
         }).addTo(leafletMap);
@@ -2352,6 +2523,367 @@ function executeTransfer() {
     updateStationClientInfo();
     
     alert(`✅ Los datos de la Estación #${String(sourceNum).padStart(2, '0')} se trasladaron con éxito a la Estación #${String(targetNum).padStart(2, '0')}.`);
+}
+
+// Generate PDF Monitoring Report for the selected client
+async function generatePDFReport() {
+    if (typeof html2pdf === 'undefined') {
+        alert("⚠️ La librería html2pdf.js no está cargada. Verifica tu conexión a internet.");
+        return;
+    }
+    
+    const filterClientIdSelect = document.getElementById('filter-client-id');
+    const filterClientId = filterClientIdSelect ? filterClientIdSelect.value : '';
+    if (!filterClientId) {
+        alert("⚠️ Selecciona un cliente para generar el reporte.");
+        return;
+    }
+    
+    const clientObj = (globalAppData.clients || []).find(c => c.id === filterClientId);
+    const clientName = clientObj ? clientObj.name : 'Cliente';
+    const clientAddress = clientObj ? clientObj.address : 'Sin dirección';
+    
+    // Get summary statistics
+    const summaries = getClientMonitoreoSummary();
+    const clientSummary = summaries.find(s => s.id === filterClientId);
+    
+    if (!clientSummary) {
+        alert("⚠️ No se encontraron datos para este cliente.");
+        return;
+    }
+    
+    // Show spinner or alert that report is generating
+    const btn = document.getElementById('btn-generate-pdf-report');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = 'Generando Reporte...';
+    
+    // 1. Build recommendations block
+    let recommendationsHTML = "";
+    if (clientSummary.criticalCount > 0) {
+        recommendationsHTML = `
+            <div style="margin-top: 15px; padding: 15px; border-left: 5px solid #ef4444; background: #fef2f2; border-radius: 6px;">
+                <h4 style="margin: 0 0 6px 0; color: #991b1b; font-size: 0.95rem; font-weight: 700;">🚨 Recomendaciones de Acción Inmediata</h4>
+                <p style="margin: 0; font-size: 0.82rem; color: #7f1d1d; line-height: 1.45;">
+                    Se han identificado <strong>${clientSummary.criticalCount} estaciones en estado crítico</strong> (consumo promedio de cebo superior al 50% o con incidentes recientes de consumo del 75%-100%). Se aconsejan las siguientes medidas de control de plagas:
+                </p>
+                <ul style="margin: 6px 0 0 0; padding-left: 20px; font-size: 0.8rem; color: #7f1d1d; line-height: 1.45;">
+                    <li><strong>Aumentar frecuencia</strong>: Acortar el ciclo de revisión a visitas semanales en las zonas de las estaciones afectadas.</li>
+                    <li><strong>Reforzar cebamiento</strong>: Colocar cebo fresco de alta palatabilidad en las estaciones críticas y reponer inmediatamente los consumos al 100%.</li>
+                    <li><strong>Barrera Sanitaria</strong>: Inspeccionar y sellar posibles puntos de acceso y grietas en estructuras aledañas.</li>
+                </ul>
+            </div>
+        `;
+    } else if (clientSummary.avgConsumption > 20) {
+        recommendationsHTML = `
+            <div style="margin-top: 15px; padding: 15px; border-left: 5px solid #fbbf24; background: #fffbef; border-radius: 6px;">
+                <h4 style="margin: 0 0 6px 0; color: #92400e; font-size: 0.95rem; font-weight: 700;">⚠️ Recomendaciones de Control Preventivo</h4>
+                <p style="margin: 0; font-size: 0.82rem; color: #78350f; line-height: 1.45;">
+                    Se detectó una actividad moderada en el predio (consumo promedio del <strong>${clientSummary.avgConsumption}%</strong>). Se sugiere:
+                </p>
+                <ul style="margin: 6px 0 0 0; padding-left: 20px; font-size: 0.8rem; color: #78350f; line-height: 1.45;">
+                    <li><strong>Monitoreo Quincenal</strong>: Continuar con visitas quincenales regulares para supervisar los focos intermedios.</li>
+                    <li><strong>Higiene Ambiental</strong>: Limpiar maleza densa, apilar escombros y eliminar acumulación de agua en un radio de 2 metros de las estaciones.</li>
+                    <li><strong>Rotación de Ingredientes</strong>: Rotar el tipo de cebo químico para prevenir acostumbramiento o aversión.</li>
+                </ul>
+            </div>
+        `;
+    } else {
+        recommendationsHTML = `
+            <div style="margin-top: 15px; padding: 15px; border-left: 5px solid #10b981; background: #ecfdf5; border-radius: 6px;">
+                <h4 style="margin: 0 0 6px 0; color: #065f46; font-size: 0.95rem; font-weight: 700;">✅ Estado de Monitoreo: Bajo Control</h4>
+                <p style="margin: 0; font-size: 0.82rem; color: #064e3b; line-height: 1.45;">
+                    El predio presenta niveles muy bajos de actividad de roedores (consumo promedio del <strong>${clientSummary.avgConsumption}%</strong>). Se sugiere:
+                </p>
+                <ul style="margin: 6px 0 0 0; padding-left: 20px; font-size: 0.8rem; color: #064e3b; line-height: 1.45;">
+                    <li><strong>Mantenimiento Regular</strong>: Mantener el ciclo ordinario mensual de visitas técnicas para recambiar cebo deteriorado.</li>
+                    <li><strong>Inspección Física</strong>: Evaluar el estado de anclaje, tapas y llaves de las cajas de cebado para evitar manipulaciones ajenas.</li>
+                </ul>
+            </div>
+        `;
+    }
+
+    // 2. Build latest inspections table rows
+    const clientStations = [];
+    const maxStations = getMaxStationNumber();
+    for (let i = 1; i <= maxStations; i++) {
+        if (getClientIdForStation(i) === filterClientId || getClientNameForStation(i) === clientName) {
+            clientStations.push(i);
+        }
+    }
+    
+    let latestInspectionsHTML = "";
+    clientStations.forEach(num => {
+        const stationKey = `ESTACION-${String(num).padStart(2, '0')}`;
+        const analytics = calculateStationAnalytics(stationKey);
+        
+        let lastDate = '-';
+        let lastCons = 'Pendiente';
+        let lastMaint = 'Ninguno';
+        let lastEvid = 'Ninguna';
+        let lastNotes = '-';
+        
+        if (analytics.latestRecord) {
+            lastDate = analytics.latestRecord.timestamp.split(' ')[0];
+            lastCons = analytics.latestRecord.consumption;
+            lastMaint = (analytics.latestRecord.maintenance || []).join(', ') || 'Ninguno';
+            lastEvid = (analytics.latestRecord.evidence || []).join(', ') || 'Ninguna';
+            lastNotes = analytics.latestRecord.notes || '-';
+        }
+        
+        latestInspectionsHTML += `
+            <tr style="border-bottom: 1px solid #e2e8f0; font-size: 0.8rem;">
+                <td style="padding: 10px 8px; font-weight: 700; color: #1e293b; text-align: left;">Estación #${String(num).padStart(2, '0')}</td>
+                <td style="padding: 10px 8px; text-align: center;">${lastDate}</td>
+                <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: ${lastCons === '0%' ? '#10b981' : lastCons === '25-50%' ? '#fbbf24' : '#ef4444'};">${lastCons}</td>
+                <td style="padding: 10px 8px; text-align: left; color: #475569;">${lastMaint}</td>
+                <td style="padding: 10px 8px; text-align: left; color: #475569;">${lastEvid}</td>
+                <td style="padding: 10px 8px; text-align: left; color: #64748b; font-style: italic;">${lastNotes}</td>
+            </tr>
+        `;
+    });
+
+    // 3. Build historical entries listing per station
+    let historyHTML = "";
+    clientStations.forEach(num => {
+        const stationKey = `ESTACION-${String(num).padStart(2, '0')}`;
+        const stationRecords = inspections.filter(r => r.station === stationKey);
+        const sortedRecords = [...stationRecords].sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a)); // Newest first
+        
+        let rows = "";
+        sortedRecords.forEach(r => {
+            const maint = (r.maintenance || []).join(', ') || 'Ninguno';
+            rows += `
+                <div style="display: flex; justify-content: space-between; font-size: 0.76rem; padding: 5px 0; border-bottom: 1px dashed #e2e8f0; color: #475569;">
+                    <span style="font-weight: 500;">📅 ${r.timestamp}</span>
+                    <span style="font-weight: 600; color: ${r.consumption === '0%' ? '#10b981' : r.consumption === '25-50%' ? '#d97706' : '#dc2626'};">Consumo: ${r.consumption}</span>
+                    <span>🔧 Mantenimiento: ${maint}</span>
+                </div>
+            `;
+        });
+        
+        if (rows === "") {
+            rows = `<div style="font-size: 0.76rem; color: #94a3b8; font-style: italic; padding: 4px 0;">Sin visitas registradas en este dispositivo</div>`;
+        }
+        
+        historyHTML += `
+            <div style="margin-bottom: 15px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; page-break-inside: avoid;">
+                <h5 style="margin: 0 0 6px 0; font-size: 0.85rem; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; font-weight: 700;">
+                    Estación #${String(num).padStart(2, '0')}
+                </h5>
+                ${rows}
+            </div>
+        `;
+    });
+
+    // Collect active map stations coordinates for bounds centering inside generation
+    const mapStations = [];
+    clientStations.forEach(num => {
+        const stationKey = `ESTACION-${String(num).padStart(2, '0')}`;
+        const coords = getLatestStationCoords(stationKey);
+        if (coords && coords.lat && coords.lng) {
+            mapStations.push({
+                num: num,
+                coords: coords
+            });
+        }
+    });
+
+    // 4. Create printable report element container (A4 styles)
+    const reportContainer = document.createElement('div');
+    reportContainer.id = 'temp-pdf-report';
+    reportContainer.className = 'formal-document';
+    reportContainer.style.cssText = `
+        position: absolute;
+        left: -9999px;
+        top: -9999px;
+        background: #ffffff;
+        color: #1e293b;
+        font-family: 'Inter', system-ui, sans-serif;
+        box-sizing: border-box;
+        line-height: 1.5;
+    `;
+    
+    reportContainer.innerHTML = `
+        <!-- Header -->
+        <div style="border-bottom: 2px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="margin: 0; font-size: 1.6rem; color: #1e3a8a; font-weight: 700; text-transform: uppercase;">STAHLGRAF</h1>
+                <h2 style="margin: 5px 0 0 0; font-size: 1.05rem; color: #475569; font-weight: 600;">Reporte de Monitoreo & Trazabilidad de Estaciones</h2>
+            </div>
+            <div style="text-align: right;">
+                <p style="margin: 0; font-size: 0.8rem; color: #64748b;"><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString('es-CL')}</p>
+                <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #64748b;"><strong>Estaciones Activas:</strong> ${clientStations.length}</p>
+            </div>
+        </div>
+        
+        <!-- Client Details card -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 25px; display: flex; justify-content: space-between;">
+            <div>
+                <h3 style="margin: 0 0 5px 0; font-size: 1rem; color: #1e293b; font-weight: 700;">👤 Datos del Cliente</h3>
+                <p style="margin: 0; font-size: 0.85rem; color: #334155;"><strong>Cliente:</strong> ${clientName}</p>
+                <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: #334155;"><strong>Dirección:</strong> ${clientAddress}</p>
+            </div>
+            <div style="text-align: right;">
+                <h3 style="margin: 0 0 5px 0; font-size: 1rem; color: #1e293b; font-weight: 700;">📊 Resumen Estadístico</h3>
+                <p style="margin: 0; font-size: 0.85rem; color: #334155;"><strong>Revisadas:</strong> ${clientSummary.inspectedStations} / ${clientSummary.totalStations}</p>
+                <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: #334155;"><strong>Consumo Promedio:</strong> <strong style="color: ${clientSummary.avgConsumption > 50 ? '#ef4444' : '#10b981'};">${clientSummary.avgConsumption}%</strong></p>
+            </div>
+        </div>
+
+        <!-- Map Container Area inside PDF -->
+        <h3 style="font-size: 1.1rem; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin: 25px 0 10px 0; font-weight: 700;">🗺️ Plano Satelital del Predio</h3>
+        <div id="pdf-map-placeholder" style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; height: 350px;"></div>
+        
+        <!-- Recommendations block -->
+        <div style="margin-bottom: 25px;">
+            ${recommendationsHTML}
+        </div>
+        
+        <div style="page-break-before: always;"></div>
+
+        <!-- Latest inspections details -->
+        <h3 style="font-size: 1.1rem; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin: 0 0 15px 0; font-weight: 700;">📋 Detalles de Última Inspección por Caja</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+            <thead>
+                <tr style="background: #1e3a8a; color: #ffffff; font-size: 0.85rem;">
+                    <th style="padding: 10px 8px; text-align: left;">Estación</th>
+                    <th style="padding: 10px 8px; text-align: center;">Última Visita</th>
+                    <th style="padding: 10px 8px; text-align: center;">Consumo</th>
+                    <th style="padding: 10px 8px; text-align: left;">Mantenimiento</th>
+                    <th style="padding: 10px 8px; text-align: left;">Evidencia</th>
+                    <th style="padding: 10px 8px; text-align: left;">Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${latestInspectionsHTML}
+            </tbody>
+        </table>
+        
+        <!-- Historical entries per box -->
+        <h3 style="font-size: 1.1rem; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin: 30px 0 15px 0; font-weight: 700;">⏳ Historial de Inspecciones por Estación</h3>
+        <div>
+            ${historyHTML}
+        </div>
+        
+        <!-- Footer Signatures -->
+        <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid #cbd5e1; display: flex; justify-content: space-between; page-break-inside: avoid;">
+            <div style="width: 250px; text-align: center;">
+                <div style="height: 60px; border-bottom: 1px solid #94a3b8; margin-bottom: 5px;"></div>
+                <p style="margin: 0; font-size: 0.8rem; color: #334155; font-weight: 600;">Firma del Técnico Responsable</p>
+                <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #64748b;">Servicios de Control de Vectores</p>
+            </div>
+            <div style="width: 250px; text-align: center;">
+                <div style="height: 60px; border-bottom: 1px solid #94a3b8; margin-bottom: 5px;"></div>
+                <p style="margin: 0; font-size: 0.8rem; color: #334155; font-weight: 600;">Firma de Aceptación del Cliente</p>
+                <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #64748b;">Representante Autorizado</p>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(reportContainer);
+
+    // 5. Temporarily move map container into report container if map exists and has station coordinates
+    const originalMap = document.getElementById('monitoreo-map');
+    let originalParent = null;
+    let nextSibling = null;
+    const hasMapData = mapStations.length > 0 && leafletMap;
+    let esriTileLayer = null;
+
+    const pdfMapPlaceholder = reportContainer.querySelector('#pdf-map-placeholder');
+    const bounds = mapStations.map(s => [s.coords.lat, s.coords.lng]);
+    
+    if (hasMapData) {
+        // Swap to Esri World Imagery (CORS-compliant) for PDF rendering
+        if (activeTileLayer) {
+            leafletMap.removeLayer(activeTileLayer);
+        }
+        esriTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri',
+            maxZoom: 20,
+            crossOrigin: true
+        }).addTo(leafletMap);
+
+        originalParent = originalMap.parentNode;
+        nextSibling = originalMap.nextSibling;
+        pdfMapPlaceholder.appendChild(originalMap);
+        
+        // Re-draw map and recalculate Leaflet dimensions
+        leafletMap.invalidateSize();
+        
+        // Fit map bounds to make sure the screenshot fits perfectly
+        if (bounds.length > 0) {
+            if (bounds.length === 1) {
+                leafletMap.setView(bounds[0], 17);
+            } else {
+                leafletMap.fitBounds(bounds, { padding: [40, 40] });
+            }
+        }
+    } else {
+        // Render a clean placeholder inside the PDF
+        pdfMapPlaceholder.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #f8fafc; color: #64748b; padding: 40px; text-align: center; box-sizing: border-box; font-family: sans-serif;">
+                <span style="font-size: 2.2rem; margin-bottom: 10px; display: block;">📍</span>
+                <strong style="color: #334155; font-size: 0.95rem; font-weight: 700; display: block;">Ubicación Satelital Pendiente</strong>
+                <p style="margin: 6px 0 0 0; font-size: 0.8rem; color: #64748b; max-width: 320px; line-height: 1.45;">
+                    Las estaciones de este cliente no poseen coordenadas geográficas registradas. Registre una ubicación en el modo instalación para habilitar el plano.
+                </p>
+            </div>
+        `;
+    }
+    
+    // 6. Wait for rendering, then run html2pdf
+    setTimeout(async () => {
+        try {
+            const options = {
+                margin: 10,
+                filename: `Reporte_Monitoreo_${clientName.replace(/\s+/g, '_')}_${Date.now()}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2, 
+                    useCORS: true,
+                    logging: false
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            };
+            
+            await html2pdf().from(reportContainer).set(options).save();
+        } catch (err) {
+            console.error("PDF generation failed:", err);
+            alert("⚠️ Error al generar el PDF. Asegúrate de tener conexión a internet para descargar las imágenes del mapa.");
+        } finally {
+            if (hasMapData && originalParent) {
+                // Restore original Google Hybrid tile layer
+                if (esriTileLayer) {
+                    leafletMap.removeLayer(esriTileLayer);
+                }
+                if (activeTileLayer) {
+                    activeTileLayer.addTo(leafletMap);
+                }
+
+                // Restore map back to its UI home!
+                originalParent.insertBefore(originalMap, nextSibling);
+                
+                // Re-invalidate UI map layout
+                leafletMap.invalidateSize();
+                if (bounds.length > 0) {
+                    if (bounds.length === 1) {
+                        leafletMap.setView(bounds[0], 17);
+                    } else {
+                        leafletMap.fitBounds(bounds, { padding: [40, 40] });
+                    }
+                }
+            }
+            
+            // Remove printable report template element from DOM
+            reportContainer.remove();
+            
+            // Restore button text
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    }, 400); // 400ms wait to allow Leaflet mapping to fully settle in PDF div
 }
 
 // Expose deleteAssignment and other handlers globally
