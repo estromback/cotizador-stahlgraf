@@ -14,6 +14,13 @@ let db = null;
 let auth = null;
 let currentUser = null;
 
+// Calendar widget states
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let crmCards = [];
+let clientsList = [];
+let crmListener = null;
+
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
@@ -85,6 +92,8 @@ if (auth) {
             document.getElementById('btn-sync-login').classList.add('btn-secondary');
             
             loadDashboardStats();
+            subscribeToCRM();
+            loadUserClients();
         } else {
             syncText.innerText = "Ingresar para Sync";
             syncIcon.innerText = '☁️';
@@ -96,6 +105,21 @@ if (auth) {
                     <p style="margin: 0; color: #ccc;">Inicia sesión para ver las estadísticas en la nube.</p>
                 </div>
             `;
+            
+            if (crmListener) {
+                crmListener();
+                crmListener = null;
+            }
+            crmCards = [];
+            clientsList = [];
+            const grid = document.getElementById('calendar-days');
+            if (grid) {
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: #aaa;">
+                        Inicia sesión para ver tu calendario de CRM.
+                    </div>
+                `;
+            }
         }
     });
 }
@@ -156,10 +180,77 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('setting-crm-columns').addEventListener('change', (e) => {
             appData.crmColumns = e.target.value;
             saveData();
+            renderCRMColumnsSelect();
         });
     }
 
+    // Calendar Navigation Controls
+    if (document.getElementById('cal-btn-prev')) {
+        document.getElementById('cal-btn-prev').addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar(currentMonth, currentYear);
+        });
+    }
+    if (document.getElementById('cal-btn-next')) {
+        document.getElementById('cal-btn-next').addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar(currentMonth, currentYear);
+        });
+    }
+    if (document.getElementById('cal-btn-today')) {
+        document.getElementById('cal-btn-today').addEventListener('click', () => {
+            const today = new Date();
+            currentMonth = today.getMonth();
+            currentYear = today.getFullYear();
+            renderCalendar(currentMonth, currentYear);
+        });
+    }
+    if (document.getElementById('cal-btn-add')) {
+        document.getElementById('cal-btn-add').addEventListener('click', () => {
+            const todayStr = formatDateStr(new Date());
+            openCardModal(null, todayStr);
+        });
+    }
 
+    // Card Modal Buttons
+    if (document.getElementById('btn-close-card')) {
+        document.getElementById('btn-close-card').addEventListener('click', closeCardModal);
+    }
+    if (document.getElementById('btn-save-card')) {
+        document.getElementById('btn-save-card').addEventListener('click', saveCard);
+    }
+    if (document.getElementById('btn-delete-card')) {
+        document.getElementById('btn-delete-card').addEventListener('click', deleteCard);
+    }
+    if (document.getElementById('btn-add-comment')) {
+        document.getElementById('btn-add-comment').addEventListener('click', addComment);
+    }
+
+    // Clients Modal search and load
+    if (document.getElementById('btn-load-client')) {
+        document.getElementById('btn-load-client').addEventListener('click', () => {
+            document.getElementById('clients-modal').classList.add('active');
+            renderClientsSelect();
+        });
+    }
+    if (document.getElementById('btn-close-clients')) {
+        document.getElementById('btn-close-clients').addEventListener('click', () => {
+            document.getElementById('clients-modal').classList.remove('active');
+        });
+    }
+    if (document.getElementById('client-search')) {
+        document.getElementById('client-search').addEventListener('input', (e) => {
+            renderClientsSelect(e.target.value);
+        });
+    }
 });
 
 function updateSettingsUI() {
@@ -333,4 +424,433 @@ async function loadDashboardStats() {
         console.error(e);
         statsDiv.innerHTML = '<p style="color:#e74c3c;">Error cargando estadísticas.</p>';
     }
+}
+
+// ==========================================
+// CALENDAR & CRM LOGIC
+// ==========================================
+
+function subscribeToCRM() {
+    if (!currentUser || !db) return;
+    if (crmListener) crmListener();
+    
+    crmListener = db.collection('users').doc(currentUser.uid).collection('crm')
+        .onSnapshot(snap => {
+            crmCards = [];
+            snap.forEach(doc => {
+                crmCards.push({ id: doc.id, ...doc.data() });
+            });
+            renderCalendar(currentMonth, currentYear);
+            renderCRMColumnsSelect();
+        }, err => {
+            console.error("Error subscribing to CRM: ", err);
+        });
+}
+
+function loadUserClients() {
+    if (!currentUser || !db) return;
+    db.collection('users').doc(currentUser.uid).get().then(doc => {
+        if (doc.exists) {
+            const cloudData = doc.data();
+            if (cloudData.clients) {
+                clientsList = cloudData.clients;
+                localStorage.setItem('stahlgraf_data_v4', JSON.stringify({
+                    ...JSON.parse(localStorage.getItem('stahlgraf_data_v4') || '{}'),
+                    clients: clientsList
+                }));
+            }
+        }
+    }).catch(e => console.error("Error loading clients from Firestore: ", e));
+}
+
+function getCRMColumns() {
+    const defaultCols = (appData.crmColumns || 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos')
+        .split(',')
+        .map(c => c.trim())
+        .filter(c => c.length > 0);
+        
+    crmCards.forEach(card => {
+        if (card.column && !defaultCols.includes(card.column)) {
+            defaultCols.push(card.column);
+        }
+    });
+    
+    return defaultCols;
+}
+
+function renderCRMColumnsSelect() {
+    const select = document.getElementById('card-column');
+    if (!select) return;
+    select.innerHTML = '';
+    const cols = getCRMColumns();
+    cols.forEach(col => {
+        const opt = document.createElement('option');
+        opt.value = col;
+        opt.textContent = col;
+        select.appendChild(opt);
+    });
+}
+
+function renderCalendar(month, year) {
+    const grid = document.getElementById('calendar-days');
+    const title = document.getElementById('cal-month-title');
+    if (!grid || !title) return;
+    
+    const monthNames = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+    ];
+    title.innerText = `${monthNames[month]} ${year}`;
+    grid.innerHTML = '';
+    
+    // First day of the month
+    let firstDayIndex = new Date(year, month, 1).getDay();
+    // Monday is 0, Sunday is 6
+    firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+    
+    // Total days in current month
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    // Total days in previous month
+    const prevTotalDays = new Date(year, month, 0).getDate();
+    
+    const today = new Date();
+    const todayDay = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+    
+    // Render previous month's ending days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+        const d = prevTotalDays - i;
+        const cellDate = new Date(year, month - 1, d);
+        const cellDateStr = formatDateStr(cellDate);
+        createCell(d, true, cellDateStr, grid);
+    }
+    
+    // Render current month's days
+    for (let d = 1; d <= totalDays; d++) {
+        const cellDate = new Date(year, month, d);
+        const isToday = (d === todayDay && month === todayMonth && year === todayYear);
+        const cellDateStr = formatDateStr(cellDate);
+        createCell(d, false, cellDateStr, grid, isToday);
+    }
+    
+    // Render next month's starting days to fill 42 cells (6 rows of 7 days)
+    const currentCells = firstDayIndex + totalDays;
+    const extraCells = 42 - currentCells;
+    for (let d = 1; d <= extraCells; d++) {
+        const cellDate = new Date(year, month + 1, d);
+        const cellDateStr = formatDateStr(cellDate);
+        createCell(d, true, cellDateStr, grid);
+    }
+}
+
+function formatDateStr(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function getChipClass(column) {
+    if (!column) return 'event-default';
+    const normalized = column.toLowerCase().trim();
+    if (normalized.includes('cotizado')) return 'event-cotizados';
+    if (normalized.includes('vendido')) return 'event-vendidos';
+    if (normalized.includes('pago') || normalized.includes('pendiente')) return 'event-pago-pendiente';
+    if (normalized.includes('contacto') || normalized.includes('futuro')) return 'event-contacto-futuro';
+    if (normalized.includes('perdido')) return 'event-perdidos';
+    return 'event-default';
+}
+
+function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
+    const cell = document.createElement('div');
+    cell.className = 'calendar-day-cell';
+    if (isOtherMonth) cell.classList.add('other-month');
+    if (isToday) cell.classList.add('today-cell');
+    
+    cell.innerHTML = `
+        <div class="day-header">
+            <span class="day-number">${dayNum}</span>
+        </div>
+        <div class="day-events"></div>
+    `;
+    
+    cell.addEventListener('click', () => {
+        openCardModal(null, dateStr);
+    });
+    
+    const dayEvents = crmCards.filter(c => c.date === dateStr);
+    const eventsContainer = cell.querySelector('.day-events');
+    
+    dayEvents.forEach(event => {
+        const chip = document.createElement('div');
+        chip.className = `event-chip ${getChipClass(event.column)}`;
+        chip.innerText = event.client;
+        chip.title = `${event.client} (${event.column})`;
+        
+        chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openCardModal(event);
+        });
+        
+        eventsContainer.appendChild(chip);
+    });
+    
+    container.appendChild(cell);
+}
+
+function openCardModal(card = null, defaultDate = '') {
+    const modal = document.getElementById('card-modal');
+    if (!modal) return;
+    
+    modal.classList.add('active');
+    renderCRMColumnsSelect();
+    
+    const commentsList = document.getElementById('card-comments-list');
+    commentsList.innerHTML = '';
+    document.getElementById('new-comment-text').value = '';
+    
+    const formContainer = document.getElementById('form-details-container');
+    const formContent = document.getElementById('form-details-content');
+    
+    if (card) {
+        document.getElementById('modal-card-title').innerText = 'Editar Registro CRM';
+        document.getElementById('card-id').value = card.id;
+        document.getElementById('card-client').value = card.client;
+        document.getElementById('card-phone').value = card.phone || '';
+        document.getElementById('card-email').value = card.email || '';
+        document.getElementById('card-column').value = card.column;
+        document.getElementById('card-date').value = card.date || '';
+        document.getElementById('card-desc').value = card.desc || '';
+        document.getElementById('btn-delete-card').style.display = 'block';
+        
+        if (card.formDetails) {
+            formContainer.style.display = 'block';
+            const fd = card.formDetails;
+            let html = `
+                <div><strong>Ubicación:</strong> ${fd.clientAddress || '-'}</div>
+                <div><strong>Propiedad:</strong> ${fd.propertyType || '-'} (${fd.propertyFloors || '-'})</div>
+                <div><strong>Construcción:</strong> ${fd.propertySizeConstruction || fd.propertySize || '-'} m²</div>
+                <div><strong>Terreno:</strong> ${fd.propertySizeTerrain || '-'} m²</div>
+                <div><strong>Área a tratar:</strong> ${Array.isArray(fd.treatmentArea) ? fd.treatmentArea.join(', ') : (fd.treatmentArea || '-')}</div>
+                <div><strong>Plagas:</strong> ${Array.isArray(fd.plagas) ? fd.plagas.join(', ') : (fd.plagas || '-')}</div>
+                <div><strong>Infestación:</strong> ${fd.infestationLevel || '-'}</div>
+                <div><strong>Pob. Riesgo:</strong> ${fd.riskPopulation || '-'}</div>
+                <div><strong>Comentarios:</strong> ${fd.comments || '-'}</div>
+                <div style="font-size:0.75rem; color:#888; margin-top:5px;">Enviado el: ${fd.submittedAt || '-'}</div>
+            `;
+            formContent.innerHTML = html;
+            
+            const prefillBtn = document.getElementById('btn-prefill-quote');
+            prefillBtn.onclick = () => {
+                const prefillUrl = new URL(window.location.origin + '/cotizador.html');
+                prefillUrl.searchParams.set('prefill', 'true');
+                prefillUrl.searchParams.set('name', fd.clientName || card.client);
+                prefillUrl.searchParams.set('phone', fd.clientPhone || card.phone || '');
+                prefillUrl.searchParams.set('email', fd.clientEmail || card.email || '');
+                prefillUrl.searchParams.set('address', fd.clientAddress || '');
+                
+                const constSize = fd.propertySizeConstruction || fd.propertySize || '';
+                if (constSize && constSize !== '-') {
+                    prefillUrl.searchParams.set('size', constSize);
+                }
+                
+                const areasStr = Array.isArray(fd.treatmentArea) ? fd.treatmentArea.join(', ') : fd.treatmentArea;
+                const plagasStr = Array.isArray(fd.plagas) ? fd.plagas.join(', ') : fd.plagas;
+                const descText = `Control de plagas (${plagasStr || 'No identificadas'}) en propiedad ${fd.propertyType || '-'}. Construcción: ${fd.propertySizeConstruction || '-'} m², Terreno: ${fd.propertySizeTerrain || '-'} m² (${fd.propertyFloors || '-'}). Áreas: ${areasStr || '-'}. Infestación: ${fd.infestationLevel || '-'}.`;
+                prefillUrl.searchParams.set('desc', descText);
+                
+                window.open(prefillUrl.toString(), '_blank');
+            };
+        } else {
+            formContainer.style.display = 'none';
+            formContent.innerHTML = '';
+        }
+        
+        if (card.comments && card.comments.length > 0) {
+            card.comments.forEach(c => {
+                const cDiv = document.createElement('div');
+                cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+                cDiv.style.paddingBottom = '5px';
+                cDiv.style.marginBottom = '5px';
+                cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${c.date}</span><p style="margin: 3px 0; font-size: 0.9rem; white-space: pre-wrap;">${c.text}</p>`;
+                commentsList.appendChild(cDiv);
+            });
+            commentsList.scrollTop = commentsList.scrollHeight;
+        } else {
+            commentsList.innerHTML = '<p style="color:#666; font-size:0.9rem;">No hay comentarios aún.</p>';
+        }
+    } else {
+        document.getElementById('modal-card-title').innerText = 'Nuevo Registro CRM';
+        document.getElementById('card-id').value = '';
+        document.getElementById('card-client').value = '';
+        document.getElementById('card-phone').value = '';
+        document.getElementById('card-email').value = '';
+        document.getElementById('card-column').selectedIndex = 0;
+        document.getElementById('card-date').value = defaultDate;
+        document.getElementById('card-desc').value = '';
+        document.getElementById('btn-delete-card').style.display = 'none';
+        
+        formContainer.style.display = 'none';
+        formContent.innerHTML = '';
+        commentsList.innerHTML = '<p style="color:#666; font-size:0.9rem;">Guarda la tarjeta para poder agregar comentarios.</p>';
+    }
+}
+
+function closeCardModal() {
+    const modal = document.getElementById('card-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+async function saveCard() {
+    if (!currentUser) return alert("Debes iniciar sesión.");
+    
+    const id = document.getElementById('card-id').value;
+    const client = document.getElementById('card-client').value.trim();
+    const phone = document.getElementById('card-phone').value.trim();
+    const email = document.getElementById('card-email').value.trim();
+    const column = document.getElementById('card-column').value;
+    const date = document.getElementById('card-date').value;
+    const desc = document.getElementById('card-desc').value.trim();
+    
+    if (!client) return alert("Ingresa un cliente o título.");
+    
+    const btn = document.getElementById('btn-save-card');
+    btn.disabled = true;
+    btn.innerText = 'Guardando...';
+    
+    try {
+        const payload = {
+            client, phone, email, column, date, desc,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        if (id) {
+            await db.collection('users').doc(currentUser.uid).collection('crm').doc(id).update(payload);
+        } else {
+            payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            payload.comments = [];
+            await db.collection('users').doc(currentUser.uid).collection('crm').add(payload);
+        }
+        closeCardModal();
+    } catch (e) {
+        console.error(e);
+        alert("Error al guardar la tarjeta.");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Guardar';
+    }
+}
+
+async function deleteCard() {
+    if (!currentUser) return;
+    const id = document.getElementById('card-id').value;
+    if (!id) return;
+    
+    if (confirm("¿Seguro que deseas eliminar este registro?")) {
+        try {
+            await db.collection('users').doc(currentUser.uid).collection('crm').doc(id).delete();
+            closeCardModal();
+        } catch(e) {
+            console.error(e);
+            alert("Error al eliminar.");
+        }
+    }
+}
+
+async function addComment() {
+    if (!currentUser) return;
+    const cardId = document.getElementById('card-id').value;
+    if (!cardId) {
+        alert("Debes guardar el registro nuevo antes de agregar comentarios.");
+        return;
+    }
+    
+    const textInput = document.getElementById('new-comment-text');
+    const text = textInput.value.trim();
+    if (!text) return;
+    
+    const btn = document.getElementById('btn-add-comment');
+    btn.disabled = true;
+    
+    try {
+        const now = new Date();
+        const dateStr = now.toLocaleString();
+        
+        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+            comments: firebase.firestore.FieldValue.arrayUnion({
+                text: text,
+                date: dateStr
+            }),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        textInput.value = '';
+        
+        const commentsList = document.getElementById('card-comments-list');
+        if (commentsList.innerHTML.includes('No hay comentarios aún')) commentsList.innerHTML = '';
+        
+        const cDiv = document.createElement('div');
+        cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+        cDiv.style.paddingBottom = '5px';
+        cDiv.style.marginBottom = '5px';
+        cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${dateStr}</span><p style="margin: 3px 0; font-size: 0.9rem; white-space: pre-wrap;">${text}</p>`;
+        commentsList.appendChild(cDiv);
+        commentsList.scrollTop = commentsList.scrollHeight;
+    } catch(e) {
+        console.error(e);
+        alert("Error al guardar el comentario.");
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function renderClientsSelect(filter = '') {
+    const listEl = document.getElementById('client-select-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    
+    if (clientsList.length === 0) {
+        listEl.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No hay clientes guardados. Guárdalos desde la Configuración del Cotizador o el Informador.</p>';
+        return;
+    }
+    
+    const term = filter.toLowerCase();
+    const filtered = clientsList.filter(c => c.name.toLowerCase().includes(term) || (c.address && c.address.toLowerCase().includes(term)));
+    
+    if (filtered.length === 0) {
+        listEl.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No se encontraron clientes.</p>';
+        return;
+    }
+    
+    filtered.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    
+    filtered.forEach(client => {
+        const div = document.createElement('div');
+        div.className = 'db-item';
+        div.style.cursor = 'pointer';
+        div.onclick = () => {
+            loadClientToForm(client.id);
+            document.getElementById('clients-modal').classList.remove('active');
+        };
+        div.innerHTML = `
+            <div class="db-item-info">
+                <strong>${client.name}</strong>
+                <span style="font-size: 0.85rem; color: #888;">Tel: ${client.phone || ''} | ${client.address || ''}${client.email ? ` | Email: ${client.email}` : ''}</span>
+            </div>
+            <div class="db-item-actions">
+                <button class="btn btn-primary btn-sm">Seleccionar</button>
+            </div>
+        `;
+        listEl.appendChild(div);
+    });
+}
+
+function loadClientToForm(id) {
+    const client = clientsList.find(c => c.id === id);
+    if (!client) return;
+    
+    document.getElementById('card-client').value = client.name || '';
+    document.getElementById('card-phone').value = client.phone || '';
+    document.getElementById('card-email').value = client.email || '';
 }
