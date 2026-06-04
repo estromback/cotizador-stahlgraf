@@ -20,6 +20,7 @@ let currentYear = new Date().getFullYear();
 let crmCards = [];
 let clientsList = [];
 let crmListener = null;
+let draggingCardId = null;
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
@@ -578,6 +579,24 @@ function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
     cell.addEventListener('click', () => {
         openCardModal(null, dateStr);
     });
+
+    // Drag and drop cell dropzone listeners
+    cell.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        cell.classList.add('drag-over');
+    });
+
+    cell.addEventListener('dragleave', () => {
+        cell.classList.remove('drag-over');
+    });
+
+    cell.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        cell.classList.remove('drag-over');
+        if (draggingCardId) {
+            await moveCardDate(draggingCardId, dateStr);
+        }
+    });
     
     const dayEvents = crmCards.filter(c => c.date === dateStr);
     const eventsContainer = cell.querySelector('.day-events');
@@ -587,7 +606,20 @@ function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
         chip.className = `event-chip ${getChipClass(event.column)}`;
         chip.innerText = event.client;
         chip.title = `${event.client} (${event.column})`;
+        chip.setAttribute('draggable', 'true');
         
+        // Chip drag listeners
+        chip.addEventListener('dragstart', (e) => {
+            draggingCardId = event.id;
+            chip.style.opacity = '0.5';
+            e.dataTransfer.setData('text/plain', event.id);
+        });
+
+        chip.addEventListener('dragend', () => {
+            draggingCardId = null;
+            chip.style.opacity = '1';
+        });
+
         chip.addEventListener('click', (e) => {
             e.stopPropagation();
             openCardModal(event);
@@ -597,6 +629,26 @@ function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
     });
     
     container.appendChild(cell);
+}
+
+async function moveCardDate(cardId, newDate) {
+    if (!currentUser || !db) return;
+    const card = crmCards.find(c => c.id === cardId);
+    if (!card || card.date === newDate) return;
+    
+    // Optimistic UI update
+    card.date = newDate;
+    renderCalendar(currentMonth, currentYear);
+    
+    try {
+        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+            date: newDate,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        console.error("Error updating card date in Firebase: ", e);
+        subscribeToCRM();
+    }
 }
 
 function openCardModal(card = null, defaultDate = '') {
