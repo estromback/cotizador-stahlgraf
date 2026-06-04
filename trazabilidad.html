@@ -648,6 +648,65 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal de Detalle de Estación -->
+    <div id="station-details-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); z-index: 1500; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+        <div style="width: 100%; max-width: 500px; background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 25px; box-sizing: border-box; text-align: left; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+            <!-- Cabecera del modal -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 12px;">
+                <div>
+                    <h3 id="detail-station-title" style="margin: 0; color: #fff; font-size: 1.3rem;">Estación #00</h3>
+                    <div id="detail-station-client" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">👤 Sin cliente asignado</div>
+                </div>
+                <div id="detail-station-trend" class="sync-badge" style="padding: 5px 10px; font-size: 0.8rem; font-weight: 600;"></div>
+            </div>
+
+            <!-- KPIs Rápidos -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 10px; text-align: center;">
+                    <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Último Consumo</span>
+                    <span id="detail-last-consumption" style="font-size: 1.4rem; font-weight: 700; color: #fff;">-%</span>
+                </div>
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 10px; text-align: center;">
+                    <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Promedio Histórico</span>
+                    <span id="detail-avg-consumption" style="font-size: 1.4rem; font-weight: 700; color: #fff;">-%</span>
+                </div>
+            </div>
+
+            <!-- Tabla de Historial -->
+            <h4 style="margin-top: 0; margin-bottom: 8px; font-size: 0.95rem; color: #fff;">Historial de Inspecciones</h4>
+            <div class="table-responsive" style="max-height: 180px; overflow-y: auto; margin-bottom: 25px; background: rgba(0,0,0,0.1);">
+                <table class="activity-table" style="font-size: 0.82rem;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 8px 10px;">Fecha / Hora</th>
+                            <th style="padding: 8px 10px;">Consumo</th>
+                            <th style="padding: 8px 10px;">Mantenimiento</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detail-history-list">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; gap: 12px;">
+                    <button type="button" id="btn-detail-inspect" class="btn btn-primary" style="flex: 1; padding: 12px; font-size: 0.95rem; border-radius: 10px;">
+                        📥 Inspeccionar
+                    </button>
+                    <button type="button" id="btn-detail-reassign" class="btn btn-secondary" style="flex: 1; padding: 12px; font-size: 0.95rem; border-radius: 10px; margin-top: 0;">
+                        ✏️ Reasignar
+                    </button>
+                </div>
+                <button type="button" id="btn-close-details" class="btn btn-secondary" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; margin-top: 0; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
+                    Cerrar Detalle
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="trazabilidad.js"></script>
 </body>
 </html>

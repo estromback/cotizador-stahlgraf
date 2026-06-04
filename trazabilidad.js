@@ -215,6 +215,49 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnSaveReassign) {
         btnSaveReassign.addEventListener('click', executeReassign);
     }
+    
+    // Station Details Modal buttons
+    const btnCloseDetails = document.getElementById('btn-close-details');
+    if (btnCloseDetails) {
+        btnCloseDetails.addEventListener('click', closeStationDetails);
+    }
+    
+    const btnDetailInspect = document.getElementById('btn-detail-inspect');
+    if (btnDetailInspect) {
+        btnDetailInspect.addEventListener('click', () => {
+            const titleText = document.getElementById('detail-station-title').innerText;
+            const stationNum = parseInt(titleText.replace('Estación #', ''), 10);
+            if (!isNaN(stationNum)) {
+                const stationKey = `ESTACION-${String(stationNum).padStart(2, '0')}`;
+                const select = document.getElementById('station-id');
+                if (select && !select.disabled) {
+                    const exists = Array.from(select.options).some(opt => opt.value === stationKey);
+                    if (!exists) {
+                        const opt = document.createElement('option');
+                        opt.value = stationKey;
+                        const clientName = getClientNameForStation(stationNum);
+                        opt.textContent = clientName ? `Estación #${String(stationNum).padStart(2, '0')} - ${clientName}` : `Estación #${String(stationNum).padStart(2, '0')}`;
+                        select.appendChild(opt);
+                    }
+                    select.value = stationKey;
+                }
+                closeStationDetails();
+                switchToTab('panel-inspeccionar');
+            }
+        });
+    }
+    
+    const btnDetailReassign = document.getElementById('btn-detail-reassign');
+    if (btnDetailReassign) {
+        btnDetailReassign.addEventListener('click', () => {
+            const titleText = document.getElementById('detail-station-title').innerText;
+            const stationNum = parseInt(titleText.replace('Estación #', ''), 10);
+            if (!isNaN(stationNum)) {
+                closeStationDetails();
+                openReassignModal(stationNum);
+            }
+        });
+    }
 });
 
 // Load inspections queue from LocalStorage
@@ -493,34 +536,33 @@ function renderMonitoreo() {
         
         totalCount++;
         
-        // Find latest local record for this station
-        const stationRecords = inspections.filter(r => r.station === stationKey);
-        let latest = null;
-        if (stationRecords.length > 0) {
-            // Robust check using numerical creation timestamp to guarantee newest record is chosen
-            latest = stationRecords.reduce((newest, current) => {
-                return getRecordTimestamp(current) > getRecordTimestamp(newest) ? current : newest;
-            }, stationRecords[0]);
-            uniqueInspected.add(stationKey);
-            reviewedCount++;
-        }
+        // Calculate analytics for trend and average
+        const analytics = calculateStationAnalytics(stationKey);
         
         let stateClass = 'station-gray';
         let statusText = 'Pendiente';
         
-        if (latest) {
-            const consumption = latest.consumption;
+        if (analytics.recordsCount > 0) {
+            const consumption = analytics.lastVal;
             if (consumption === '0%') {
                 stateClass = 'station-green';
-                statusText = 'Intacto (0%)';
             } else if (consumption === '25-50%') {
                 stateClass = 'station-yellow';
-                statusText = 'Parcial (50%)';
             } else {
                 stateClass = 'station-red';
-                statusText = `Alerta (${consumption})`;
             }
+            statusText = `Último: ${consumption}<br>Prom: ${analytics.avg}%`;
+            uniqueInspected.add(stationKey);
+            reviewedCount++;
+        } else {
+            statusText = 'Sin datos';
         }
+        
+        // Trend Icon Mapping
+        let trendIcon = '';
+        if (analytics.trend === 'up') trendIcon = '📈';
+        else if (analytics.trend === 'down') trendIcon = '📉';
+        else if (analytics.trend === 'stable') trendIcon = '➡️';
         
         const cell = document.createElement('div');
         cell.className = `station-cell ${stateClass}`;
@@ -528,28 +570,19 @@ function renderMonitoreo() {
         const clientLabel = clientName ? `<span style="font-size:0.65rem; color:#aaa; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top:2px; font-weight: 500;">👤 ${clientName}</span>` : '';
         
         cell.innerHTML = `
-            <span class="num">${numStr}</span>
-            <span class="status-lbl">${statusText}</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0 10px; box-sizing: border-box;">
+                <span class="num">${numStr}</span>
+                <span class="trend-icon" style="font-size: 0.9rem;">${trendIcon}</span>
+            </div>
+            <span class="status-lbl" style="font-size: 0.65rem; opacity: 0.95; line-height: 1.2; text-align: center; margin-top: 4px;">
+                ${statusText}
+            </span>
             ${clientLabel}
         `;
         
-        // Clicking cell opens Form view and selects this station (if not locked by URL)
+        // Clicking cell opens Detail Modal
         cell.addEventListener('click', () => {
-            const select = document.getElementById('station-id');
-            if (!select.disabled) {
-                // Ensure this dynamically generated station exists in select options
-                const exists = Array.from(select.options).some(opt => opt.value === stationKey);
-                if (!exists) {
-                    const opt = document.createElement('option');
-                    opt.value = stationKey;
-                    opt.textContent = clientName ? `Estación #${numStr} - ${clientName}` : `Estación #${numStr}`;
-                    select.appendChild(opt);
-                }
-                select.value = stationKey;
-            }
-            
-            // Switch tab to form editor
-            switchToTab('panel-inspeccionar');
+            openStationDetails(i);
         });
         
         grid.appendChild(cell);
@@ -1437,7 +1470,155 @@ function executeReassign() {
     alert(`✅ Estación #${String(num).padStart(2, '0')} modificada con éxito.`);
 }
 
+// Helper: Map text consumption percentage to numeric value for analytics
+function getConsumptionNumeric(value) {
+    if (value === '0%') return 0;
+    if (value === '25-50%') return 37.5;
+    if (value === '75%') return 75;
+    if (value === '100%') return 100;
+    return 0;
+}
+
+// Helper: Calculate consumption average and trend for a station
+function calculateStationAnalytics(stationKey) {
+    const stationRecords = inspections.filter(r => r.station === stationKey);
+    
+    // Sort oldest to newest using robust timestamp extraction
+    const sortedRecords = [...stationRecords].sort((a, b) => getRecordTimestamp(a) - getRecordTimestamp(b));
+    
+    if (sortedRecords.length === 0) {
+        return {
+            avg: 0,
+            lastVal: '-',
+            trend: 'none', // none, up, down, stable
+            recordsCount: 0,
+            latestRecord: null
+        };
+    }
+    
+    // Calculate average
+    let sum = 0;
+    sortedRecords.forEach(r => {
+        sum += getConsumptionNumeric(r.consumption);
+    });
+    const avg = Math.round(sum / sortedRecords.length);
+    const latestRecord = sortedRecords[sortedRecords.length - 1];
+    
+    let trend = 'none';
+    if (sortedRecords.length >= 2) {
+        const lastVal = getConsumptionNumeric(latestRecord.consumption);
+        const prevVal = getConsumptionNumeric(sortedRecords[sortedRecords.length - 2].consumption);
+        if (lastVal > prevVal) {
+            trend = 'up';
+        } else if (lastVal < prevVal) {
+            trend = 'down';
+        } else {
+            trend = 'stable';
+        }
+    }
+    
+    return {
+        avg,
+        lastVal: latestRecord.consumption,
+        trend,
+        recordsCount: sortedRecords.length,
+        latestRecord
+    };
+}
+
+// Action: Open station details modal
+function openStationDetails(stationNum) {
+    const modal = document.getElementById('station-details-modal');
+    if (!modal) return;
+    
+    const numStr = String(stationNum).padStart(2, '0');
+    const stationKey = `ESTACION-${numStr}`;
+    
+    document.getElementById('detail-station-title').innerText = `Estación #${numStr}`;
+    
+    // Get client info
+    const clientName = getClientNameForStation(stationNum);
+    const clientDiv = document.getElementById('detail-station-client');
+    if (clientName) {
+        const client = (globalAppData.clients || []).find(c => c.id === getClientIdForStation(stationNum) || c.name === clientName);
+        const addressText = client && client.address ? ` | 📍 ${client.address}` : '';
+        clientDiv.innerHTML = `<strong>👤 Cliente:</strong> ${clientName}${addressText}`;
+    } else {
+        clientDiv.innerHTML = `⚠️ Sin cliente asignado (Estación virgen)`;
+    }
+    
+    // Calculate analytics
+    const analytics = calculateStationAnalytics(stationKey);
+    
+    // Set KPIs
+    document.getElementById('detail-last-consumption').innerText = analytics.lastVal;
+    document.getElementById('detail-avg-consumption').innerText = analytics.recordsCount > 0 ? `${analytics.avg}%` : '-%';
+    
+    // Set Trend Badge
+    const trendBadge = document.getElementById('detail-station-trend');
+    trendBadge.className = 'sync-badge'; // reset
+    if (analytics.trend === 'up') {
+        trendBadge.innerHTML = '📈 Alza';
+        trendBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+        trendBadge.style.color = '#f87171';
+    } else if (analytics.trend === 'down') {
+        trendBadge.innerHTML = '📉 Baja';
+        trendBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+        trendBadge.style.color = '#34d399';
+    } else if (analytics.trend === 'stable') {
+        trendBadge.innerHTML = '➡️ Estable';
+        trendBadge.style.background = 'rgba(255, 255, 255, 0.08)';
+        trendBadge.style.color = '#fff';
+    } else {
+        trendBadge.innerHTML = '⚪ Sin Actividad';
+        trendBadge.style.background = 'rgba(255, 255, 255, 0.04)';
+        trendBadge.style.color = '#888';
+    }
+    
+    // Draw History Table inside Modal
+    const tbody = document.getElementById('detail-history-list');
+    tbody.innerHTML = '';
+    
+    const stationRecords = inspections.filter(r => r.station === stationKey);
+    const sorted = [...stationRecords].sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a)); // newest first
+    
+    if (sorted.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#888; padding: 15px;">No hay inspecciones para esta estación.</td></tr>`;
+    } else {
+        sorted.forEach(r => {
+            const tr = document.createElement('tr');
+            const maintStr = (r.maintenance || []).join(', ') || 'Ninguno';
+            tr.innerHTML = `
+                <td style="padding: 8px 10px;">${r.timestamp.split(' ')[0]}</td>
+                <td style="padding: 8px 10px; font-weight:600;">${r.consumption}</td>
+                <td style="padding: 8px 10px; color:#aaa; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${maintStr}">${maintStr}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeStationDetails() {
+    const modal = document.getElementById('station-details-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Helper to get Client ID for station
+function getClientIdForStation(stationNum) {
+    if (!globalAppData.stationAssignments) return null;
+    const assignment = globalAppData.stationAssignments.find(item => {
+        const start = parseInt(item.start, 10);
+        const end = parseInt(item.end, 10);
+        return stationNum >= start && stationNum <= end;
+    });
+    return assignment ? assignment.clientId : null;
+}
+
 // Expose deleteAssignment to the global scope for HTML inline onclick
 window.deleteAssignment = deleteAssignment;
 window.openReassignModal = openReassignModal;
 window.closeReassignModal = closeReassignModal;
+window.openStationDetails = openStationDetails;
+window.closeStationDetails = closeStationDetails;
