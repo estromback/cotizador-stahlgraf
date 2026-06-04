@@ -258,6 +258,38 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    const btnDetailReset = document.getElementById('btn-detail-reset');
+    if (btnDetailReset) {
+        btnDetailReset.addEventListener('click', () => {
+            const titleText = document.getElementById('detail-station-title').innerText;
+            const stationNum = parseInt(titleText.replace('Estación #', ''), 10);
+            if (!isNaN(stationNum)) {
+                resetStationData(stationNum);
+            }
+        });
+    }
+    
+    const btnDetailTransfer = document.getElementById('btn-detail-transfer');
+    if (btnDetailTransfer) {
+        btnDetailTransfer.addEventListener('click', () => {
+            const titleText = document.getElementById('detail-station-title').innerText;
+            const stationNum = parseInt(titleText.replace('Estación #', ''), 10);
+            if (!isNaN(stationNum)) {
+                openTransferModal(stationNum);
+            }
+        });
+    }
+    
+    const btnCancelTransfer = document.getElementById('btn-cancel-transfer');
+    if (btnCancelTransfer) {
+        btnCancelTransfer.addEventListener('click', closeTransferModal);
+    }
+    
+    const btnSaveTransfer = document.getElementById('btn-save-transfer');
+    if (btnSaveTransfer) {
+        btnSaveTransfer.addEventListener('click', executeTransfer);
+    }
 });
 
 // Load inspections queue from LocalStorage
@@ -1616,9 +1648,234 @@ function getClientIdForStation(stationNum) {
     return assignment ? assignment.clientId : null;
 }
 
-// Expose deleteAssignment to the global scope for HTML inline onclick
+// Action: Delete all data of a station (Reset Station)
+function resetStationData(stationNum) {
+    const numStr = String(stationNum).padStart(2, '0');
+    const stationKey = `ESTACION-${numStr}`;
+    
+    const warning = `🚨 ¿Estás seguro de que deseas REINICIAR COMPLETAMENTE la Estación #${numStr}?\n\nEsta acción eliminará de forma irreversible:\n- Toda la asignación del cliente para esta estación.\n- Todo el historial de inspecciones (${inspections.filter(r => r.station === stationKey).length} reportes) registradas localmente en este dispositivo.`;
+    
+    if (!confirm(warning)) return;
+    if (!confirm("⚠️ CONFIRMACIÓN FINAL: Esta acción no se puede deshacer y borrará los reportes tanto locales como en la nube al sincronizar. ¿Deseas continuar?")) return;
+    
+    // 1. Remove all local inspections for this station
+    inspections = inspections.filter(r => r.station !== stationKey);
+    localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
+    
+    // 2. Remove assignment for this station using Split Range logic
+    let assignments = globalAppData.stationAssignments || [];
+    let newAssignments = [];
+    assignments.forEach(item => {
+        const s = parseInt(item.start, 10);
+        const e = parseInt(item.end, 10);
+        
+        if (stationNum >= s && stationNum <= e) {
+            if (s < stationNum) {
+                newAssignments.push({
+                    id: 'asg_' + Date.now() + '_L_' + Math.floor(Math.random() * 1000),
+                    clientId: item.clientId,
+                    clientName: item.clientName,
+                    start: s,
+                    end: stationNum - 1
+                });
+            }
+            if (e > stationNum) {
+                newAssignments.push({
+                    id: 'asg_' + Date.now() + '_R_' + Math.floor(Math.random() * 1000),
+                    clientId: item.clientId,
+                    clientName: item.clientName,
+                    start: stationNum + 1,
+                    end: e
+                });
+            }
+        } else {
+            newAssignments.push(item);
+        }
+    });
+    globalAppData.stationAssignments = newAssignments;
+    saveGlobalAppData();
+    
+    // 3. Delete from cloud database if online and logged in
+    if (currentUser && db) {
+        db.collection('users').doc(currentUser.uid).collection('inspecciones')
+            .where('station', '==', stationKey)
+            .get()
+            .then(snap => {
+                const batch = db.batch();
+                snap.forEach(doc => batch.delete(doc.ref));
+                return batch.commit();
+            })
+            .then(() => console.log(`Cloud inspections deleted for ${stationKey}`))
+            .catch(err => console.error("Error deleting cloud inspections:", err));
+    }
+    
+    closeStationDetails();
+    
+    // Refresh views
+    generateStationDropdown();
+    renderAssignmentsList();
+    renderMonitoreo();
+    updateStationClientInfo();
+    
+    alert(`🧹 Estación #${numStr} ha sido reseteada y dejada virgen.`);
+}
+
+// Action: Open transfer station modal
+function openTransferModal(stationNum) {
+    const modal = document.getElementById('transfer-station-modal');
+    if (!modal) return;
+    
+    closeStationDetails();
+    
+    document.getElementById('transfer-source-num').value = stationNum;
+    
+    const numStr = String(stationNum).padStart(2, '0');
+    document.getElementById('transfer-source-label').innerText = `Estación #${numStr}`;
+    
+    // Populate target stations select 1 to 100 excluding source
+    const select = document.getElementById('transfer-target-select');
+    if (select) {
+        select.innerHTML = '';
+        for (let i = 1; i <= 100; i++) {
+            if (i === stationNum) continue;
+            const opt = document.createElement('option');
+            opt.value = i;
+            
+            const targetClient = getClientNameForStation(i);
+            const targetNameStr = targetClient ? ` (${targetClient})` : ' (Virgen)';
+            opt.textContent = `Estación #${String(i).padStart(2, '0')}${targetNameStr}`;
+            select.appendChild(opt);
+        }
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeTransferModal() {
+    const modal = document.getElementById('transfer-station-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function executeTransfer() {
+    const sourceVal = document.getElementById('transfer-source-num').value;
+    const sourceNum = parseInt(sourceVal, 10);
+    const select = document.getElementById('transfer-target-select');
+    const targetNum = parseInt(select.value, 10);
+    
+    if (isNaN(sourceNum) || isNaN(targetNum)) return;
+    
+    const sourceKey = `ESTACION-${String(sourceNum).padStart(2, '0')}`;
+    const targetKey = `ESTACION-${String(targetNum).padStart(2, '0')}`;
+    
+    const clientName = getClientNameForStation(sourceNum);
+    const clientId = getClientIdForStation(sourceNum);
+    
+    const sourceInspections = inspections.filter(r => r.station === sourceKey);
+    
+    if (sourceInspections.length === 0 && !clientName) {
+        return alert("La estación origen no tiene historial ni asignación que transferir.");
+    }
+    
+    // Check if target has existing data
+    const targetClient = getClientNameForStation(targetNum);
+    const targetInspections = inspections.filter(r => r.station === targetKey);
+    if (targetClient || targetInspections.length > 0) {
+        if (!confirm(`⚠️ ATENCIÓN: La Estación Destino (#${String(targetNum).padStart(2, '0')}) ya tiene datos asignados o historial.\n\nSi continúas, la información se fusionará y los reportes se mezclarán.\n\n¿Deseas proceder con la transferencia?`)) {
+            return;
+        }
+    }
+    
+    // 1. Transfer Client Assignment
+    if (clientId && clientName) {
+        let assignments = globalAppData.stationAssignments || [];
+        let newAssignments = [];
+        
+        // Remove source station from assignments (Split Range)
+        assignments.forEach(item => {
+            const s = parseInt(item.start, 10);
+            const e = parseInt(item.end, 10);
+            
+            if (sourceNum >= s && sourceNum <= e) {
+                if (s < sourceNum) {
+                    newAssignments.push({
+                        id: 'asg_' + Date.now() + '_L_' + Math.floor(Math.random() * 1000),
+                        clientId: item.clientId,
+                        clientName: item.clientName,
+                        start: s,
+                        end: sourceNum - 1
+                    });
+                }
+                if (e > sourceNum) {
+                    newAssignments.push({
+                        id: 'asg_' + Date.now() + '_R_' + Math.floor(Math.random() * 1000),
+                        clientId: item.clientId,
+                        clientName: item.clientName,
+                        start: sourceNum + 1,
+                        end: e
+                    });
+                }
+            } else {
+                newAssignments.push(item);
+            }
+        });
+        
+        // Add target station assignment
+        newAssignments.push({
+            id: 'asg_' + Date.now() + '_T_' + Math.floor(Math.random() * 1000),
+            clientId,
+            clientName,
+            start: targetNum,
+            end: targetNum
+        });
+        
+        globalAppData.stationAssignments = newAssignments;
+        saveGlobalAppData();
+    }
+    
+    // 2. Transfer Inspections history locally
+    inspections.forEach(r => {
+        if (r.station === sourceKey) {
+            r.station = targetKey;
+            r.status = 'pendiente'; // Mark as pending to trigger cloud sync update
+        }
+    });
+    localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
+    
+    // 3. Update in Cloud
+    if (currentUser && db) {
+        db.collection('users').doc(currentUser.uid).collection('inspecciones')
+            .where('station', '==', sourceKey)
+            .get()
+            .then(snap => {
+                const batch = db.batch();
+                snap.forEach(doc => batch.delete(doc.ref));
+                return batch.commit();
+            })
+            .then(() => {
+                console.log(`Cloud historical inspections removed from ${sourceKey}. Triggering sync for new target station.`);
+                syncWithCloud(true);
+            })
+            .catch(err => console.error("Cloud transfer sync error:", err));
+    }
+    
+    closeTransferModal();
+    
+    // Refresh displays
+    generateStationDropdown();
+    renderAssignmentsList();
+    renderMonitoreo();
+    updateStationClientInfo();
+    
+    alert(`✅ Los datos de la Estación #${String(sourceNum).padStart(2, '0')} se trasladaron con éxito a la Estación #${String(targetNum).padStart(2, '0')}.`);
+}
+
+// Expose deleteAssignment and other handlers globally
 window.deleteAssignment = deleteAssignment;
 window.openReassignModal = openReassignModal;
 window.closeReassignModal = closeReassignModal;
 window.openStationDetails = openStationDetails;
 window.closeStationDetails = closeStationDetails;
+window.resetStationData = resetStationData;
+window.openTransferModal = openTransferModal;
+window.closeTransferModal = closeTransferModal;
+window.executeTransfer = executeTransfer;

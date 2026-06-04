@@ -700,9 +700,49 @@
                         ✏️ Reasignar
                     </button>
                 </div>
+                <div style="display: flex; gap: 12px;">
+                    <button type="button" id="btn-detail-transfer" class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 0.85rem; border-radius: 10px; margin-top: 0; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); color: #60a5fa;">
+                        🔄 Trasladar
+                    </button>
+                    <button type="button" id="btn-detail-reset" class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 0.85rem; border-radius: 10px; margin-top: 0; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); color: #f87171;">
+                        🗑️ Reiniciar
+                    </button>
+                </div>
                 <button type="button" id="btn-close-details" class="btn btn-secondary" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px; margin-top: 0; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);">
                     Cerrar Detalle
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Transferencia de Estación -->
+    <div id="transfer-station-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+        <div style="width: 100%; max-width: 420px; background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 25px; box-sizing: border-box; text-align: left; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+            <h3 style="margin-top: 0; margin-bottom: 10px; color: #fff; font-size: 1.25rem;">🔄 Trasladar Estación</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; line-height: 1.4;">
+                Mueve todo el historial de inspecciones y el cliente asignado de la estación actual a una nueva estación.
+            </p>
+            
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 10px; margin-bottom: 20px; font-size: 0.9rem;">
+                <strong>Estación Origen:</strong> <span id="transfer-source-label" style="color: #60a5fa; font-weight: 600;">Estación #00</span>
+            </div>
+            
+            <input type="hidden" id="transfer-source-num">
+            
+            <div class="input-group" style="margin-bottom: 20px;">
+                <label for="transfer-target-select">Seleccionar Estación de Destino</label>
+                <select id="transfer-target-select" style="width: 100%; height: 42px;">
+                    <!-- Dynamically populated -->
+                </select>
+            </div>
+            
+            <p style="font-size: 0.75rem; color: #fbbf24; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); padding: 10px; border-radius: 8px; margin-bottom: 20px; line-height: 1.4;">
+                ⚠️ <strong>Nota:</strong> Al presionar confirmar, la estación de origen quedará vacía y la estación destino recibirá la asignación del cliente y todos los reportes históricos.
+            </p>
+            
+            <div style="display: flex; gap: 12px;">
+                <button type="button" id="btn-cancel-transfer" class="btn btn-secondary" style="flex: 1; padding: 12px; font-size: 0.95rem; border-radius: 10px; margin-top: 0;">Cancelar</button>
+                <button type="button" id="btn-save-transfer" class="btn btn-primary" style="flex: 1; padding: 12px; font-size: 0.95rem; border-radius: 10px; background: var(--primary);">Confirmar Traslado</button>
             </div>
         </div>
     </div>
