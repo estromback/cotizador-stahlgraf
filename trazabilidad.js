@@ -164,26 +164,39 @@ function checkURLParameters() {
         select.value = idParam;
         select.disabled = true; // Lock field for safety in field
         if (badge) badge.style.display = 'inline-flex';
+        
+        // Auto-switch to Registrar tab since a station QR code is locked for active inspection
+        switchToTab('panel-inspeccionar');
     }
 }
 
-// Switch tabs dynamically
+// Switch to a specific tab programmatically
+function switchToTab(targetId) {
+    document.querySelectorAll('.tab-trigger').forEach(t => {
+        if (t.getAttribute('data-target') === targetId) {
+            t.classList.add('active');
+        } else {
+            t.classList.remove('active');
+        }
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => {
+        if (p.id === targetId) {
+            p.classList.add('active');
+        } else {
+            p.classList.remove('active');
+        }
+    });
+    if (targetId === 'panel-monitoreo') {
+        renderMonitoreo();
+    }
+}
+
+// Switch tabs dynamically via event listeners
 function setupTabSwitching() {
     document.querySelectorAll('.tab-trigger').forEach(btn => {
         btn.addEventListener('click', () => {
             const targetId = btn.getAttribute('data-target');
-            
-            document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            
-            btn.classList.add('active');
-            const panel = document.getElementById(targetId);
-            if (panel) panel.classList.add('active');
-            
-            // Re-render when switching to monitoring panel
-            if (targetId === 'panel-monitoreo') {
-                renderMonitoreo();
-            }
+            switchToTab(targetId);
         });
     });
 }
@@ -363,12 +376,8 @@ function renderMonitoreo() {
                 select.value = stationKey;
             }
             
-            // Switch tab
-            document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            
-            document.querySelector('.tab-trigger[data-target="panel-inspeccionar"]').classList.add('active');
-            document.getElementById('panel-inspeccionar').classList.add('active');
+            // Switch tab to form editor
+            switchToTab('panel-inspeccionar');
         });
         
         grid.appendChild(cell);
@@ -774,6 +783,9 @@ function onScanSuccess(decodedText, decodedResult) {
                 
                 alert(`🎯 Código QR escaneado con éxito:\n${stationId}\n\nEl selector ha sido bloqueado para esta estación.`);
                 closeScanner();
+                
+                // Open Registrar tab automatically to fill the locked station form
+                switchToTab('panel-inspeccionar');
             }
         } else {
             alert(`⚠️ El código QR escaneado no es válido para una estación de cebado.\nContenido: "${decodedText}"`);
