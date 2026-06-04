@@ -256,19 +256,23 @@ function updatePDFPreview() {
     }
 }
 
-async function saveReportToCloud() {
+async function saveReportToCloud(silent = false) {
     if (!currentUser || !db) {
-        return alert("Debes iniciar sesión para guardar en la nube.");
+        if (!silent) alert("Debes iniciar sesión para guardar en la nube.");
+        return false;
     }
     const clientName = document.getElementById('client-name').value.trim();
     if (!clientName) {
-        return alert("Por favor ingresa al menos el Nombre del Cliente.");
+        if (!silent) alert("Por favor ingresa al menos el Nombre del Cliente.");
+        return false;
     }
 
     const btn = document.getElementById('btn-save-report');
-    const originalText = btn.innerText;
-    btn.innerText = "Guardando...";
-    btn.disabled = true;
+    const originalText = btn ? btn.innerText : 'Guardar en Nube';
+    if (btn) {
+        btn.innerText = "Guardando...";
+        btn.disabled = true;
+    }
 
     try {
         const timestamp = new Date().getTime();
@@ -277,13 +281,13 @@ async function saveReportToCloud() {
 
         // Save compressed photos as base64 in Firestore directly to prevent Storage hangs
         if (currentPhotos.length > 0) {
-            btn.innerText = "Procesando fotos...";
+            if (btn) btn.innerText = "Procesando fotos...";
             for (let i = 0; i < currentPhotos.length; i++) {
                 photoUrls.push(currentPhotos[i].dataUrl);
             }
         }
 
-        btn.innerText = "Guardando Datos...";
+        if (btn) btn.innerText = "Guardando Datos...";
 
         const selectedPests = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
         const clientEmail = document.getElementById('client-email') ? document.getElementById('client-email').value.trim() : '';
@@ -328,15 +332,21 @@ async function saveReportToCloud() {
         // Sincronizar con CRM
         await syncReportToCRM(reportData, reportId, loadedReportCorrelative || 1);
 
-        alert("¡Informe guardado exitosamente!");
-        btn.innerText = originalText;
-        btn.disabled = false;
+        if (!silent) alert("¡Informe guardado exitosamente!");
+        if (btn) {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+        return true;
 
     } catch (error) {
         console.error("Error saving report:", error);
-        alert("Error al guardar: " + error.message);
-        btn.innerText = originalText;
-        btn.disabled = false;
+        if (!silent) alert("Error al guardar: " + error.message);
+        if (btn) {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+        return false;
     }
 }
 
@@ -348,8 +358,26 @@ async function syncReportToCRM(reportData, reportId, correlative) {
     const email = (reportData.clientEmail || '').trim();
     const dateStr = new Date().toLocaleString();
     
+    const cleanPhone = (p) => p ? p.replace(/\D/g, '') : '';
+    const phonesMatch = (p1, p2) => {
+        const cp1 = cleanPhone(p1);
+        const cp2 = cleanPhone(p2);
+        if (!cp1 || !cp2) return false;
+        const minLen = Math.min(cp1.length, cp2.length, 8);
+        if (minLen < 6) return false;
+        return cp1.slice(-minLen) === cp2.slice(-minLen);
+    };
+    
+    const normalizeText = (text) => text ? text.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+    const targetName = normalizeText(clientName);
+    
     try {
-        const snapReport = await db.collection('users').doc(currentUser.uid).collection('crm').where('reportId', '==', reportId).limit(1).get();
+        // First check if a card already has this reportId (either in legacy reportId or in reportIds array)
+        let snapReport = await db.collection('users').doc(currentUser.uid).collection('crm').where('reportId', '==', reportId).limit(1).get();
+        if (snapReport.empty) {
+            snapReport = await db.collection('users').doc(currentUser.uid).collection('crm').where('reportIds', 'array-contains', reportId).limit(1).get();
+        }
+        
         if (!snapReport.empty) {
             const docId = snapReport.docs[0].id;
             await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
@@ -361,14 +389,17 @@ async function syncReportToCRM(reportData, reportId, correlative) {
             return;
         }
 
-        const snapClient = await db.collection('users').doc(currentUser.uid).collection('crm').where('client', '==', clientName).get();
+        // Search for an existing CRM card for this client in the entire CRM board
+        const crmSnap = await db.collection('users').doc(currentUser.uid).collection('crm').get();
         let targetDoc = null;
-
-        if (!snapClient.empty) {
-            snapClient.forEach(doc => {
+        
+        if (!crmSnap.empty) {
+            crmSnap.forEach(doc => {
                 const docData = doc.data();
-                const docPhone = (docData.phone || '').trim();
-                if (docPhone === phone) {
+                const matchName = normalizeText(docData.client) === targetName;
+                const matchPhone = phonesMatch(docData.phone, phone);
+                
+                if (matchName || matchPhone) {
                     targetDoc = doc;
                 }
             });
@@ -382,6 +413,7 @@ async function syncReportToCRM(reportData, reportId, correlative) {
                     text: `Se generó el Informe Técnico #${correlative}.\nRecomendaciones: ${reportData.recommendations || 'Sin recomendaciones'}`,
                     date: dateStr
                 }),
+                reportIds: firebase.firestore.FieldValue.arrayUnion(reportId),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         } else {
@@ -392,7 +424,8 @@ async function syncReportToCRM(reportData, reportId, correlative) {
                 column: 'Cotizados',
                 date: reportData.date || new Date().toISOString().split('T')[0],
                 desc: `Informe Técnico #${correlative} generado.`,
-                reportId: reportId,
+                reportId: reportId, // legacy
+                reportIds: [reportId], // array tracking
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 comments: [{
@@ -407,11 +440,25 @@ async function syncReportToCRM(reportData, reportId, correlative) {
     }
 }
 
+
 async function generatePDF() {
+    const clientName = document.getElementById('client-name').value.trim();
+    if (!clientName) {
+        return alert("Por favor ingresa al menos el Nombre del Cliente antes de generar el PDF.");
+    }
+
     const btn = document.getElementById('btn-generate-pdf');
     const oldText = btn.innerText;
     btn.innerText = "Generando...";
     btn.disabled = true;
+
+    // Auto-save silently to the cloud (which triggers directory save and CRM sync)
+    const saved = await saveReportToCloud(true);
+    if (!saved && !confirm("No se ha podido guardar en la nube (revisa tu sesión o conexión). ¿Deseas generar el PDF de todas formas?")) {
+        btn.innerText = oldText;
+        btn.disabled = false;
+        return;
+    }
 
     try {
         const element = document.getElementById('pdf-content');
@@ -428,7 +475,6 @@ async function generatePDF() {
         container.style.overflow = 'visible';
         container.style.maxHeight = 'none';
 
-        const clientName = document.getElementById('client-name').value || 'Sin_Nombre';
         const rawDate = document.getElementById('report-date').value;
         const dateStr = rawDate ? rawDate.replace(/-/g, '') : 'Fecha';
 

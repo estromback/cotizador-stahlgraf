@@ -433,7 +433,7 @@ function openCardModal(card = null) {
                 cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
                 cDiv.style.paddingBottom = '5px';
                 cDiv.style.marginBottom = '5px';
-                cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${c.date}</span><p style="margin: 3px 0; font-size: 0.9rem;">${c.text}</p>`;
+                cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${c.date}</span><p style="margin: 3px 0; font-size: 0.9rem; white-space: pre-wrap;">${c.text}</p>`;
                 commentsList.appendChild(cDiv);
             });
             commentsList.scrollTop = commentsList.scrollHeight;
@@ -571,7 +571,7 @@ async function addComment() {
         cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
         cDiv.style.paddingBottom = '5px';
         cDiv.style.marginBottom = '5px';
-        cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${dateStr}</span><p style="margin: 3px 0; font-size: 0.9rem;">${text}</p>`;
+        cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${dateStr}</span><p style="margin: 3px 0; font-size: 0.9rem; white-space: pre-wrap;">${text}</p>`;
         commentsList.appendChild(cDiv);
         commentsList.scrollTop = commentsList.scrollHeight;
 
