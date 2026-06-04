@@ -2718,77 +2718,75 @@ async function generatePDFReport() {
     
     reportContainer.innerHTML = `
         <!-- Header -->
-        <div style="border-bottom: 2px solid #1e3a8a; padding-bottom: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <h1 style="margin: 0; font-size: 1.6rem; color: #1e3a8a; font-weight: 700; text-transform: uppercase;">STAHLGRAF</h1>
-                <h2 style="margin: 5px 0 0 0; font-size: 1.05rem; color: #475569; font-weight: 600;">Reporte de Monitoreo & Trazabilidad de Estaciones</h2>
-            </div>
-            <div style="text-align: right;">
-                <p style="margin: 0; font-size: 0.8rem; color: #64748b;"><strong>Fecha de Emisión:</strong> ${new Date().toLocaleDateString('es-CL')}</p>
-                <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: #64748b;"><strong>Estaciones Activas:</strong> ${clientStations.length}</p>
+        <div class="doc-header" style="border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <img src="logo.png" alt="Stahlgraf Logo" style="max-height: 90px; width: auto; object-fit: contain;" onerror="this.style.display='none'">
+                <div style="text-align: right;">
+                    <h1 style="margin: 0; font-size: 18pt; color: #222; text-transform: uppercase; font-weight: 700;">INFORME DE TRAZABILIDAD QR</h1>
+                    <p style="margin: 5px 0 0 0; font-size: 10pt; color: #555;">Fecha: <strong>${new Date().toLocaleDateString('es-CL')}</strong></p>
+                    <p style="margin: 0; font-size: 10pt; color: #555;">Estaciones Activas: <strong>${clientStations.length}</strong></p>
+                </div>
             </div>
         </div>
         
         <!-- Client Details card -->
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 25px; display: flex; justify-content: space-between;">
-            <div>
-                <h3 style="margin: 0 0 5px 0; font-size: 1rem; color: #1e293b; font-weight: 700;">👤 Datos del Cliente</h3>
-                <p style="margin: 0; font-size: 0.85rem; color: #334155;"><strong>Cliente:</strong> ${clientName}</p>
-                <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: #334155;"><strong>Dirección:</strong> ${clientAddress}</p>
-            </div>
-            <div style="text-align: right;">
-                <h3 style="margin: 0 0 5px 0; font-size: 1rem; color: #1e293b; font-weight: 700;">📊 Resumen Estadístico</h3>
-                <p style="margin: 0; font-size: 0.85rem; color: #334155;"><strong>Revisadas:</strong> ${clientSummary.inspectedStations} / ${clientSummary.totalStations}</p>
-                <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: #334155;"><strong>Consumo Promedio:</strong> <strong style="color: ${clientSummary.avgConsumption > 50 ? '#ef4444' : '#10b981'};">${clientSummary.avgConsumption}%</strong></p>
-            </div>
+        <div class="doc-section">
+            <h2>1. Información del Cliente & Resumen</h2>
+            <table class="doc-table-simple">
+                <tr>
+                    <th style="width: 25%; background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Cliente</th>
+                    <td style="width: 40%; font-weight: 600; padding: 6px; border: 1px solid #ddd;">${clientName}</td>
+                    <th style="width: 20%; background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Revisadas</th>
+                    <td style="width: 15%; padding: 6px; border: 1px solid #ddd;">${clientSummary.inspectedStations} / ${clientSummary.totalStations}</td>
+                </tr>
+                <tr>
+                    <th style="background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Dirección</th>
+                    <td style="padding: 6px; border: 1px solid #ddd;">${clientAddress}</td>
+                    <th style="background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Consumo Promedio</th>
+                    <td style="font-weight: 700; color: ${clientSummary.avgConsumption > 50 ? '#ef4444' : '#10b981'}; padding: 6px; border: 1px solid #ddd;">${clientSummary.avgConsumption}%</td>
+                </tr>
+            </table>
         </div>
 
         <!-- Map Container Area inside PDF -->
-        <h3 style="font-size: 1.1rem; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin: 25px 0 10px 0; font-weight: 700;">🗺️ Plano Satelital del Predio</h3>
-        <div id="pdf-map-placeholder" style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; height: 350px;"></div>
+        <div class="doc-section">
+            <h2>2. Plano Satelital del Predio</h2>
+            <div id="pdf-map-placeholder" style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; height: 350px;"></div>
+        </div>
         
         <!-- Recommendations block -->
-        <div style="margin-bottom: 25px;">
+        <div class="doc-section">
+            <h2>3. Diagnóstico y Recomendaciones de Control</h2>
             ${recommendationsHTML}
         </div>
         
         <div style="page-break-before: always;"></div>
 
         <!-- Latest inspections details -->
-        <h3 style="font-size: 1.1rem; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin: 0 0 15px 0; font-weight: 700;">📋 Detalles de Última Inspección por Caja</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
-            <thead>
-                <tr style="background: #1e3a8a; color: #ffffff; font-size: 0.85rem;">
-                    <th style="padding: 10px 8px; text-align: left;">Estación</th>
-                    <th style="padding: 10px 8px; text-align: center;">Última Visita</th>
-                    <th style="padding: 10px 8px; text-align: center;">Consumo</th>
-                    <th style="padding: 10px 8px; text-align: left;">Mantenimiento</th>
-                    <th style="padding: 10px 8px; text-align: left;">Evidencia</th>
-                    <th style="padding: 10px 8px; text-align: left;">Observaciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${latestInspectionsHTML}
-            </tbody>
-        </table>
-        
-        <!-- Historical entries per box -->
-        <h3 style="font-size: 1.1rem; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin: 30px 0 15px 0; font-weight: 700;">⏳ Historial de Inspecciones por Estación</h3>
-        <div>
-            ${historyHTML}
+        <div class="doc-section">
+            <h2>4. Detalles de Última Inspección por Caja</h2>
+            <table class="doc-table-simple" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                <thead>
+                    <tr style="background: #1e3a8a; color: #ffffff; font-size: 0.85rem;">
+                        <th style="padding: 8px 6px; text-align: left; width: 15%; background: #1e3a8a; color: white;">Estación</th>
+                        <th style="padding: 8px 6px; text-align: center; width: 15%; background: #1e3a8a; color: white;">Última Visita</th>
+                        <th style="padding: 8px 6px; text-align: center; width: 12%; background: #1e3a8a; color: white;">Consumo</th>
+                        <th style="padding: 8px 6px; text-align: left; width: 20%; background: #1e3a8a; color: white;">Mantenimiento</th>
+                        <th style="padding: 8px 6px; text-align: left; width: 18%; background: #1e3a8a; color: white;">Evidencia</th>
+                        <th style="padding: 8px 6px; text-align: left; width: 20%; background: #1e3a8a; color: white;">Observaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${latestInspectionsHTML}
+                </tbody>
+            </table>
         </div>
         
-        <!-- Footer Signatures -->
-        <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid #cbd5e1; display: flex; justify-content: space-between; page-break-inside: avoid;">
-            <div style="width: 250px; text-align: center;">
-                <div style="height: 60px; border-bottom: 1px solid #94a3b8; margin-bottom: 5px;"></div>
-                <p style="margin: 0; font-size: 0.8rem; color: #334155; font-weight: 600;">Firma del Técnico Responsable</p>
-                <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #64748b;">Servicios de Control de Vectores</p>
-            </div>
-            <div style="width: 250px; text-align: center;">
-                <div style="height: 60px; border-bottom: 1px solid #94a3b8; margin-bottom: 5px;"></div>
-                <p style="margin: 0; font-size: 0.8rem; color: #334155; font-weight: 600;">Firma de Aceptación del Cliente</p>
-                <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #64748b;">Representante Autorizado</p>
+        <!-- Historical entries per box -->
+        <div class="doc-section">
+            <h2>5. Historial Cronológico por Estación</h2>
+            <div>
+                ${historyHTML}
             </div>
         </div>
     `;
@@ -2849,7 +2847,7 @@ async function generatePDFReport() {
     setTimeout(async () => {
         try {
             const options = {
-                margin: 10,
+                margin: [10, 0, 15, 0],
                 filename: `Reporte_Monitoreo_${clientName.replace(/\s+/g, '_')}_${Date.now()}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { 
