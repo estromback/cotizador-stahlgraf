@@ -325,7 +325,10 @@ function renderMonitoreo() {
         const stationRecords = inspections.filter(r => r.station === stationKey);
         let latest = null;
         if (stationRecords.length > 0) {
-            latest = stationRecords[stationRecords.length - 1];
+            // Robust check using numerical creation timestamp to guarantee newest record is chosen
+            latest = stationRecords.reduce((newest, current) => {
+                return getRecordTimestamp(current) > getRecordTimestamp(newest) ? current : newest;
+            }, stationRecords[0]);
             uniqueInspected.add(stationKey);
         }
         
@@ -569,16 +572,7 @@ async function syncWithCloud(silent = false) {
         });
         
         // Sort chronologically (oldest to newest, as renderMonitoreo reverses it)
-        const parseDate = (str) => {
-            try {
-                const parts = str.split(/[\s,/\-]+/);
-                if (parts.length >= 6) {
-                    return new Date(parts[2], parts[1] - 1, parts[0], parts[3], parts[4], parts[5]);
-                }
-            } catch(e) {}
-            return new Date(str);
-        };
-        inspections.sort((a, b) => parseDate(a.timestamp) - parseDate(b.timestamp));
+        inspections.sort((a, b) => getRecordTimestamp(a) - getRecordTimestamp(b));
         
         localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
         renderMonitoreo();
@@ -688,6 +682,7 @@ function importJSON(event) {
             });
             
             if (addedCount > 0) {
+                inspections.sort((a, b) => getRecordTimestamp(a) - getRecordTimestamp(b));
                 localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
                 renderMonitoreo();
                 alert(`📥 Importación completada:\n- ${addedCount} inspecciones agregadas.\n- ${skippedCount} registros omitidos (duplicados o inválidos).`);
@@ -808,4 +803,25 @@ function closeScanner() {
         if (modal) modal.style.display = 'none';
         html5QrcodeScanner = null;
     }
+}
+
+// Helper: Get chronological timestamp from record for reliable sorting/filtering
+function getRecordTimestamp(record) {
+    if (!record || !record.id) return 0;
+    try {
+        // IDs are structured as: ins_TIMESTAMP_RANDOM
+        const parts = record.id.split('_');
+        if (parts.length >= 2) {
+            const ts = parseInt(parts[1], 10);
+            if (!isNaN(ts)) return ts;
+        }
+    } catch (e) {}
+    
+    // Fallback: try to parse string timestamp
+    try {
+        const d = new Date(record.timestamp);
+        if (!isNaN(d.getTime())) return d.getTime();
+    } catch (e) {}
+    
+    return 0;
 }
