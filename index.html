@@ -15,6 +15,19 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
 
+    <!-- Mobile Drag and Drop Polyfill for iPad/Touch Support -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0/default.css">
+    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0/index.min.js"></script>
+    <script>
+        // Init mobile drag drop polyfill
+        window.addEventListener('touchmove', function() {}, {passive: false}); // iOS Safari requirement
+        window.addEventListener('DOMContentLoaded', function() {
+            MobileDragDrop.polyfill({
+                holdToDrag: 200 // 200ms hold starts drag, tap still opens the modal
+            });
+        });
+    </script>
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -168,6 +181,8 @@
             border-left: 3px solid transparent;
             transition: transform 0.1s, filter 0.1s;
             font-weight: 500;
+            user-select: none;
+            -webkit-user-select: none;
         }
         .event-chip:hover {
             transform: scale(1.02);

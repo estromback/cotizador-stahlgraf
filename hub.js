@@ -576,7 +576,8 @@ function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
         <div class="day-events"></div>
     `;
     
-    cell.addEventListener('click', () => {
+    cell.addEventListener('click', (e) => {
+        if (draggingCardId) return;
         openCardModal(null, dateStr);
     });
 
@@ -593,8 +594,9 @@ function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
     cell.addEventListener('drop', async (e) => {
         e.preventDefault();
         cell.classList.remove('drag-over');
-        if (draggingCardId) {
-            await moveCardDate(draggingCardId, dateStr);
+        const cardId = e.dataTransfer.getData('text/plain') || draggingCardId;
+        if (cardId) {
+            await moveCardDate(cardId, dateStr);
         }
     });
     
@@ -616,8 +618,10 @@ function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
         });
 
         chip.addEventListener('dragend', () => {
-            draggingCardId = null;
             chip.style.opacity = '1';
+            setTimeout(() => {
+                draggingCardId = null;
+            }, 100);
         });
 
         chip.addEventListener('click', (e) => {
