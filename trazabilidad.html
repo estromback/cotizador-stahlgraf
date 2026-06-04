@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stahlgraf - Trazabilidad QR</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .trazabilidad-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px 20px 60px;
+        }
+
+        /* Large Tappable Options for Safety Gloves */
+        .radio-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 15px;
+            margin-top: 5px;
+        }
+        .radio-card {
+            cursor: pointer;
+            display: block;
+            user-select: none;
+        }
+        .radio-card input {
+            display: none;
+        }
+        .radio-card-content {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px 10px;
+            text-align: center;
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+        }
+        .radio-card input:checked + .radio-card-content {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.15);
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
+        }
+        .radio-card .pct {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .radio-card .lbl {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Checkboxes custom cards */
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 5px;
+        }
+        .checkbox-card {
+            cursor: pointer;
+            display: block;
+            user-select: none;
+        }
+        .checkbox-card input {
+            display: none;
+        }
+        .checkbox-card-content {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 16px 12px;
+            text-align: center;
+            transition: all 0.25s ease;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #fff;
+        }
+        .checkbox-card input:checked + .checkbox-card-content {
+            border-color: var(--accent);
+            background: rgba(16, 185, 129, 0.15);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Tabs Nav */
+        .tabs-nav {
+            display: flex;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 5px;
+            margin-bottom: 25px;
+            gap: 5px;
+        }
+        .tab-trigger {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 12px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.25s;
+            text-align: center;
+        }
+        .tab-trigger:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.03);
+        }
+        .tab-trigger.active {
+            color: #fff;
+            background: var(--primary);
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+        }
+
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+            animation: panelFadeIn 0.3s ease;
+        }
+        @keyframes panelFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Heatmap Grid */
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin: 20px 0 30px;
+        }
+        @media (max-width: 600px) {
+            .heatmap-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+        }
+        .station-cell {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .station-cell:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .station-cell .num {
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+        .station-cell .status-lbl {
+            font-size: 0.72rem;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+        
+        /* Cell States */
+        .station-green {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.15) !important;
+            color: #34d399;
+        }
+        .station-yellow {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.15) !important;
+            color: #fbbf24;
+        }
+        .station-red {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.18) !important;
+            color: #f87171;
+            box-shadow: 0 0 10px rgba(2ef, 68, 68, 0.15);
+            animation: cell-pulse-red 2s infinite;
+        }
+        .station-gray {
+            border-color: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02) !important;
+            color: var(--text-muted);
+        }
+
+        @keyframes cell-pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Table styles */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(0,0,0,0.15);
+        }
+        .activity-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+        .activity-table th, .activity-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .activity-table th {
+            background: rgba(255,255,255,0.03);
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .activity-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Status Badges */
+        .sync-badge {
+            font-size: 0.72rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .sync-badge.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+        .sync-badge.synced {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        /* Spinner for Sincronización */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s ease-in-out infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <a href="index.html" style="display: flex; align-items: center; gap: 15px; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+                <img src="logo.png" alt="Stahlgraf Logo" style="height: 120px; object-fit: contain;" onerror="this.style.display='none'">
+                <h1 class="logo" style="margin: 0;"> <span>Trazabilidad</span></h1>
+            </a>
+            <div class="nav-actions">
+                <button id="btn-sync-login" class="btn btn-primary-outline" style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 6px 12px;">
+                    <span id="sync-icon">☁️</span>
+                    <span id="sync-text">Ingresar para Sync</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="trazabilidad-container">
+        
+        <!-- Pestañas Conmutables -->
+        <div class="tabs-nav">
+            <button class="tab-trigger active" data-target="panel-inspeccionar">📥 Registrar</button>
+            <button class="tab-trigger" data-target="panel-monitoreo">📊 Monitoreo</button>
+            <button class="tab-trigger" data-target="panel-sync">⚙️ Datos & Sync</button>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA 1: CAPTURA DE INSPECCIÓN             -->
+        <!-- ========================================== -->
+        <div id="panel-inspeccionar" class="tab-panel active glass-panel" style="padding: 25px;">
+            <h2 style="margin-top: 0; margin-bottom: 5px; font-size: 1.4rem;">Ficha de Inspección</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Escanea un código QR o completa los campos manualmente.</p>
+            
+            <form id="inspection-form" onsubmit="event.preventDefault();">
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label for="station-id">Número de Estación</label>
+                    <div style="position: relative;">
+                        <select id="station-id" style="width: 100%;">
+                            <!-- Dynamically generated options (1-15) -->
+                        </select>
+                        <span id="station-locked-badge" style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; font-weight: 600;">🔒 QR Bloqueado</span>
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 25px;">
+                    <label>Estado de Consumo del Cebo</label>
+                    <div class="radio-cards-grid">
+                        <label class="radio-card">
+                            <input type="radio" name="bait-consumption" value="0%" checked>
+                            <div class="radio-card-content">
+                                <span class="pct" style="color: #34d399;">0%</span>
+                                <span class="lbl">Intacto</span>
+                            </div>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="bait-consumption" value="25-50%">
+                            <div class="radio-card-content">
+                                <span class="pct" style="color: #fbbf24;">50%</span>
+                                <span class="lbl">Consumo Parcial</span>
+                            </div>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="bait-consumption" value="75%">
+                            <div class="radio-card-content">
+                                <span class="pct" style="color: #f87171;">75%</span>
+                                <span class="lbl">Consumo Alto</span>
+                            </div>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="bait-consumption" value="100%">
+                            <div class="radio-card-content">
+                                <span class="pct" style="color: #ef4444;">100%</span>
+                                <span class="lbl">Consumo Total</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 25px;">
+                    <label>Mantenimiento Realizado</label>
+                    <div class="checkbox-grid">
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="maintenance" value="Limpieza de Caja">
+                            <div class="checkbox-card-content">🧹 Limpieza Caja</div>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="maintenance" value="Reposición de Cebo (Klerat)">
+                            <div class="checkbox-card-content">💊 Reposición Klerat</div>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="maintenance" value="Reemplazo de Alambre Fijo">
+                            <div class="checkbox-card-content">🔩 Alambre Fijo</div>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="maintenance" value="Ninguno" id="maint-none">
+                            <div class="checkbox-card-content">❌ Ninguno</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 25px;">
+                    <label>Evidencia de Vectores (Plagas)</label>
+                    <div class="checkbox-grid">
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="evidence" value="Excretas frescas">
+                            <div class="checkbox-card-content">💩 Excretas Frescas</div>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="evidence" value="Huellas/Manchas">
+                            <div class="checkbox-card-content">🐾 Huellas/Manchas</div>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="evidence" value="Roeduras">
+                            <div class="checkbox-card-content">🦷 Roeduras</div>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="evidence" value="Ninguna" id="evidence-none">
+                            <div class="checkbox-card-content">✔️ Ninguna</div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 25px;">
+                    <label for="inspection-notes">Observaciones Técnicas (Opcional)</label>
+                    <textarea id="inspection-notes" rows="3" placeholder="Escribe detalles adicionales de la caja de cebo..."></textarea>
+                </div>
+
+                <button id="btn-save-inspection" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem; border-radius: 12px;">
+                    💾 Registrar Inspección
+                </button>
+            </form>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA 2: PANEL DE CONTROL LOCAL (MONITOREO)-->
+        <!-- ========================================== -->
+        <div id="panel-monitoreo" class="tab-panel glass-panel" style="padding: 25px;">
+            <h2 style="margin-top: 0; margin-bottom: 5px; font-size: 1.4rem;">Monitoreo en Terreno</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px;">Estado actual de la campaña de cebado local.</p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                <div class="stat-card" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 10px;">
+                    <h4 style="margin: 0; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Estaciones Revisadas</h4>
+                    <p id="stat-reviewed-count" style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: 700; color: #fff;">0 / 15</p>
+                </div>
+                <div class="stat-card" style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.15); padding: 15px; border-radius: 10px;">
+                    <h4 style="margin: 0; color: #fbbf24; font-size: 0.8rem; text-transform: uppercase;">Pendientes de Sincronizar</h4>
+                    <p id="stat-pending-count" style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: 700; color: #fbbf24;">0</p>
+                </div>
+            </div>
+
+            <h3 style="font-size: 1.05rem; margin-bottom: 10px;">Mapa Conceptual de Estaciones</h3>
+            <div class="heatmap-grid" id="heatmap-grid">
+                <!-- Dynamically generated station cells (15) -->
+            </div>
+
+            <h3 style="font-size: 1.05rem; margin-bottom: 15px;">Historial de Inspecciones</h3>
+            <div class="table-responsive">
+                <table class="activity-table">
+                    <thead>
+                        <tr>
+                            <th>Estación</th>
+                            <th>Fecha / Hora</th>
+                            <th>Consumo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activity-list">
+                        <!-- Dynamically populated rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA 3: GESTIÓN DE DATOS Y CONECTIVIDAD   -->
+        <!-- ========================================== -->
+        <div id="panel-sync" class="tab-panel glass-panel" style="padding: 25px;">
+            <h2 style="margin-top: 0; margin-bottom: 5px; font-size: 1.4rem;">Gestión de Datos & Conectividad</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px;">Operaciones rurales y sincronización central al retornar a la ciudad.</p>
+
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                
+                <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.15); padding: 20px; border-radius: 12px;">
+                    <h3 style="margin-top: 0; font-size: 1.1rem; color: #60a5fa; display: flex; align-items: center; gap: 8px;">
+                        ☁️ Sincronizar Datos en la Nube
+                    </h3>
+                    <p style="font-size: 0.85rem; color: #ccc; margin: 8px 0 15px 0;">Sube todas tus inspecciones guardadas de forma local en tu dispositivo directamente a la base de datos de tu cuenta en Firebase.</p>
+                    <button id="btn-sync-cloud" class="btn btn-primary" style="width: 100%; padding: 12px;">
+                        <span id="sync-spinner" class="spinner" style="display: none;"></span>
+                        Sincronizar con Servidor
+                    </button>
+                </div>
+
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 12px;">
+                    <h3 style="margin-top: 0; font-size: 1.1rem; color: #fff; display: flex; align-items: center; gap: 8px;">
+                        📥 Descargar Copia Técnica Local
+                    </h3>
+                    <p style="font-size: 0.85rem; color: #ccc; margin: 8px 0 15px 0;">Ideal para auditorías inmediatas en terreno sin acceso a internet o para resguardar archivos CSV compatibles con Excel o JSON plano.</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <button id="btn-export-csv" class="btn btn-secondary" style="padding: 12px; font-size: 0.9rem;">📊 Exportar CSV</button>
+                        <button id="btn-export-json" class="btn btn-secondary" style="padding: 12px; font-size: 0.9rem;">📄 Exportar JSON</button>
+                    </div>
+                </div>
+
+                <div style="background: rgba(239, 68, 68, 0.03); border: 1px solid rgba(239, 68, 68, 0.15); padding: 20px; border-radius: 12px; margin-top: 15px;">
+                    <h3 style="margin-top: 0; font-size: 1.1rem; color: #f87171; display: flex; align-items: center; gap: 8px;">
+                        ⚠️ Peligro: Limpiar Caché Local
+                    </h3>
+                    <p style="font-size: 0.85rem; color: #ccc; margin: 8px 0 15px 0;">Elimina todos los datos guardados de forma local del dispositivo. Utilizar con cautela solo cuando todos los datos ya estén respaldados.</p>
+                    <button id="btn-clear-local" class="btn btn-secondary" style="width: 100%; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px;">
+                        🗑️ Limpiar Historial del Teléfono
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <script src="trazabilidad.js"></script>
+</body>
+</html>
