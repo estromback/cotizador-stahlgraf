@@ -621,7 +621,8 @@ function initOrUpdateMap() {
         // Add Google Maps Hybrid (Satellite + Roads/Labels) tile layer
         activeTileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
             attribution: 'Map data &copy; Google',
-            maxZoom: 20
+            maxZoom: 20,
+            crossOrigin: true
         }).addTo(leafletMap);
         
         leafletMarkerGroup = L.layerGroup().addTo(leafletMap);
@@ -2799,22 +2800,11 @@ async function generatePDFReport() {
     let originalParent = null;
     let nextSibling = null;
     const hasMapData = mapStations.length > 0 && leafletMap;
-    let esriTileLayer = null;
 
     const pdfMapPlaceholder = reportContainer.querySelector('#pdf-map-placeholder');
     const bounds = mapStations.map(s => [s.coords.lat, s.coords.lng]);
     
     if (hasMapData) {
-        // Swap to Esri World Imagery (CORS-compliant) for PDF rendering
-        if (activeTileLayer) {
-            leafletMap.removeLayer(activeTileLayer);
-        }
-        esriTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri',
-            maxZoom: 20,
-            crossOrigin: true
-        }).addTo(leafletMap);
-
         originalParent = originalMap.parentNode;
         nextSibling = originalMap.nextSibling;
         pdfMapPlaceholder.appendChild(originalMap);
@@ -2866,14 +2856,6 @@ async function generatePDFReport() {
             alert("⚠️ Error al generar el PDF. Asegúrate de tener conexión a internet para descargar las imágenes del mapa.");
         } finally {
             if (hasMapData && originalParent) {
-                // Restore original Google Hybrid tile layer
-                if (esriTileLayer) {
-                    leafletMap.removeLayer(esriTileLayer);
-                }
-                if (activeTileLayer) {
-                    activeTileLayer.addTo(leafletMap);
-                }
-
                 // Restore map back to its UI home!
                 originalParent.insertBefore(originalMap, nextSibling);
                 
