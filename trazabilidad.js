@@ -93,6 +93,12 @@ document.addEventListener('DOMContentLoaded', () => {
         btnTriggerImport.addEventListener('click', () => inputImportJson.click());
         inputImportJson.addEventListener('change', importJSON);
     }
+
+    // Camera QR Scanner bindings
+    const btnScanQr = document.getElementById('btn-scan-qr');
+    const btnCloseScanner = document.getElementById('btn-close-scanner');
+    if (btnScanQr) btnScanQr.addEventListener('click', openScanner);
+    if (btnCloseScanner) btnCloseScanner.addEventListener('click', closeScanner);
 });
 
 // Load inspections queue from LocalStorage
@@ -611,4 +617,109 @@ function importJSON(event) {
         }
     };
     reader.readAsText(file);
+}
+
+// Camera Scanner helper logic using html5-qrcode
+let html5QrcodeScanner = null;
+
+function openScanner() {
+    // If the scanner element exists, show the modal
+    const modal = document.getElementById('scanner-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    
+    // Create new Html5Qrcode instance
+    try {
+        html5QrcodeScanner = new Html5Qrcode("reader");
+        const config = { 
+            fps: 15, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0 
+        };
+        
+        // Start scanning with environment/back camera
+        html5QrcodeScanner.start(
+            { facingMode: "environment" }, 
+            config, 
+            onScanSuccess, 
+            onScanFailure
+        ).catch(err => {
+            console.error("No se pudo iniciar la cámara: ", err);
+            alert("No se pudo iniciar la cámara. Por favor, asegúrate de otorgar permisos de cámara en tu navegador.");
+            closeScanner();
+        });
+    } catch (e) {
+        console.error("Error al inicializar html5-qrcode: ", e);
+        alert("Error al inicializar la cámara.");
+        closeScanner();
+    }
+}
+
+function onScanSuccess(decodedText, decodedResult) {
+    console.log(`Scan success: ${decodedText}`);
+    
+    try {
+        let stationId = null;
+        if (decodedText.startsWith("http")) {
+            const url = new URL(decodedText);
+            stationId = url.searchParams.get("id");
+        } else if (decodedText.startsWith("ESTACION-")) {
+            stationId = decodedText;
+        }
+        
+        if (stationId && stationId.startsWith("ESTACION-")) {
+            const select = document.getElementById('station-id');
+            if (select) {
+                // Ensure this station option exists
+                const exists = Array.from(select.options).some(opt => opt.value === stationId);
+                if (!exists) {
+                    const opt = document.createElement('option');
+                    opt.value = stationId;
+                    opt.textContent = `Estación #${stationId.replace('ESTACION-', '')}`;
+                    select.appendChild(opt);
+                }
+                select.value = stationId;
+                select.disabled = true; // Lock dropdown for technical inspection
+                
+                // Show badge
+                const badge = document.getElementById('station-locked-badge');
+                if (badge) badge.style.display = 'inline-flex';
+                
+                // Store in sessionStorage to persist
+                sessionStorage.setItem('last_scanned_station_id', stationId);
+                
+                // Vibrate if supported
+                if (navigator.vibrate) navigator.vibrate(100);
+                
+                alert(`🎯 Código QR escaneado con éxito:\n${stationId}\n\nEl selector ha sido bloqueado para esta estación.`);
+                closeScanner();
+            }
+        } else {
+            alert(`⚠️ El código QR escaneado no es válido para una estación de cebado.\nContenido: "${decodedText}"`);
+        }
+    } catch (err) {
+        console.error("Error parsing scanned QR text: ", err);
+        alert("Error al procesar el código QR.");
+    }
+}
+
+function onScanFailure(error) {
+    // Failures are triggered continuously on frames without QRs. Keep silent.
+}
+
+function closeScanner() {
+    const modal = document.getElementById('scanner-modal');
+    if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
+        html5QrcodeScanner.stop().then(() => {
+            if (modal) modal.style.display = 'none';
+            html5QrcodeScanner = null;
+        }).catch(err => {
+            console.error("Error stopping camera: ", err);
+            if (modal) modal.style.display = 'none';
+            html5QrcodeScanner = null;
+        });
+    } else {
+        if (modal) modal.style.display = 'none';
+        html5QrcodeScanner = null;
+    }
 }

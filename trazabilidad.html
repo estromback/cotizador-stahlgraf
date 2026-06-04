@@ -14,6 +14,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+    <!-- html5-qrcode Camera Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
@@ -22,6 +24,14 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px 20px 60px;
+        }
+
+        /* Overrides for html5-qrcode video layout */
+        #reader video {
+            object-fit: cover !important;
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 12px;
         }
 
         /* Large Tappable Options for Safety Gloves */
@@ -318,11 +328,16 @@
             <form id="inspection-form" onsubmit="event.preventDefault();">
                 <div class="input-group" style="margin-bottom: 20px;">
                     <label for="station-id">Número de Estación</label>
-                    <div style="position: relative;">
-                        <select id="station-id" style="width: 100%;">
-                            <!-- Dynamically generated options (1-15) -->
-                        </select>
-                        <span id="station-locked-badge" style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; font-weight: 600;">🔒 QR Bloqueado</span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="position: relative; flex: 1;">
+                            <select id="station-id" style="width: 100%; box-sizing: border-box; height: 50px;">
+                                <!-- Dynamically generated options (1-15) -->
+                            </select>
+                            <span id="station-locked-badge" style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; font-weight: 600;">🔒 QR Bloqueado</span>
+                        </div>
+                        <button type="button" id="btn-scan-qr" class="btn btn-secondary" style="height: 50px; padding: 0 15px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap; margin-top: 0; border-radius: 10px;">
+                            📷 Escanear QR
+                        </button>
                     </div>
                 </div>
 
@@ -518,6 +533,21 @@
         </div>
 
     </main>
+
+    <!-- Modal de Escaneo QR -->
+    <div id="scanner-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; padding: 20px; box-sizing: border-box; backdrop-filter: blur(10px);">
+        <div style="width: 100%; max-width: 450px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 25px; box-sizing: border-box; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+            <h3 style="margin-top: 0; margin-bottom: 10px; color: #fff; font-size: 1.25rem;">Escanear Código QR</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Apunta tu cámara hacia el código QR de la estación de cebado.</p>
+            
+            <!-- Video scanner viewbox -->
+            <div id="reader" style="width: 100%; border-radius: 12px; overflow: hidden; background: #000; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);"></div>
+            
+            <button id="btn-close-scanner" class="btn btn-secondary" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px;">
+                Cancelar
+            </button>
+        </div>
+    </div>
 
     <script src="trazabilidad.js"></script>
 </body>
