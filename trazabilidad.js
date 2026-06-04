@@ -2689,14 +2689,26 @@ async function generatePDFReport() {
         }
     });
 
-    // 4. Create printable report element container (A4 styles)
+    // 4. Create a hidden layout container (fixed at 0,0 but z-indexed behind the main app)
+    const pdfWrapper = document.createElement('div');
+    pdfWrapper.id = 'temp-pdf-wrapper';
+    pdfWrapper.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 210mm;
+        height: 100%;
+        overflow: hidden;
+        z-index: -9999;
+        background: transparent;
+        pointer-events: none;
+    `;
+
     const reportContainer = document.createElement('div');
     reportContainer.id = 'temp-pdf-report';
     reportContainer.className = 'formal-document';
     reportContainer.style.cssText = `
-        position: absolute;
-        left: -9999px;
-        top: -9999px;
+        position: relative;
         background: #ffffff;
         color: #1e293b;
         font-family: 'Inter', system-ui, sans-serif;
@@ -2781,7 +2793,8 @@ async function generatePDFReport() {
         </div>
     `;
     
-    document.body.appendChild(reportContainer);
+    pdfWrapper.appendChild(reportContainer);
+    document.body.appendChild(pdfWrapper);
 
     // 5. Temporarily move map container into report container if map exists and has station coordinates
     const originalMap = document.getElementById('monitoreo-map');
@@ -2842,7 +2855,8 @@ async function generatePDFReport() {
                 html2canvas: { 
                     scale: 2, 
                     useCORS: true,
-                    logging: false
+                    logging: false,
+                    scrollY: 0
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak: { mode: ['css', 'legacy'] }
@@ -2876,8 +2890,8 @@ async function generatePDFReport() {
                 }
             }
             
-            // Remove printable report template element from DOM
-            reportContainer.remove();
+            // Remove printable report template elements from DOM
+            pdfWrapper.remove();
             
             // Restore button text
             btn.disabled = false;
