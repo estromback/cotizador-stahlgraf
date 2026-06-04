@@ -493,57 +493,77 @@
                 </select>
             </div>
 
-            <!-- Mapa Satelital de Estaciones -->
-            <div id="monitoreo-map-section" style="margin-bottom: 25px;">
-                <h3 style="font-size: 1.05rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                    🗺️ Mapa Satelital de Estaciones
+            <!-- Vista de Resumen por Clientes -->
+            <div id="monitoreo-clients-section" style="margin-bottom: 25px;">
+                <h3 style="font-size: 1.05rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                    👥 Resumen de Campañas por Cliente
                 </h3>
-                <div id="monitoreo-map-wrapper" style="position: relative; height: 380px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; background: rgba(255,255,255,0.02);">
-                    <div id="monitoreo-map" style="height: 100%; width: 100%; z-index: 1;"></div>
-                    <div id="monitoreo-map-placeholder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(4px); z-index: 5;">
-                        <span style="font-size: 2.2rem; margin-bottom: 10px;">📍</span>
-                        <p style="margin: 0; font-size: 0.95rem; color: #fff; font-weight: 600;">Sin datos de ubicación</p>
-                        <p style="margin: 6px 0 0 0; font-size: 0.8rem; color: var(--text-muted); max-width: 320px; line-height: 1.4;">
-                            Las estaciones activas no registran coordenadas GPS. Realiza una inspección para capturar la ubicación de la estación en terreno.
-                        </p>
+                <div id="monitoreo-clients-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                    <!-- Dynamically generated client cards -->
+                </div>
+            </div>
+
+            <!-- Vista Detallada de Cliente Seleccionado -->
+            <div id="monitoreo-detail-section" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                    <button id="btn-back-to-clients" class="btn btn-primary-outline" style="padding: 8px 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.03); color: #fff;">
+                        ⬅️ Volver a Resumen de Clientes
+                    </button>
+                    <h3 id="monitoreo-selected-client-name" style="margin: 0; font-size: 1.25rem; color: #fff; font-weight: 600;">Cliente: -</h3>
+                </div>
+
+                <!-- Mapa Satelital de Estaciones -->
+                <div id="monitoreo-map-section" style="margin-bottom: 25px;">
+                    <h3 style="font-size: 1.05rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        🗺️ Mapa Satelital de Estaciones
+                    </h3>
+                    <div id="monitoreo-map-wrapper" style="position: relative; height: 380px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; background: rgba(255,255,255,0.02);">
+                        <div id="monitoreo-map" style="height: 100%; width: 100%; z-index: 1;"></div>
+                        <div id="monitoreo-map-placeholder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(4px); z-index: 5;">
+                            <span style="font-size: 2.2rem; margin-bottom: 10px;">📍</span>
+                            <p style="margin: 0; font-size: 0.95rem; color: #fff; font-weight: 600;">Sin datos de ubicación</p>
+                            <p style="margin: 6px 0 0 0; font-size: 0.8rem; color: var(--text-muted); max-width: 320px; line-height: 1.4;">
+                                Las estaciones activas no registran coordenadas GPS. Realiza una inspección para capturar la ubicación de la estación en terreno.
+                            </p>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.72rem; margin-top: 5px; font-style: italic; opacity: 0.8;">
+                        * El mapa satelital requiere conexión a internet para cargar imágenes, pero las coordenadas GPS se registran offline durante la inspección.
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                    <div class="stat-card" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 10px;">
+                        <h4 style="margin: 0; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Estaciones Revisadas</h4>
+                        <p id="stat-reviewed-count" style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: 700; color: #fff;">0 / 15</p>
+                    </div>
+                    <div class="stat-card" style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.15); padding: 15px; border-radius: 10px;">
+                        <h4 style="margin: 0; color: #fbbf24; font-size: 0.8rem; text-transform: uppercase;">Pendientes de Sincronizar</h4>
+                        <p id="stat-pending-count" style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: 700; color: #fbbf24;">0</p>
                     </div>
                 </div>
-                <p style="color: var(--text-muted); font-size: 0.72rem; margin-top: 5px; font-style: italic; opacity: 0.8;">
-                    * El mapa satelital requiere conexión a internet para cargar imágenes, pero las coordenadas GPS se registran offline durante la inspección.
-                </p>
-            </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
-                <div class="stat-card" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 10px;">
-                    <h4 style="margin: 0; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Estaciones Revisadas</h4>
-                    <p id="stat-reviewed-count" style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: 700; color: #fff;">0 / 15</p>
+                <h3 style="font-size: 1.05rem; margin-bottom: 10px;">Mapa Conceptual de Estaciones</h3>
+                <div class="heatmap-grid" id="heatmap-grid" style="margin-bottom: 25px;">
+                    <!-- Dynamically generated station cells (15) -->
                 </div>
-                <div class="stat-card" style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.15); padding: 15px; border-radius: 10px;">
-                    <h4 style="margin: 0; color: #fbbf24; font-size: 0.8rem; text-transform: uppercase;">Pendientes de Sincronizar</h4>
-                    <p id="stat-pending-count" style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: 700; color: #fbbf24;">0</p>
+
+                <h3 style="font-size: 1.05rem; margin-bottom: 15px;">Historial de Inspecciones</h3>
+                <div class="table-responsive">
+                    <table class="activity-table">
+                        <thead>
+                            <tr>
+                                <th>Estación</th>
+                                <th>Fecha / Hora</th>
+                                <th>Consumo</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activity-list">
+                            <!-- Dynamically populated rows -->
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-
-            <h3 style="font-size: 1.05rem; margin-bottom: 10px;">Mapa Conceptual de Estaciones</h3>
-            <div class="heatmap-grid" id="heatmap-grid">
-                <!-- Dynamically generated station cells (15) -->
-            </div>
-
-            <h3 style="font-size: 1.05rem; margin-bottom: 15px;">Historial de Inspecciones</h3>
-            <div class="table-responsive">
-                <table class="activity-table">
-                    <thead>
-                        <tr>
-                            <th>Estación</th>
-                            <th>Fecha / Hora</th>
-                            <th>Consumo</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activity-list">
-                        <!-- Dynamically populated rows -->
-                    </tbody>
-                </table>
             </div>
         </div>
 

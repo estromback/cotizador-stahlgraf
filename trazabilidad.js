@@ -145,6 +145,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-clear-local').addEventListener('click', clearLocalData);
     document.getElementById('btn-sync-cloud').addEventListener('click', () => syncWithCloud(false));
     
+    const btnBackToClients = document.getElementById('btn-back-to-clients');
+    if (btnBackToClients) {
+        btnBackToClients.addEventListener('click', () => {
+            const selectFilter = document.getElementById('filter-client-id');
+            if (selectFilter) {
+                selectFilter.value = '';
+                selectFilter.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+    
     // Auto-sync when connection is restored
     window.addEventListener('online', () => {
         if (currentUser) {
@@ -835,24 +846,183 @@ function resetInspectionForm() {
 }
 
 // Render Monitoreo Panel (Heatmap and Table history)
+// Calculate analytics summary per client for the overview cards
+function getClientMonitoreoSummary() {
+    const clientsData = [];
+    
+    (globalAppData.clients || []).forEach(client => {
+        // Find stations assigned to this client
+        const clientStations = [];
+        const maxStations = getMaxStationNumber();
+        for (let i = 1; i <= maxStations; i++) {
+            if (getClientIdForStation(i) === client.id || getClientNameForStation(i) === client.name) {
+                clientStations.push(i);
+            }
+        }
+        
+        // Skip clients with no station assignments
+        if (clientStations.length === 0) return;
+        
+        let inspectedCount = 0;
+        let sumAvgConsumption = 0;
+        let criticalCount = 0;
+        let trendUpCount = 0;
+        let trendDownCount = 0;
+        
+        clientStations.forEach(stationNum => {
+            const stationKey = `ESTACION-${String(stationNum).padStart(2, '0')}`;
+            const analytics = calculateStationAnalytics(stationKey);
+            
+            if (analytics.recordsCount > 0) {
+                inspectedCount++;
+                sumAvgConsumption += analytics.avg;
+                
+                // A station is critical if average consumption is > 50% or the latest consumption is high (75% or 100%)
+                if (analytics.avg > 50 || analytics.lastVal === '75%' || analytics.lastVal === '100%') {
+                    criticalCount++;
+                }
+                
+                if (analytics.trend === 'up') trendUpCount++;
+                else if (analytics.trend === 'down') trendDownCount++;
+            }
+        });
+        
+        const avgConsumption = inspectedCount > 0 ? Math.round(sumAvgConsumption / inspectedCount) : 0;
+        
+        let overallTrend = 'stable';
+        if (trendUpCount > trendDownCount) overallTrend = 'up';
+        else if (trendDownCount > trendUpCount) overallTrend = 'down';
+        else if (inspectedCount === 0) overallTrend = 'none';
+        
+        clientsData.push({
+            id: client.id,
+            name: client.name,
+            address: client.address || 'Sin dirección registrada',
+            totalStations: clientStations.length,
+            inspectedStations: inspectedCount,
+            avgConsumption,
+            criticalCount,
+            trend: overallTrend
+        });
+    });
+    
+    // Sort clients alphabetically by name
+    clientsData.sort((a, b) => a.name.localeCompare(b.name));
+    return clientsData;
+}
+
+// Render Monitoreo Panel (Heatmap and Table history)
 function renderMonitoreo() {
     loadLocalInspections();
     
     const pendingCount = inspections.filter(r => r.status === 'pendiente').length;
     document.getElementById('stat-pending-count').innerText = pendingCount;
     
-    const grid = document.getElementById('heatmap-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    
     const filterClientIdSelect = document.getElementById('filter-client-id');
     const filterClientId = filterClientIdSelect ? filterClientIdSelect.value : '';
     
-    let filterClientName = '';
-    if (filterClientId) {
-        const clientObj = (globalAppData.clients || []).find(c => c.id === filterClientId);
-        if (clientObj) filterClientName = clientObj.name;
+    const clientsSection = document.getElementById('monitoreo-clients-section');
+    const detailSection = document.getElementById('monitoreo-detail-section');
+    
+    if (!filterClientId) {
+        // Show client overview and hide detail section
+        if (clientsSection) clientsSection.style.display = 'block';
+        if (detailSection) detailSection.style.display = 'none';
+        
+        // Render clients summary list
+        const clientsList = document.getElementById('monitoreo-clients-list');
+        if (clientsList) {
+            clientsList.innerHTML = '';
+            const summaries = getClientMonitoreoSummary();
+            
+            if (summaries.length === 0) {
+                clientsList.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 40px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;">
+                        <span style="font-size: 2.2rem; display: block; margin-bottom: 10px;">👥</span>
+                        <p style="margin: 0; font-size: 0.95rem; color: #fff; font-weight: 500;">No hay campañas de cebado activas</p>
+                        <p style="margin: 5px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">Asigna estaciones a tus clientes desde la ficha o en el Modo Instalación para ver sus resúmenes aquí.</p>
+                    </div>
+                `;
+            } else {
+                summaries.forEach(c => {
+                    const card = document.createElement('div');
+                    card.className = 'client-summary-card glass-panel';
+                    card.style.cssText = 'padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255, 255, 255, 0.02); transition: all 0.25s ease; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; height: 180px; box-sizing: border-box;';
+                    
+                    // Hover dynamic effects
+                    card.addEventListener('mouseenter', () => {
+                        card.style.borderColor = 'var(--primary)';
+                        card.style.background = 'rgba(59, 130, 246, 0.08)';
+                        card.style.transform = 'translateY(-2px)';
+                    });
+                    card.addEventListener('mouseleave', () => {
+                        card.style.borderColor = 'rgba(255,255,255,0.08)';
+                        card.style.background = 'rgba(255, 255, 255, 0.02)';
+                        card.style.transform = 'translateY(0)';
+                    });
+                    
+                    // Set client ID on click to trigger change event
+                    card.addEventListener('click', () => {
+                        if (filterClientIdSelect) {
+                            filterClientIdSelect.value = c.id;
+                            filterClientIdSelect.dispatchEvent(new Event('change'));
+                        }
+                    });
+                    
+                    card.innerHTML = `
+                        <div style="width: 100%;">
+                            <h4 style="margin: 0; font-size: 1.1rem; color: #fff; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${c.name}">
+                                👤 ${c.name}
+                            </h4>
+                            <p style="margin: 4px 0 12px 0; font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${c.address}">
+                                📍 ${c.address}
+                            </p>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                                <div style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.04);">
+                                    <span style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Estaciones</span>
+                                    <span style="font-size: 1.05rem; font-weight: 700; color: #fff;">${c.inspectedStations} / ${c.totalStations}</span>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.04);">
+                                    <span style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Promedio</span>
+                                    <span style="font-size: 1.05rem; font-weight: 700; color: ${c.avgConsumption > 50 ? '#ef4444' : '#10b981'};">${c.avgConsumption}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <span class="sync-badge" style="background: ${c.trend === 'up' ? 'rgba(239, 68, 68, 0.15)' : c.trend === 'down' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.05)'}; color: ${c.trend === 'up' ? '#f87171' : c.trend === 'down' ? '#34d399' : '#fff'}; font-size: 0.7rem; padding: 2px 6px; border-radius: 12px; font-weight: 600;">
+                                    ${c.trend === 'up' ? '📈 Alza' : c.trend === 'down' ? '📉 Baja' : '➡️ Estable'}
+                                </span>
+                                ${c.criticalCount > 0 ? `<span class="sync-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 0.7rem; padding: 2px 6px; border-radius: 12px; font-weight: 600;">⚠️ ${c.criticalCount} Alertas</span>` : ''}
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 4px;">Monitorear ➡️</span>
+                        </div>
+                    `;
+                    clientsList.appendChild(card);
+                });
+            }
+        }
+        return;
     }
+    
+    // Show detailed view and update selected client labels
+    if (clientsSection) clientsSection.style.display = 'none';
+    if (detailSection) detailSection.style.display = 'block';
+    
+    let filterClientName = '';
+    const clientObj = (globalAppData.clients || []).find(c => c.id === filterClientId);
+    if (clientObj) filterClientName = clientObj.name;
+    
+    const clientNameLabel = document.getElementById('monitoreo-selected-client-name');
+    if (clientNameLabel) {
+        clientNameLabel.innerHTML = `👤 Cliente: <strong>${filterClientName}</strong>${clientObj && clientObj.address ? ` <span style="font-size:0.85rem; color:var(--text-muted); font-weight:400; margin-left: 10px;">(📍 ${clientObj.address})</span>` : ''}`;
+    }
+
+    const grid = document.getElementById('heatmap-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
     
     let uniqueInspected = new Set();
     const maxStations = getMaxStationNumber();
