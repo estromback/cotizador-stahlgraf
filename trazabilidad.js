@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTabSwitching();
     setupCheckboxMutualExclusions();
     renderMonitoreo();
+    handleAuthRedirects();
 
     // Event Bindings
     document.getElementById('btn-sync-login').addEventListener('click', () => {
@@ -65,7 +66,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (confirm("¿Deseas cerrar sesión?")) auth.signOut();
         } else {
             const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider);
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || isInAppBrowser();
+            
+            if (isMobile) {
+                // Use redirect on mobile to prevent in-app browsers popup blocking
+                auth.signInWithRedirect(provider);
+            } else {
+                auth.signInWithPopup(provider).catch(err => {
+                    console.warn("Popup blocked or failed, retrying with redirect...", err);
+                    auth.signInWithRedirect(provider);
+                });
+            }
         }
     });
 
@@ -74,6 +85,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-export-json').addEventListener('click', exportJSON);
     document.getElementById('btn-clear-local').addEventListener('click', clearLocalData);
     document.getElementById('btn-sync-cloud').addEventListener('click', syncWithCloud);
+    
+    // Import bindings
+    const btnTriggerImport = document.getElementById('btn-trigger-import');
+    const inputImportJson = document.getElementById('input-import-json');
+    if (btnTriggerImport && inputImportJson) {
+        btnTriggerImport.addEventListener('click', () => inputImportJson.click());
+        inputImportJson.addEventListener('change', importJSON);
+    }
 });
 
 // Load inspections queue from LocalStorage
@@ -103,10 +122,19 @@ function generateStationDropdown() {
     }
 }
 
-// Check if URL has ?id=ESTACION-XX parameter
+// Check if URL has ?id=ESTACION-XX parameter and preserve it across redirect logins
 function checkURLParameters() {
     const params = new URLSearchParams(window.location.search);
-    const idParam = params.get('id');
+    let idParam = params.get('id');
+    
+    // Save to sessionStorage if present in URL
+    if (idParam) {
+        sessionStorage.setItem('last_scanned_station_id', idParam);
+    } else {
+        // Restore from sessionStorage if URL is clean (e.g. returning from Google Redirect login)
+        idParam = sessionStorage.getItem('last_scanned_station_id');
+    }
+    
     const select = document.getElementById('station-id');
     const badge = document.getElementById('station-locked-badge');
     
@@ -233,6 +261,13 @@ function saveInspection() {
     inspections.push(newRecord);
     localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
     
+    // Unlock station selection and clear sessionStorage since this scanned QR inspection is completed
+    sessionStorage.removeItem('last_scanned_station_id');
+    const select = document.getElementById('station-id');
+    if (select) select.disabled = false;
+    const badge = document.getElementById('station-locked-badge');
+    if (badge) badge.style.display = 'none';
+
     // Show premium visual feedback
     alert(`✅ ¡Inspección de ${station} registrada con éxito de forma local!`);
     
@@ -472,10 +507,108 @@ async function syncWithCloud() {
         
     } catch (err) {
         console.error("Cloud synchronization failed: ", err);
-        alert("Ocurrió un error al sincronizar con Firestore. Por favor, verifica tu conexión a internet.");
+        alert("Ocurrió un error al sincronizar con Firestore: " + err.message + "\nPor favor, verifica tu conexión a internet o los permisos de tu usuario.");
     } finally {
         spinner.style.display = 'none';
         syncBtn.disabled = false;
         syncBtn.innerText = 'Sincronizar con Servidor';
     }
+}
+
+// Helper: Detect in-app browsers
+function isInAppBrowser() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    return (
+        ua.indexOf('FBAN') > -1 || 
+        ua.indexOf('FBAV') > -1 || 
+        ua.indexOf('Instagram') > -1 || 
+        ua.indexOf('LINE') > -1 || 
+        ua.indexOf('WhatsApp') > -1 || 
+        ua.indexOf('Twitter') > -1 || 
+        ua.indexOf('Snapchat') > -1 || 
+        ua.indexOf('MicroMessenger') > -1 || 
+        ua.indexOf('Pinterest') > -1 || 
+        ua.indexOf('GSA') > -1 || // Google Search App
+        (ua.indexOf('wv') > -1 && ua.indexOf('Android') > -1) || // Android Webview
+        (ua.indexOf('iPhone') > -1 && ua.indexOf('Safari') === -1) // iPhone WebView (not Safari)
+    );
+}
+
+// Helper: Handle auth redirects and show warning banner
+function handleAuthRedirects() {
+    if (!auth) return;
+    
+    // Show in-app warning banner if browser is in-app
+    const banner = document.getElementById('inapp-warning-banner');
+    if (banner && isInAppBrowser()) {
+        banner.style.display = 'block';
+    }
+    
+    auth.getRedirectResult()
+        .then((result) => {
+            if (result.user) {
+                console.log("Sesión iniciada correctamente vía redirección:", result.user.email);
+            }
+        })
+        .catch((error) => {
+            console.error("Error en redirección de login:", error);
+            alert("Error al iniciar sesión vía redirección: " + error.message);
+        });
+}
+
+// Helper: Import inspections from JSON file backup
+function importJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            if (!Array.isArray(importedData)) {
+                return alert("El archivo de respaldo JSON debe ser una lista de inspecciones válida.");
+            }
+            
+            loadLocalInspections(); // ensure latest array loaded
+            
+            let addedCount = 0;
+            let skippedCount = 0;
+            
+            importedData.forEach(item => {
+                if (item.station && item.consumption && item.timestamp) {
+                    // Check duplicate by ID or station+timestamp
+                    const exists = inspections.some(existing => existing.id === item.id || (existing.station === item.station && existing.timestamp === item.timestamp));
+                    if (!exists) {
+                        const newItem = { ...item };
+                        if (!newItem.id) {
+                            newItem.id = 'ins_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                        }
+                        // Mark as pending since it comes from offline environment
+                        newItem.status = 'pendiente';
+                        inspections.push(newItem);
+                        addedCount++;
+                    } else {
+                        skippedCount++;
+                    }
+                } else {
+                    skippedCount++;
+                }
+            });
+            
+            if (addedCount > 0) {
+                localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
+                renderMonitoreo();
+                alert(`📥 Importación completada:\n- ${addedCount} inspecciones agregadas.\n- ${skippedCount} registros omitidos (duplicados o inválidos).`);
+            } else {
+                alert(`ℹ️ No se agregaron nuevos registros. ${skippedCount} registros omitidos por duplicidad o formato inválido.`);
+            }
+            
+        } catch (err) {
+            console.error("Error parsing JSON backup file:", err);
+            alert("Error al procesar el archivo JSON. Verifica que sea un archivo de respaldo válido.");
+        } finally {
+            event.target.value = '';
+        }
+    };
+    reader.readAsText(file);
 }

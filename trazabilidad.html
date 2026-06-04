@@ -278,6 +278,11 @@
 </head>
 <body>
 
+    <!-- In-App Browser Warning Banner -->
+    <div id="inapp-warning-banner" style="display: none; background: rgba(239, 68, 68, 0.2); border-bottom: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 12px; text-align: center; font-size: 0.85rem; font-weight: 500; line-height: 1.4; z-index: 1100; position: relative;">
+        ⚠️ Estás usando el navegador interno del lector QR. Para poder iniciar sesión y sincronizar sin perder tus datos locales, abre este enlace en tu navegador principal (Safari / Chrome).
+    </div>
+
     <!-- Header Navigation -->
     <nav class="navbar">
         <div class="nav-content">
@@ -473,12 +478,19 @@
 
                 <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 12px;">
                     <h3 style="margin-top: 0; font-size: 1.1rem; color: #fff; display: flex; align-items: center; gap: 8px;">
-                        📥 Descargar Copia Técnica Local
+                        📥 Descargar e Importar Copias Locales
                     </h3>
-                    <p style="font-size: 0.85rem; color: #ccc; margin: 8px 0 15px 0;">Ideal para auditorías inmediatas en terreno sin acceso a internet o para resguardar archivos CSV compatibles con Excel o JSON plano.</p>
+                    <p style="font-size: 0.85rem; color: #ccc; margin: 8px 0 15px 0;">Ideal para auditorías inmediatas en terreno sin acceso a internet o para resguardar/recuperar archivos en otros dispositivos.</p>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
                         <button id="btn-export-csv" class="btn btn-secondary" style="padding: 12px; font-size: 0.9rem;">📊 Exportar CSV</button>
                         <button id="btn-export-json" class="btn btn-secondary" style="padding: 12px; font-size: 0.9rem;">📄 Exportar JSON</button>
+                    </div>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 15px; margin-top: 10px;">
+                        <label style="display: block; font-size: 0.85rem; color: #fff; margin-bottom: 8px; font-weight: 500;">📤 Importar Respaldo JSON (útil para transferir datos de navegadores internos)</label>
+                        <input type="file" id="input-import-json" accept=".json" style="display: none;">
+                        <button id="btn-trigger-import" class="btn btn-secondary" style="width: 100%; padding: 12px; font-size: 0.9rem; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.25);">
+                            📂 Seleccionar Archivo JSON a Importar
+                        </button>
                     </div>
                 </div>
 
