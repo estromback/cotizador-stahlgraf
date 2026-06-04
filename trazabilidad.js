@@ -28,6 +28,10 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 
 let inspections = [];
+let lastKnownGPS = null;
+let leafletMap = null;
+let leafletMarkerGroup = null;
+
 let globalAppData = {
     clients: [],
     stationAssignments: []
@@ -292,6 +296,187 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Request GPS lock asynchronously to cache user's current location
+function requestGPSLock() {
+    if (!navigator.geolocation) {
+        console.warn("Geolocation is not supported by this browser.");
+        return;
+    }
+    
+    console.log("Requesting GPS coordinates lock...");
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            lastKnownGPS = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+                timestamp: Date.now()
+            };
+            console.log("GPS Lock acquired successfully:", lastKnownGPS);
+        },
+        (error) => {
+            console.warn("Could not acquire GPS position:", error.message);
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000 // Cache position for up to 1 minute
+        }
+    );
+}
+
+// Get the latest coordinates for a station from its inspections history
+function getLatestStationCoords(stationKey) {
+    const stationRecords = inspections.filter(r => r.station === stationKey && r.coords && r.coords.lat && r.coords.lng);
+    if (stationRecords.length === 0) return null;
+    const sorted = [...stationRecords].sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+    return sorted[0].coords;
+}
+
+// Initialize Leaflet satellite map and render station markers
+function initOrUpdateMap() {
+    if (typeof L === 'undefined') {
+        console.warn("Leaflet library is not loaded.");
+        return;
+    }
+
+    const filterClientIdSelect = document.getElementById('filter-client-id');
+    const filterClientId = filterClientIdSelect ? filterClientIdSelect.value : '';
+    
+    let filterClientName = '';
+    if (filterClientId) {
+        const clientObj = (globalAppData.clients || []).find(c => c.id === filterClientId);
+        if (clientObj) filterClientName = clientObj.name;
+    }
+
+    const mapStations = [];
+    const maxStations = getMaxStationNumber();
+    for (let i = 1; i <= maxStations; i++) {
+        const numStr = String(i).padStart(2, '0');
+        const stationKey = `ESTACION-${numStr}`;
+        const clientName = getClientNameForStation(i);
+        
+        // Filter logic
+        if (filterClientName && clientName !== filterClientName) {
+            continue;
+        }
+        
+        const coords = getLatestStationCoords(stationKey);
+        if (coords && coords.lat && coords.lng) {
+            mapStations.push({
+                num: i,
+                key: stationKey,
+                clientName: clientName || 'Sin Cliente',
+                coords: coords,
+                analytics: calculateStationAnalytics(stationKey)
+            });
+        }
+    }
+
+    const placeholder = document.getElementById('monitoreo-map-placeholder');
+    const mapElement = document.getElementById('monitoreo-map');
+
+    if (mapStations.length === 0) {
+        if (placeholder) placeholder.style.display = 'flex';
+        if (mapElement) mapElement.style.opacity = '0';
+        return;
+    } else {
+        if (placeholder) placeholder.style.display = 'none';
+        if (mapElement) mapElement.style.opacity = '1';
+    }
+
+    // Initialize map if it doesn't exist
+    if (!leafletMap) {
+        leafletMap = L.map('monitoreo-map', {
+            zoomControl: true,
+            scrollWheelZoom: false
+        });
+        
+        // Add Esri World Imagery (Satellite) tile layer
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+            maxZoom: 19
+        }).addTo(leafletMap);
+        
+        leafletMarkerGroup = L.layerGroup().addTo(leafletMap);
+    }
+
+    // Force map to recalculate container size
+    setTimeout(() => {
+        if (leafletMap) {
+            leafletMap.invalidateSize();
+            
+            // Clear old markers
+            leafletMarkerGroup.clearLayers();
+
+            // Scale color logic
+            function getColorForAvg(avg) {
+                if (avg <= 20) return '#10b981'; // Green
+                if (avg <= 50) return '#fbbf24'; // Yellow
+                if (avg <= 75) return '#f97316'; // Orange
+                return '#ef4444'; // Red
+            }
+
+            // Draw markers
+            mapStations.forEach(s => {
+                const avgColor = getColorForAvg(s.analytics.avg);
+                const marker = L.circleMarker([s.coords.lat, s.coords.lng], {
+                    radius: 10,
+                    fillColor: avgColor,
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.85
+                });
+
+                // Trend icon
+                let trendIcon = '';
+                if (s.analytics.trend === 'up') trendIcon = '📈';
+                else if (s.analytics.trend === 'down') trendIcon = '📉';
+                else if (s.analytics.trend === 'stable') trendIcon = '➡️';
+                
+                const numStr = String(s.num).padStart(2, '0');
+                const tooltipText = `${numStr} ${trendIcon}`;
+
+                marker.bindTooltip(tooltipText, {
+                    permanent: true,
+                    direction: 'top',
+                    className: 'premium-map-tooltip',
+                    offset: [0, -10]
+                });
+
+                const popupContent = `
+                    <div style="color: #333; font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.4; padding: 5px;">
+                        <h4 style="margin: 0 0 5px 0; font-size: 1rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+                            📍 Estación #${numStr}
+                        </h4>
+                        <p style="margin: 4px 0;"><strong>Cliente:</strong> ${s.clientName}</p>
+                        <p style="margin: 4px 0;"><strong>Último Consumo:</strong> ${s.analytics.lastVal}</p>
+                        <p style="margin: 4px 0;"><strong>Promedio Histórico:</strong> ${s.analytics.avg}%</p>
+                        <p style="margin: 8px 0 4px 0; font-size: 0.75rem; color: #64748b; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; font-family: monospace; word-break: break-all; display: flex; justify-content: space-between; align-items: center;">
+                            <span>${s.coords.lat.toFixed(6)}, ${s.coords.lng.toFixed(6)}</span>
+                            <button onclick="navigator.clipboard.writeText('${s.coords.lat},${s.coords.lng}'); alert('Coordenadas copiadas');" style="margin-left: 8px; cursor: pointer; border: none; background: transparent; font-size: 0.8rem; color: #3b82f6;">📋</button>
+                        </p>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                marker.addTo(leafletMarkerGroup);
+            });
+
+            // Auto-fit map viewport to bounds
+            if (mapStations.length > 0) {
+                const bounds = mapStations.map(s => [s.coords.lat, s.coords.lng]);
+                if (mapStations.length === 1) {
+                    leafletMap.setView(bounds[0], 17);
+                } else {
+                    leafletMap.fitBounds(bounds, { padding: [40, 40] });
+                }
+            }
+        }
+    }, 100);
+}
+
 // Load inspections queue from LocalStorage
 function loadLocalInspections() {
     const saved = localStorage.getItem('stahlgraf_qr_inspecciones');
@@ -394,6 +579,9 @@ function switchToTab(targetId) {
     if (targetId === 'panel-monitoreo') {
         renderMonitoreo();
     }
+    if (targetId === 'panel-inspeccionar') {
+        requestGPSLock();
+    }
 }
 
 // Switch tabs dynamically via event listeners
@@ -485,6 +673,7 @@ function saveInspection() {
         maintenance,
         evidence,
         notes,
+        coords: lastKnownGPS ? { ...lastKnownGPS } : null,
         timestamp: new Date().toLocaleString('es-CL'),
         status: 'pendiente'
     };
@@ -510,11 +699,6 @@ function saveInspection() {
     if (navigator.onLine && currentUser) {
         syncWithCloud(true);
     }
-
-    // Auto-sync after saving if online and logged in
-    if (navigator.onLine && currentUser) {
-        syncWithCloud(true);
-    }
 }
 
 function resetInspectionForm() {
@@ -526,6 +710,9 @@ function resetInspectionForm() {
     document.querySelectorAll('input[name="maintenance"]').forEach(cb => cb.checked = false);
     document.querySelectorAll('input[name="evidence"]').forEach(cb => cb.checked = false);
     document.getElementById('inspection-notes').value = '';
+    
+    // Reset cached GPS coordinates
+    lastKnownGPS = null;
 }
 
 // Render Monitoreo Panel (Heatmap and Table history)
@@ -667,6 +854,9 @@ function renderMonitoreo() {
     if (renderedRows === 0) {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: #888; padding: 25px;">No hay inspecciones registradas para el cliente seleccionado.</td></tr>`;
     }
+    
+    // Update map visualization
+    initOrUpdateMap();
 }
 
 // Export data as JSON file download
@@ -688,12 +878,14 @@ function exportCSV() {
     
     // Excel support for Spanish locale (UTF-8 BOM)
     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-    csvContent += "ID_Inspeccion,Estacion,Fecha_Hora,Consumo_Cebo,Mantenimiento,Evidencias,Observaciones,Estado_Sincronizacion\n";
+    csvContent += "ID_Inspeccion,Estacion,Fecha_Hora,Consumo_Cebo,Mantenimiento,Evidencias,Observaciones,Latitud,Longitud,Estado_Sincronizacion\n";
     
     inspections.forEach(ins => {
         const maintStr = (ins.maintenance || []).join('; ');
         const evidStr = (ins.evidence || []).join('; ');
         const notesClean = (ins.notes || '').replace(/"/g, '""');
+        const lat = ins.coords ? ins.coords.lat : '';
+        const lng = ins.coords ? ins.coords.lng : '';
         
         const row = [
             ins.id,
@@ -703,6 +895,8 @@ function exportCSV() {
             `"${maintStr}"`,
             `"${evidStr}"`,
             `"${notesClean}"`,
+            lat,
+            lng,
             ins.status
         ].join(',');
         
@@ -781,6 +975,7 @@ async function syncWithCloud(silent = false) {
                     maintenance: item.maintenance,
                     evidence: item.evidence,
                     notes: item.notes,
+                    coords: item.coords || null,
                     localTimestamp: item.timestamp,
                     syncedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
@@ -815,6 +1010,7 @@ async function syncWithCloud(silent = false) {
                 maintenance: data.maintenance || [],
                 evidence: data.evidence || [],
                 notes: data.notes || '',
+                coords: data.coords || null,
                 timestamp: data.localTimestamp || new Date(data.syncedAt?.seconds * 1000).toLocaleString('es-CL'),
                 status: 'sincronizado'
             };

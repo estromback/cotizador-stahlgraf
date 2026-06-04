@@ -16,6 +16,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <!-- html5-qrcode Camera Scanner Library -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    <!-- Leaflet.js Mapping CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
@@ -284,6 +288,22 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* Leaflet Premium Map Tooltip Styles */
+        .premium-map-tooltip {
+            background: rgba(15, 23, 42, 0.95) !important;
+            border: 1px solid rgba(255, 255, 255, 0.18) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            font-size: 0.78rem !important;
+            border-radius: 6px !important;
+            padding: 3px 8px !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
+            font-family: 'Inter', sans-serif !important;
+        }
+        .premium-map-tooltip::before {
+            border-top-color: rgba(15, 23, 42, 0.95) !important;
+        }
     </style>
 </head>
 <body>
@@ -462,6 +482,26 @@
                     <option value="">📋 Mostrar Todos los Clientes</option>
                     <!-- Dynamically populated -->
                 </select>
+            </div>
+
+            <!-- Mapa Satelital de Estaciones -->
+            <div id="monitoreo-map-section" style="margin-bottom: 25px;">
+                <h3 style="font-size: 1.05rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                    🗺️ Mapa Satelital de Estaciones
+                </h3>
+                <div id="monitoreo-map-wrapper" style="position: relative; height: 380px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden; background: rgba(255,255,255,0.02);">
+                    <div id="monitoreo-map" style="height: 100%; width: 100%; z-index: 1;"></div>
+                    <div id="monitoreo-map-placeholder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(4px); z-index: 5;">
+                        <span style="font-size: 2.2rem; margin-bottom: 10px;">📍</span>
+                        <p style="margin: 0; font-size: 0.95rem; color: #fff; font-weight: 600;">Sin datos de ubicación</p>
+                        <p style="margin: 6px 0 0 0; font-size: 0.8rem; color: var(--text-muted); max-width: 320px; line-height: 1.4;">
+                            Las estaciones activas no registran coordenadas GPS. Realiza una inspección para capturar la ubicación de la estación en terreno.
+                        </p>
+                    </div>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.72rem; margin-top: 5px; font-style: italic; opacity: 0.8;">
+                    * El mapa satelital requiere conexión a internet para cargar imágenes, pero las coordenadas GPS se registran offline durante la inspección.
+                </p>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
