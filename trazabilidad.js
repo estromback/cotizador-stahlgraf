@@ -196,6 +196,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnSaveAssignment) {
         btnSaveAssignment.addEventListener('click', registerAssignment);
     }
+    
+    // Client filter in Monitoreo
+    const filterClientIdSelect = document.getElementById('filter-client-id');
+    if (filterClientIdSelect) {
+        filterClientIdSelect.addEventListener('change', () => {
+            renderMonitoreo();
+        });
+    }
+    
+    // Reassignment Modal buttons
+    const btnCancelReassign = document.getElementById('btn-cancel-reassign');
+    if (btnCancelReassign) {
+        btnCancelReassign.addEventListener('click', closeReassignModal);
+    }
+    
+    const btnSaveReassign = document.getElementById('btn-save-reassign');
+    if (btnSaveReassign) {
+        btnSaveReassign.addEventListener('click', executeReassign);
+    }
 });
 
 // Load inspections queue from LocalStorage
@@ -445,13 +464,34 @@ function renderMonitoreo() {
     if (!grid) return;
     grid.innerHTML = '';
     
-    let uniqueInspected = new Set();
+    const filterClientIdSelect = document.getElementById('filter-client-id');
+    const filterClientId = filterClientIdSelect ? filterClientIdSelect.value : '';
     
+    let filterClientName = '';
+    if (filterClientId) {
+        const clientObj = (globalAppData.clients || []).find(c => c.id === filterClientId);
+        if (clientObj) filterClientName = clientObj.name;
+    }
+    
+    let uniqueInspected = new Set();
     const maxStations = getMaxStationNumber();
+    
+    let totalCount = 0;
+    let reviewedCount = 0;
     
     for (let i = 1; i <= maxStations; i++) {
         const numStr = String(i).padStart(2, '0');
         const stationKey = `ESTACION-${numStr}`;
+        
+        // Find if this station is assigned to a client
+        const clientName = getClientNameForStation(i);
+        
+        // Filter logic
+        if (filterClientName && clientName !== filterClientName) {
+            continue; // Skip this cell if filtering and it doesn't belong to the client
+        }
+        
+        totalCount++;
         
         // Find latest local record for this station
         const stationRecords = inspections.filter(r => r.station === stationKey);
@@ -462,6 +502,7 @@ function renderMonitoreo() {
                 return getRecordTimestamp(current) > getRecordTimestamp(newest) ? current : newest;
             }, stationRecords[0]);
             uniqueInspected.add(stationKey);
+            reviewedCount++;
         }
         
         let stateClass = 'station-gray';
@@ -484,8 +525,6 @@ function renderMonitoreo() {
         const cell = document.createElement('div');
         cell.className = `station-cell ${stateClass}`;
         
-        // Check if this station is assigned to a client
-        const clientName = getClientNameForStation(i);
         const clientLabel = clientName ? `<span style="font-size:0.65rem; color:#aaa; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top:2px; font-weight: 500;">👤 ${clientName}</span>` : '';
         
         cell.innerHTML = `
@@ -516,7 +555,7 @@ function renderMonitoreo() {
         grid.appendChild(cell);
     }
     
-    document.getElementById('stat-reviewed-count').innerText = `${uniqueInspected.size} / ${maxStations}`;
+    document.getElementById('stat-reviewed-count').innerText = `${reviewedCount} / ${totalCount}`;
     
     // Draw Activity History List Table
     const tbody = document.getElementById('activity-list');
@@ -530,7 +569,18 @@ function renderMonitoreo() {
     
     // Show latest records first
     const sorted = [...inspections].reverse();
+    let renderedRows = 0;
+    
     sorted.forEach(ins => {
+        if (filterClientName) {
+            const num = parseInt(ins.station.replace('ESTACION-', ''), 10);
+            const instClient = getClientNameForStation(num);
+            if (instClient !== filterClientName) {
+                return; // Skip this history row if it doesn't belong to the client
+            }
+        }
+        
+        renderedRows++;
         const tr = document.createElement('tr');
         
         let badge = '';
@@ -548,6 +598,10 @@ function renderMonitoreo() {
         `;
         tbody.appendChild(tr);
     });
+    
+    if (renderedRows === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: #888; padding: 25px;">No hay inspecciones registradas para el cliente seleccionado.</td></tr>`;
+    }
 }
 
 // Export data as JSON file download
@@ -1010,7 +1064,9 @@ function getClientNameForStation(stationNum) {
 function populateClientsDropdown() {
     const select = document.getElementById('assign-client-id');
     const selectInstall = document.getElementById('install-client-id');
-    if (!select && !selectInstall) return;
+    const selectFilter = document.getElementById('filter-client-id');
+    const selectReassign = document.getElementById('reassign-client-select');
+    if (!select && !selectInstall && !selectFilter && !selectReassign) return;
     
     const clients = globalAppData.clients || [];
     const sortedClients = [...clients].sort((a, b) => a.name.localeCompare(b.name));
@@ -1047,6 +1103,43 @@ function populateClientsDropdown() {
                 selectInstall.appendChild(opt);
             });
         }
+    }
+    
+    if (selectFilter) {
+        const currentVal = selectFilter.value;
+        selectFilter.innerHTML = '';
+        
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = '📋 Mostrar Todos los Clientes';
+        selectFilter.appendChild(defaultOpt);
+        
+        sortedClients.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.name;
+            selectFilter.appendChild(opt);
+        });
+        
+        if (currentVal && Array.from(selectFilter.options).some(o => o.value === currentVal)) {
+            selectFilter.value = currentVal;
+        }
+    }
+    
+    if (selectReassign) {
+        selectReassign.innerHTML = '';
+        
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = '❌ Sin Cliente (Desvincular)';
+        selectReassign.appendChild(defaultOpt);
+        
+        sortedClients.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.name;
+            selectReassign.appendChild(opt);
+        });
     }
 }
 
@@ -1221,12 +1314,130 @@ function updateStationClientInfo() {
     if (assignment) {
         const client = (globalAppData.clients || []).find(c => c.id === assignment.clientId || c.name === assignment.clientName);
         const addressText = client && client.address ? ` | 📍 Dirección: ${client.address}` : '';
-        infoDiv.innerHTML = `<strong>👤 Cliente:</strong> ${assignment.clientName}${addressText}`;
+        infoDiv.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;">
+                <div><strong>👤 Cliente:</strong> ${assignment.clientName}${addressText}</div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="openReassignModal(${num})" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; flex-shrink: 0; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; margin: 0;">
+                    ✏️ Corregir
+                </button>
+            </div>
+        `;
         infoDiv.style.display = 'block';
     } else {
-        infoDiv.style.display = 'none';
+        infoDiv.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;">
+                <div style="color: #fbbf24; font-weight: 500;">⚠️ Estación virgen (sin cliente asignado)</div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="openReassignModal(${num})" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; flex-shrink: 0; margin: 0; background: var(--primary); border: none; color: #fff;">
+                    ➕ Vincular Cliente
+                </button>
+            </div>
+        `;
+        infoDiv.style.display = 'block';
     }
+}
+
+// Action: Open reassignment modal for a specific station
+function openReassignModal(stationNum) {
+    const modal = document.getElementById('reassign-modal');
+    if (!modal) return;
+    
+    document.getElementById('reassign-station-num').value = stationNum;
+    
+    const numStr = String(stationNum).padStart(2, '0');
+    document.getElementById('reassign-modal-title').innerText = `✏️ Modificar Estación #${numStr}`;
+    
+    const currentClientName = getClientNameForStation(stationNum);
+    if (currentClientName) {
+        document.getElementById('reassign-modal-desc').innerText = `Esta estación está asignada actualmente a: ${currentClientName}. Selecciona otro cliente o desvincula la estación.`;
+    } else {
+        document.getElementById('reassign-modal-desc').innerText = `Esta estación no tiene asignación. Selecciona un cliente para vincularla.`;
+    }
+    
+    // Set active select option
+    const select = document.getElementById('reassign-client-select');
+    if (select) {
+        const option = Array.from(select.options).find(opt => opt.textContent === currentClientName);
+        if (option) {
+            select.value = option.value;
+        } else {
+            select.value = '';
+        }
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeReassignModal() {
+    const modal = document.getElementById('reassign-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function executeReassign() {
+    const stationVal = document.getElementById('reassign-station-num').value;
+    const num = parseInt(stationVal, 10);
+    if (isNaN(num)) return;
+    
+    const select = document.getElementById('reassign-client-select');
+    const clientId = select.value;
+    const option = select.options[select.selectedIndex];
+    const clientName = (option && clientId) ? option.textContent : '';
+    
+    // Split/update range assignments containing this station
+    let assignments = globalAppData.stationAssignments || [];
+    let newAssignments = [];
+    
+    assignments.forEach(item => {
+        const s = parseInt(item.start, 10);
+        const e = parseInt(item.end, 10);
+        
+        if (num >= s && num <= e) {
+            if (s < num) {
+                newAssignments.push({
+                    id: 'asg_' + Date.now() + '_L_' + Math.floor(Math.random() * 1000),
+                    clientId: item.clientId,
+                    clientName: item.clientName,
+                    start: s,
+                    end: num - 1
+                });
+            }
+            if (e > num) {
+                newAssignments.push({
+                    id: 'asg_' + Date.now() + '_R_' + Math.floor(Math.random() * 1000),
+                    clientId: item.clientId,
+                    clientName: item.clientName,
+                    start: num + 1,
+                    end: e
+                });
+            }
+        } else {
+            newAssignments.push(item);
+        }
+    });
+    
+    if (clientId && clientName) {
+        newAssignments.push({
+            id: 'asg_' + Date.now() + '_M_' + Math.floor(Math.random() * 1000),
+            clientId,
+            clientName,
+            start: num,
+            end: num
+        });
+    }
+    
+    globalAppData.stationAssignments = newAssignments;
+    saveGlobalAppData();
+    
+    // Refresh displays
+    generateStationDropdown();
+    renderAssignmentsList();
+    renderMonitoreo();
+    updateStationClientInfo();
+    
+    closeReassignModal();
+    alert(`✅ Estación #${String(num).padStart(2, '0')} modificada con éxito.`);
 }
 
 // Expose deleteAssignment to the global scope for HTML inline onclick
 window.deleteAssignment = deleteAssignment;
+window.openReassignModal = openReassignModal;
+window.closeReassignModal = closeReassignModal;
