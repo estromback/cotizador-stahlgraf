@@ -269,7 +269,6 @@ function saveInspection() {
     
     // Unlock station selection and clear sessionStorage since this scanned QR inspection is completed
     sessionStorage.removeItem('last_scanned_station_id');
-    const select = document.getElementById('station-id');
     if (select) select.disabled = false;
     const badge = document.getElementById('station-locked-badge');
     if (badge) badge.style.display = 'none';
