@@ -41,6 +41,11 @@ if (auth) {
             syncIcon.innerText = '🟢';
             document.getElementById('btn-sync-login').classList.remove('btn-primary-outline');
             document.getElementById('btn-sync-login').classList.add('btn-secondary');
+            
+            // Auto-sync when login status is detected and online
+            if (navigator.onLine) {
+                syncWithCloud(true);
+            }
         } else {
             syncText.innerText = "Ingresar para Sync";
             syncIcon.innerText = '☁️';
@@ -79,7 +84,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-export-csv').addEventListener('click', exportCSV);
     document.getElementById('btn-export-json').addEventListener('click', exportJSON);
     document.getElementById('btn-clear-local').addEventListener('click', clearLocalData);
-    document.getElementById('btn-sync-cloud').addEventListener('click', syncWithCloud);
+    document.getElementById('btn-sync-cloud').addEventListener('click', () => syncWithCloud(false));
+    
+    // Auto-sync when connection is restored
+    window.addEventListener('online', () => {
+        if (currentUser) {
+            syncWithCloud(true);
+        }
+    });
     
     // Import bindings
     const btnTriggerImport = document.getElementById('btn-trigger-import');
@@ -274,6 +286,11 @@ function saveInspection() {
     // Clear inputs (except station if locked)
     resetInspectionForm();
     renderMonitoreo();
+
+    // Auto-sync after saving if online and logged in
+    if (navigator.onLine && currentUser) {
+        syncWithCloud(true);
+    }
 }
 
 function resetInspectionForm() {
@@ -455,63 +472,138 @@ function clearLocalData() {
     }
 }
 
-// Sync pending local records to Firebase Firestore
-async function syncWithCloud() {
+// Two-way Sync (Push pending offline logs, and Pull last 100 entries from Cloud)
+async function syncWithCloud(silent = false) {
     if (!currentUser || !db) {
-        return alert("⚠️ Debes iniciar sesión con Google mediante el botón superior para sincronizar con la nube.");
+        if (!silent) {
+            alert("⚠️ Debes iniciar sesión con Google mediante el botón superior para sincronizar con la nube.");
+        }
+        return;
+    }
+    
+    // Check connection
+    if (!navigator.onLine) {
+        if (!silent) {
+            alert("⚠️ Estás desconectado. Verifica tu conexión a internet.");
+        }
+        return;
     }
     
     loadLocalInspections();
     const pending = inspections.filter(r => r.status === 'pendiente');
     
-    if (pending.length === 0) {
-        return alert("¡Todos tus registros locales ya están sincronizados con la nube!");
-    }
-    
     const spinner = document.getElementById('sync-spinner');
     const syncBtn = document.getElementById('btn-sync-cloud');
     
-    spinner.style.display = 'inline-block';
-    syncBtn.disabled = true;
-    syncBtn.innerText = 'Sincronizando...';
+    if (spinner && syncBtn) {
+        spinner.style.display = 'inline-block';
+        syncBtn.disabled = true;
+        syncBtn.innerText = 'Sincronizando...';
+    }
     
     try {
-        const batch = db.batch();
-        const userRef = db.collection('users').doc(currentUser.uid);
+        let uploadedCount = 0;
         
-        pending.forEach(item => {
-            const docRef = userRef.collection('inspecciones').doc(item.id);
-            batch.set(docRef, {
-                station: item.station,
-                consumption: item.consumption,
-                maintenance: item.maintenance,
-                evidence: item.evidence,
-                notes: item.notes,
-                localTimestamp: item.timestamp,
-                syncedAt: firebase.firestore.FieldValue.serverTimestamp()
+        // 1. PUSH: Upload pending local inspections to Firestore
+        if (pending.length > 0) {
+            const batch = db.batch();
+            const userRef = db.collection('users').doc(currentUser.uid);
+            
+            pending.forEach(item => {
+                const docRef = userRef.collection('inspecciones').doc(item.id);
+                batch.set(docRef, {
+                    station: item.station,
+                    consumption: item.consumption,
+                    maintenance: item.maintenance,
+                    evidence: item.evidence,
+                    notes: item.notes,
+                    localTimestamp: item.timestamp,
+                    syncedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
             });
-        });
+            
+            await batch.commit();
+            
+            // Update local state to synced
+            inspections.forEach(item => {
+                if (item.status === 'pendiente') {
+                    item.status = 'sincronizado';
+                }
+            });
+            localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
+            uploadedCount = pending.length;
+        }
         
-        await batch.commit();
+        // 2. PULL: Download historical inspections from Firestore and merge
+        const userRef = db.collection('users').doc(currentUser.uid);
+        const snapshot = await userRef.collection('inspecciones').orderBy('localTimestamp', 'desc').limit(100).get();
         
-        // Update local state to synced
-        inspections.forEach(item => {
-            if (item.status === 'pendiente') {
-                item.status = 'sincronizado';
+        let pulledCount = 0;
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const recordId = doc.id;
+            
+            const pulledRecord = {
+                id: recordId,
+                station: data.station,
+                consumption: data.consumption,
+                maintenance: data.maintenance || [],
+                evidence: data.evidence || [],
+                notes: data.notes || '',
+                timestamp: data.localTimestamp || new Date(data.syncedAt?.seconds * 1000).toLocaleString('es-CL'),
+                status: 'sincronizado'
+            };
+            
+            // Check if record exists locally
+            const localIndex = inspections.findIndex(item => item.id === recordId);
+            if (localIndex === -1) {
+                inspections.push(pulledRecord);
+                pulledCount++;
+            } else {
+                // If it exists locally but was pending, it means it's now synced
+                if (inspections[localIndex].status === 'pendiente') {
+                    inspections[localIndex].status = 'sincronizado';
+                }
             }
         });
-        localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
         
-        alert(`🎉 ¡Éxito! Se han sincronizado ${pending.length} registros con el servidor de la nube.`);
+        // Sort chronologically (oldest to newest, as renderMonitoreo reverses it)
+        const parseDate = (str) => {
+            try {
+                const parts = str.split(/[\s,/\-]+/);
+                if (parts.length >= 6) {
+                    return new Date(parts[2], parts[1] - 1, parts[0], parts[3], parts[4], parts[5]);
+                }
+            } catch(e) {}
+            return new Date(str);
+        };
+        inspections.sort((a, b) => parseDate(a.timestamp) - parseDate(b.timestamp));
+        
+        localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
         renderMonitoreo();
         
+        if (!silent) {
+            let msg = "¡Sincronización completada con éxito!";
+            if (uploadedCount > 0 || pulledCount > 0) {
+                msg += `\n- Subidos: ${uploadedCount} registros pendientes.\n- Descargados: ${pulledCount} registros históricos nuevos.`;
+            } else {
+                msg += "\nNo había nuevos datos locales ni remotos para transferir.";
+            }
+            alert(msg);
+        }
+        
     } catch (err) {
-        console.error("Cloud synchronization failed: ", err);
-        alert("Ocurrió un error al sincronizar con Firestore: " + err.message + "\nPor favor, verifica tu conexión a internet o los permisos de tu usuario.");
+        console.error("Sync failed: ", err);
+        if (!silent) {
+            alert("Ocurrió un error al sincronizar con Firestore: " + err.message + "\nPor favor, verifica tu conexión a internet.");
+        }
     } finally {
-        spinner.style.display = 'none';
-        syncBtn.disabled = false;
-        syncBtn.innerText = 'Sincronizar con Servidor';
+        if (spinner && syncBtn) {
+            spinner.style.display = 'none';
+            syncBtn.disabled = false;
+            syncBtn.innerText = 'Sincronizar con Servidor';
+        }
     }
 }
 
