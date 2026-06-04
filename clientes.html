@@ -15,6 +15,13 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
 
+    <!-- Leaflet.js Mapping CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- html2pdf.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -106,10 +113,248 @@
             margin-top: 20px;
             border-top: 1px solid rgba(255,255,255,0.05);
             padding-top: 15px;
+            flex-wrap: wrap;
         }
 
         .modal-body .input-group {
             margin-bottom: 15px;
+        }
+
+        /* History Modal Role Switch & Tabs Styles */
+        .role-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-right: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .role-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+        #client-history-modal.role-client .role-label.client-lbl {
+            color: var(--primary);
+            text-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+            font-weight: 700;
+        }
+        #client-history-modal:not(.role-client) .role-label.admin-lbl {
+            color: var(--accent);
+            text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+            font-weight: 700;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--accent);
+            transition: .3s;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+        }
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+        .slider.round {
+            border-radius: 34px;
+        }
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        .tabs-container {
+            display: flex;
+            gap: 5px;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 20px;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+            transition: var(--transition);
+        }
+        .tab-btn:hover {
+            color: var(--text-main);
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .tab-panel {
+            display: none;
+        }
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Role Visibility Control */
+        #client-history-modal.role-client .admin-only {
+            display: none !important;
+        }
+        #client-history-modal.role-client .price-column,
+        #client-history-modal.role-client .price-detail {
+            display: none !important;
+        }
+
+        /* Layout & Table styles for History modal */
+        .history-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 800px) {
+            .history-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .history-section-title {
+            font-size: 1.1rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #fff;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 8px;
+        }
+        .history-table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 15px;
+            background: rgba(0,0,0,0.15);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+        .history-table th {
+            background: rgba(255,255,255,0.03);
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .history-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: var(--text-main);
+            vertical-align: top;
+        }
+        .history-table tr:hover {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .pill-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .pill-badge-primary { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .pill-badge-success { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .pill-badge-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .pill-badge-danger { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .pill-badge-secondary { background: rgba(71, 85, 105, 0.15); color: #cbd5e1; border: 1px solid rgba(71, 85, 105, 0.3); }
+
+        .form-row-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .form-btn-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 15px;
+        }
+        .stat-card-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .mini-stat-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        .mini-stat-card .val {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 2px;
+        }
+        .mini-stat-card .lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .comments-list-wrapper {
+            max-height: 250px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.15);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-bottom: 15px;
+            scrollbar-width: thin;
+        }
+        .comment-item {
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+        .comment-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 3px;
         }
     </style>
 </head>
@@ -197,6 +442,259 @@
                 </div>
                 <div class="flex-actions" style="margin-top: 20px;">
                     <button id="btn-copy-emails" class="btn btn-primary" style="width:100%;">Copiar al Portapapeles</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client Central History Modal ("Master") -->
+    <div id="client-history-modal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 1000px; width: 95%;">
+            <div class="modal-header" style="flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h2 id="history-modal-title" style="margin: 0; font-size: 1.5rem;">Historial Central</h2>
+                    <span id="history-modal-subtitle" style="font-size: 0.85rem; color: var(--text-muted);">Cargando...</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px; margin-left: auto;">
+                    <!-- Role Conmutator Toggle -->
+                    <div class="role-toggle-container">
+                        <span class="role-label admin-lbl">Admin/Técnico</span>
+                        <label class="switch">
+                            <input type="checkbox" id="role-toggle-checkbox">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="role-label client-lbl">Cliente (Preview)</span>
+                    </div>
+                    <button id="btn-close-history-modal" class="close-btn">&times;</button>
+                </div>
+            </div>
+            
+            <div class="modal-body" style="padding-top: 0;">
+                <!-- Tabs Row -->
+                <div class="tabs-container">
+                    <button class="tab-btn active" data-tab="history-tab-summary">📊 Resumen & Estaciones</button>
+                    <button class="tab-btn" data-tab="history-tab-services">🛠️ Servicios Realizados</button>
+                    <button class="tab-btn" data-tab="history-tab-quotes">💰 Cotizaciones</button>
+                    <button class="tab-btn" data-tab="history-tab-reports">📄 Informes Técnicos</button>
+                    <button class="tab-btn" data-tab="history-tab-crm">💬 CRM & Seguimiento</button>
+                </div>
+                
+                <!-- Tab 1: Resumen & Estaciones -->
+                <div id="history-tab-summary" class="tab-panel active">
+                    <div class="history-grid">
+                        <div>
+                            <h3 class="history-section-title">Detalles del Cliente</h3>
+                            <div style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
+                                <div class="info-row"><span class="info-label" style="width: 100px;">Contacto:</span><span id="hist-client-attention">-</span></div>
+                                <div class="info-row"><span class="info-label" style="width: 100px;">Teléfono:</span><span id="hist-client-phone">-</span></div>
+                                <div class="info-row"><span class="info-label" style="width: 100px;">Email:</span><span id="hist-client-email">-</span></div>
+                                <div class="info-row"><span class="info-label" style="width: 100px;">Dirección:</span><span id="hist-client-address">-</span></div>
+                            </div>
+                            
+                            <h3 class="history-section-title">Estaciones de Monitoreo</h3>
+                            <div class="stat-card-row">
+                                <div class="mini-stat-card">
+                                    <div class="val" id="hist-stat-stations">0</div>
+                                    <div class="lbl">Asignadas</div>
+                                </div>
+                                <div class="mini-stat-card" style="border-color: rgba(239, 68, 68, 0.2);">
+                                    <div class="val" id="hist-stat-alerts" style="color: var(--danger);">0</div>
+                                    <div class="lbl">Con Alerta</div>
+                                </div>
+                                <div class="mini-stat-card">
+                                    <div class="val" id="hist-stat-last-date" style="font-size: 0.95rem; padding-top: 5px;">-</div>
+                                    <div class="lbl">Última Insp.</div>
+                                </div>
+                            </div>
+                            
+                            <h3 class="history-section-title" style="margin-top: 15px;">Reportes de Cebado Enviados</h3>
+                            <div class="admin-only" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 12px;">
+                                <h4 style="margin: 0 0 10px 0; font-size: 0.85rem; color: #fff;">Registrar Envío</h4>
+                                <div class="form-row-grid">
+                                    <div class="input-group" style="margin-bottom:0;">
+                                        <label style="font-size:0.75rem;">Fecha Envío</label>
+                                        <input type="date" id="report-sent-date" style="padding: 6px; font-size: 0.8rem;">
+                                    </div>
+                                    <div class="input-group" style="margin-bottom:0;">
+                                        <label style="font-size:0.75rem;">Destinatarios</label>
+                                        <input type="text" id="report-sent-emails" placeholder="contacto@cliente.cl" style="padding: 6px; font-size: 0.8rem;">
+                                    </div>
+                                </div>
+                                <div class="input-group" style="margin-bottom: 10px;">
+                                    <label style="font-size:0.75rem;">Detalles / Comentarios</label>
+                                    <input type="text" id="report-sent-notes" placeholder="Se envía PDF consolidado de estaciones de cebado..." style="padding: 6px; font-size: 0.8rem;">
+                                </div>
+                                <div style="display:flex; justify-content:flex-end;">
+                                    <button class="btn btn-primary btn-sm" id="btn-save-report-sent" style="font-size: 0.75rem; padding: 4px 10px;">Guardar Envío</button>
+                                </div>
+                            </div>
+                            
+                            <div class="history-table-container" style="max-height: 150px;">
+                                <table class="history-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Destinatarios</th>
+                                            <th>Detalles</th>
+                                            <th class="admin-only">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hist-reports-sent-list">
+                                        <!-- Dynamic rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="history-section-title">Mapa Satelital de Estaciones</h3>
+                            <div id="history-map" style="height: 380px; width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2);"></div>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">
+                                📍 Marcadores muestran la última ubicación registrada de cada estación. Colores indican el nivel de alerta/consumo histórico.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab 2: Servicios Realizados -->
+                <div id="history-tab-services" class="tab-panel">
+                    <div class="admin-only" style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
+                        <h3 class="history-section-title" style="font-size: 1rem; border-bottom: none; margin-bottom: 10px;">Registrar Servicio Realizado</h3>
+                        <input type="hidden" id="service-id">
+                        <div class="form-row-grid">
+                            <div class="input-group">
+                                <label>Tipo de Servicio</label>
+                                <select id="service-type">
+                                    <option value="Fumigación">Fumigación</option>
+                                    <option value="Sanitización">Sanitización</option>
+                                    <option value="Desratización">Desratización</option>
+                                    <option value="Exclusión Física">Exclusión Física</option>
+                                    <option value="Tapar Agujeros">Tapar Agujeros</option>
+                                    <option value="Control de Aves">Control de Aves</option>
+                                    <option value="Trabajos Generales">Trabajos Generales</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Fecha de Aplicación</label>
+                                <input type="date" id="service-date">
+                            </div>
+                            <div class="input-group">
+                                <label>Valor / Precio ($)</label>
+                                <input type="number" id="service-price" placeholder="Ej. 45000">
+                            </div>
+                            <div class="input-group">
+                                <label>Técnico Responsable</label>
+                                <input type="text" id="service-technician" placeholder="Ej. Carlos M.">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label>Detalles / Observaciones del Servicio</label>
+                            <textarea id="service-notes" rows="2" placeholder="Describa el trabajo realizado, químicos aplicados, etc..."></textarea>
+                        </div>
+                        <div class="form-btn-row">
+                            <button class="btn btn-primary" id="btn-save-service">Guardar Servicio</button>
+                        </div>
+                    </div>
+                    
+                    <h3 class="history-section-title">Bitácora de Trabajos y Servicios</h3>
+                    <div class="history-table-container">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Servicio</th>
+                                    <th>Técnico</th>
+                                    <th>Detalles / Comentarios</th>
+                                    <th class="price-column">Valor</th>
+                                    <th class="admin-only" style="width: 80px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hist-services-list">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Tab 3: Cotizaciones -->
+                <div id="history-tab-quotes" class="tab-panel">
+                    <h3 class="history-section-title">Historial de Cotizaciones</h3>
+                    <div class="history-table-container">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Código / ID</th>
+                                    <th>Servicios / Detalle</th>
+                                    <th class="price-column">Monto Total</th>
+                                    <th>Estado</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hist-quotes-list">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Tab 4: Informes Técnicos -->
+                <div id="history-tab-reports" class="tab-panel">
+                    <h3 class="history-section-title">Informes de Inspección Técnica</h3>
+                    <div class="history-table-container">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>ID Informe</th>
+                                    <th>Técnico</th>
+                                    <th>Recomendaciones / Plagas</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hist-reports-list">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Tab 5: CRM & Seguimiento -->
+                <div id="history-tab-crm" class="tab-panel">
+                    <div class="history-grid" style="grid-template-columns: 1fr 2fr;">
+                        <div>
+                            <h3 class="history-section-title">Estado en Pipeline</h3>
+                            <div style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px; text-align: center;">
+                                <span style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 8px;">Columna Actual CRM:</span>
+                                <span id="hist-crm-stage" class="pill-badge pill-badge-primary" style="font-size: 1.1rem; padding: 6px 16px;">Sin Tarjeta CRM</span>
+                            </div>
+                            
+                            <div class="admin-only" style="background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                                <h4 style="margin: 0 0 10px 0; font-size: 0.9rem; color: #fff;">Crear/Actualizar Pipeline</h4>
+                                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px;">
+                                    Si deseas registrar o cambiar la etapa CRM de este cliente, puedes hacerlo directamente desde el panel de CRM principal.
+                                </p>
+                                <a href="crm.html" class="btn btn-secondary btn-sm" style="width: 100%; text-decoration: none;">Ir al CRM</a>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="history-section-title">Notas de Seguimiento y Comentarios</h3>
+                            <div class="comments-list-wrapper" id="hist-crm-comments-list">
+                                <p style="color:#666; font-size:0.9rem;">Cargando comentarios...</p>
+                            </div>
+                            
+                            <div class="admin-only">
+                                <div class="input-group" style="margin-bottom: 10px;">
+                                    <textarea id="hist-crm-new-comment" rows="3" placeholder="Escribe un comentario o nota de seguimiento interna..."></textarea>
+                                </div>
+                                <div style="display: flex; justify-content: flex-end;">
+                                    <button class="btn btn-primary btn-sm" id="btn-add-hist-comment">Agregar Comentario</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
