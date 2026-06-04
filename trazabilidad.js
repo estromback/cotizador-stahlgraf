@@ -1119,7 +1119,7 @@ function renderMonitoreo() {
                 summaries.forEach(c => {
                     const card = document.createElement('div');
                     card.className = 'client-summary-card glass-panel';
-                    card.style.cssText = 'padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255, 255, 255, 0.02); transition: all 0.25s ease; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; height: 180px; box-sizing: border-box;';
+                    card.style.cssText = 'padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255, 255, 255, 0.02); transition: all 0.25s ease; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; min-height: 195px; height: auto; box-sizing: border-box;';
                     
                     // Hover dynamic effects
                     card.addEventListener('mouseenter', () => {
@@ -1201,6 +1201,7 @@ function renderMonitoreo() {
     
     let totalCount = 0;
     let reviewedCount = 0;
+    let criticalCount = 0;
     
     for (let i = 1; i <= maxStations; i++) {
         const numStr = String(i).padStart(2, '0');
@@ -1234,6 +1235,11 @@ function renderMonitoreo() {
             statusText = `Último: ${consumption}<br>Prom: ${analytics.avg}%`;
             uniqueInspected.add(stationKey);
             reviewedCount++;
+            
+            // A station is critical if average consumption is > 50% or the latest consumption is high (75% or 100%)
+            if (analytics.avg > 50 || analytics.lastVal === '75%' || analytics.lastVal === '100%') {
+                criticalCount++;
+            }
         } else {
             statusText = 'Sin datos';
         }
@@ -1269,6 +1275,23 @@ function renderMonitoreo() {
     }
     
     document.getElementById('stat-reviewed-count').innerText = `${reviewedCount} / ${totalCount}`;
+    
+    const statCriticalCount = document.getElementById('stat-critical-count');
+    if (statCriticalCount) {
+        statCriticalCount.innerText = criticalCount;
+        const criticalCard = document.getElementById('stat-critical-card');
+        if (criticalCard) {
+            if (criticalCount > 0) {
+                criticalCard.style.background = 'rgba(239, 68, 68, 0.08)';
+                criticalCard.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+                statCriticalCount.style.color = '#f87171';
+            } else {
+                criticalCard.style.background = 'rgba(16, 185, 129, 0.05)';
+                criticalCard.style.borderColor = 'rgba(16, 185, 129, 0.15)';
+                statCriticalCount.style.color = '#34d399';
+            }
+        }
+    }
     
     // Draw Activity History List Table
     const tbody = document.getElementById('activity-list');

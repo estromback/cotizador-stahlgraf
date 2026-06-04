@@ -539,14 +539,18 @@
                     </p>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">
                     <div class="stat-card" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 10px;">
                         <h4 style="margin: 0; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Estaciones Revisadas</h4>
-                        <p id="stat-reviewed-count" style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: 700; color: #fff;">0 / 15</p>
+                        <p id="stat-reviewed-count" style="margin: 5px 0 0 0; font-size: 1.6rem; font-weight: 700; color: #fff;">0 / 15</p>
+                    </div>
+                    <div class="stat-card" id="stat-critical-card" style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.15); padding: 15px; border-radius: 10px;">
+                        <h4 style="margin: 0; color: #f87171; font-size: 0.8rem; text-transform: uppercase;">Focos de Alerta</h4>
+                        <p id="stat-critical-count" style="margin: 5px 0 0 0; font-size: 1.6rem; font-weight: 700; color: #f87171;">0</p>
                     </div>
                     <div class="stat-card" style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.15); padding: 15px; border-radius: 10px;">
-                        <h4 style="margin: 0; color: #fbbf24; font-size: 0.8rem; text-transform: uppercase;">Pendientes de Sincronizar</h4>
-                        <p id="stat-pending-count" style="margin: 5px 0 0 0; font-size: 1.8rem; font-weight: 700; color: #fbbf24;">0</p>
+                        <h4 style="margin: 0; color: #fbbf24; font-size: 0.8rem; text-transform: uppercase;">Por Sincronizar</h4>
+                        <p id="stat-pending-count" style="margin: 5px 0 0 0; font-size: 1.6rem; font-weight: 700; color: #fbbf24;">0</p>
                     </div>
                 </div>
 
