@@ -716,7 +716,7 @@ function initOrUpdateMap() {
                 if (mapStations.length === 1) {
                     leafletMap.setView(bounds[0], 17);
                 } else {
-                    leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
+                    leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 19 });
                 }
             }
         }
@@ -2817,7 +2817,7 @@ async function generatePDFReport() {
             if (bounds.length === 1) {
                 leafletMap.setView(bounds[0], 17);
             } else {
-                leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
+                leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 19 });
             }
         }
     } else {
@@ -2865,7 +2865,7 @@ async function generatePDFReport() {
                     if (bounds.length === 1) {
                         leafletMap.setView(bounds[0], 17);
                     } else {
-                        leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 18 });
+                        leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 19 });
                     }
                 }
             }
