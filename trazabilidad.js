@@ -28,6 +28,52 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 
 let inspections = [];
+let globalAppData = {
+    clients: [],
+    stationAssignments: []
+};
+
+// Load global configuration (clients & assignments) from LocalStorage
+function loadGlobalAppData() {
+    const saved = localStorage.getItem('stahlgraf_data_v4');
+    if (saved) {
+        try {
+            globalAppData = { ...globalAppData, ...JSON.parse(saved) };
+        } catch (e) {
+            console.error("Error reading global LocalStorage data", e);
+        }
+    }
+}
+
+// Save global configuration to LocalStorage and sync to Firestore user configuration
+function saveGlobalAppData() {
+    localStorage.setItem('stahlgraf_data_v4', JSON.stringify(globalAppData));
+    if (currentUser && db) {
+        db.collection('users').doc(currentUser.uid).set(globalAppData, { merge: true })
+            .catch(err => console.error("Error saving global configuration to Firebase:", err));
+    }
+}
+
+// Sync global configuration from Firebase user document
+function syncGlobalDataFromFirebase() {
+    if (!currentUser || !db) return;
+    db.collection('users').doc(currentUser.uid).get().then(doc => {
+        if (doc.exists) {
+            const cloudData = doc.data();
+            globalAppData = { ...globalAppData, ...cloudData };
+            localStorage.setItem('stahlgraf_data_v4', JSON.stringify(globalAppData));
+            
+            // Refresh views
+            populateClientsDropdown();
+            generateStationDropdown();
+            renderAssignmentsList();
+            renderMonitoreo();
+            updateStationClientInfo();
+        }
+    }).catch(err => {
+        console.error("Error syncing global configuration from Firebase:", err);
+    });
+}
 
 // Initialize and Listen for Auth Changes
 if (auth) {
@@ -41,6 +87,9 @@ if (auth) {
             syncIcon.innerText = '🟢';
             document.getElementById('btn-sync-login').classList.remove('btn-primary-outline');
             document.getElementById('btn-sync-login').classList.add('btn-secondary');
+            
+            // Fetch central database configuration (clients & assignments) on login
+            syncGlobalDataFromFirebase();
             
             // Auto-sync when login status is detected and online
             if (navigator.onLine) {
@@ -56,6 +105,7 @@ if (auth) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadGlobalAppData();
     loadLocalInspections();
     generateStationDropdown();
     checkURLParameters();
@@ -63,6 +113,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCheckboxMutualExclusions();
     renderMonitoreo();
     handleAuthRedirects();
+    
+    // Initial renders for assignments
+    populateClientsDropdown();
+    renderAssignmentsList();
+    updateStationClientInfo();
 
     // Event Bindings
     document.getElementById('btn-sync-login').addEventListener('click', () => {
@@ -106,6 +161,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCloseScanner = document.getElementById('btn-close-scanner');
     if (btnScanQr) btnScanQr.addEventListener('click', openScanner);
     if (btnCloseScanner) btnCloseScanner.addEventListener('click', closeScanner);
+    
+    // Station dropdown change event
+    const stationIdSelect = document.getElementById('station-id');
+    if (stationIdSelect) {
+        stationIdSelect.addEventListener('change', updateStationClientInfo);
+    }
+    
+    // Installation Mode events
+    const chkInstallMode = document.getElementById('chk-install-mode');
+    const installClientContainer = document.getElementById('install-client-selector-container');
+    if (chkInstallMode && installClientContainer) {
+        chkInstallMode.addEventListener('change', () => {
+            if (chkInstallMode.checked) {
+                installClientContainer.style.display = 'block';
+                updateStationClientInfo();
+            } else {
+                installClientContainer.style.display = 'none';
+            }
+        });
+    }
+    
+    const installClientIdSelect = document.getElementById('install-client-id');
+    if (installClientIdSelect) {
+        installClientIdSelect.addEventListener('change', () => {
+            if (chkInstallMode && chkInstallMode.checked) {
+                updateStationClientInfo();
+            }
+        });
+    }
+    
+    // Save range assignment binding
+    const btnSaveAssignment = document.getElementById('btn-save-assignment');
+    if (btnSaveAssignment) {
+        btnSaveAssignment.addEventListener('click', registerAssignment);
+    }
 });
 
 // Load inspections queue from LocalStorage
@@ -121,17 +211,38 @@ function loadLocalInspections() {
     }
 }
 
-// Generate Station Dropdown options ESTACION-01 to ESTACION-15
-function generateStationDropdown() {
+// Generate Station Dropdown options dynamically scaling with assignments and linking clients
+function generateStationDropdown(skipInfoUpdate = false) {
     const select = document.getElementById('station-id');
     if (!select) return;
+    const currentVal = select.value;
     select.innerHTML = '';
-    for (let i = 1; i <= 15; i++) {
+    
+    const maxStations = getMaxStationNumber();
+    for (let i = 1; i <= maxStations; i++) {
         const numStr = String(i).padStart(2, '0');
+        const stationKey = `ESTACION-${numStr}`;
+        
+        // Find if this station is assigned to a client
+        const clientName = getClientNameForStation(i);
+        
         const opt = document.createElement('option');
-        opt.value = `ESTACION-${numStr}`;
-        opt.textContent = `Estación #${numStr}`;
+        opt.value = stationKey;
+        if (clientName) {
+            opt.textContent = `Estación #${numStr} - ${clientName}`;
+        } else {
+            opt.textContent = `Estación #${numStr}`;
+        }
         select.appendChild(opt);
+    }
+    
+    if (currentVal && Array.from(select.options).some(o => o.value === currentVal)) {
+        select.value = currentVal;
+    }
+    
+    // Refresh info box for the currently selected station
+    if (!skipInfoUpdate) {
+        updateStationClientInfo();
     }
 }
 
@@ -299,6 +410,12 @@ function saveInspection() {
     // Clear inputs (except station if locked)
     resetInspectionForm();
     renderMonitoreo();
+    updateStationClientInfo();
+
+    // Auto-sync after saving if online and logged in
+    if (navigator.onLine && currentUser) {
+        syncWithCloud(true);
+    }
 
     // Auto-sync after saving if online and logged in
     if (navigator.onLine && currentUser) {
@@ -330,7 +447,9 @@ function renderMonitoreo() {
     
     let uniqueInspected = new Set();
     
-    for (let i = 1; i <= 15; i++) {
+    const maxStations = getMaxStationNumber();
+    
+    for (let i = 1; i <= maxStations; i++) {
         const numStr = String(i).padStart(2, '0');
         const stationKey = `ESTACION-${numStr}`;
         
@@ -364,15 +483,29 @@ function renderMonitoreo() {
         
         const cell = document.createElement('div');
         cell.className = `station-cell ${stateClass}`;
+        
+        // Check if this station is assigned to a client
+        const clientName = getClientNameForStation(i);
+        const clientLabel = clientName ? `<span style="font-size:0.65rem; color:#aaa; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top:2px; font-weight: 500;">👤 ${clientName}</span>` : '';
+        
         cell.innerHTML = `
             <span class="num">${numStr}</span>
             <span class="status-lbl">${statusText}</span>
+            ${clientLabel}
         `;
         
         // Clicking cell opens Form view and selects this station (if not locked by URL)
         cell.addEventListener('click', () => {
             const select = document.getElementById('station-id');
             if (!select.disabled) {
+                // Ensure this dynamically generated station exists in select options
+                const exists = Array.from(select.options).some(opt => opt.value === stationKey);
+                if (!exists) {
+                    const opt = document.createElement('option');
+                    opt.value = stationKey;
+                    opt.textContent = clientName ? `Estación #${numStr} - ${clientName}` : `Estación #${numStr}`;
+                    select.appendChild(opt);
+                }
                 select.value = stationKey;
             }
             
@@ -383,7 +516,7 @@ function renderMonitoreo() {
         grid.appendChild(cell);
     }
     
-    document.getElementById('stat-reviewed-count').innerText = `${uniqueInspected.size} / 15`;
+    document.getElementById('stat-reviewed-count').innerText = `${uniqueInspected.size} / ${maxStations}`;
     
     // Draw Activity History List Table
     const tbody = document.getElementById('activity-list');
@@ -837,3 +970,263 @@ function getRecordTimestamp(record) {
     
     return 0;
 }
+
+// Helper: Calculate max station count dynamically based on assignments & records
+function getMaxStationNumber() {
+    let max = 15; // default floor minimum
+    
+    // Check local inspections
+    inspections.forEach(item => {
+        const num = parseInt(item.station.replace('ESTACION-', ''), 10);
+        if (!isNaN(num) && num > max) max = num;
+    });
+    
+    // Check assignments
+    const assignments = globalAppData.stationAssignments || [];
+    assignments.forEach(item => {
+        const startNum = parseInt(item.start, 10);
+        const endNum = parseInt(item.end, 10);
+        if (!isNaN(startNum) && startNum > max) max = startNum;
+        if (!isNaN(endNum) && endNum > max) max = endNum;
+    });
+    
+    return max;
+}
+
+// Helper: Find client name linked to a specific station number
+function getClientNameForStation(stationNum) {
+    if (!globalAppData.stationAssignments) return null;
+    
+    const assignment = globalAppData.stationAssignments.find(item => {
+        const start = parseInt(item.start, 10);
+        const end = parseInt(item.end, 10);
+        return stationNum >= start && stationNum <= end;
+    });
+    
+    return assignment ? assignment.clientName : null;
+}
+
+// Helper: Populate client selector dropdown inside the assignment form
+function populateClientsDropdown() {
+    const select = document.getElementById('assign-client-id');
+    const selectInstall = document.getElementById('install-client-id');
+    if (!select && !selectInstall) return;
+    
+    const clients = globalAppData.clients || [];
+    const sortedClients = [...clients].sort((a, b) => a.name.localeCompare(b.name));
+    
+    if (select) {
+        select.innerHTML = '';
+        if (clients.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = '⚠️ Sin clientes registrados (ve al Directorio de Clientes)';
+            select.appendChild(opt);
+        } else {
+            sortedClients.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                select.appendChild(opt);
+            });
+        }
+    }
+    
+    if (selectInstall) {
+        selectInstall.innerHTML = '';
+        if (clients.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = '⚠️ Sin clientes registrados (ve al Directorio de Clientes)';
+            selectInstall.appendChild(opt);
+        } else {
+            sortedClients.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                selectInstall.appendChild(opt);
+            });
+        }
+    }
+}
+
+// Action: Register new station range assignment
+function registerAssignment() {
+    const clientSelect = document.getElementById('assign-client-id');
+    if (!clientSelect) return;
+    const clientId = clientSelect.value;
+    const clientOption = clientSelect.options[clientSelect.selectedIndex];
+    const clientName = clientOption ? clientOption.textContent : '';
+    
+    const startVal = document.getElementById('assign-start').value;
+    const endVal = document.getElementById('assign-end').value;
+    
+    if (!clientId) return alert("Por favor selecciona un cliente.");
+    if (!startVal || !endVal) return alert("Por favor ingresa la estación inicial y final.");
+    
+    const start = parseInt(startVal, 10);
+    const end = parseInt(endVal, 10);
+    
+    if (isNaN(start) || isNaN(end) || start <= 0 || end <= 0) {
+        return alert("Los números de estación deben ser mayores a 0.");
+    }
+    
+    if (start > end) {
+        return alert("La estación inicial no puede ser mayor que la estación final.");
+    }
+    
+    // Check overlap with existing assignments
+    const assignments = globalAppData.stationAssignments || [];
+    const overlap = assignments.find(item => {
+        const s = parseInt(item.start, 10);
+        const e = parseInt(item.end, 10);
+        return (start <= e && end >= s);
+    });
+    
+    if (overlap) {
+        if (!confirm(`⚠️ El rango ${start} - ${end} se cruza con otra asignación:\nCliente: ${overlap.clientName} (Rango: ${overlap.start} - ${overlap.end})\n\n¿Deseas registrarla de todas formas?`)) {
+            return;
+        }
+    }
+    
+    const newAssignment = {
+        id: 'asg_' + Date.now(),
+        clientId,
+        clientName,
+        start,
+        end
+    };
+    
+    if (!globalAppData.stationAssignments) {
+        globalAppData.stationAssignments = [];
+    }
+    
+    globalAppData.stationAssignments.push(newAssignment);
+    saveGlobalAppData();
+    
+    // Clear range inputs
+    document.getElementById('assign-start').value = '';
+    document.getElementById('assign-end').value = '';
+    
+    // Re-render views
+    generateStationDropdown();
+    renderAssignmentsList();
+    renderMonitoreo();
+    updateStationClientInfo();
+    
+    alert(`✅ Rango de estaciones ${start} a ${end} asignado con éxito a ${clientName}.`);
+}
+
+// Action: Render assignments list table
+function renderAssignmentsList() {
+    const tbody = document.getElementById('assignments-list');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    const assignments = globalAppData.stationAssignments || [];
+    if (assignments.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#888; padding:20px;">No hay rangos de estaciones asignados aún.</td></tr>`;
+        return;
+    }
+    
+    assignments.forEach(asg => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${asg.clientName}</strong></td>
+            <td><span style="font-size:0.95rem; font-weight:600; color:var(--primary);">Estaciones ${asg.start} a ${asg.end}</span></td>
+            <td>
+                <button type="button" class="btn btn-secondary" onclick="deleteAssignment('${asg.id}')" style="padding: 6px 12px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.8rem; border-radius: 6px; cursor: pointer;">
+                    🗑️ Eliminar
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Action: Delete station range assignment
+function deleteAssignment(id) {
+    if (!confirm("¿Deseas eliminar esta asignación de rango de estaciones?")) return;
+    
+    if (globalAppData.stationAssignments) {
+        globalAppData.stationAssignments = globalAppData.stationAssignments.filter(item => item.id !== id);
+        saveGlobalAppData();
+        
+        generateStationDropdown();
+        renderAssignmentsList();
+        renderMonitoreo();
+        updateStationClientInfo();
+    }
+}
+
+// Helper: Show/hide banner info linking selected station to its assigned client
+function updateStationClientInfo() {
+    const select = document.getElementById('station-id');
+    const infoDiv = document.getElementById('station-client-info');
+    if (!select || !infoDiv) return;
+    
+    const stationValue = select.value;
+    if (!stationValue) {
+        infoDiv.style.display = 'none';
+        return;
+    }
+    
+    const num = parseInt(stationValue.replace('ESTACION-', ''), 10);
+    if (isNaN(num)) {
+        infoDiv.style.display = 'none';
+        return;
+    }
+    
+    let assignment = (globalAppData.stationAssignments || []).find(item => {
+        const start = parseInt(item.start, 10);
+        const end = parseInt(item.end, 10);
+        return num >= start && num <= end;
+    });
+    
+    // Auto-assign in Installation Mode if it has no existing client
+    const chkInstall = document.getElementById('chk-install-mode');
+    if (!assignment && chkInstall && chkInstall.checked) {
+        const installClientSelect = document.getElementById('install-client-id');
+        const installClientId = installClientSelect ? installClientSelect.value : '';
+        const installClientOption = installClientSelect ? installClientSelect.options[installClientSelect.selectedIndex] : null;
+        const installClientName = installClientOption ? installClientOption.textContent : '';
+        
+        if (installClientId && installClientName) {
+            const newAssignment = {
+                id: 'asg_' + Date.now(),
+                clientId: installClientId,
+                clientName: installClientName,
+                start: num,
+                end: num
+            };
+            
+            if (!globalAppData.stationAssignments) {
+                globalAppData.stationAssignments = [];
+            }
+            globalAppData.stationAssignments.push(newAssignment);
+            saveGlobalAppData();
+            
+            assignment = newAssignment;
+            
+            // Re-render other displays silently
+            generateStationDropdown(true);
+            renderAssignmentsList();
+            renderMonitoreo();
+            
+            // Restore selection
+            select.value = stationValue;
+        }
+    }
+    
+    if (assignment) {
+        const client = (globalAppData.clients || []).find(c => c.id === assignment.clientId || c.name === assignment.clientName);
+        const addressText = client && client.address ? ` | 📍 Dirección: ${client.address}` : '';
+        infoDiv.innerHTML = `<strong>👤 Cliente:</strong> ${assignment.clientName}${addressText}`;
+        infoDiv.style.display = 'block';
+    } else {
+        infoDiv.style.display = 'none';
+    }
+}
+
+// Expose deleteAssignment to the global scope for HTML inline onclick
+window.deleteAssignment = deleteAssignment;

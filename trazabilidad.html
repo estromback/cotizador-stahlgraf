@@ -315,6 +315,7 @@
         <div class="tabs-nav">
             <button class="tab-trigger active" data-target="panel-monitoreo">📊 Monitoreo</button>
             <button class="tab-trigger" data-target="panel-inspeccionar">📥 Registrar</button>
+            <button class="tab-trigger" data-target="panel-asignaciones">📋 Asignaciones</button>
             <button class="tab-trigger" data-target="panel-sync">⚙️ Datos & Sync</button>
         </div>
 
@@ -324,6 +325,21 @@
         <div id="panel-inspeccionar" class="tab-panel glass-panel" style="padding: 25px;">
             <h2 style="margin-top: 0; margin-bottom: 5px; font-size: 1.4rem;">Ficha de Inspección</h2>
             <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Escanea un código QR o completa los campos manualmente.</p>
+            
+            <!-- Modo Instalación (Fijar Cliente) -->
+            <div id="installation-mode-box" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 16px; border-radius: 12px; margin-bottom: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font-weight: 600; color: #fff; font-size: 0.95rem;">
+                    <input type="checkbox" id="chk-install-mode" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);">
+                    ⚡ Modo Instalación (Fijar Cliente para Nuevas Estaciones)
+                </label>
+                <div id="install-client-selector-container" style="display: none; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px;">
+                    <label for="install-client-id" style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 6px;">Vincular automáticamente a:</label>
+                    <select id="install-client-id" style="width: 100%; height: 42px;">
+                        <!-- Dynamically populated -->
+                    </select>
+                    <p style="font-size: 0.72rem; color: #3b82f6; margin: 6px 0 0 0; font-weight: 500;">💡 Al escanear o seleccionar un código QR "virgen", se le asignará este cliente de inmediato.</p>
+                </div>
+            </div>
             
             <form id="inspection-form" onsubmit="event.preventDefault();">
                 <div class="input-group" style="margin-bottom: 20px;">
@@ -339,6 +355,8 @@
                             📷 Escanear QR
                         </button>
                     </div>
+                    <!-- Banner for client info linked to selected station -->
+                    <div id="station-client-info" style="display: none; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.15); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.82rem; color: #fff;"></div>
                 </div>
 
                 <div class="input-group" style="margin-bottom: 25px;">
@@ -529,6 +547,57 @@
                     </button>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA 4: ASIGNACIONES DE ESTACIONES        -->
+        <!-- ========================================== -->
+        <div id="panel-asignaciones" class="tab-panel glass-panel" style="padding: 25px;">
+            <h2 style="margin-top: 0; margin-bottom: 5px; font-size: 1.4rem;">Asignación de Estaciones</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 25px;">Asigna lotes/batches de estaciones a tus clientes registrados.</p>
+            
+            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+                <h3 style="margin-top: 0; font-size: 1.1rem; color: #fff; margin-bottom: 15px;">Crear Nueva Asignación</h3>
+                <form id="assignment-form" onsubmit="event.preventDefault();">
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label for="assign-client-id">Seleccionar Cliente</label>
+                        <select id="assign-client-id" style="width: 100%;">
+                            <!-- Dynamically populated from directory -->
+                        </select>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div class="input-group" style="margin-bottom: 0;">
+                            <label for="assign-start">Estación Inicial</label>
+                            <input type="number" id="assign-start" min="1" placeholder="Ej: 5" style="width: 100%;">
+                        </div>
+                        <div class="input-group" style="margin-bottom: 0;">
+                            <label for="assign-end">Estación Final</label>
+                            <input type="number" id="assign-end" min="1" placeholder="Ej: 30" style="width: 100%;">
+                        </div>
+                    </div>
+                    
+                    <button id="btn-save-assignment" class="btn btn-primary" style="width: 100%; padding: 12px;">
+                        💾 Registrar Rango de Estaciones
+                    </button>
+                </form>
+            </div>
+            
+            <h3 style="font-size: 1.05rem; margin-bottom: 15px;">Listado de Rangos Asignados</h3>
+            <div class="table-responsive">
+                <table class="activity-table">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Rango de Estaciones</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assignments-list">
+                        <!-- Dynamically populated -->
+                    </tbody>
+                </table>
             </div>
         </div>
 

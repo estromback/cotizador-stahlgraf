@@ -264,6 +264,12 @@ async function deleteClientCascading(id) {
 
     // Always remove from client directory list
     appData.clients = appData.clients.filter(c => c.id !== id);
+    
+    // Remove station assignments linked to this client
+    if (appData.stationAssignments) {
+        appData.stationAssignments = appData.stationAssignments.filter(asg => asg.clientId !== id);
+    }
+    
     saveData();
     renderClients();
 }
