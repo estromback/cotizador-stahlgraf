@@ -1285,9 +1285,10 @@ async function loadHistoryUI() {
                     <strong>#${data.correlative || '?'} - ${data.clientName}</strong>
                     <div style="font-size: 0.85em; color: #666;">Fecha: ${date} | Total: ${data.totalStr || '$0'}</div>
                 </div>
-                <div style="display: flex; gap: 5px;">
+                <div style="display: flex; gap: 5px; align-items: center;">
                     <button class="btn btn-primary-outline btn-sm" onclick="loadQuoteFromDB('${doc.id}')">🔄 Cargar</button>
                     <button class="btn btn-primary btn-sm" style="background-color: #25D366; border-color: #25D366; color: white;" onclick="resendWhatsAppFromDB('${doc.id}')">▶️ WhatsApp</button>
+                    ${data.pdfUrl ? `<a href="${data.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 5px 8px; font-size:0.75rem; background-color: #27ae60; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-weight: normal; white-space: nowrap;">📥 PDF</a>` : ''}
                     <button class="btn btn-secondary btn-sm" onclick="deleteQuoteFromDB('${doc.id}')">❌</button>
                 </div>
             </div>`;
