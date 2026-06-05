@@ -819,7 +819,7 @@ function renderQuotesTab() {
             <td>
                 <div style="display: flex; gap: 5px; align-items: center;">
                     <a href="cotizador.html?id=${q.id}" class="btn btn-secondary btn-sm" style="padding: 3px 6px; font-size:0.75rem; white-space: nowrap;">Ver Cotizador</a>
-                    ${q.pdfUrl ? `<a href="${q.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 3px 6px; font-size:0.75rem; background-color: #27ae60; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">📥 PDF Original</a>` : ''}
+                    ${q.pdfUrl ? `<a href="${q.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 3px 6px; font-size:0.75rem; background-color: #3b82f6; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">📥 PDF Original</a>` : ''}
                 </div>
             </td>
         `;
@@ -851,7 +851,7 @@ function renderReportsTab() {
             <td>
                 <div style="display: flex; gap: 5px; align-items: center;">
                     <a href="informador.html?id=${r.id}" class="btn btn-secondary btn-sm" style="padding: 3px 6px; font-size:0.75rem; white-space: nowrap;">Ver Informe</a>
-                    ${r.pdfUrl ? `<a href="${r.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 3px 6px; font-size:0.75rem; background-color: #27ae60; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">📥 PDF Original</a>` : ''}
+                    ${r.pdfUrl ? `<a href="${r.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 3px 6px; font-size:0.75rem; background-color: #3b82f6; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">📥 PDF Original</a>` : ''}
                 </div>
             </td>
         `;

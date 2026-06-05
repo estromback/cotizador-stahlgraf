@@ -687,7 +687,7 @@ async function loadHistoryUI() {
                 </div>
                 <div class="db-item-actions" style="display: flex; gap: 5px; align-items: center;">
                     <button class="btn btn-secondary btn-sm btn-load-historic" data-id="${doc.id}">Ver Resumen</button>
-                    ${data.pdfUrl ? `<a href="${data.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 5px 8px; font-size:0.75rem; background-color: #27ae60; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-weight: normal; white-space: nowrap;">📥 PDF</a>` : ''}
+                    ${data.pdfUrl ? `<a href="${data.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 5px 8px; font-size:0.75rem; background-color: #3b82f6; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-weight: normal; white-space: nowrap;">📥 PDF</a>` : ''}
                     <button class="btn btn-sm btn-delete-historic" data-id="${doc.id}" style="background: transparent; border: 1px solid var(--danger); color: var(--danger);">Eliminar</button>
                 </div>
             `;
