@@ -447,7 +447,7 @@ async function loadClientHistoryFromFirebaseAndLocal(clientId, clientName) {
             const [quotesSnap, reportsSnap, crmSnap, servicesSnap, reportsSentSnap, inspectionsSnap] = await Promise.all([
                 db.collection('users').doc(currentUser.uid).collection('quotes').where('clientName', '==', clientName).get(),
                 db.collection('users').doc(currentUser.uid).collection('reports').where('clientName', '==', clientName).get(),
-                db.collection('users').doc(currentUser.uid).collection('crm').where('client', '==', clientName).limit(1).get(),
+                db.collection('users').doc(currentUser.uid).collection('crm').get(),
                 db.collection('users').doc(currentUser.uid).collection('services').where('clientName', '==', clientName).get(),
                 db.collection('users').doc(currentUser.uid).collection('station_reports_sent').where('clientName', '==', clientName).get(),
                 db.collection('users').doc(currentUser.uid).collection('inspecciones').get()
@@ -456,9 +456,32 @@ async function loadClientHistoryFromFirebaseAndLocal(clientId, clientName) {
             quotesSnap.forEach(doc => currentClientQuotes.push({ id: doc.id, ...doc.data() }));
             reportsSnap.forEach(doc => currentClientReports.push({ id: doc.id, ...doc.data() }));
             
-            if (crmSnap.size > 0) {
-                const crmDoc = crmSnap.docs[0];
-                currentClientCrmCard = { id: crmDoc.id, ...crmDoc.data() };
+            const clientObj = appData.clients.find(c => c.id === clientId);
+            const clientPhone = clientObj ? clientObj.phone : '';
+            const clientEmail = clientObj ? clientObj.email : '';
+
+            // Fuzzy match the CRM card from all cards
+            const allCrmCards = [];
+            crmSnap.forEach(doc => allCrmCards.push({ id: doc.id, ...doc.data() }));
+            
+            const normalize = (str) => (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "").trim();
+            const cleanPhone = (p) => (p || '').replace(/\D/g, '');
+            const cleanEmail = (e) => (e || '').toLowerCase().trim();
+            
+            const targetNormName = normalize(clientName);
+            const targetCleanPhone = cleanPhone(clientPhone);
+            const targetCleanEmail = cleanEmail(clientEmail);
+            
+            let matchedCard = allCrmCards.find(card => normalize(card.client) === targetNormName);
+            if (!matchedCard && targetCleanPhone) {
+                matchedCard = allCrmCards.find(card => cleanPhone(card.phone) && cleanPhone(card.phone) === targetCleanPhone);
+            }
+            if (!matchedCard && targetCleanEmail) {
+                matchedCard = allCrmCards.find(card => cleanEmail(card.email) && cleanEmail(card.email) === targetCleanEmail);
+            }
+            
+            if (matchedCard) {
+                currentClientCrmCard = matchedCard;
             }
             
             servicesSnap.forEach(doc => {
