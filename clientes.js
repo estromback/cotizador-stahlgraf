@@ -749,9 +749,9 @@ function renderQuotesTab() {
     tbody.innerHTML = '';
     
     const sorted = [...currentClientQuotes].sort((a,b) => {
-        const dateA = a.date || a.quoteDate || '';
-        const dateB = b.date || b.quoteDate || '';
-        return dateB.localeCompare(dateA);
+        const timeA = a.timestamp ? (a.timestamp.seconds ? a.timestamp.seconds * 1000 : new Date(a.timestamp).getTime()) : 0;
+        const timeB = b.timestamp ? (b.timestamp.seconds ? b.timestamp.seconds * 1000 : new Date(b.timestamp).getTime()) : 0;
+        return timeB - timeA;
     });
     
     if (sorted.length === 0) {
@@ -766,19 +766,53 @@ function renderQuotesTab() {
         else if (status.toLowerCase().includes('pend') || status.toLowerCase().includes('envi')) badgeClass = 'pill-badge-warning';
         else if (status.toLowerCase().includes('perd')) badgeClass = 'pill-badge-danger';
         
-        let details = '';
+        // Dynamic human-friendly services summary
+        let services = [];
+        if (q['coverage-type'] && q['coverage-type'] !== 'no') {
+            let cov = q['coverage-type'];
+            let covStr = cov === 'both' ? 'Int. y Ext.' : (cov === 'inside' ? 'Interior' : 'Exterior');
+            services.push(`Fumigación (${covStr})`);
+        }
+        if (q['rodent-control'] === 'yes') {
+            services.push('Control de Roedores');
+        }
+        if (q['moth-control'] === 'yes') {
+            services.push('Control de Polillas');
+        }
+        if (q['sanitization-control'] === 'yes') {
+            services.push('Sanitización');
+        }
         if (q.generalServices && q.generalServices.length > 0) {
-            details = q.generalServices.map(gs => gs.name).join(', ');
-        } else if (q.items) {
-            details = typeof q.items === 'string' ? q.items : 'Servicios de control de plagas';
-        } else {
-            details = 'Servicios generales';
+            q.generalServices.forEach(gs => {
+                services.push(gs.name);
+            });
         }
         
+        let details = services.join(', ') || q.items || 'Servicios Generales';
+        
+        // Safe date formatting
+        let dateStr = '-';
+        if (q.timestamp) {
+            try {
+                if (q.timestamp.toDate) {
+                    dateStr = q.timestamp.toDate().toLocaleDateString('es-CL');
+                } else if (q.timestamp.seconds) {
+                    dateStr = new Date(q.timestamp.seconds * 1000).toLocaleDateString('es-CL');
+                } else {
+                    dateStr = new Date(q.timestamp).toLocaleDateString('es-CL');
+                }
+            } catch(e) {
+                dateStr = q.date || q.quoteDate || '-';
+            }
+        } else {
+            dateStr = q.date || q.quoteDate || '-';
+        }
+        if (dateStr === 'Invalid Date') dateStr = q.date || q.quoteDate || '-';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${q.date || q.quoteDate || '-'}</td>
-            <td><code>${q.id}</code></td>
+            <td>${dateStr}</td>
+            <td><strong>#${q.correlative || '?'}</strong></td>
             <td>${details}</td>
             <td class="price-column"><strong>${q.totalStr || '-'}</strong></td>
             <td><span class="pill-badge ${badgeClass}">${status}</span></td>
