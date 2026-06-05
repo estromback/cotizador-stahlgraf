@@ -78,6 +78,10 @@ function loadData() {
 
 function saveData() {
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
+    if (currentUser && db) {
+        db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
+            .catch(err => console.error("Error saving to Firebase:", err));
+    }
 }
 
 // Authentication State
@@ -95,7 +99,7 @@ if (auth) {
             
             loadDashboardStats();
             subscribeToCRM();
-            loadUserClients();
+            syncFromFirebase();
         } else {
             syncText.innerText = "Ingresar para Sync";
             syncIcon.innerText = '☁️';
@@ -159,9 +163,19 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.add('active');
     });
     document.getElementById('btn-close-settings').addEventListener('click', () => {
-        saveSettingsFromUI();
         modal.classList.remove('active');
     });
+    if (document.getElementById('btn-cancel-settings')) {
+        document.getElementById('btn-cancel-settings').addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+    }
+    if (document.getElementById('btn-save-settings')) {
+        document.getElementById('btn-save-settings').addEventListener('click', () => {
+            saveSettingsFromUI();
+            modal.classList.remove('active');
+        });
+    }
 
     // Chemicals Settings Actions
     document.getElementById('btn-add-chemical').addEventListener('click', () => {
@@ -450,23 +464,33 @@ function subscribeToCRM() {
         });
 }
 
-function loadUserClients() {
+function syncFromFirebase() {
     if (!currentUser || !db) return;
     db.collection('users').doc(currentUser.uid).get().then(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
+            
+            // Merge cloud data into appData
+            appData = { ...appData, ...cloudData };
+            
             if (cloudData.clients) {
                 clientsList = cloudData.clients;
-                localStorage.setItem('stahlgraf_data_v4', JSON.stringify({
-                    ...JSON.parse(localStorage.getItem('stahlgraf_data_v4') || '{}'),
-                    clients: clientsList
-                }));
             }
+            
+            // Save to local cache
+            localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
+            
+            // Re-render UI elements
+            updateSettingsUI();
+            if (typeof renderCalendar === 'function') renderCalendar();
+        } else {
+            // No data in cloud yet, initialize user document with local data
+            saveData();
         }
         isUserConfigLoaded = true;
         syncCrmClientsToDirectory();
     }).catch(e => {
-        console.error("Error loading clients from Firestore: ", e);
+        console.error("Error syncing from Firebase: ", e);
         isUserConfigLoaded = true;
         syncCrmClientsToDirectory();
     });

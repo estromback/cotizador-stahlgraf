@@ -195,7 +195,7 @@ function saveData() {
     
     // Sync to Firebase if logged in
     if (currentUser && db) {
-        db.collection('users').doc(currentUser.uid).set(appData)
+        db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
             .catch(err => console.error("Error saving to Firebase:", err));
     }
 }
