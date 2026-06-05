@@ -52,6 +52,7 @@ function saveData() {
 }
 
 // Authentication
+let userDocListener = null;
 if (auth) {
     auth.onAuthStateChanged(user => {
         currentUser = user;
@@ -65,13 +66,18 @@ if (auth) {
         } else {
             syncText.innerText = "Ingresar para Sync";
             syncIcon.innerText = '☁️';
+            if (userDocListener) {
+                userDocListener();
+                userDocListener = null;
+            }
         }
     });
 }
 
 function syncFromFirebase() {
     if (!currentUser || !db) return;
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
+    if (userDocListener) userDocListener();
+    userDocListener = db.collection('users').doc(currentUser.uid).onSnapshot(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
             appData = { ...appData, ...cloudData };

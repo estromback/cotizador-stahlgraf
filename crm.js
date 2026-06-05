@@ -31,6 +31,7 @@ let appData = { crmColumns: 'Cotizados, Vendidos, Pago Pendiente, Contacto Futur
 let crmCards = [];
 let draggingCardId = null;
 let clientsList = [];
+let isUserConfigLoaded = false;
 
 function loadData() {
     const saved = localStorage.getItem('stahlgraf_data_v4');
@@ -54,7 +55,13 @@ function loadUserConfig() {
                 localStorage.setItem('stahlgraf_data_v4', JSON.stringify({ ...JSON.parse(localStorage.getItem('stahlgraf_data_v4') || '{}'), clients: clientsList }));
             }
         }
-    }).catch(e => console.error("Error loading clients from Firestore: ", e));
+        isUserConfigLoaded = true;
+        syncCrmClientsToDirectory();
+    }).catch(e => {
+        console.error("Error loading clients from Firestore: ", e);
+        isUserConfigLoaded = true;
+        syncCrmClientsToDirectory();
+    });
 }
 
 // Authentication
@@ -237,6 +244,7 @@ async function loadCardsFromFirebase() {
             renderBoardSkeleton(); // Redraw board dynamically to draw any new columns
             renderCards();
             renderSidebar();
+            syncCrmClientsToDirectory();
         });
 }
 
@@ -488,6 +496,10 @@ async function saveCard() {
             payload.comments = [];
             await db.collection('users').doc(currentUser.uid).collection('crm').add(payload);
         }
+        
+        // Auto-save client to directory
+        saveClientToDirectorySilently(client, phone, email);
+
         document.getElementById('card-modal').classList.remove('active');
     } catch (e) {
         console.error(e);
@@ -632,4 +644,118 @@ function loadClientToForm(id) {
     document.getElementById('card-client').value = client.name || '';
     document.getElementById('card-phone').value = client.phone || '';
     document.getElementById('card-email').value = client.email || '';
+}
+
+function saveClientToDirectorySilently(name, phone, email) {
+    if (!name) return;
+    
+    let appData = {};
+    const savedData = localStorage.getItem('stahlgraf_data_v4');
+    if (savedData) {
+        try { appData = JSON.parse(savedData); } catch(e) {}
+    }
+    if (!appData.clients) appData.clients = [];
+
+    const newClient = {
+        id: 'cl_' + Date.now(),
+        name: name,
+        attention: '',
+        phone: phone || '',
+        email: email || '',
+        address: ''
+    };
+
+    const existingIndex = appData.clients.findIndex(c => (c.name || '').toLowerCase() === name.toLowerCase());
+    if (existingIndex >= 0) {
+        newClient.id = appData.clients[existingIndex].id; // preserve ID
+        newClient.attention = appData.clients[existingIndex].attention || '';
+        newClient.address = appData.clients[existingIndex].address || '';
+        if (!phone && appData.clients[existingIndex].phone) newClient.phone = appData.clients[existingIndex].phone;
+        if (!email && appData.clients[existingIndex].email) newClient.email = appData.clients[existingIndex].email;
+        appData.clients[existingIndex] = newClient;
+    } else {
+        appData.clients.push(newClient);
+    }
+
+    clientsList = appData.clients;
+    localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
+    
+    if (currentUser && db) {
+        db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
+            .catch(err => console.error("Error saving client directory from CRM:", err));
+    }
+}
+
+function syncCrmClientsToDirectory() {
+    if (!currentUser || !db || !isUserConfigLoaded) return;
+    if (crmCards.length === 0) return;
+
+    let appDataLocal = {};
+    const savedData = localStorage.getItem('stahlgraf_data_v4');
+    if (savedData) {
+        try { appDataLocal = JSON.parse(savedData); } catch(e) {}
+    }
+    if (!appDataLocal.clients) appDataLocal.clients = [];
+
+    let updated = false;
+
+    crmCards.forEach(card => {
+        const clientName = (card.client || '').trim();
+        if (!clientName) return;
+
+        const existingIndex = appDataLocal.clients.findIndex(c => (c.name || '').toLowerCase() === clientName.toLowerCase());
+
+        let phone = (card.phone || '').trim();
+        let email = (card.email || '').trim();
+        let address = '';
+
+        if (card.formDetails) {
+            if (!phone && card.formDetails.clientPhone) phone = card.formDetails.clientPhone.trim();
+            if (!email && card.formDetails.clientEmail) email = card.formDetails.clientEmail.trim();
+            if (card.formDetails.clientAddress) address = card.formDetails.clientAddress.trim();
+        }
+
+        if (existingIndex >= 0) {
+            const existing = appDataLocal.clients[existingIndex];
+            let needsUpdate = false;
+            if (phone && !existing.phone) {
+                existing.phone = phone;
+                needsUpdate = true;
+            }
+            if (email && !existing.email) {
+                existing.email = email;
+                needsUpdate = true;
+            }
+            if (address && !existing.address) {
+                existing.address = address;
+                needsUpdate = true;
+            }
+            if (needsUpdate) {
+                appDataLocal.clients[existingIndex] = existing;
+                updated = true;
+            }
+        } else {
+            const newClient = {
+                id: 'cl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                name: clientName,
+                attention: '',
+                phone: phone,
+                email: email,
+                address: address
+            };
+            appDataLocal.clients.push(newClient);
+            updated = true;
+        }
+    });
+
+    if (updated) {
+        clientsList = appDataLocal.clients;
+        localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appDataLocal));
+        
+        db.collection('users').doc(currentUser.uid).set(appDataLocal, { merge: true })
+            .then(() => {
+                console.log("Client directory auto-synchronized with CRM cards.");
+            })
+            .catch(err => console.error("Error auto-saving client directory from CRM:", err));
+    }
 }
