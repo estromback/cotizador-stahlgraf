@@ -12,6 +12,7 @@ const firebaseConfig = {
 
 let db = null;
 let auth = null;
+let storage = null;
 let currentUser = null;
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
@@ -19,12 +20,14 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
         auth = firebase.auth();
+        storage = firebase.storage();
     } catch (e) {
         console.warn("Firebase config is incomplete or invalid.");
     }
 } else if (firebase.apps.length) {
     db = firebase.firestore();
     auth = firebase.auth();
+    storage = firebase.storage();
 }
 
 let inspections = [];
@@ -2873,7 +2876,48 @@ async function generatePDFReport() {
                 pagebreak: { mode: ['css', 'legacy'] }
             };
             
-            await html2pdf().from(reportContainer).set(options).save();
+            const worker = html2pdf().from(reportContainer).set(options);
+            const pdfBlob = await worker.outputPdf('blob');
+            await worker.save();
+            
+            // Auto-save this report to Firebase Storage and Firestore collection `station_reports_sent`
+            if (currentUser && db) {
+                const reportPayloadId = 'rep_sent_' + Date.now();
+                const reportPayload = {
+                    id: reportPayloadId,
+                    clientId: filterClientId,
+                    clientName: clientName,
+                    date: new Date().toISOString().split('T')[0],
+                    emails: (clientObj && clientObj.email) ? clientObj.email : 'Descargado localmente',
+                    notes: `Reporte de cebado generado automáticamente (${clientSummary.inspectedCount} de ${clientSummary.totalCount} estaciones revisadas).`,
+                    pdfUrl: ''
+                };
+
+                // Save initial record in Firestore
+                db.collection('users').doc(currentUser.uid).collection('station_reports_sent').doc(reportPayloadId).set(reportPayload)
+                    .then(() => {
+                        console.log("Recorded station report sent metadata in Firestore.");
+                        if (storage) {
+                            const uploadUid = currentUser.uid;
+                            storage.ref().child(`users/${uploadUid}/station_reports/${reportPayloadId}.pdf`).put(pdfBlob)
+                                .then(snapshot => snapshot.ref.getDownloadURL())
+                                .then(downloadUrl => {
+                                    return db.collection('users').doc(uploadUid).collection('station_reports_sent').doc(reportPayloadId).update({
+                                        pdfUrl: downloadUrl
+                                    });
+                                })
+                                .then(() => {
+                                    console.log("Station report PDF archived in Firebase Storage asynchronously.");
+                                })
+                                .catch(storageErr => {
+                                    console.warn("Could not archive station report PDF in Firebase Storage: ", storageErr);
+                                });
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Failed to automatically record station report:", err);
+                    });
+            }
         } catch (err) {
             console.error("PDF generation failed:", err);
             alert("⚠️ Error al generar el PDF. Asegúrate de tener conexión a internet para descargar las imágenes del mapa.");

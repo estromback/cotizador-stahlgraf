@@ -113,7 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-save-service').addEventListener('click', saveRecordedService);
-    document.getElementById('btn-save-report-sent').addEventListener('click', saveReportSent);
     document.getElementById('btn-add-hist-comment').addEventListener('click', addHistoryCrmComment);
 
     // Tab buttons event listeners
@@ -313,6 +312,20 @@ async function deleteClientCascading(id) {
             const reportsBatch = db.batch();
             reportsSnap.forEach(doc => reportsBatch.delete(doc.ref));
             await reportsBatch.commit();
+
+            // Delete Station Reports Sent (Cebado)
+            const stationReportsSnap = await db.collection('users').doc(currentUser.uid).collection('station_reports_sent').where('clientName', '==', client.name).get();
+            if (storage) {
+                const stationReportDeletePromises = stationReportsSnap.docs.map(srDoc => {
+                    return storage.ref().child(`users/${currentUser.uid}/station_reports/${srDoc.id}.pdf`).delete()
+                        .then(() => console.log(`Deleted station report PDF ${srDoc.id} from Storage.`))
+                        .catch(err => console.log(`No Storage PDF to delete for station report ${srDoc.id}:`, err.message));
+                });
+                await Promise.all(stationReportDeletePromises);
+            }
+            const stationReportsBatch = db.batch();
+            stationReportsSnap.forEach(doc => stationReportsBatch.delete(doc.ref));
+            await stationReportsBatch.commit();
 
             alert("✅ Todo el historial y registros del cliente han sido borrados de la nube exitosamente.");
         } catch(e) {
@@ -711,7 +724,7 @@ function renderSummaryTab() {
     
     const sorted = [...currentClientReportsSent].sort((a,b) => new Date(b.date) - new Date(a.date));
     if (sorted.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#666; padding:10px;">No hay registros de envíos.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#666; padding:10px;">No hay registros de envíos.</td></tr>`;
         return;
     }
     
@@ -721,6 +734,7 @@ function renderSummaryTab() {
             <td>${r.date || '-'}</td>
             <td>${r.emails || '-'}</td>
             <td>${r.notes || '-'}</td>
+            <td>${r.pdfUrl ? `<a href="#" onclick="viewPDF('${r.pdfUrl}', 'Reporte_Monitoreo_${r.id}.pdf'); return false;" class="btn btn-sm" style="padding: 3px 6px; font-size:0.75rem; background-color: #3b82f6; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">📥 PDF</a>` : '<span style="color:#666; font-size:0.75rem;">No disponible</span>'}</td>
             <td class="admin-only">
                 <button class="btn btn-secondary btn-sm" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; border-color: rgba(231, 76, 60, 0.3); padding: 3px 6px; font-size:0.75rem;" onclick="deleteReportSent('${r.id}')">Eliminar</button>
             </td>
@@ -1022,51 +1036,7 @@ async function deleteRecordedService(serviceId) {
     }
 }
 
-async function saveReportSent() {
-    const date = document.getElementById('report-sent-date').value;
-    const emails = document.getElementById('report-sent-emails').value.trim();
-    const notes = document.getElementById('report-sent-notes').value.trim();
-    
-    if (!date || !emails) {
-        return alert("Por favor ingresa la fecha y al menos un correo de destinatario.");
-    }
-    
-    const reportPayload = {
-        id: 'rep_sent_' + Date.now(),
-        clientId: activeHistoryClientId,
-        clientName: activeHistoryClientName,
-        date,
-        emails,
-        notes: notes || 'Envío de reporte de estaciones de cebado'
-    };
-    
-    const btn = document.getElementById('btn-save-report-sent');
-    btn.disabled = true;
-    
-    try {
-        if (!appData.reportsSent) appData.reportsSent = [];
-        appData.reportsSent.push(reportPayload);
-        localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
-        
-        if (currentUser && db) {
-            await db.collection('users').doc(currentUser.uid).collection('station_reports_sent').doc(reportPayload.id).set(reportPayload);
-        }
-        
-        currentClientReportsSent.push(reportPayload);
-        
-        document.getElementById('report-sent-emails').value = '';
-        document.getElementById('report-sent-notes').value = '';
-        
-        renderSummaryTab();
-        
-        alert("✅ Envío de reporte registrado correctamente.");
-    } catch(e) {
-        console.error("Error saving sent report:", e);
-        alert("Error al guardar el envío.");
-    } finally {
-        btn.disabled = false;
-    }
-}
+
 
 async function deleteReportSent(reportSentId) {
     if (!confirm("¿Estás seguro de que deseas eliminar este registro de envío?")) return;
@@ -1078,6 +1048,14 @@ async function deleteReportSent(reportSentId) {
         }
         
         if (currentUser && db) {
+            if (storage) {
+                try {
+                    await storage.ref().child(`users/${currentUser.uid}/station_reports/${reportSentId}.pdf`).delete();
+                    console.log("Deleted station report PDF from Firebase Storage.");
+                } catch (storageErr) {
+                    console.log("No Storage PDF to delete or already removed:", storageErr.message);
+                }
+            }
             await db.collection('users').doc(currentUser.uid).collection('station_reports_sent').doc(reportSentId).delete();
         }
         
