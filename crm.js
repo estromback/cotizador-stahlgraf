@@ -282,7 +282,7 @@ function renderCards() {
                     if (diffDays < 0) dateClass = 'overdue';
                     else if (diffDays === 0) dateClass = 'today';
                     
-                    dateHtml = `<div class="card-date ${dateClass}">📅 ${card.date}</div>`;
+                    dateHtml = `<div class="card-date ${dateClass}">📅 ${card.date}${card.time ? ` ⏰ ${card.time}` : ''}</div>`;
                 }
             }
 
@@ -361,7 +361,7 @@ function renderSidebar() {
 
         div.innerHTML = `
             <div style="font-weight:600; font-size:0.9rem; margin-bottom:3px;">${card.client}</div>
-            <div class="card-date ${dateClass}" style="margin:0;">📅 ${label} ${diffDays < 0 || diffDays > 1 ? `(${card.date})` : ''}</div>
+            <div class="card-date ${dateClass}" style="margin:0;">📅 ${label}${card.time ? ` ⏰ ${card.time}` : ''} ${diffDays < 0 || diffDays > 1 ? `(${card.date})` : ''}</div>
         `;
         list.appendChild(div);
     });
@@ -385,6 +385,7 @@ function openCardModal(card = null) {
         document.getElementById('card-email').value = card.email || '';
         document.getElementById('card-column').value = card.column;
         document.getElementById('card-date').value = card.date || '';
+        document.getElementById('card-time').value = card.time || '';
         document.getElementById('card-desc').value = card.desc || '';
         document.getElementById('btn-delete-card').style.display = 'block';
         
@@ -444,6 +445,7 @@ function openCardModal(card = null) {
         document.getElementById('card-email').value = '';
         document.getElementById('card-column').selectedIndex = 0;
         document.getElementById('card-date').value = '';
+        document.getElementById('card-time').value = '';
         document.getElementById('card-desc').value = '';
         document.getElementById('btn-delete-card').style.display = 'none';
         
@@ -463,6 +465,7 @@ async function saveCard() {
     const email = document.getElementById('card-email').value.trim();
     const column = document.getElementById('card-column').value;
     const date = document.getElementById('card-date').value;
+    const time = document.getElementById('card-time').value;
     const desc = document.getElementById('card-desc').value.trim();
 
     if (!client) return alert("Ingresa un cliente o título.");
@@ -473,7 +476,7 @@ async function saveCard() {
 
     try {
         const payload = {
-            client, phone, email, column, date, desc,
+            client, phone, email, column, date, time, desc,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 

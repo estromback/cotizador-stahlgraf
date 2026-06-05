@@ -614,7 +614,7 @@ function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
     dayEvents.forEach(event => {
         const chip = document.createElement('div');
         chip.className = `event-chip ${getChipClass(event.column)}`;
-        chip.innerText = event.client;
+        chip.innerText = (event.time ? `${event.time} | ` : '') + event.client;
         chip.title = `${event.client} (${event.column})`;
         chip.setAttribute('draggable', 'true');
         
@@ -685,6 +685,7 @@ function openCardModal(card = null, defaultDate = '') {
         document.getElementById('card-email').value = card.email || '';
         document.getElementById('card-column').value = card.column;
         document.getElementById('card-date').value = card.date || '';
+        document.getElementById('card-time').value = card.time || '';
         document.getElementById('card-desc').value = card.desc || '';
         document.getElementById('btn-delete-card').style.display = 'block';
         
@@ -740,6 +741,7 @@ function openCardModal(card = null, defaultDate = '') {
         document.getElementById('card-email').value = '';
         document.getElementById('card-column').selectedIndex = 0;
         document.getElementById('card-date').value = defaultDate;
+        document.getElementById('card-time').value = '';
         document.getElementById('card-desc').value = '';
         document.getElementById('btn-delete-card').style.display = 'none';
         
@@ -763,6 +765,7 @@ async function saveCard() {
     const email = document.getElementById('card-email').value.trim();
     const column = document.getElementById('card-column').value;
     const date = document.getElementById('card-date').value;
+    const time = document.getElementById('card-time').value;
     const desc = document.getElementById('card-desc').value.trim();
     
     if (!client) return alert("Ingresa un cliente o título.");
@@ -773,7 +776,7 @@ async function saveCard() {
     
     try {
         const payload = {
-            client, phone, email, column, date, desc,
+            client, phone, email, column, date, time, desc,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
         

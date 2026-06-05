@@ -535,9 +535,15 @@
                         <!-- Populated by JS -->
                     </select>
                 </div>
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label>Fecha de Seguimiento (Próximo paso)</label>
-                    <input type="date" id="card-date">
+                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
+                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                        <label>Fecha de Seguimiento</label>
+                        <input type="date" id="card-date">
+                    </div>
+                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                        <label>Hora (Opcional)</label>
+                        <input type="time" id="card-time" style="width: 100%;">
+                    </div>
                 </div>
                 <div class="input-group" style="margin-bottom: 15px;">
                     <label>Notas / Descripción</label>
