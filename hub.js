@@ -490,6 +490,7 @@ function getCRMColumns() {
 function renderCRMColumnsSelect() {
     const select = document.getElementById('card-column');
     if (!select) return;
+    const currentValue = select.value;
     select.innerHTML = '';
     const cols = getCRMColumns();
     cols.forEach(col => {
@@ -498,6 +499,9 @@ function renderCRMColumnsSelect() {
         opt.textContent = col;
         select.appendChild(opt);
     });
+    if (currentValue) {
+        select.value = currentValue;
+    }
 }
 
 function renderCalendar(month, year) {

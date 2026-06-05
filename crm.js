@@ -186,14 +186,15 @@ function renderBoardSkeleton() {
     board.innerHTML = '';
     
     const select = document.getElementById('card-column');
-    select.innerHTML = '';
+    const currentValue = select ? select.value : null;
+    if (select) select.innerHTML = '';
 
     cols.forEach(col => {
         // Build Select Option
         const opt = document.createElement('option');
         opt.value = col;
         opt.textContent = col;
-        select.appendChild(opt);
+        if (select) select.appendChild(opt);
 
         // Build Kanban Column
         const colDiv = document.createElement('div');
@@ -226,6 +227,10 @@ function renderBoardSkeleton() {
             }
         });
     });
+    
+    if (select && currentValue) {
+        select.value = currentValue;
+    }
 }
 
 function normalizeId(str) {
