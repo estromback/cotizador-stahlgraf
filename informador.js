@@ -492,19 +492,23 @@ async function generatePDF() {
         const worker = html2pdf().set(opt).from(element);
         const pdfBlob = await worker.outputPdf('blob');
 
-        // Archive Report PDF in Storage
+        // Archive Report PDF in Storage asynchronously to prevent hanging the main download flow
         if (currentUser && db && storage && lastSavedReportId) {
-            try {
-                const fileRef = storage.ref().child(`users/${currentUser.uid}/reports/${lastSavedReportId}.pdf`);
-                await fileRef.put(pdfBlob);
-                const downloadUrl = await fileRef.getDownloadURL();
-                await db.collection('users').doc(currentUser.uid).collection('reports').doc(lastSavedReportId).update({
-                    pdfUrl: downloadUrl
+            const uploadReportId = lastSavedReportId;
+            const uploadUid = currentUser.uid;
+            storage.ref().child(`users/${uploadUid}/reports/${uploadReportId}.pdf`).put(pdfBlob)
+                .then(snapshot => snapshot.ref.getDownloadURL())
+                .then(downloadUrl => {
+                    return db.collection('users').doc(uploadUid).collection('reports').doc(uploadReportId).update({
+                        pdfUrl: downloadUrl
+                    });
+                })
+                .then(() => {
+                    console.log("Report PDF archived in Firebase Storage asynchronously.");
+                })
+                .catch(storageErr => {
+                    console.warn("Could not archive Report PDF in Firebase Storage: ", storageErr);
                 });
-                console.log("Report PDF archived in Firebase Storage:", downloadUrl);
-            } catch(storageErr) {
-                console.warn("Could not archive Report PDF in Firebase Storage: ", storageErr);
-            }
         }
 
         // Revert styles
