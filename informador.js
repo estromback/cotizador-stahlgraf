@@ -454,14 +454,6 @@ async function generatePDF() {
     btn.innerText = "Generando...";
     btn.disabled = true;
 
-    // Auto-save silently to the cloud (which triggers directory save and CRM sync)
-    const saved = await saveReportToCloud(true);
-    if (!saved && !confirm("No se ha podido guardar en la nube (revisa tu sesión o conexión). ¿Deseas generar el PDF de todas formas?")) {
-        btn.innerText = oldText;
-        btn.disabled = false;
-        return;
-    }
-
     try {
         const element = document.getElementById('pdf-content');
         const container = element.parentElement; // .pdf-container
@@ -492,37 +484,6 @@ async function generatePDF() {
         const worker = html2pdf().set(opt).from(element);
         const pdfBlob = await worker.outputPdf('blob');
 
-        // Archive Report PDF in Storage asynchronously to prevent hanging the main download flow
-        if (currentUser && db && storage && lastSavedReportId) {
-            const uploadReportId = lastSavedReportId;
-            const uploadUid = currentUser.uid;
-            storage.ref().child(`users/${uploadUid}/reports/${uploadReportId}.pdf`).put(pdfBlob)
-                .then(snapshot => snapshot.ref.getDownloadURL())
-                .then(downloadUrl => {
-                    return db.collection('users').doc(uploadUid).collection('reports').doc(uploadReportId).update({
-                        pdfUrl: downloadUrl
-                    });
-                })
-                .then(() => {
-                    console.log("Report PDF archived in Firebase Storage asynchronously.");
-                })
-                .catch(storageErr => {
-                    console.warn("Could not archive Report PDF in Firebase Storage, falling back to inline base64: ", storageErr);
-                    const reader = new FileReader();
-                    reader.readAsDataURL(pdfBlob);
-                    reader.onloadend = function() {
-                        const base64data = reader.result;
-                        db.collection('users').doc(uploadUid).collection('reports').doc(uploadReportId).update({
-                            pdfUrl: base64data
-                        }).then(() => {
-                            console.log("Report PDF archived as inline base64 in Firestore successfully.");
-                        }).catch(dbErr => {
-                            console.error("Failed to archive Report PDF as base64 in Firestore: ", dbErr);
-                        });
-                    };
-                });
-        }
-
         // Revert styles
         element.style.transform = originalTransform;
         element.style.marginBottom = originalMarginBottom;
@@ -530,6 +491,7 @@ async function generatePDF() {
         container.style.maxHeight = originalMaxHeight;
 
         const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
+        let shared = false;
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
                await navigator.share({
@@ -537,14 +499,56 @@ async function generatePDF() {
                    text: `Adjunto informe de plagas.`,
                    files: [file]
                });
+               shared = true;
             } catch(e) {
-               await worker.save();
+               console.log("Share sheet cancelled or failed, falling back to download:", e.message);
             }
-        } else {
+        }
+        
+        if (!shared) {
             await worker.save();
         }
+
+        // Auto-save silently to the cloud (which triggers directory save and CRM sync) in the background
+        if (currentUser && db) {
+            saveReportToCloud(true)
+                .then(saved => {
+                    if (saved && storage && lastSavedReportId) {
+                        const uploadReportId = lastSavedReportId;
+                        const uploadUid = currentUser.uid;
+                        storage.ref().child(`users/${uploadUid}/reports/${uploadReportId}.pdf`).put(pdfBlob)
+                            .then(snapshot => snapshot.ref.getDownloadURL())
+                            .then(downloadUrl => {
+                                return db.collection('users').doc(uploadUid).collection('reports').doc(uploadReportId).update({
+                                    pdfUrl: downloadUrl
+                                });
+                            })
+                            .then(() => {
+                                console.log("Report PDF archived in Firebase Storage asynchronously in background.");
+                            })
+                            .catch(storageErr => {
+                                console.warn("Could not archive Report PDF in Firebase Storage, falling back to inline base64: ", storageErr);
+                                const reader = new FileReader();
+                                reader.readAsDataURL(pdfBlob);
+                                reader.onloadend = function() {
+                                    const base64data = reader.result;
+                                    db.collection('users').doc(uploadUid).collection('reports').doc(uploadReportId).update({
+                                        pdfUrl: base64data
+                                    }).then(() => {
+                                        console.log("Report PDF archived as inline base64 in Firestore successfully in background.");
+                                    }).catch(dbErr => {
+                                        console.error("Failed to archive Report PDF as base64 in Firestore: ", dbErr);
+                                    });
+                                };
+                            });
+                    }
+                })
+                .catch(saveErr => {
+                    console.error("Async saveReportToCloud failed:", saveErr);
+                });
+        }
     } catch(err) {
-        console.error("PDF error: ", err);
+        console.error("PDF generation error: ", err);
         alert("Error al generar PDF: " + err.message);
     } finally {
         btn.innerText = oldText;

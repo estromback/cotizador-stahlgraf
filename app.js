@@ -1023,9 +1023,6 @@ async function generatePDF() {
         calculateQuote();
     }
 
-    const saved = await saveQuote(true);
-    if (!saved && !confirm("No se ha podido guardar en la nube (revisa tu sesión o conexión). ¿Deseas exportar el PDF de todas formas?")) return;
-
     const btn = document.getElementById('btn-generate-pdf');
     const oldText = btn.innerText;
     btn.innerText = "Exportando...";
@@ -1057,43 +1054,13 @@ async function generatePDF() {
         const worker = html2pdf().set(opt).from(element);
         const pdfBlob = await worker.outputPdf('blob');
         
-        // Archive PDF in Storage asynchronously to prevent hanging the main download flow
-        if (currentUser && db && storage && currentQuoteId) {
-            const uploadQuoteId = currentQuoteId;
-            const uploadUid = currentUser.uid;
-            storage.ref().child(`users/${uploadUid}/quotes/${uploadQuoteId}.pdf`).put(pdfBlob)
-                .then(snapshot => snapshot.ref.getDownloadURL())
-                .then(downloadUrl => {
-                    return db.collection('users').doc(uploadUid).collection('quotes').doc(uploadQuoteId).update({
-                        pdfUrl: downloadUrl
-                    });
-                })
-                .then(() => {
-                    console.log("PDF archived in Firebase Storage asynchronously.");
-                })
-                .catch(storageErr => {
-                    console.warn("Could not archive PDF in Firebase Storage, falling back to inline base64: ", storageErr);
-                    const reader = new FileReader();
-                    reader.readAsDataURL(pdfBlob);
-                    reader.onloadend = function() {
-                        const base64data = reader.result;
-                        db.collection('users').doc(uploadUid).collection('quotes').doc(uploadQuoteId).update({
-                            pdfUrl: base64data
-                        }).then(() => {
-                            console.log("PDF archived as inline base64 in Firestore successfully.");
-                        }).catch(dbErr => {
-                            console.error("Failed to archive PDF as base64 in Firestore: ", dbErr);
-                        });
-                    };
-                });
-        }
-        
         element.style.transform = originalTransform;
         element.style.marginBottom = originalMarginBottom;
         container.style.overflow = originalOverflow;
         container.style.maxHeight = originalMaxHeight;
 
         const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
+        let shared = false;
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
                await navigator.share({
@@ -1101,14 +1068,51 @@ async function generatePDF() {
                    text: `Adjunto cotización solicitada.`,
                    files: [file]
                });
+               shared = true;
             } catch(e) {
-               // User cancelled or share failed, fallback to download
-               await worker.save();
+               console.log("Navigator share failed, falling back to download", e.message);
             }
-        } else {
-            // Fallback for PC Safari/Chrome/Edge where file sharing might be disabled
+        }
+        
+        if (!shared) {
             await worker.save();
-            alert("El navegador no soporta el envío directo en este dispositivo. El PDF se ha guardado en tus Descargas para que puedas enviarlo.");
+        }
+
+        // Save to cloud and upload to storage asynchronously in the background
+        if (currentUser && db) {
+            saveQuote(true).then(saved => {
+                if (saved && storage && currentQuoteId) {
+                    const uploadQuoteId = currentQuoteId;
+                    const uploadUid = currentUser.uid;
+                    storage.ref().child(`users/${uploadUid}/quotes/${uploadQuoteId}.pdf`).put(pdfBlob)
+                        .then(snapshot => snapshot.ref.getDownloadURL())
+                        .then(downloadUrl => {
+                            return db.collection('users').doc(uploadUid).collection('quotes').doc(uploadQuoteId).update({
+                                pdfUrl: downloadUrl
+                            });
+                        })
+                        .then(() => {
+                            console.log("PDF archived in Firebase Storage asynchronously in background.");
+                        })
+                        .catch(storageErr => {
+                            console.warn("Could not archive PDF in Firebase Storage, falling back to inline base64: ", storageErr);
+                            const reader = new FileReader();
+                            reader.readAsDataURL(pdfBlob);
+                            reader.onloadend = function() {
+                                const base64data = reader.result;
+                                db.collection('users').doc(uploadUid).collection('quotes').doc(uploadQuoteId).update({
+                                    pdfUrl: base64data
+                                }).then(() => {
+                                    console.log("PDF archived as inline base64 in Firestore successfully in background.");
+                                }).catch(dbErr => {
+                                    console.error("Failed to archive PDF as base64 in Firestore: ", dbErr);
+                                });
+                            };
+                        });
+                }
+            }).catch(saveErr => {
+                console.error("Background saveQuote error: ", saveErr);
+            });
         }
     } catch(err) {
         console.error("PDF generation error: ", err);
