@@ -15,17 +15,21 @@ let currentUser = null;
 let currentQuoteId = null;
 let loadedCorrelative = null;
 
+let storage = null;
+
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
         auth = firebase.auth();
+        storage = firebase.storage();
     } catch (e) {
         console.warn("Firebase config is incomplete or invalid.");
     }
 } else if (typeof firebase !== 'undefined' && firebase.apps.length) {
     db = firebase.firestore();
     auth = firebase.auth();
+    storage = firebase.storage();
 }
 // ------------------------------
 
@@ -1054,6 +1058,21 @@ async function generatePDF() {
         const worker = html2pdf().set(opt).from(element);
         const pdfBlob = await worker.outputPdf('blob');
         
+        // Archive PDF in Storage
+        if (currentUser && db && storage && currentQuoteId) {
+            try {
+                const fileRef = storage.ref().child(`users/${currentUser.uid}/quotes/${currentQuoteId}.pdf`);
+                await fileRef.put(pdfBlob);
+                const downloadUrl = await fileRef.getDownloadURL();
+                await db.collection('users').doc(currentUser.uid).collection('quotes').doc(currentQuoteId).update({
+                    pdfUrl: downloadUrl
+                });
+                console.log("PDF archived in Firebase Storage:", downloadUrl);
+            } catch(storageErr) {
+                console.warn("Could not archive PDF in Firebase Storage: ", storageErr);
+            }
+        }
+        
         element.style.transform = originalTransform;
         element.style.marginBottom = originalMarginBottom;
         container.style.overflow = originalOverflow;
@@ -1115,6 +1134,8 @@ async function uploadToAsana() {
     btn.disabled = true;
 
     try {
+        const finalCorrelative = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
+        
         // 0. Search for existing task
         btn.innerText = "Buscando...";
         let taskGid = null;
@@ -1203,7 +1224,6 @@ Creado desde Cotizador Stahlgraf.`,
         btn.innerText = "Generando PDF...";
         const element = document.getElementById('pdf-content');
         const container = document.getElementById('pdf-container');
-        const finalCorrelativeForPdf = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
         
         const originalTransform = element.style.transform;
         const originalMarginBottom = element.style.marginBottom;
@@ -1217,7 +1237,7 @@ Creado desde Cotizador Stahlgraf.`,
 
         const opt = {
             margin:       [10, 0, 15, 0],
-            filename:     `COTIZACION_${finalCorrelativeForPdf}.pdf`,
+            filename:     `COTIZACION_${finalCorrelative}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -1228,6 +1248,21 @@ Creado desde Cotizador Stahlgraf.`,
         const worker = html2pdf().set(opt).from(element);
         const pdfBlob = await worker.outputPdf('blob');
         
+        // Archive PDF in Storage
+        if (currentUser && db && storage && currentQuoteId) {
+            try {
+                const fileRef = storage.ref().child(`users/${currentUser.uid}/quotes/${currentQuoteId}.pdf`);
+                await fileRef.put(pdfBlob);
+                const downloadUrl = await fileRef.getDownloadURL();
+                await db.collection('users').doc(currentUser.uid).collection('quotes').doc(currentQuoteId).update({
+                    pdfUrl: downloadUrl
+                });
+                console.log("PDF archived in Firebase Storage (via Asana flow):", downloadUrl);
+            } catch(storageErr) {
+                console.warn("Could not archive PDF in Firebase Storage: ", storageErr);
+            }
+        }
+        
         element.style.transform = originalTransform;
         element.style.marginBottom = originalMarginBottom;
         container.style.overflow = originalOverflow;
@@ -1235,7 +1270,7 @@ Creado desde Cotizador Stahlgraf.`,
 
         // 3. Upload Attachment to Asana Task
         const formData = new FormData();
-        const fileName = `Cotizacion_${finalCorrelativeForPdf}_${clientName.replace(/\s+/g, '_')}.pdf`;
+        const fileName = `Cotizacion_${finalCorrelative}_${clientName.replace(/\s+/g, '_')}.pdf`;
         formData.append('file', pdfBlob, fileName);
 
         const attachRes = await fetch(`https://app.asana.com/api/1.0/tasks/${taskGid}/attachments`, {

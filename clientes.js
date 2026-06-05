@@ -98,6 +98,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById('client-history-modal');
         if (e.target.checked) {
             modal.classList.add('role-client');
+            // Redirect to summary tab if current active tab is admin-only
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (activeTab && activeTab.classList.contains('admin-only')) {
+                const summaryTab = document.querySelector('.tab-btn[data-tab="history-tab-summary"]');
+                if (summaryTab) summaryTab.click();
+            }
         } else {
             modal.classList.remove('role-client');
         }
@@ -777,7 +783,10 @@ function renderQuotesTab() {
             <td class="price-column"><strong>${q.totalStr || '-'}</strong></td>
             <td><span class="pill-badge ${badgeClass}">${status}</span></td>
             <td>
-                <a href="cotizador.html?id=${q.id}" class="btn btn-secondary btn-sm" style="padding: 3px 6px; font-size:0.75rem;">Ver Cotizador</a>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <a href="cotizador.html?id=${q.id}" class="btn btn-secondary btn-sm" style="padding: 3px 6px; font-size:0.75rem; white-space: nowrap;">Ver Cotizador</a>
+                    ${q.pdfUrl ? `<a href="${q.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 3px 6px; font-size:0.75rem; background-color: #27ae60; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">📥 PDF Original</a>` : ''}
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -806,7 +815,10 @@ function renderReportsTab() {
                 <span style="font-size:0.8rem; color:#aaa;">${r.recommendations || ''}</span>
             </td>
             <td>
-                <a href="informador.html?id=${r.id}" class="btn btn-secondary btn-sm" style="padding: 3px 6px; font-size:0.75rem;">Ver Informe</a>
+                <div style="display: flex; gap: 5px; align-items: center;">
+                    <a href="informador.html?id=${r.id}" class="btn btn-secondary btn-sm" style="padding: 3px 6px; font-size:0.75rem; white-space: nowrap;">Ver Informe</a>
+                    ${r.pdfUrl ? `<a href="${r.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 3px 6px; font-size:0.75rem; background-color: #27ae60; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">📥 PDF Original</a>` : ''}
+                </div>
             </td>
         `;
         tbody.appendChild(tr);

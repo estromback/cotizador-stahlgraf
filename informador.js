@@ -29,6 +29,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 let currentPhotos = []; // Array of { file, dataUrl }
 let loadedReportCorrelative = null;
 let clientsList = [];
+let lastSavedReportId = null;
 
 // DOM Elements
 const formInputs = document.querySelectorAll('#report-form input, #report-form textarea, #report-form select');
@@ -277,6 +278,7 @@ async function saveReportToCloud(silent = false) {
     try {
         const timestamp = new Date().getTime();
         const reportId = 'rep_' + timestamp;
+        lastSavedReportId = reportId;
         const photoUrls = [];
 
         // Save compressed photos as base64 in Firestore directly to prevent Storage hangs
@@ -489,6 +491,21 @@ async function generatePDF() {
 
         const worker = html2pdf().set(opt).from(element);
         const pdfBlob = await worker.outputPdf('blob');
+
+        // Archive Report PDF in Storage
+        if (currentUser && db && storage && lastSavedReportId) {
+            try {
+                const fileRef = storage.ref().child(`users/${currentUser.uid}/reports/${lastSavedReportId}.pdf`);
+                await fileRef.put(pdfBlob);
+                const downloadUrl = await fileRef.getDownloadURL();
+                await db.collection('users').doc(currentUser.uid).collection('reports').doc(lastSavedReportId).update({
+                    pdfUrl: downloadUrl
+                });
+                console.log("Report PDF archived in Firebase Storage:", downloadUrl);
+            } catch(storageErr) {
+                console.warn("Could not archive Report PDF in Firebase Storage: ", storageErr);
+            }
+        }
 
         // Revert styles
         element.style.transform = originalTransform;
