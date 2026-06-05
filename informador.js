@@ -103,7 +103,6 @@ function setupEventListeners() {
 
     // Action Buttons
     document.getElementById('btn-new-report').addEventListener('click', resetForm);
-    document.getElementById('btn-save-report').addEventListener('click', saveReportToCloud);
     document.getElementById('btn-generate-pdf').addEventListener('click', generatePDF);
 
     // History Modal
