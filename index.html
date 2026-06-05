@@ -248,41 +248,7 @@
             </div>
         </div>
 
-        <!-- Calendar Panel -->
-        <div class="glass-panel" style="margin-bottom: 30px; padding: 25px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-                <div>
-                    <h3 style="margin: 0; font-size: 1.4rem;">Calendario de Seguimiento</h3>
-                    <p style="color: #aaa; margin-top: 5px; font-size: 0.9rem;">Visualiza y gestiona las actividades de tu CRM</p>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <button id="cal-btn-prev" class="btn btn-secondary btn-sm">⬅️ Anterior</button>
-                    <button id="cal-btn-today" class="btn btn-secondary btn-sm">Hoy</button>
-                    <button id="cal-btn-next" class="btn btn-secondary btn-sm">Siguiente ➡️</button>
-                    <button id="cal-btn-add" class="btn btn-primary btn-sm" style="margin-left: 10px;">+ Nuevo Evento</button>
-                </div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h4 id="cal-month-title" style="margin: 0; font-size: 1.25rem; text-transform: capitalize; font-weight: 600; color: #fff;">Junio 2026</h4>
-            </div>
-            
-            <div class="calendar-grid-container">
-                <div class="calendar-weekdays">
-                    <div>Lun</div>
-                    <div>Mar</div>
-                    <div>Mié</div>
-                    <div>Jue</div>
-                    <div>Vie</div>
-                    <div>Sáb</div>
-                    <div>Dom</div>
-                </div>
-                <div id="calendar-days" class="calendar-days-grid">
-                    <!-- Dynamic cells will be injected here by JS -->
-                </div>
-            </div>
-        </div>
-
+        <!-- Apps Grid -->
         <div class="apps-grid" style="margin-bottom: 30px;">
             <a href="cotizador.html" class="app-card">
                 <div class="app-icon">📄</div>
@@ -319,6 +285,41 @@
                 <div class="app-title">Finanzas (Pronto)</div>
                 <div class="app-desc">Módulo en desarrollo para control de ingresos y egresos.</div>
             </a>
+        </div>
+
+        <!-- Calendar Panel -->
+        <div class="glass-panel" style="margin-bottom: 30px; padding: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.4rem;">Calendario de Seguimiento</h3>
+                    <p style="color: #aaa; margin-top: 5px; font-size: 0.9rem;">Visualiza y gestiona las actividades de tu CRM</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <button id="cal-btn-prev" class="btn btn-secondary btn-sm">⬅️ Anterior</button>
+                    <button id="cal-btn-today" class="btn btn-secondary btn-sm">Hoy</button>
+                    <button id="cal-btn-next" class="btn btn-secondary btn-sm">Siguiente ➡️</button>
+                    <button id="cal-btn-add" class="btn btn-primary btn-sm" style="margin-left: 10px;">+ Nuevo Evento</button>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 id="cal-month-title" style="margin: 0; font-size: 1.25rem; text-transform: capitalize; font-weight: 600; color: #fff;">Junio 2026</h4>
+            </div>
+            
+            <div class="calendar-grid-container">
+                <div class="calendar-weekdays">
+                    <div>Lun</div>
+                    <div>Mar</div>
+                    <div>Mié</div>
+                    <div>Jue</div>
+                    <div>Vie</div>
+                    <div>Sáb</div>
+                    <div>Dom</div>
+                </div>
+                <div id="calendar-days" class="calendar-days-grid">
+                    <!-- Dynamic cells will be injected here by JS -->
+                </div>
+            </div>
         </div>
 
         <div class="glass-panel" style="margin-bottom: 30px;">
