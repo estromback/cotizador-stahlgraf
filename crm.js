@@ -435,19 +435,7 @@ function openCardModal(card = null) {
             formContent.innerHTML = '';
         }
 
-        if (card.comments && card.comments.length > 0) {
-            card.comments.forEach(c => {
-                const cDiv = document.createElement('div');
-                cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-                cDiv.style.paddingBottom = '5px';
-                cDiv.style.marginBottom = '5px';
-                cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${c.date}</span><p style="margin: 3px 0; font-size: 0.9rem; white-space: pre-wrap;">${c.text}</p>`;
-                commentsList.appendChild(cDiv);
-            });
-            commentsList.scrollTop = commentsList.scrollHeight;
-        } else {
-            commentsList.innerHTML = '<p style="color:#666; font-size:0.9rem;">No hay comentarios aún.</p>';
-        }
+        renderModalComments(card);
     } else {
         document.getElementById('modal-card-title').innerText = 'Nuevo Registro';
         document.getElementById('card-id').value = '';
@@ -592,6 +580,126 @@ async function addComment() {
         alert("Error al guardar el comentario.");
     } finally {
         btn.disabled = false;
+    }
+}
+
+function renderModalComments(card) {
+    const commentsList = document.getElementById('card-comments-list');
+    commentsList.innerHTML = '';
+    
+    if (!card || !card.comments || card.comments.length === 0) {
+        commentsList.innerHTML = '<p style="color:#666; font-size:0.9rem;">No hay comentarios aún.</p>';
+        return;
+    }
+
+    card.comments.forEach((c, index) => {
+        const cDiv = document.createElement('div');
+        cDiv.className = 'comment-item';
+        cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+        cDiv.style.paddingBottom = '5px';
+        cDiv.style.marginBottom = '8px';
+        cDiv.style.display = 'flex';
+        cDiv.style.justifyContent = 'space-between';
+        cDiv.style.alignItems = 'flex-start';
+        cDiv.style.gap = '10px';
+        
+        cDiv.innerHTML = `
+            <div class="comment-content-view" style="flex: 1;">
+                <span style="font-size: 0.78rem; color: #aaa; display: block; margin-bottom: 2px;">${c.date}</span>
+                <p style="margin: 0; font-size: 0.9rem; white-space: pre-wrap; color: #cbd5e1;">${c.text}</p>
+            </div>
+            <div class="comment-actions" style="display: flex; gap: 8px; font-size: 0.78rem; align-items: center; padding-top: 2px;">
+                <a href="#" class="edit-comment-link" style="color: #60a5fa; text-decoration: none; font-weight: 500;">Editar</a>
+                <span style="color: rgba(255,255,255,0.2);">|</span>
+                <a href="#" class="delete-comment-link" style="color: #f87171; text-decoration: none; font-weight: 500;">Borrar</a>
+            </div>
+        `;
+
+        const editLink = cDiv.querySelector('.edit-comment-link');
+        const deleteLink = cDiv.querySelector('.delete-comment-link');
+
+        editLink.onclick = (e) => {
+            e.preventDefault();
+            // Show inline editor
+            cDiv.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                    <span style="font-size: 0.78rem; color: #aaa;">Editando comentario de ${c.date}</span>
+                    <textarea class="edit-comment-textarea" style="width: 100%; min-height: 60px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; padding: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical; outline: none;"></textarea>
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <button class="btn btn-secondary btn-sm cancel-edit-btn" style="padding: 2px 8px; font-size: 0.75rem; background: transparent; border-color: transparent; color: #aaa;">Cancelar</button>
+                        <button class="btn btn-primary btn-sm save-edit-btn" style="padding: 2px 10px; font-size: 0.75rem;">Guardar</button>
+                    </div>
+                </div>
+            `;
+            const textarea = cDiv.querySelector('.edit-comment-textarea');
+            textarea.value = c.text;
+            textarea.focus();
+
+            cDiv.querySelector('.cancel-edit-btn').onclick = (ev) => {
+                ev.preventDefault();
+                renderModalComments(card);
+            };
+
+            cDiv.querySelector('.save-edit-btn').onclick = async (ev) => {
+                ev.preventDefault();
+                const newText = textarea.value.trim();
+                if (!newText) return;
+                
+                await updateCardComment(card.id, index, newText);
+                card.comments[index].text = newText;
+                renderModalComments(card);
+            };
+        };
+
+        deleteLink.onclick = async (e) => {
+            e.preventDefault();
+            if (confirm("¿Seguro que deseas eliminar este comentario?")) {
+                await deleteCardComment(card.id, index);
+                card.comments.splice(index, 1);
+                renderModalComments(card);
+            }
+        };
+
+        commentsList.appendChild(cDiv);
+    });
+    commentsList.scrollTop = commentsList.scrollHeight;
+}
+
+async function updateCardComment(cardId, index, newText) {
+    if (!currentUser || !db) return;
+    const card = crmCards.find(c => c.id === cardId);
+    if (!card || !card.comments || !card.comments[index]) return;
+
+    const updatedComments = [...card.comments];
+    updatedComments[index].text = newText;
+
+    try {
+        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+            comments: updatedComments,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        console.error(e);
+        alert("Error al actualizar el comentario.");
+    }
+}
+
+async function deleteCardComment(cardId, index) {
+    if (!currentUser || !db) return;
+    const card = crmCards.find(c => c.id === cardId);
+    if (!card || !card.comments || !card.comments[index]) return;
+
+    const updatedComments = [...card.comments];
+    updatedComments.splice(index, 1);
+
+    try {
+        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+            comments: updatedComments,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        console.error(e);
+        alert("Error al eliminar el comentario.");
     }
 }
 

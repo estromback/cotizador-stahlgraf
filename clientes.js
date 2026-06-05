@@ -911,16 +911,76 @@ function renderCrmTab() {
         if (comments.length === 0) {
             commentsList.innerHTML = '<p style="color:#666; font-size:0.9rem;">No hay notas ni comentarios de CRM.</p>';
         } else {
-            comments.forEach(c => {
+            comments.forEach((c, index) => {
                 const cDiv = document.createElement('div');
                 cDiv.className = 'comment-item';
+                cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+                cDiv.style.paddingBottom = '8px';
+                cDiv.style.marginBottom = '8px';
+                cDiv.style.display = 'flex';
+                cDiv.style.justifyContent = 'space-between';
+                cDiv.style.alignItems = 'flex-start';
+                cDiv.style.gap = '10px';
+
                 cDiv.innerHTML = `
-                    <div class="comment-header">
-                        <span style="font-weight: 600; color: #e2e8f0;">Nota Interna CRM</span>
-                        <span>${c.date || '-'}</span>
+                    <div class="comment-content-view" style="flex: 1;">
+                        <div class="comment-header" style="display: flex; justify-content: space-between; font-size: 0.78rem; color: #aaa; margin-bottom: 2px;">
+                            <span style="font-weight: 600; color: #e2e8f0;">Nota Interna CRM</span>
+                            <span>${c.date || '-'}</span>
+                        </div>
+                        <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: #ccc; white-space: pre-wrap;">${c.text || ''}</p>
                     </div>
-                    <p style="margin: 3px 0; font-size: 0.85rem; color: #ccc; white-space: pre-wrap;">${c.text || ''}</p>
+                    <div class="comment-actions admin-only" style="display: flex; gap: 8px; font-size: 0.78rem; align-items: center; padding-top: 2px;">
+                        <a href="#" class="edit-comment-link" style="color: #60a5fa; text-decoration: none; font-weight: 500;">Editar</a>
+                        <span style="color: rgba(255,255,255,0.2);">|</span>
+                        <a href="#" class="delete-comment-link" style="color: #f87171; text-decoration: none; font-weight: 500;">Borrar</a>
+                    </div>
                 `;
+
+                const editLink = cDiv.querySelector('.edit-comment-link');
+                const deleteLink = cDiv.querySelector('.delete-comment-link');
+
+                editLink.onclick = (e) => {
+                    e.preventDefault();
+                    cDiv.innerHTML = `
+                        <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                            <span style="font-size: 0.78rem; color: #aaa;">Editando nota de CRM (${c.date})</span>
+                            <textarea class="edit-comment-textarea" style="width: 100%; min-height: 60px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; padding: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical; outline: none;"></textarea>
+                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                <button class="btn btn-secondary btn-sm cancel-edit-btn" style="padding: 2px 8px; font-size: 0.75rem; background: transparent; border-color: transparent; color: #aaa;">Cancelar</button>
+                                <button class="btn btn-primary btn-sm save-edit-btn" style="padding: 2px 10px; font-size: 0.75rem;">Guardar</button>
+                            </div>
+                        </div>
+                    `;
+                    const textarea = cDiv.querySelector('.edit-comment-textarea');
+                    textarea.value = c.text;
+                    textarea.focus();
+
+                    cDiv.querySelector('.cancel-edit-btn').onclick = (ev) => {
+                        ev.preventDefault();
+                        renderCrmTab();
+                    };
+
+                    cDiv.querySelector('.save-edit-btn').onclick = async (ev) => {
+                        ev.preventDefault();
+                        const newText = textarea.value.trim();
+                        if (!newText) return;
+                        
+                        await updateHistoryCrmComment(currentClientCrmCard.id, index, newText);
+                        currentClientCrmCard.comments[index].text = newText;
+                        renderCrmTab();
+                    };
+                };
+
+                deleteLink.onclick = async (e) => {
+                    e.preventDefault();
+                    if (confirm("¿Seguro que deseas eliminar esta nota de CRM?")) {
+                        await deleteHistoryCrmComment(currentClientCrmCard.id, index);
+                        currentClientCrmCard.comments.splice(index, 1);
+                        renderCrmTab();
+                    }
+                };
+
                 commentsList.appendChild(cDiv);
             });
             commentsList.scrollTop = commentsList.scrollHeight;
@@ -929,6 +989,40 @@ function renderCrmTab() {
         stageLabel.innerText = 'Sin Tarjeta CRM';
         stageLabel.className = 'pill-badge pill-badge-secondary';
         commentsList.innerHTML = '<p style="color:#666; font-size:0.9rem;">Este cliente no tiene una tarjeta en el tablero CRM.</p>';
+    }
+}
+
+async function updateHistoryCrmComment(cardId, index, newText) {
+    if (!currentUser || !db) return;
+    try {
+        const docRef = db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId);
+        const updatedComments = [...currentClientCrmCard.comments];
+        updatedComments[index].text = newText;
+
+        await docRef.update({
+            comments: updatedComments,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        console.error(e);
+        alert("Error al actualizar el comentario.");
+    }
+}
+
+async function deleteHistoryCrmComment(cardId, index) {
+    if (!currentUser || !db) return;
+    try {
+        const docRef = db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId);
+        const updatedComments = [...currentClientCrmCard.comments];
+        updatedComments.splice(index, 1);
+
+        await docRef.update({
+            comments: updatedComments,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) {
+        console.error(e);
+        alert("Error al eliminar el comentario.");
     }
 }
 
