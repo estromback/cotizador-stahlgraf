@@ -819,7 +819,7 @@ function renderQuotesTab() {
             <td>
                 <div style="display: flex; gap: 5px; align-items: center;">
                     <a href="cotizador.html?id=${q.id}" class="btn btn-secondary btn-sm" style="padding: 3px 6px; font-size:0.75rem; white-space: nowrap;">Ver Cotizador</a>
-                    ${q.pdfUrl ? `<a href="${q.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 3px 6px; font-size:0.75rem; background-color: #3b82f6; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">📥 PDF Original</a>` : ''}
+                    ${q.pdfUrl ? `<a href="#" onclick="viewPDF('${q.pdfUrl}', 'Cotizacion_${q.correlative || q.id}.pdf'); return false;" class="btn btn-sm" style="padding: 3px 6px; font-size:0.75rem; background-color: #3b82f6; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">📥 PDF Original</a>` : ''}
                 </div>
             </td>
         `;
@@ -851,7 +851,7 @@ function renderReportsTab() {
             <td>
                 <div style="display: flex; gap: 5px; align-items: center;">
                     <a href="informador.html?id=${r.id}" class="btn btn-secondary btn-sm" style="padding: 3px 6px; font-size:0.75rem; white-space: nowrap;">Ver Informe</a>
-                    ${r.pdfUrl ? `<a href="${r.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 3px 6px; font-size:0.75rem; background-color: #3b82f6; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">📥 PDF Original</a>` : ''}
+                    ${r.pdfUrl ? `<a href="#" onclick="viewPDF('${r.pdfUrl}', 'Informe_${r.id}.pdf'); return false;" class="btn btn-sm" style="padding: 3px 6px; font-size:0.75rem; background-color: #3b82f6; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;">📥 PDF Original</a>` : ''}
                 </div>
             </td>
         `;
@@ -1082,3 +1082,36 @@ window.openHistoryModal = openHistoryModal;
 window.closeHistoryModal = closeHistoryModal;
 window.deleteRecordedService = deleteRecordedService;
 window.deleteReportSent = deleteReportSent;
+
+window.viewPDF = function(pdfData, filename) {
+    if (pdfData.startsWith('data:application/pdf;base64,')) {
+        try {
+            const base64Parts = pdfData.split(';base64,');
+            const byteCharacters = atob(base64Parts[1]);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], {type: 'application/pdf'});
+            const fileURL = URL.createObjectURL(blob);
+            
+            const newTab = window.open();
+            if (newTab) {
+                newTab.document.write(`<iframe src="${fileURL}" style="width:100%; height:100%; border:none;"></iframe>`);
+            } else {
+                const a = document.createElement('a');
+                a.href = fileURL;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+        } catch (err) {
+            console.error("Error displaying base64 PDF:", err);
+            alert("No se pudo abrir el PDF original.");
+        }
+    } else {
+        window.open(pdfData, '_blank');
+    }
+};

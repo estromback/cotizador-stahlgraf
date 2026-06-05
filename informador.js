@@ -507,7 +507,19 @@ async function generatePDF() {
                     console.log("Report PDF archived in Firebase Storage asynchronously.");
                 })
                 .catch(storageErr => {
-                    console.warn("Could not archive Report PDF in Firebase Storage: ", storageErr);
+                    console.warn("Could not archive Report PDF in Firebase Storage, falling back to inline base64: ", storageErr);
+                    const reader = new FileReader();
+                    reader.readAsDataURL(pdfBlob);
+                    reader.onloadend = function() {
+                        const base64data = reader.result;
+                        db.collection('users').doc(uploadUid).collection('reports').doc(uploadReportId).update({
+                            pdfUrl: base64data
+                        }).then(() => {
+                            console.log("Report PDF archived as inline base64 in Firestore successfully.");
+                        }).catch(dbErr => {
+                            console.error("Failed to archive Report PDF as base64 in Firestore: ", dbErr);
+                        });
+                    };
                 });
         }
 
@@ -687,7 +699,7 @@ async function loadHistoryUI() {
                 </div>
                 <div class="db-item-actions" style="display: flex; gap: 5px; align-items: center;">
                     <button class="btn btn-secondary btn-sm btn-load-historic" data-id="${doc.id}">Ver Resumen</button>
-                    ${data.pdfUrl ? `<a href="${data.pdfUrl}" target="_blank" class="btn btn-sm" style="padding: 5px 8px; font-size:0.75rem; background-color: #3b82f6; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-weight: normal; white-space: nowrap;">📥 PDF</a>` : ''}
+                    ${data.pdfUrl ? `<a href="#" onclick="viewPDF('${data.pdfUrl}', 'Informe_${doc.id}.pdf'); return false;" class="btn btn-sm" style="padding: 5px 8px; font-size:0.75rem; background-color: #3b82f6; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-weight: normal; white-space: nowrap;">📥 PDF</a>` : ''}
                     <button class="btn btn-sm btn-delete-historic" data-id="${doc.id}" style="background: transparent; border: 1px solid var(--danger); color: var(--danger);">Eliminar</button>
                 </div>
             `;
@@ -837,3 +849,36 @@ async function loadDashboardUI() {
         statsContainer.innerHTML = `<p style="color: red;">Error: ${err.message}</p>`;
     }
 }
+
+window.viewPDF = function(pdfData, filename) {
+    if (pdfData.startsWith('data:application/pdf;base64,')) {
+        try {
+            const base64Parts = pdfData.split(';base64,');
+            const byteCharacters = atob(base64Parts[1]);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], {type: 'application/pdf'});
+            const fileURL = URL.createObjectURL(blob);
+            
+            const newTab = window.open();
+            if (newTab) {
+                newTab.document.write(`<iframe src="${fileURL}" style="width:100%; height:100%; border:none;"></iframe>`);
+            } else {
+                const a = document.createElement('a');
+                a.href = fileURL;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+        } catch (err) {
+            console.error("Error displaying base64 PDF:", err);
+            alert("No se pudo abrir el PDF original.");
+        }
+    } else {
+        window.open(pdfData, '_blank');
+    }
+};
