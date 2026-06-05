@@ -712,6 +712,15 @@ async function loadHistoryUI() {
                 const id = e.target.getAttribute('data-id');
                 if (confirm('¿Estás seguro de que deseas eliminar este informe del historial de forma permanente?')) {
                     try {
+                        // Delete PDF from Firebase Storage if storage is initialized
+                        if (storage && currentUser) {
+                            try {
+                                await storage.ref().child(`users/${currentUser.uid}/reports/${id}.pdf`).delete();
+                                console.log("Deleted report PDF from Firebase Storage.");
+                            } catch (storageErr) {
+                                console.log("No Storage PDF to delete or already removed:", storageErr.message);
+                            }
+                        }
                         await db.collection('users').doc(currentUser.uid).collection('reports').doc(id).delete();
                         loadHistoryUI(); // Reload list
                     } catch (error) {

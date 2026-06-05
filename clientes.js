@@ -12,6 +12,7 @@ const firebaseConfig = {
 
 let db = null;
 let auth = null;
+let storage = null;
 let currentUser = null;
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
@@ -19,12 +20,14 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
         auth = firebase.auth();
+        storage = firebase.storage();
     } catch (e) {
         console.warn("Firebase config is incomplete or invalid.");
     }
 } else if (firebase.apps.length) {
     db = firebase.firestore();
     auth = firebase.auth();
+    storage = firebase.storage();
 }
 
 let appData = {
@@ -285,12 +288,28 @@ async function deleteClientCascading(id) {
 
             // Delete Quotes
             const quotesSnap = await db.collection('users').doc(currentUser.uid).collection('quotes').where('clientName', '==', client.name).get();
+            if (storage) {
+                const quoteDeletePromises = quotesSnap.docs.map(quoteDoc => {
+                    return storage.ref().child(`users/${currentUser.uid}/quotes/${quoteDoc.id}.pdf`).delete()
+                        .then(() => console.log(`Deleted quote PDF ${quoteDoc.id} from Storage.`))
+                        .catch(err => console.log(`No Storage PDF to delete for quote ${quoteDoc.id}:`, err.message));
+                });
+                await Promise.all(quoteDeletePromises);
+            }
             const quotesBatch = db.batch();
             quotesSnap.forEach(doc => quotesBatch.delete(doc.ref));
             await quotesBatch.commit();
 
             // Delete Reports
             const reportsSnap = await db.collection('users').doc(currentUser.uid).collection('reports').where('clientName', '==', client.name).get();
+            if (storage) {
+                const reportDeletePromises = reportsSnap.docs.map(reportDoc => {
+                    return storage.ref().child(`users/${currentUser.uid}/reports/${reportDoc.id}.pdf`).delete()
+                        .then(() => console.log(`Deleted report PDF ${reportDoc.id} from Storage.`))
+                        .catch(err => console.log(`No Storage PDF to delete for report ${reportDoc.id}:`, err.message));
+                });
+                await Promise.all(reportDeletePromises);
+            }
             const reportsBatch = db.batch();
             reportsSnap.forEach(doc => reportsBatch.delete(doc.ref));
             await reportsBatch.commit();

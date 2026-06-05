@@ -1343,6 +1343,16 @@ window.loadQuoteFromDB = function(id, silent = false) {
 window.deleteQuoteFromDB = async function(id) {
     if(!confirm("¿Estás seguro de eliminar esta cotización definitivamente?")) return;
     try {
+        // Delete PDF from Firebase Storage if storage is initialized
+        if (storage && currentUser) {
+            try {
+                await storage.ref().child(`users/${currentUser.uid}/quotes/${id}.pdf`).delete();
+                console.log("Deleted quote PDF from Firebase Storage.");
+            } catch (storageErr) {
+                // If it doesn't exist (e.g. was base64 or legacy), just log it
+                console.log("No Storage PDF to delete or already removed:", storageErr.message);
+            }
+        }
         await db.collection('users').doc(currentUser.uid).collection('quotes').doc(id).delete();
         if (currentQuoteId === id) resetForm(); // If it was loaded, reset UI
         loadHistoryUI();
