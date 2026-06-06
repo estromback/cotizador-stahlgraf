@@ -75,6 +75,7 @@ function loadData() {
             console.error("Error parsing local data", e);
         }
     }
+    clientsList = appData.clients || [];
 }
 
 function saveData() {
