@@ -280,8 +280,8 @@ function updateUI() {
     // 6. Render transactions list
     renderTransactionsTable();
 
-    // 7. Populate CRM imports dropdown
-    populateImportDealsDropdown();
+    // 7. Populate quotes imports dropdown
+    populateImportQuotesDropdown();
 }
 
 function renderCashFlowChart(monthlyData) {
@@ -468,53 +468,47 @@ function populateClientDropdown() {
     });
 }
 
-function populateImportDealsDropdown() {
-    const select = document.getElementById('import-crm-deal');
+function populateImportQuotesDropdown() {
+    const select = document.getElementById('import-quote-select');
     if (!select) return;
     
     // Clear current options, keep only first placeholder
-    select.innerHTML = '<option value="">-- Seleccionar venta --</option>';
+    select.innerHTML = '<option value="">-- Seleccionar cotización --</option>';
     
-    // Filter CRM list for won deals that haven't been imported yet
-    const wonDeals = crmList.filter(card => {
-        const isSold = (card.column || '').toLowerCase() === 'vendidos' || (card.column || '').toLowerCase() === 'vendido';
-        if (!isSold) return false;
-        
+    // Filter quotes that haven't been imported yet
+    const pendingQuotes = quotesList.filter(quote => {
         // Exclude if already imported in manualTransactions
-        const alreadyImported = manualTransactions.some(tx => tx.id && tx.id.startsWith('tx_imported_' + card.id));
+        const alreadyImported = manualTransactions.some(tx => tx.id && tx.id.startsWith('tx_imported_quote_' + quote.id));
         return !alreadyImported;
     });
     
-    if (wonDeals.length === 0) {
+    if (pendingQuotes.length === 0) {
         const opt = document.createElement('option');
         opt.value = "";
-        opt.textContent = "No hay ventas pendientes de importar";
+        opt.textContent = "No hay cotizaciones pendientes de importar";
         opt.disabled = true;
         select.appendChild(opt);
         return;
     }
     
-    // Sort won deals by date descending
-    wonDeals.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    // Sort quotes by date/timestamp descending
+    pendingQuotes.sort((a, b) => {
+        const dateA = a.timestamp && a.timestamp.toDate ? a.timestamp.toDate() : new Date(0);
+        const dateB = b.timestamp && b.timestamp.toDate ? b.timestamp.toDate() : new Date(0);
+        return dateB - dateA;
+    });
     
-    wonDeals.forEach(card => {
-        // Calculate amount
-        let quoteTotal = 0;
-        const matchingQuote = quotesList.find(q => q.clientName === card.client || q.clientPhone === card.phone);
-        if (matchingQuote) {
-            quoteTotal = parseFloat(String(matchingQuote.total || matchingQuote.totalStr || '0').replace(/[^0-9.-]+/g, "")) || 0;
-        } else {
-            quoteTotal = parseFloat(card.amount) || 0;
-        }
+    pendingQuotes.forEach(quote => {
+        const total = parseFloat(String(quote.total || quote.totalStr || '0').replace(/[^0-9.-]+/g, "")) || 0;
+        const dateStr = quote.timestamp && quote.timestamp.toDate ? quote.timestamp.toDate().toISOString().split('T')[0] : 'Sin fecha';
         
         const opt = document.createElement('option');
-        opt.value = card.id;
-        const dateStr = card.date || (matchingQuote?.date) || 'Sin fecha';
-        opt.textContent = `${card.client || 'Sin cliente'} - $${quoteTotal.toLocaleString()} (${dateStr})`;
-        opt.dataset.amount = quoteTotal;
-        opt.dataset.client = card.client || '';
+        opt.value = quote.id;
+        opt.textContent = `Cotización #${quote.correlative || '?'} - ${quote.clientName || 'Sin cliente'} - $${total.toLocaleString()} (${dateStr})`;
+        opt.dataset.amount = total;
+        opt.dataset.client = quote.clientName || '';
         opt.dataset.date = dateStr;
-        opt.dataset.title = card.title || '';
+        opt.dataset.title = `Cotización #${quote.correlative || '?'}`;
         select.appendChild(opt);
     });
 }
@@ -597,27 +591,27 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCategoryOptions();
     }
     
-    // Bind CRM deal import
-    const importBtn = document.getElementById('btn-import-deal');
+    // Bind Quote import
+    const importBtn = document.getElementById('btn-import-quote');
     if (importBtn) {
         importBtn.addEventListener('click', async () => {
-            const select = document.getElementById('import-crm-deal');
+            const select = document.getElementById('import-quote-select');
             if (!select || !select.value) {
-                return alert("Por favor, selecciona una venta de la lista para importar.");
+                return alert("Por favor, selecciona una cotización de la lista para importar.");
             }
             
             const selectedOpt = select.options[select.selectedIndex];
-            const dealId = select.value;
+            const quoteId = select.value;
             const amount = parseFloat(selectedOpt.dataset.amount) || 0;
             const clientName = selectedOpt.dataset.client;
-            const dealTitle = selectedOpt.dataset.title;
+            const quoteTitle = selectedOpt.dataset.title;
             const date = selectedOpt.dataset.date;
             
             if (amount <= 0) {
-                return alert("Esta cotización/trato no tiene un monto válido registrado.");
+                return alert("Esta cotización no tiene un monto válido registrado.");
             }
             
-            const confirmMsg = `¿Confirmas el ingreso de $${amount.toLocaleString()} para el cliente "${clientName}" correspondiente al trato "${dealTitle || 'Cotización'}"?`;
+            const confirmMsg = `¿Confirmas el ingreso de $${amount.toLocaleString()} para el cliente "${clientName}" correspondiente a la "${quoteTitle}"?`;
             if (!confirm(confirmMsg)) return;
             
             const uid = getActiveUid();
@@ -631,14 +625,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const txPayload = {
-                id: 'tx_imported_' + dealId + '_' + Date.now(),
+                id: 'tx_imported_quote_' + quoteId + '_' + Date.now(),
                 tipo: 'ingreso',
                 categoria: 'Servicio Adicional',
                 fecha: txDate,
                 monto: amount,
                 clientName: clientName || null,
                 metodoPago: 'transferencia',
-                descripcion: `Importado de CRM: ${dealTitle || 'Trato vendido'}`,
+                descripcion: `Importado de Cotizaciones: ${quoteTitle}`,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
             
@@ -650,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 select.value = '';
                 alert("✅ Transacción importada y registrada con éxito.");
             } catch(err) {
-                console.error("Error importing transaction from CRM:", err);
+                console.error("Error importing transaction from quotes:", err);
                 alert("Ocurrió un error al guardar la transacción.");
             } finally {
                 importBtn.disabled = false;
