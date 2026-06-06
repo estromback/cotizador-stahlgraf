@@ -397,7 +397,57 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    // Check and apply technical mode restrictions
+    checkTechnicalMode();
 });
+
+// Function to handle technician restricted view on dashboard
+function checkTechnicalMode() {
+    const params = new URLSearchParams(window.location.search);
+    let mode = params.get('mode');
+    
+    if (mode === 'tech') {
+        sessionStorage.setItem('trazabilidad_mode', 'tech');
+    } else if (mode === 'admin') {
+        sessionStorage.setItem('trazabilidad_mode', 'admin');
+    } else {
+        // If direct direct load without mode param and window search is empty, clear it
+        if (!window.location.search) {
+            sessionStorage.removeItem('trazabilidad_mode');
+        }
+    }
+    
+    const activeMode = sessionStorage.getItem('trazabilidad_mode');
+    if (activeMode === 'tech') {
+        // List of admin cards to hide
+        const adminCards = [
+            'card-cotizador',
+            'card-informador',
+            'card-crm',
+            'card-clientes',
+            'card-trazabilidad',
+            'card-finanzas',
+            'card-satisfaccion'
+        ];
+        adminCards.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+        
+        // Hide Settings button
+        const btnSettings = document.getElementById('btn-settings');
+        if (btnSettings) btnSettings.style.display = 'none';
+        
+        // Hide Calendar panel
+        const calendarPanel = document.getElementById('calendar-panel');
+        if (calendarPanel) calendarPanel.style.display = 'none';
+        
+        // Hide Dashboard panel
+        const dashboardPanel = document.getElementById('dashboard-panel');
+        if (dashboardPanel) dashboardPanel.style.display = 'none';
+    }
+}
 
 function updateSettingsUI() {
     document.getElementById('setting-margin').value = appData.margin;
