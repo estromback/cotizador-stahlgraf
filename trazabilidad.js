@@ -1,3 +1,11 @@
+(function() {
+    const role = localStorage.getItem('stahlgraf_user_role') || 'admin';
+    if (role === 'client') {
+        alert("⚠️ Acceso denegado: Los clientes no pueden acceder al módulo de trazabilidad.");
+        window.location.href = 'index.html';
+    }
+})();
+
 // trazabilidad.js - Rodent Bait Station Offline QR Tracking System
 
 const firebaseConfig = {
@@ -14,6 +22,10 @@ let db = null;
 let auth = null;
 let storage = null;
 let currentUser = null;
+
+function getActiveUid() {
+    return localStorage.getItem('stahlgraf_target_uid') || (currentUser ? currentUser.uid : null);
+}
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
@@ -221,7 +233,7 @@ function loadGlobalAppData() {
 function saveGlobalAppData() {
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(globalAppData));
     if (currentUser && db) {
-        db.collection('users').doc(currentUser.uid).set(globalAppData, { merge: true })
+        db.collection('users').doc(getActiveUid()).set(globalAppData, { merge: true })
             .catch(err => console.error("Error saving global configuration to Firebase:", err));
     }
 }
@@ -229,7 +241,7 @@ function saveGlobalAppData() {
 // Sync global configuration from Firebase user document
 function syncGlobalDataFromFirebase() {
     if (!currentUser || !db) return;
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
+    db.collection('users').doc(getActiveUid()).get().then(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
             globalAppData = { ...globalAppData, ...cloudData };
@@ -260,18 +272,59 @@ if (auth) {
             document.getElementById('btn-sync-login').classList.remove('btn-primary-outline');
             document.getElementById('btn-sync-login').classList.add('btn-secondary');
             
-            // Fetch central database configuration (clients & assignments) on login
-            syncGlobalDataFromFirebase();
-            
-            // Auto-sync when login status is detected and online
-            if (navigator.onLine) {
-                syncWithCloud(true);
-            }
+            const emailKey = user.email.toLowerCase();
+            db.collection('user_roles').doc(emailKey).get().then(doc => {
+                if (doc.exists) {
+                    const roleData = doc.data();
+                    localStorage.setItem('stahlgraf_user_role', roleData.role || 'tech');
+                    localStorage.setItem('stahlgraf_target_uid', roleData.ownerUid || user.uid);
+                    if (roleData.linkedClientId) {
+                        localStorage.setItem('stahlgraf_linked_client_id', roleData.linkedClientId);
+                    } else {
+                        localStorage.removeItem('stahlgraf_linked_client_id');
+                    }
+                } else {
+                    localStorage.setItem('stahlgraf_user_role', 'admin');
+                    localStorage.setItem('stahlgraf_target_uid', user.uid);
+                    localStorage.removeItem('stahlgraf_linked_client_id');
+                }
+                
+                const role = localStorage.getItem('stahlgraf_user_role');
+                if (role === 'client') {
+                    alert("⚠️ Acceso denegado: Los clientes no pueden acceder al módulo de trazabilidad.");
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                if (role === 'tech') {
+                    sessionStorage.setItem('trazabilidad_mode', 'tech');
+                    checkURLParameters();
+                }
+                
+                // Fetch central database configuration (clients & assignments) on login
+                syncGlobalDataFromFirebase();
+                
+                // Auto-sync when login status is detected and online
+                if (navigator.onLine) {
+                    syncWithCloud(true);
+                }
+            }).catch(err => {
+                console.error("Error retrieving user role:", err);
+                // Fallback (assume admin or whatever role is cached)
+                syncGlobalDataFromFirebase();
+                if (navigator.onLine) {
+                    syncWithCloud(true);
+                }
+            });
         } else {
             syncText.innerText = "Ingresar para Sync";
             syncIcon.innerText = '☁️';
             document.getElementById('btn-sync-login').classList.add('btn-primary-outline');
             document.getElementById('btn-sync-login').classList.remove('btn-secondary');
+            
+            localStorage.removeItem('stahlgraf_user_role');
+            localStorage.removeItem('stahlgraf_target_uid');
+            localStorage.removeItem('stahlgraf_linked_client_id');
         }
     });
 }
@@ -830,7 +883,11 @@ function checkURLParameters() {
     
     // Parse mode parameter and persist in sessionStorage
     let mode = params.get('mode');
-    if (mode === 'tech') {
+    const role = localStorage.getItem('stahlgraf_user_role') || 'admin';
+    
+    if (role === 'tech') {
+        sessionStorage.setItem('trazabilidad_mode', 'tech');
+    } else if (mode === 'tech') {
         sessionStorage.setItem('trazabilidad_mode', 'tech');
     } else if (mode === 'admin') {
         sessionStorage.setItem('trazabilidad_mode', 'admin');
@@ -1524,7 +1581,7 @@ async function syncWithCloud(silent = false) {
         // 1. PUSH: Upload pending local inspections to Firestore
         if (pending.length > 0) {
             const batch = db.batch();
-            const userRef = db.collection('users').doc(currentUser.uid);
+            const userRef = db.collection('users').doc(getActiveUid());
             
             pending.forEach(item => {
                 const docRef = userRef.collection('inspecciones').doc(item.id);
@@ -1553,7 +1610,7 @@ async function syncWithCloud(silent = false) {
         }
         
         // 2. PULL: Download historical inspections from Firestore and merge
-        const userRef = db.collection('users').doc(currentUser.uid);
+        const userRef = db.collection('users').doc(getActiveUid());
         const snapshot = await userRef.collection('inspecciones').orderBy('localTimestamp', 'desc').limit(100).get();
         
         let pulledCount = 0;
@@ -2463,7 +2520,7 @@ function resetStationData(stationNum) {
     
     // 3. Delete from cloud database if online and logged in
     if (currentUser && db) {
-        db.collection('users').doc(currentUser.uid).collection('inspecciones')
+        db.collection('users').doc(getActiveUid()).collection('inspecciones')
             .where('station', '==', stationKey)
             .get()
             .then(snap => {
@@ -2609,7 +2666,7 @@ function executeTransfer() {
     
     // 3. Update in Cloud
     if (currentUser && db) {
-        db.collection('users').doc(currentUser.uid).collection('inspecciones')
+        db.collection('users').doc(getActiveUid()).collection('inspecciones')
             .where('station', '==', sourceKey)
             .get()
             .then(snap => {
@@ -2977,11 +3034,11 @@ async function generatePDFReport() {
                 };
 
                 // Save initial record in Firestore
-                db.collection('users').doc(currentUser.uid).collection('station_reports_sent').doc(reportPayloadId).set(reportPayload)
+                db.collection('users').doc(getActiveUid()).collection('station_reports_sent').doc(reportPayloadId).set(reportPayload)
                     .then(() => {
                         console.log("Recorded station report sent metadata in Firestore.");
                         if (storage) {
-                            const uploadUid = currentUser.uid;
+                            const uploadUid = getActiveUid();
                             storage.ref().child(`users/${uploadUid}/station_reports/${reportPayloadId}.pdf`).put(pdfBlob)
                                 .then(snapshot => snapshot.ref.getDownloadURL())
                                 .then(downloadUrl => {

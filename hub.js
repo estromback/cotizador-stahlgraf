@@ -25,6 +25,10 @@ let isUserConfigLoaded = false;
 let activeClientSelectionTarget = 'crm';
 let quickServiceFetchedPrice = 0;
 
+function getActiveUid() {
+    return localStorage.getItem('stahlgraf_target_uid') || (currentUser ? currentUser.uid : null);
+}
+
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
@@ -82,7 +86,7 @@ function loadData() {
 function saveData() {
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
     if (currentUser && db) {
-        db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
+        db.collection('users').doc(getActiveUid()).set(appData, { merge: true })
             .catch(err => console.error("Error saving to Firebase:", err));
     }
 }
@@ -100,14 +104,49 @@ if (auth) {
             document.getElementById('btn-sync-login').classList.remove('btn-primary-outline');
             document.getElementById('btn-sync-login').classList.add('btn-secondary');
             
-            loadDashboardStats();
-            subscribeToCRM();
-            syncFromFirebase();
+            const emailKey = user.email.toLowerCase();
+            db.collection('user_roles').doc(emailKey).get().then(doc => {
+                if (doc.exists) {
+                    const roleData = doc.data();
+                    localStorage.setItem('stahlgraf_user_role', roleData.role || 'tech');
+                    localStorage.setItem('stahlgraf_target_uid', roleData.ownerUid || user.uid);
+                    if (roleData.linkedClientId) {
+                        localStorage.setItem('stahlgraf_linked_client_id', roleData.linkedClientId);
+                    } else {
+                        localStorage.removeItem('stahlgraf_linked_client_id');
+                    }
+                } else {
+                    localStorage.setItem('stahlgraf_user_role', 'admin');
+                    localStorage.setItem('stahlgraf_target_uid', user.uid);
+                    localStorage.removeItem('stahlgraf_linked_client_id');
+                }
+                
+                checkTechnicalMode();
+                loadDashboardStats();
+                subscribeToCRM();
+                syncFromFirebase();
+            }).catch(err => {
+                console.error("Error checking user role:", err);
+                // Fallback to admin
+                localStorage.setItem('stahlgraf_user_role', 'admin');
+                localStorage.setItem('stahlgraf_target_uid', user.uid);
+                localStorage.removeItem('stahlgraf_linked_client_id');
+                
+                checkTechnicalMode();
+                loadDashboardStats();
+                subscribeToCRM();
+                syncFromFirebase();
+            });
         } else {
             syncText.innerText = "Ingresar para Sync";
             syncIcon.innerText = '☁️';
             document.getElementById('btn-sync-login').classList.add('btn-primary-outline');
             document.getElementById('btn-sync-login').classList.remove('btn-secondary');
+            
+            localStorage.removeItem('stahlgraf_user_role');
+            localStorage.removeItem('stahlgraf_target_uid');
+            localStorage.removeItem('stahlgraf_linked_client_id');
+            checkTechnicalMode();
             
             document.getElementById('dashboard-stats').innerHTML = `
                 <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
@@ -379,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
                 
                 if (currentUser && db) {
-                    await db.collection('users').doc(currentUser.uid).collection('services').doc(servicePayload.id).set(servicePayload);
+                    await db.collection('users').doc(getActiveUid()).collection('services').doc(servicePayload.id).set(servicePayload);
                 }
                 
                 if (technician) {
@@ -398,6 +437,78 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // Toggle Client selection dropdown visibility based on selected role in settings
+    const selectRole = document.getElementById('new-user-role');
+    const clientContainer = document.getElementById('new-user-client-container');
+    if (selectRole && clientContainer) {
+        selectRole.addEventListener('change', () => {
+            clientContainer.style.display = selectRole.value === 'client' ? 'block' : 'none';
+        });
+    }
+    
+    // Add user access click handler
+    const btnAddUser = document.getElementById('btn-add-user-access');
+    if (btnAddUser) {
+        btnAddUser.addEventListener('click', async () => {
+            const emailInput = document.getElementById('new-user-email');
+            const email = emailInput.value.trim().toLowerCase();
+            const role = document.getElementById('new-user-role').value;
+            const clientId = document.getElementById('new-user-client-id').value;
+            const clientSelect = document.getElementById('new-user-client-id');
+            const clientName = clientSelect && clientSelect.selectedIndex !== -1 ? clientSelect.options[clientSelect.selectedIndex].text : '';
+            
+            if (!email) {
+                return alert("Por favor, ingresa el correo Google del usuario.");
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                return alert("Por favor, ingresa un correo electrónico válido.");
+            }
+            
+            if (currentUser && email === currentUser.email.toLowerCase()) {
+                return alert("No es necesario agregarte a ti mismo (eres el administrador principal).");
+            }
+            
+            if (!appData.userAccessList) appData.userAccessList = [];
+            if (appData.userAccessList.some(u => u.email === email)) {
+                return alert("Este correo ya tiene un acceso registrado.");
+            }
+            
+            const newUser = {
+                email,
+                role,
+                linkedClientId: role === 'client' ? clientId : null,
+                clientName: role === 'client' ? clientName : null,
+                ownerUid: currentUser.uid,
+                ownerEmail: currentUser.email
+            };
+            
+            btnAddUser.disabled = true;
+            btnAddUser.innerText = 'Guardando...';
+            
+            try {
+                if (currentUser && db) {
+                    await db.collection('user_roles').doc(email).set(newUser);
+                }
+                
+                appData.userAccessList.push(newUser);
+                saveData();
+                
+                emailInput.value = '';
+                document.getElementById('new-user-role').value = 'tech';
+                if (clientContainer) clientContainer.style.display = 'none';
+                
+                renderUserAccessList();
+                alert("✅ Nuevo acceso guardado y autorizado con éxito.");
+            } catch(e) {
+                console.error("Error creating user access:", e);
+                alert("Ocurrió un error al guardar el acceso. Asegúrate de tener permisos.");
+            } finally {
+                btnAddUser.disabled = false;
+                btnAddUser.innerText = 'Guardar Acceso';
+            }
+        });
+    }
+    
     // Check and apply technical mode restrictions
     checkTechnicalMode();
 });
@@ -406,46 +517,80 @@ document.addEventListener('DOMContentLoaded', () => {
 function checkTechnicalMode() {
     const params = new URLSearchParams(window.location.search);
     let mode = params.get('mode');
+    const role = localStorage.getItem('stahlgraf_user_role') || 'admin';
     
-    if (mode === 'tech') {
+    // Clear mode parameter if url is empty
+    if (!window.location.search) {
+        sessionStorage.removeItem('trazabilidad_mode');
+    }
+    
+    // Set trazabilidad_mode in sessionStorage based on URL or Role
+    if (role === 'tech') {
+        sessionStorage.setItem('trazabilidad_mode', 'tech');
+    } else if (mode === 'tech') {
         sessionStorage.setItem('trazabilidad_mode', 'tech');
     } else if (mode === 'admin') {
         sessionStorage.setItem('trazabilidad_mode', 'admin');
-    } else {
-        // If direct direct load without mode param and window search is empty, clear it
-        if (!window.location.search) {
-            sessionStorage.removeItem('trazabilidad_mode');
-        }
     }
     
     const activeMode = sessionStorage.getItem('trazabilidad_mode');
-    if (activeMode === 'tech') {
-        // List of admin cards to hide
-        const adminCards = [
-            'card-cotizador',
-            'card-informador',
-            'card-crm',
-            'card-clientes',
-            'card-trazabilidad',
-            'card-finanzas',
-            'card-satisfaccion'
-        ];
+    
+    // Elements to manage
+    const appsGrid = document.querySelector('.apps-grid');
+    const adminCards = [
+        'card-cotizador',
+        'card-informador',
+        'card-crm',
+        'card-clientes',
+        'card-trazabilidad',
+        'card-finanzas',
+        'card-satisfaccion'
+    ];
+    const btnQuickService = document.getElementById('btn-quick-service');
+    const btnQuickInspect = document.getElementById('btn-quick-inspect');
+    const btnSettings = document.getElementById('btn-settings');
+    const calendarPanel = document.getElementById('calendar-panel');
+    const dashboardPanel = document.getElementById('dashboard-panel');
+    const clientPortal = document.getElementById('client-portal-container');
+    
+    if (role === 'client') {
+        // Hide EVERYTHING administrative/tech
+        if (appsGrid) appsGrid.style.display = 'none';
+        if (btnSettings) btnSettings.style.display = 'none';
+        if (calendarPanel) calendarPanel.style.display = 'none';
+        if (dashboardPanel) dashboardPanel.style.display = 'none';
+        
+        // Show Client Portal
+        if (clientPortal) {
+            clientPortal.style.display = 'block';
+            renderClientPortal();
+        }
+    } else if (activeMode === 'tech') {
+        // Tech Mode layout
+        if (appsGrid) appsGrid.style.display = 'grid';
         adminCards.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = 'none';
         });
-        
-        // Hide Settings button
-        const btnSettings = document.getElementById('btn-settings');
+        if (btnQuickService) btnQuickService.style.display = 'flex';
+        if (btnQuickInspect) btnQuickInspect.style.display = 'flex';
         if (btnSettings) btnSettings.style.display = 'none';
-        
-        // Hide Calendar panel
-        const calendarPanel = document.getElementById('calendar-panel');
         if (calendarPanel) calendarPanel.style.display = 'none';
-        
-        // Hide Dashboard panel
-        const dashboardPanel = document.getElementById('dashboard-panel');
         if (dashboardPanel) dashboardPanel.style.display = 'none';
+        if (clientPortal) clientPortal.style.display = 'none';
+    } else {
+        // Admin Mode layout (Restore all)
+        if (appsGrid) appsGrid.style.display = 'grid';
+        adminCards.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'flex';
+        });
+        if (btnQuickService) btnQuickService.style.display = 'flex';
+        if (btnQuickInspect) btnQuickInspect.style.display = 'flex';
+        if (btnSettings) btnSettings.style.display = 'block';
+        if (calendarPanel) calendarPanel.style.display = 'block';
+        if (dashboardPanel) dashboardPanel.style.display = 'block';
+        if (clientPortal) clientPortal.style.display = 'none';
     }
 }
 
@@ -476,7 +621,86 @@ function updateSettingsUI() {
     }
 
     renderChemicalsSettings();
+    
+    // Populate Client selector in users settings tab
+    const clientSelect = document.getElementById('new-user-client-id');
+    if (clientSelect) {
+        clientSelect.innerHTML = '';
+        const sorted = [...clientsList].sort((a, b) => a.name.localeCompare(b.name));
+        if (sorted.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = '⚠️ Sin clientes en directorio';
+            clientSelect.appendChild(opt);
+        } else {
+            sorted.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                clientSelect.appendChild(opt);
+            });
+        }
+    }
+    
+    renderUserAccessList();
 }
+
+function renderUserAccessList() {
+    const tbody = document.getElementById('user-access-list-tbody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    const accesses = appData.userAccessList || [];
+    
+    if (accesses.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#888; padding:15px;">No hay accesos de usuarios registrados.</td></tr>`;
+        return;
+    }
+    
+    accesses.forEach((u, index) => {
+        const tr = document.createElement('tr');
+        const roleLabel = u.role === 'tech' ? '🛠️ Técnico' : (u.role === 'client' ? '👤 Cliente' : '👑 Administrador');
+        const clientLabel = u.role === 'client' ? (u.clientName || 'Sin vincular') : '-';
+        
+        tr.innerHTML = `
+            <td>${u.email}</td>
+            <td><strong>${roleLabel}</strong></td>
+            <td>${clientLabel}</td>
+            <td style="text-align:center;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="removeUserAccess(${index})" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:#ef4444; padding:3px 8px; font-size:0.75rem; border-radius:6px; cursor:pointer; margin:0;">
+                    🗑️ Eliminar
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+window.removeUserAccess = async function(index) {
+    const accesses = appData.userAccessList || [];
+    const user = accesses[index];
+    if (!user) return;
+    
+    if (!confirm(`¿Estás seguro de que deseas eliminar el acceso para ${user.email}?`)) return;
+    
+    const emailKey = user.email.toLowerCase();
+    
+    // 1. Delete from root collection user_roles in Firestore
+    try {
+        if (currentUser && db) {
+            await db.collection('user_roles').doc(emailKey).delete();
+        }
+    } catch(err) {
+        console.error("Error deleting from user_roles in Firestore:", err);
+    }
+    
+    // 2. Remove from local registry
+    accesses.splice(index, 1);
+    appData.userAccessList = accesses;
+    saveData();
+    renderUserAccessList();
+    alert("✅ Acceso de usuario eliminado con éxito.");
+};
 
 function saveSettingsFromUI() {
     appData.margin = parseInt(document.getElementById('setting-margin').value) || 40;
@@ -564,8 +788,8 @@ async function loadDashboardStats() {
     try {
         statsDiv.innerHTML = '<p>Cargando datos...</p>';
         const [quotesSnap, reportsSnap] = await Promise.all([
-            db.collection('users').doc(currentUser.uid).collection('quotes').get(),
-            db.collection('users').doc(currentUser.uid).collection('reports').get()
+            db.collection('users').doc(getActiveUid()).collection('quotes').get(),
+            db.collection('users').doc(getActiveUid()).collection('reports').get()
         ]);
         
         let totalQuotes = quotesSnap.size;
@@ -630,7 +854,7 @@ function subscribeToCRM() {
     if (!currentUser || !db) return;
     if (crmListener) crmListener();
     
-    crmListener = db.collection('users').doc(currentUser.uid).collection('crm')
+    crmListener = db.collection('users').doc(getActiveUid()).collection('crm')
         .onSnapshot(snap => {
             crmCards = [];
             snap.forEach(doc => {
@@ -646,7 +870,7 @@ function subscribeToCRM() {
 
 function syncFromFirebase() {
     if (!currentUser || !db) return;
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
+    db.collection('users').doc(getActiveUid()).get().then(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
             
@@ -864,7 +1088,7 @@ async function moveCardDate(cardId, newDate) {
     renderCalendar(currentMonth, currentYear);
     
     try {
-        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+        await db.collection('users').doc(getActiveUid()).collection('crm').doc(cardId).update({
             date: newDate,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -1049,11 +1273,11 @@ async function saveCard() {
         };
         
         if (id) {
-            await db.collection('users').doc(currentUser.uid).collection('crm').doc(id).update(payload);
+            await db.collection('users').doc(getActiveUid()).collection('crm').doc(id).update(payload);
         } else {
             payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
             payload.comments = [];
-            await db.collection('users').doc(currentUser.uid).collection('crm').add(payload);
+            await db.collection('users').doc(getActiveUid()).collection('crm').add(payload);
         }
         
         // Auto-save client to directory
@@ -1076,7 +1300,7 @@ async function deleteCard() {
     
     if (confirm("¿Seguro que deseas eliminar este registro?")) {
         try {
-            await db.collection('users').doc(currentUser.uid).collection('crm').doc(id).delete();
+            await db.collection('users').doc(getActiveUid()).collection('crm').doc(id).delete();
             closeCardModal();
         } catch(e) {
             console.error(e);
@@ -1104,7 +1328,7 @@ async function addComment() {
         const now = new Date();
         const dateStr = now.toLocaleString();
         
-        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+        await db.collection('users').doc(getActiveUid()).collection('crm').doc(cardId).update({
             comments: firebase.firestore.FieldValue.arrayUnion({
                 text: text,
                 date: dateStr
@@ -1222,7 +1446,7 @@ async function updateCardComment(cardId, index, newText) {
     updatedComments[index].text = newText;
 
     try {
-        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+        await db.collection('users').doc(getActiveUid()).collection('crm').doc(cardId).update({
             comments: updatedComments,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -1241,7 +1465,7 @@ async function deleteCardComment(cardId, index) {
     updatedComments.splice(index, 1);
 
     try {
-        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+        await db.collection('users').doc(getActiveUid()).collection('crm').doc(cardId).update({
             comments: updatedComments,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -1319,7 +1543,7 @@ async function loadClientToQuickService(client) {
     
     if (currentUser && db) {
         try {
-            const snap = await db.collection('users').doc(currentUser.uid).collection('quotes').where('clientName', '==', client.name).get();
+            const snap = await db.collection('users').doc(getActiveUid()).collection('quotes').where('clientName', '==', client.name).get();
             if (!snap.empty) {
                 let quotesList = [];
                 snap.forEach(doc => {
@@ -1415,7 +1639,7 @@ function saveClientToDirectorySilently(name, phone, email) {
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
     
     if (currentUser && db) {
-        db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
+        db.collection('users').doc(getActiveUid()).set(appData, { merge: true })
             .catch(err => console.error("Error saving client directory from Hub CRM:", err));
     }
 }
@@ -1486,10 +1710,353 @@ function syncCrmClientsToDirectory() {
         clientsList = appDataLocal.clients;
         localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appDataLocal));
         
-        db.collection('users').doc(currentUser.uid).set(appDataLocal, { merge: true })
+        db.collection('users').doc(getActiveUid()).set(appDataLocal, { merge: true })
             .then(() => {
                 console.log("Client directory auto-synchronized with Hub CRM cards.");
             })
             .catch(err => console.error("Error auto-saving client directory from Hub CRM:", err));
     }
 }
+
+function isStationAssignedToClient(stationName, clientId, clientName) {
+    const assignments = appData.stationAssignments || [];
+    const match = stationName.match(/ESTACION-(\d+)/i);
+    if (!match) return false;
+    const num = parseInt(match[1], 10);
+    return assignments.some(asg => 
+        (asg.clientId === clientId || asg.clientName === clientName) &&
+        num >= parseInt(asg.start, 10) &&
+        num <= parseInt(asg.end, 10)
+    );
+}
+
+let isClientPortalLoading = false;
+
+async function renderClientPortal() {
+    const container = document.getElementById('client-portal-container');
+    if (!container) return;
+    
+    if (isClientPortalLoading) return;
+    
+    const ownerUid = getActiveUid();
+    const clientId = localStorage.getItem('stahlgraf_linked_client_id');
+    
+    if (!ownerUid || !clientId) {
+        container.innerHTML = `
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 20px; border-radius: 8px; color: #f87171; text-align: center;">
+                ⚠️ Error: No se ha configurado la vinculación de este usuario con un cliente del directorio.
+            </div>
+        `;
+        return;
+    }
+    
+    if (!isUserConfigLoaded) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px 0;">
+                <p style="color: #aaa; margin: 0 0 15px 0;">Sincronizando información del portal de cliente...</p>
+                <div style="display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top-color: var(--primary); animation: spin 1s linear infinite;"></div>
+            </div>
+            <style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
+        `;
+        setTimeout(renderClientPortal, 500);
+        return;
+    }
+    
+    const clientObj = clientsList.find(c => c.id === clientId);
+    if (!clientObj) {
+        container.innerHTML = `
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 20px; border-radius: 8px; color: #f87171; text-align: center;">
+                ⚠️ Error: El cliente vinculado (ID: ${clientId}) no existe en el directorio principal. Contacta al administrador.
+            </div>
+        `;
+        return;
+    }
+    
+    isClientPortalLoading = true;
+    const clientName = clientObj.name;
+    
+    try {
+        // Fetch client documents in parallel
+        const [quotesSnap, reportsSnap, servicesSnap, reportsSentSnap, inspectionsSnap] = await Promise.all([
+            db.collection('users').doc(ownerUid).collection('quotes').where('clientName', '==', clientName).get(),
+            db.collection('users').doc(ownerUid).collection('reports').where('clientName', '==', clientName).get(),
+            db.collection('users').doc(ownerUid).collection('services').where('clientName', '==', clientName).get(),
+            db.collection('users').doc(ownerUid).collection('station_reports_sent').where('clientName', '==', clientName).get(),
+            db.collection('users').doc(ownerUid).collection('inspecciones').get()
+        ]);
+        
+        container.innerHTML = `
+            <div class="client-portal-header" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h2 style="margin: 0; color: var(--primary); font-size: 1.8rem; display: flex; align-items: center; gap: 10px;">
+                        👤 Portal de Cliente: <span style="color: #fff;">${clientName}</span>
+                    </h2>
+                    <p style="margin: 5px 0 0 0; color: var(--text-muted); font-size: 0.9rem;">
+                        📍 ${clientObj.address || 'Sin dirección registrada'} | 📞 ${clientObj.phone || 'Sin teléfono'} | ✉️ ${clientObj.email || 'Sin email'}
+                    </p>
+                </div>
+                <div class="portal-badge">
+                    🟢 Cliente Activo
+                </div>
+            </div>
+            
+            <div class="client-portal-grid">
+                <!-- Column 1: Quotes, Reports and Services -->
+                <div style="display: flex; flex-direction: column; gap: 25px;">
+                    <!-- Quotes Section -->
+                    <div class="portal-card">
+                        <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px;">
+                            📄 Cotizaciones Activas
+                        </h3>
+                        <div id="client-quotes-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 5px;"></div>
+                    </div>
+
+                    <!-- Technical Reports Section -->
+                    <div class="portal-card">
+                        <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px;">
+                            📋 Informes Técnicos de Servicio
+                        </h3>
+                        <div id="client-reports-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 5px;"></div>
+                    </div>
+
+                    <!-- Services Section -->
+                    <div class="portal-card">
+                        <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px;">
+                            🛠️ Historial de Aplicaciones Realizadas
+                        </h3>
+                        <div id="client-services-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 5px;"></div>
+                    </div>
+                </div>
+
+                <!-- Column 2: Trazabilidad / Station Monitoring -->
+                <div style="display: flex; flex-direction: column; gap: 25px;">
+                    <!-- Visual Map of Stations -->
+                    <div class="portal-card">
+                        <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px;">
+                            📊 Control de Estaciones de Cebado (Roedores)
+                        </h3>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Estaciones de cebado activas en tu propiedad y su nivel de consumo en la última visita:</p>
+                        <div id="client-stations-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 15px;"></div>
+                        <div style="display: flex; gap: 15px; font-size: 0.75rem; justify-content: center; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#10b981; border-radius:50%;"></span> 0% Consumo</span>
+                            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#f59e0b; border-radius:50%;"></span> 50% Consumo</span>
+                            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#ef4444; border-radius:50%;"></span> 75%+ Consumo</span>
+                            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#475569; border-radius:50%;"></span> Sin visitas</span>
+                        </div>
+                    </div>
+
+                    <!-- Station Reports Section -->
+                    <div class="portal-card">
+                        <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px;">
+                            📥 Certificados y Reportes de Monitoreo
+                        </h3>
+                        <div id="client-station-reports-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 5px;"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // 1. Populate Quotes
+        const quotesContainer = document.getElementById('client-quotes-list');
+        let quotesCount = 0;
+        quotesSnap.forEach(doc => {
+            quotesCount++;
+            const q = doc.data();
+            const dateStr = q.date || 'Sin fecha';
+            const priceStr = q.total ? `$${q.total.toLocaleString()}` : '-';
+            const correlativeStr = q.correlative || 'N/A';
+            const pdfBtn = q.pdfUrl ? `<button onclick="viewPDF('${q.pdfUrl}', 'Cotizacion_${correlativeStr}.pdf')" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin: 0; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #60a5fa;">📥 PDF</button>` : '<span style="color:#666; font-size:0.75rem;">No disponible</span>';
+            
+            const div = document.createElement('div');
+            div.className = 'portal-item';
+            div.innerHTML = `
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">Cotización #${correlativeStr}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">📅 ${dateStr} | Total: ${priceStr}</div>
+                </div>
+                <div>${pdfBtn}</div>
+            `;
+            quotesContainer.appendChild(div);
+        });
+        if (quotesCount === 0) {
+            quotesContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay cotizaciones activas en tu historial.</p>`;
+        }
+        
+        // 2. Populate Reports
+        const reportsContainer = document.getElementById('client-reports-list');
+        let reportsCount = 0;
+        reportsSnap.forEach(doc => {
+            reportsCount++;
+            const r = doc.data();
+            const dateStr = r.date || 'Sin fecha';
+            const titleStr = r.title || `Informe Técnico`;
+            const pdfBtn = r.pdfUrl ? `<button onclick="viewPDF('${r.pdfUrl}', 'Informe_${doc.id}.pdf')" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin: 0; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #60a5fa;">📥 PDF</button>` : '<span style="color:#666; font-size:0.75rem;">No disponible</span>';
+            
+            const div = document.createElement('div');
+            div.className = 'portal-item';
+            div.innerHTML = `
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">${titleStr}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">📅 ${dateStr}</div>
+                </div>
+                <div>${pdfBtn}</div>
+            `;
+            reportsContainer.appendChild(div);
+        });
+        if (reportsCount === 0) {
+            reportsContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay informes técnicos de servicio registrados.</p>`;
+        }
+        
+        // 3. Populate Services
+        const servicesContainer = document.getElementById('client-services-list');
+        let servicesCount = 0;
+        
+        const sortedServices = [];
+        servicesSnap.forEach(doc => {
+            sortedServices.push({ id: doc.id, ...doc.data() });
+        });
+        sortedServices.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        sortedServices.forEach(s => {
+            servicesCount++;
+            const dateStr = s.date || 'Sin fecha';
+            const typeStr = s.type || 'Servicio';
+            const techStr = s.technician || 'No asignado';
+            const notesStr = s.notes || '-';
+            
+            const div = document.createElement('div');
+            div.className = 'portal-item';
+            div.style.flexDirection = 'column';
+            div.style.alignItems = 'stretch';
+            div.style.gap = '5px';
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight: 600; font-size: 0.9rem; color: #fff;">🛠️ ${typeStr}</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">📅 ${dateStr}</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Técnico: <strong style="color:#ccc;">${techStr}</strong></div>
+                <div style="font-size: 0.75rem; color: #aaa; margin-top: 2px; line-height: 1.3;">${notesStr}</div>
+            `;
+            servicesContainer.appendChild(div);
+        });
+        if (servicesCount === 0) {
+            servicesContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay aplicaciones registradas en el historial.</p>`;
+        }
+        
+        // 4. Populate Stations Grid
+        const gridContainer = document.getElementById('client-stations-grid');
+        let assignedStationsCount = 0;
+        
+        for (let i = 1; i <= 15; i++) {
+            const stationName = `ESTACION-${i}`;
+            if (isStationAssignedToClient(stationName, clientId, clientName)) {
+                assignedStationsCount++;
+                
+                let latestInspection = null;
+                inspectionsSnap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.station === stationName) {
+                        if (!latestInspection || data.timestamp > latestInspection.timestamp) {
+                            latestInspection = data;
+                        }
+                    }
+                });
+                
+                let bgColor = '#475569';
+                let consumptionText = 'Sin visitas';
+                if (latestInspection) {
+                    const cons = latestInspection.consumption || '0';
+                    consumptionText = `Consumo: ${cons}`;
+                    if (cons === '0%') bgColor = '#10b981';
+                    else if (cons === '50%') bgColor = '#f59e0b';
+                    else if (cons === '75%' || cons === '100%') bgColor = '#ef4444';
+                }
+                
+                const cell = document.createElement('div');
+                cell.style.cssText = `background: ${bgColor}; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; border: 1px solid rgba(255,255,255,0.06); cursor: default; display: flex; flex-direction: column; justify-content: center; min-height: 70px;`;
+                cell.innerHTML = `
+                    <div style="font-size: 0.65rem; opacity: 0.8; color: #fff;">Estación</div>
+                    <div style="font-size: 1.2rem; margin: 2px 0; color: #fff;">${i}</div>
+                    <div style="font-size: 0.65rem; opacity: 0.9; color: #fff; white-space: nowrap;">${consumptionText}</div>
+                `;
+                gridContainer.appendChild(cell);
+            }
+        }
+        if (assignedStationsCount === 0) {
+            gridContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 20px; margin: 0;">No tienes estaciones de cebado registradas o asignadas actualmente.</p>`;
+        }
+        
+        // 5. Populate Station Reports
+        const stationReportsContainer = document.getElementById('client-station-reports-list');
+        let stationReportsCount = 0;
+        reportsSentSnap.forEach(doc => {
+            stationReportsCount++;
+            const r = doc.data();
+            const dateStr = r.date || 'Sin fecha';
+            const stationStr = r.station || `Reporte de Monitoreo`;
+            const pdfBtn = r.pdfUrl ? `<button onclick="viewPDF('${r.pdfUrl}', 'Reporte_Monitoreo_${doc.id}.pdf')" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin: 0; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #60a5fa;">📥 PDF</button>` : '<span style="color:#666; font-size:0.75rem;">No disponible</span>';
+            
+            const div = document.createElement('div');
+            div.className = 'portal-item';
+            div.innerHTML = `
+                <div>
+                    <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">${stationStr}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">📅 ${dateStr}</div>
+                </div>
+                <div>${pdfBtn}</div>
+            `;
+            stationReportsContainer.appendChild(div);
+        });
+        if (stationReportsCount === 0) {
+            stationReportsContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay certificados o reportes de monitoreo firmados.</p>`;
+        }
+        
+    } catch(err) {
+        console.error("Error retrieving client portal data:", err);
+        container.innerHTML = `
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 20px; border-radius: 8px; color: #f87171; text-align: center;">
+                ⚠️ Error al cargar los documentos de la base de datos principal. Por favor, reintente más tarde.
+            </div>
+        `;
+    } finally {
+        isClientPortalLoading = false;
+    }
+}
+
+window.viewPDF = function(pdfData, filename) {
+    if (pdfData.startsWith('data:application/pdf;base64,')) {
+        try {
+            const base64Parts = pdfData.split(';base64,');
+            const byteCharacters = atob(base64Parts[1]);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], {type: 'application/pdf'});
+            const fileURL = URL.createObjectURL(blob);
+            
+            const newTab = window.open();
+            if (newTab) {
+                newTab.document.write(`<iframe src="${fileURL}" style="width:100%; height:100%; border:none;"></iframe>`);
+            } else {
+                const a = document.createElement('a');
+                a.href = fileURL;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+        } catch (err) {
+            console.error("Error displaying base64 PDF:", err);
+            alert("No se pudo abrir el PDF original.");
+        }
+    } else {
+        window.open(pdfData, '_blank');
+    }
+};

@@ -1,3 +1,11 @@
+(function() {
+    const role = localStorage.getItem('stahlgraf_user_role') || 'admin';
+    if (role !== 'admin') {
+        alert("⚠️ Acceso denegado: Se requiere perfil de Administrador.");
+        window.location.href = 'index.html';
+    }
+})();
+
 // --- FIREBASE CONFIGURATION ---
 const firebaseConfig = {
   apiKey: "AIzaSyDxz0JQhHBMCZi5kKb4Mtp2bFyZuJ5wfbA",

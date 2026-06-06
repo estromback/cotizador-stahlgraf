@@ -219,6 +219,49 @@
             color: #cbd5e1;
             border-left-color: #94a3b8;
         }
+        
+        /* Client Portal Styles */
+        .client-portal-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 30px;
+            align-items: start;
+        }
+        @media (max-width: 768px) {
+            .client-portal-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+        .portal-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+        }
+        .portal-badge {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .portal-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: background 0.2s;
+        }
+        .portal-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
     </style>
 </head>
 <body>
@@ -353,6 +396,11 @@
                 </div>
             </div>
         </div>
+
+        <!-- Client Portal Container (only shown for client role) -->
+        <div id="client-portal-container" class="glass-panel" style="display: none; padding: 25px; margin-bottom: 30px;">
+            <!-- Rendered dynamically via JS -->
+        </div>
     </main>
 
     <!-- Settings Modal -->
@@ -372,6 +420,7 @@
                         <button class="tab-btn" data-tab="tab-polillas">Polillas</button>
                         <button class="tab-btn" data-tab="tab-quimicos">Químicos</button>
                         <button class="tab-btn" data-tab="tab-asana">Asana & Nube</button>
+                        <button class="tab-btn" data-tab="tab-usuarios">Usuarios & Accesos</button>
                     </div>
 
                     <div class="settings-tab-content active" id="tab-general">
@@ -478,6 +527,57 @@
                                 <!-- Populated via JS -->
                             </div>
                             <button id="btn-add-chemical" class="btn btn-secondary btn-sm">+ Agregar Producto</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-tab-content" id="tab-usuarios">
+                        <h3 style="margin-top: 0; color: var(--primary);">👥 Gestión de Accesos de Técnicos y Clientes</h3>
+                        <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 15px;">Registra correos de Google para que tus técnicos y clientes accedan directamente a sus respectivos perfiles restringidos.</p>
+                        
+                        <!-- Form to Add User -->
+                        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                            <h4 style="margin-top: 0; margin-bottom: 10px;">➕ Autorizar Nuevo Acceso</h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;">
+                                <div class="input-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
+                                    <label for="new-user-email">Correo Google del Usuario</label>
+                                    <input type="email" id="new-user-email" placeholder="ejemplo@gmail.com" style="width: 100%;">
+                                </div>
+                                <div class="input-group" style="flex: 1; min-width: 130px; margin-bottom: 0;">
+                                    <label for="new-user-role">Rol Asignado</label>
+                                    <select id="new-user-role" style="width: 100%;">
+                                        <option value="tech">Técnico (Terreno)</option>
+                                        <option value="client">Cliente (Portal)</option>
+                                        <option value="admin">Administrador (Total)</option>
+                                    </select>
+                                </div>
+                                <div class="input-group" id="new-user-client-container" style="flex: 2; min-width: 200px; margin-bottom: 0; display: none;">
+                                    <label for="new-user-client-id">Vincular a Cliente (Directorio)</label>
+                                    <select id="new-user-client-id" style="width: 100%;">
+                                        <!-- Dynamically populated from sortedClients -->
+                                    </select>
+                                </div>
+                                <button type="button" id="btn-add-user-access" class="btn btn-primary" style="height: 42px; padding: 0 20px; font-weight: 600; margin-top: 0;">
+                                    Guardar Acceso
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- List of Registered Users -->
+                        <h4 style="margin-top: 0; margin-bottom: 10px;">📋 Accesos Autorizados</h4>
+                        <div style="overflow-x: auto;">
+                            <table class="table" style="width: 100%; font-size: 0.85rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Email</th>
+                                        <th>Rol</th>
+                                        <th>Cliente Vinculado</th>
+                                        <th style="width: 100px; text-align: center;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-access-list-tbody">
+                                    <!-- Populated dynamically via JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

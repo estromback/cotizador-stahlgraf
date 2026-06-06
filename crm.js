@@ -1,3 +1,11 @@
+(function() {
+    const role = localStorage.getItem('stahlgraf_user_role') || 'admin';
+    if (role !== 'admin') {
+        alert("⚠️ Acceso denegado: Se requiere perfil de Administrador.");
+        window.location.href = 'index.html';
+    }
+})();
+
 // crm.js - Logic for the CRM Kanban Board
 
 const firebaseConfig = {
