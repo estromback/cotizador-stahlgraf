@@ -205,84 +205,21 @@ function updateUI() {
         'Costo Operativo': 0
     };
 
-    const marginMultiplier = 1 + (appData.margin / 100);
-
-    // 1. Process Won CRM Quotes / Deals (Ingresos & Costo Operativo)
-    // Check cards in "Vendidos"
+    // 1. Process CRM Deals for Informational KPI (Cuentas por Cobrar only)
     crmList.forEach(card => {
-        const isSold = (card.column || '').toLowerCase() === 'vendidos' || (card.column || '').toLowerCase() === 'vendido';
         const isPending = (card.column || '').toLowerCase() === 'pago pendiente';
         
-        // Find matching quote total
-        let quoteTotal = 0;
-        const matchingQuote = quotesList.find(q => q.clientName === card.client || q.clientPhone === card.phone);
-        if (matchingQuote) {
-            // Parse total from quote total string or number
-            quoteTotal = parseFloat(String(matchingQuote.total || matchingQuote.totalStr || '0').replace(/[^0-9.-]+/g, "")) || 0;
-        } else {
-            // Fallback from notes or description if possible
-            quoteTotal = parseFloat(card.amount) || 0;
-        }
-        
-        if (isSold && quoteTotal > 0) {
-            totalIngresos += quoteTotal;
-            
-            // Calculate operational cost (expense)
-            const opCost = Math.round(quoteTotal / marginMultiplier);
-            totalEgresos += opCost;
-            expenseCategories['Costo Operativo'] += opCost;
-            
-            // Register monthly cash flow
-            const dateStr = card.date || matchingQuote?.date || new Date().toISOString().split('T')[0];
-            const monthKey = dateStr.substring(0, 7); // "YYYY-MM"
-            if (!monthlyData[monthKey]) monthlyData[monthKey] = { income: 0, expense: 0 };
-            monthlyData[monthKey].income += quoteTotal;
-            monthlyData[monthKey].expense += opCost;
-            
-        } else if (isPending && quoteTotal > 0) {
-            totalPorCobrar += quoteTotal;
-        }
-    });
-
-    // 2. Process Performed Services (Fumigaciones / Sanitizaciones in terreno)
-    servicesList.forEach(s => {
-        const price = parseFloat(s.price) || 0;
-        const dateStr = s.date || new Date().toISOString().split('T')[0];
-        const monthKey = dateStr.substring(0, 7);
-        
-        if (price > 0) {
-            totalIngresos += price;
-            
-            const opCost = Math.round(price / marginMultiplier);
-            totalEgresos += opCost;
-            expenseCategories['Costo Operativo'] += opCost;
-            
-            if (!monthlyData[monthKey]) monthlyData[monthKey] = { income: 0, expense: 0 };
-            monthlyData[monthKey].income += price;
-            monthlyData[monthKey].expense += opCost;
-        } else {
-            // Price is 0 (registered quickly in terrain). Estimate cost!
-            // Estimate HH labor cost
-            const area = parseFloat(s.area) || 0;
-            const hours = area / (appData.hhSpeed || 50);
-            const hhCost = hours * (appData.hhPrice || 15000);
-            
-            // Estimate chemical cost
-            let chemCost = 0;
-            if (s.chemical && appData.chemicals) {
-                const chem = appData.chemicals.find(c => c.name === s.chemical || c.id === s.chemical);
-                if (chem) {
-                    chemCost = (area * chem.dose / chem.size) * chem.price;
-                }
+        if (isPending) {
+            let quoteTotal = 0;
+            const matchingQuote = quotesList.find(q => q.clientName === card.client || q.clientPhone === card.phone);
+            if (matchingQuote) {
+                quoteTotal = parseFloat(String(matchingQuote.total || matchingQuote.totalStr || '0').replace(/[^0-9.-]+/g, "")) || 0;
+            } else {
+                quoteTotal = parseFloat(card.amount) || 0;
             }
             
-            const estCost = Math.round(hhCost + chemCost);
-            if (estCost > 0) {
-                totalEgresos += estCost;
-                expenseCategories['Costo Operativo'] += estCost;
-                
-                if (!monthlyData[monthKey]) monthlyData[monthKey] = { income: 0, expense: 0 };
-                monthlyData[monthKey].expense += estCost;
+            if (quoteTotal > 0) {
+                totalPorCobrar += quoteTotal;
             }
         }
     });
@@ -342,6 +279,9 @@ function updateUI() {
     
     // 6. Render transactions list
     renderTransactionsTable();
+
+    // 7. Populate CRM imports dropdown
+    populateImportDealsDropdown();
 }
 
 function renderCashFlowChart(monthlyData) {
@@ -528,6 +468,57 @@ function populateClientDropdown() {
     });
 }
 
+function populateImportDealsDropdown() {
+    const select = document.getElementById('import-crm-deal');
+    if (!select) return;
+    
+    // Clear current options, keep only first placeholder
+    select.innerHTML = '<option value="">-- Seleccionar venta --</option>';
+    
+    // Filter CRM list for won deals that haven't been imported yet
+    const wonDeals = crmList.filter(card => {
+        const isSold = (card.column || '').toLowerCase() === 'vendidos' || (card.column || '').toLowerCase() === 'vendido';
+        if (!isSold) return false;
+        
+        // Exclude if already imported in manualTransactions
+        const alreadyImported = manualTransactions.some(tx => tx.id && tx.id.startsWith('tx_imported_' + card.id));
+        return !alreadyImported;
+    });
+    
+    if (wonDeals.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = "";
+        opt.textContent = "No hay ventas pendientes de importar";
+        opt.disabled = true;
+        select.appendChild(opt);
+        return;
+    }
+    
+    // Sort won deals by date descending
+    wonDeals.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    
+    wonDeals.forEach(card => {
+        // Calculate amount
+        let quoteTotal = 0;
+        const matchingQuote = quotesList.find(q => q.clientName === card.client || q.clientPhone === card.phone);
+        if (matchingQuote) {
+            quoteTotal = parseFloat(String(matchingQuote.total || matchingQuote.totalStr || '0').replace(/[^0-9.-]+/g, "")) || 0;
+        } else {
+            quoteTotal = parseFloat(card.amount) || 0;
+        }
+        
+        const opt = document.createElement('option');
+        opt.value = card.id;
+        const dateStr = card.date || (matchingQuote?.date) || 'Sin fecha';
+        opt.textContent = `${card.client || 'Sin cliente'} - $${quoteTotal.toLocaleString()} (${dateStr})`;
+        opt.dataset.amount = quoteTotal;
+        opt.dataset.client = card.client || '';
+        opt.dataset.date = dateStr;
+        opt.dataset.title = card.title || '';
+        select.appendChild(opt);
+    });
+}
+
 function updateCategoryOptions() {
     const typeSelect = document.getElementById('tx-type');
     const catSelect = document.getElementById('tx-category');
@@ -604,6 +595,68 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeSelect) {
         typeSelect.addEventListener('change', updateCategoryOptions);
         updateCategoryOptions();
+    }
+    
+    // Bind CRM deal import
+    const importBtn = document.getElementById('btn-import-deal');
+    if (importBtn) {
+        importBtn.addEventListener('click', async () => {
+            const select = document.getElementById('import-crm-deal');
+            if (!select || !select.value) {
+                return alert("Por favor, selecciona una venta de la lista para importar.");
+            }
+            
+            const selectedOpt = select.options[select.selectedIndex];
+            const dealId = select.value;
+            const amount = parseFloat(selectedOpt.dataset.amount) || 0;
+            const clientName = selectedOpt.dataset.client;
+            const dealTitle = selectedOpt.dataset.title;
+            const date = selectedOpt.dataset.date;
+            
+            if (amount <= 0) {
+                return alert("Esta cotización/trato no tiene un monto válido registrado.");
+            }
+            
+            const confirmMsg = `¿Confirmas el ingreso de $${amount.toLocaleString()} para el cliente "${clientName}" correspondiente al trato "${dealTitle || 'Cotización'}"?`;
+            if (!confirm(confirmMsg)) return;
+            
+            const uid = getActiveUid();
+            if (!currentUser || !db || !uid) {
+                return alert("No has iniciado sesión. No se puede guardar en la nube.");
+            }
+            
+            let txDate = date;
+            if (!txDate || txDate === 'Sin fecha') {
+                txDate = new Date().toISOString().split('T')[0];
+            }
+            
+            const txPayload = {
+                id: 'tx_imported_' + dealId + '_' + Date.now(),
+                tipo: 'ingreso',
+                categoria: 'Servicio Adicional',
+                fecha: txDate,
+                monto: amount,
+                clientName: clientName || null,
+                metodoPago: 'transferencia',
+                descripcion: `Importado de CRM: ${dealTitle || 'Trato vendido'}`,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            importBtn.disabled = true;
+            importBtn.innerText = 'Guardando...';
+            
+            try {
+                await db.collection('users').doc(uid).collection('finanzas_transacciones').doc(txPayload.id).set(txPayload);
+                select.value = '';
+                alert("✅ Transacción importada y registrada con éxito.");
+            } catch(err) {
+                console.error("Error importing transaction from CRM:", err);
+                alert("Ocurrió un error al guardar la transacción.");
+            } finally {
+                importBtn.disabled = false;
+                importBtn.innerText = '⚡ Importar';
+            }
+        });
     }
     
     // Bind form submit
