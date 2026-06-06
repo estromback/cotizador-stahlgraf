@@ -23,6 +23,7 @@ let crmListener = null;
 let draggingCardId = null;
 let isUserConfigLoaded = false;
 let activeClientSelectionTarget = 'crm';
+let quickServiceFetchedPrice = 0;
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
@@ -287,6 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('quick-service-exterior-zones').value = 'none';
             document.getElementById('quick-service-area').value = '';
             document.getElementById('quick-service-chemical').value = '';
+            quickServiceFetchedPrice = 0;
             
             // Set date to today
             const todayStr = new Date().toISOString().split('T')[0];
@@ -358,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 clientName,
                 type,
                 date,
-                price: 0, // No price tracking, default to 0 for database compatibility
+                price: quickServiceFetchedPrice,
                 technician: technician || 'No asignado',
                 coverage,
                 exteriorZones,
@@ -1263,6 +1265,7 @@ async function loadClientToQuickService(client) {
     document.getElementById('quick-service-exterior-zones').value = 'none';
     document.getElementById('quick-service-area').value = '';
     document.getElementById('quick-service-chemical').value = '';
+    quickServiceFetchedPrice = 0;
     
     if (currentUser && db) {
         try {
@@ -1286,6 +1289,10 @@ async function loadClientToQuickService(client) {
                 
                 const latest = quotesList[0];
                 if (latest) {
+                    if (latest.totalStr) {
+                        const cleanPriceStr = latest.totalStr.replace(/[^0-9]/g, '');
+                        quickServiceFetchedPrice = parseInt(cleanPriceStr) || 0;
+                    }
                     if (latest['coverage-type']) {
                         document.getElementById('quick-service-coverage').value = latest['coverage-type'];
                     }
