@@ -1145,6 +1145,7 @@ function openCardModal(card = null, defaultDate = '') {
         document.getElementById('card-phone').value = card.phone || '';
         document.getElementById('card-email').value = card.email || '';
         document.getElementById('card-column').value = card.column;
+        document.getElementById('card-balance-due').value = card.balanceDue !== undefined && card.balanceDue !== null ? card.balanceDue : '';
         document.getElementById('card-date').value = card.date || '';
         document.getElementById('card-time').value = card.time || '';
         document.getElementById('card-desc').value = card.desc || '';
@@ -1258,6 +1259,7 @@ function openCardModal(card = null, defaultDate = '') {
         document.getElementById('card-phone').value = '';
         document.getElementById('card-email').value = '';
         document.getElementById('card-column').selectedIndex = 0;
+        document.getElementById('card-balance-due').value = '';
         document.getElementById('card-date').value = defaultDate;
         document.getElementById('card-time').value = '';
         document.getElementById('card-desc').value = '';
@@ -1282,6 +1284,8 @@ async function saveCard() {
     const phone = document.getElementById('card-phone').value.trim();
     const email = document.getElementById('card-email').value.trim();
     const column = document.getElementById('card-column').value;
+    const balanceDueInput = document.getElementById('card-balance-due').value;
+    const balanceDue = balanceDueInput === '' ? null : parseFloat(balanceDueInput) || 0;
     const date = document.getElementById('card-date').value;
     const time = document.getElementById('card-time').value;
     const desc = document.getElementById('card-desc').value.trim();
@@ -1294,7 +1298,7 @@ async function saveCard() {
     
     try {
         const payload = {
-            client, phone, email, column, date, time, desc,
+            client, phone, email, column, balanceDue, date, time, desc,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
         

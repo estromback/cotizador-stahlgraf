@@ -211,11 +211,15 @@ function updateUI() {
         
         if (isPending) {
             let quoteTotal = 0;
-            const matchingQuote = quotesList.find(q => q.clientName === card.client || q.clientPhone === card.phone);
-            if (matchingQuote) {
-                quoteTotal = parseInt(String(matchingQuote.total || matchingQuote.totalStr || '0').replace(/[^0-9-]/g, ""), 10) || 0;
+            if (card.balanceDue !== undefined && card.balanceDue !== null && card.balanceDue !== '') {
+                quoteTotal = parseFloat(card.balanceDue) || 0;
             } else {
-                quoteTotal = parseFloat(card.amount) || 0;
+                const matchingQuote = quotesList.find(q => q.clientName === card.client || q.clientPhone === card.phone);
+                if (matchingQuote) {
+                    quoteTotal = parseInt(String(matchingQuote.total || matchingQuote.totalStr || '0').replace(/[^0-9-]/g, ""), 10) || 0;
+                } else {
+                    quoteTotal = parseFloat(card.amount) || 0;
+                }
             }
             
             if (quoteTotal > 0) {
@@ -249,7 +253,30 @@ function updateUI() {
         }
     });
 
-    // 4. Calculate Net Profit and margin
+    // 4. Calculate Quote vs Sold Comparison (Efectividad Comercial)
+    let totalCotizado = 0;
+    quotesList.forEach(q => {
+        totalCotizado += parseInt(String(q.total || q.totalStr || '0').replace(/[^0-9-]/g, ""), 10) || 0;
+    });
+
+    let totalVendidoCRM = 0;
+    crmList.forEach(card => {
+        const isSold = (card.column || '').toLowerCase() === 'vendidos' || (card.column || '').toLowerCase() === 'vendido';
+        if (isSold) {
+            let quoteTotal = 0;
+            const matchingQuote = quotesList.find(q => q.clientName === card.client || q.clientPhone === card.phone);
+            if (matchingQuote) {
+                quoteTotal = parseInt(String(matchingQuote.total || matchingQuote.totalStr || '0').replace(/[^0-9-]/g, ""), 10) || 0;
+            } else {
+                quoteTotal = parseFloat(card.amount) || 0;
+            }
+            totalVendidoCRM += quoteTotal;
+        }
+    });
+
+    const conversionRate = totalCotizado > 0 ? Math.round((totalVendidoCRM / totalCotizado) * 100) : 0;
+
+    // 5. Calculate Net Profit and margin
     const netProfit = totalIngresos - totalEgresos;
     const netMargin = totalIngresos > 0 ? Math.round((netProfit / totalIngresos) * 100) : 0;
 
@@ -263,6 +290,16 @@ function updateUI() {
         kpiUtilidadDesc.innerText = `Rentabilidad real (Margen: ${netMargin}%)`;
     }
     if (kpiPorCobrar) kpiPorCobrar.innerText = `$${totalPorCobrar.toLocaleString()}`;
+
+    // Render comparison KPI
+    const kpiComparativa = document.getElementById('kpi-comparativa');
+    const kpiComparativaDesc = document.getElementById('kpi-comparativa-desc');
+    if (kpiComparativa) {
+        kpiComparativa.innerText = `$${totalVendidoCRM.toLocaleString()} / $${totalCotizado.toLocaleString()}`;
+    }
+    if (kpiComparativaDesc) {
+        kpiComparativaDesc.innerText = `Vendido vs Cotizado (Eficiencia: ${conversionRate}%)`;
+    }
 
     // Color code the utility card
     if (kpiUtilidadCard) {
