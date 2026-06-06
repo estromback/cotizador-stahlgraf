@@ -281,6 +281,12 @@
                 <div class="app-desc">Monitoreo offline de estaciones de cebado mediante escaneo QR.</div>
             </a>
 
+            <a href="#" id="btn-quick-service" class="app-card" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.15) 0%, rgba(124, 58, 237, 0.15) 100%); border: 1px solid rgba(124, 58, 237, 0.3);">
+                <div class="app-icon" style="color: #a78bfa;">🛠️</div>
+                <div class="app-title" style="color: #c084fc;">Registrar Servicio</div>
+                <div class="app-desc">Registra un trabajo realizado en terreno de forma rápida para un cliente.</div>
+            </a>
+
             <a href="#" class="app-card disabled">
                 <div class="app-icon">💰</div>
                 <div class="app-title">Finanzas (Pronto)</div>
@@ -605,6 +611,76 @@
                 <input type="text" id="client-search" placeholder="Buscar cliente por nombre..." style="width: 100%; margin-bottom: 15px; padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: #fff;">
                 <div class="db-list" id="client-select-list" style="max-height: 300px; overflow-y: auto;">
                     <p style="color: #666; font-size: 0.95rem;">Cargando clientes...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Service Registration Modal -->
+    <div id="quick-service-modal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 550px;">
+            <div class="modal-header">
+                <h2>🛠️ Registrar Servicio Realizado</h2>
+                <button id="btn-close-quick-service" class="close-btn">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Client Selection Row -->
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label>Cliente</label>
+                    <div style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.2); padding: 10px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                        <input type="hidden" id="quick-service-client-id">
+                        <span id="quick-service-client-name" style="font-weight: 600; color: #fff; flex: 1;">Ninguno seleccionado</span>
+                        <button type="button" id="btn-quick-service-select-client" class="btn btn-secondary btn-sm" style="height: auto; padding: 6px 12px;">🔍 Seleccionar Cliente</button>
+                    </div>
+                </div>
+
+                <!-- Quick Templates Grid -->
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label>Acciones Rápidas (Toque para rellenar campos):</label>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;">
+                        <button type="button" class="btn btn-secondary btn-sm quick-tmpl-btn" data-type="Fumigación" data-notes="Servicio de fumigación contra insectos rastreros y voladores.">🕷️ Fumigación</button>
+                        <button type="button" class="btn btn-secondary btn-sm quick-tmpl-btn" data-type="Desratización" data-notes="Control de roedores, revisión e inspección de cebos.">🐀 Desratización</button>
+                        <button type="button" class="btn btn-secondary btn-sm quick-tmpl-btn" data-type="Sanitización" data-notes="Sanitización ambiental de superficies.">🧼 Sanitización</button>
+                        <button type="button" class="btn btn-secondary btn-sm quick-tmpl-btn" data-type="Exclusión Física" data-notes="Sellado físico de accesos y exclusión de roedores.">🚪 Exclusión</button>
+                        <button type="button" class="btn btn-secondary btn-sm quick-tmpl-btn" data-type="Control de Aves" data-notes="Instalación de dispositivos disuasivos para aves.">🕊️ Aves</button>
+                    </div>
+                </div>
+
+                <!-- Form Fields -->
+                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
+                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                        <label for="quick-service-type">Tipo de Servicio</label>
+                        <select id="quick-service-type" style="width: 100%;">
+                            <option value="Fumigación">Fumigación</option>
+                            <option value="Sanitización">Sanitización</option>
+                            <option value="Desratización">Desratización</option>
+                            <option value="Exclusión Física">Exclusión Física</option>
+                            <option value="Tapar Agujeros">Tapar Agujeros</option>
+                            <option value="Control de Aves">Control de Aves</option>
+                            <option value="Trabajos Generales">Trabajos Generales</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                        <label for="quick-service-date">Fecha de Aplicación</label>
+                        <input type="date" id="quick-service-date" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label for="quick-service-technician">Técnico Responsable</label>
+                    <input type="text" id="quick-service-technician" placeholder="Ej. Carlos M." style="width: 100%;">
+                </div>
+
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label for="quick-service-notes">Detalles / Observaciones del Servicio</label>
+                    <textarea id="quick-service-notes" rows="3" placeholder="Describa el trabajo realizado, químicos aplicados, etc..." style="width: 100%;"></textarea>
+                </div>
+
+                <div class="flex-actions" style="justify-content: flex-end; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                    <button type="button" id="btn-quick-service-cancel" class="btn btn-secondary">Cancelar</button>
+                    <button type="button" id="btn-quick-service-save" class="btn btn-primary">💾 Guardar Servicio</button>
                 </div>
             </div>
         </div>

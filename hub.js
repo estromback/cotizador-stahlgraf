@@ -22,6 +22,7 @@ let clientsList = [];
 let crmListener = null;
 let draggingCardId = null;
 let isUserConfigLoaded = false;
+let activeClientSelectionTarget = 'crm';
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
@@ -253,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clients Modal search and load
     if (document.getElementById('btn-load-client')) {
         document.getElementById('btn-load-client').addEventListener('click', () => {
+            activeClientSelectionTarget = 'crm';
             document.getElementById('clients-modal').classList.add('active');
             renderClientsSelect();
         });
@@ -265,6 +267,116 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('client-search')) {
         document.getElementById('client-search').addEventListener('input', (e) => {
             renderClientsSelect(e.target.value);
+        });
+    }
+
+    // Quick Service Registration Modal bindings
+    const quickServiceModal = document.getElementById('quick-service-modal');
+    if (document.getElementById('btn-quick-service')) {
+        document.getElementById('btn-quick-service').addEventListener('click', (e) => {
+            e.preventDefault();
+            // Reset modal inputs
+            document.getElementById('quick-service-client-id').value = '';
+            document.getElementById('quick-service-client-name').innerText = 'Ninguno seleccionado';
+            document.getElementById('quick-service-type').selectedIndex = 0;
+            document.getElementById('quick-service-notes').value = '';
+            
+            // Set date to today
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('quick-service-date').value = todayStr;
+            
+            // Set default technician from localStorage
+            document.getElementById('quick-service-technician').value = localStorage.getItem('last_technician') || '';
+            
+            quickServiceModal.classList.add('active');
+        });
+    }
+
+    if (document.getElementById('btn-close-quick-service')) {
+        document.getElementById('btn-close-quick-service').addEventListener('click', () => {
+            quickServiceModal.classList.remove('active');
+        });
+    }
+    if (document.getElementById('btn-quick-service-cancel')) {
+        document.getElementById('btn-quick-service-cancel').addEventListener('click', () => {
+            quickServiceModal.classList.remove('active');
+        });
+    }
+
+    // Selector de cliente para servicio rápido
+    if (document.getElementById('btn-quick-service-select-client')) {
+        document.getElementById('btn-quick-service-select-client').addEventListener('click', () => {
+            activeClientSelectionTarget = 'quick-service';
+            document.getElementById('clients-modal').classList.add('active');
+            renderClientsSelect();
+        });
+    }
+
+    // Quick Templates click listeners
+    document.querySelectorAll('.quick-tmpl-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const type = btn.getAttribute('data-type');
+            const notes = btn.getAttribute('data-notes');
+            
+            document.getElementById('quick-service-type').value = type;
+            document.getElementById('quick-service-notes').value = notes;
+        });
+    });
+
+    // Guardar servicio rápido
+    if (document.getElementById('btn-quick-service-save')) {
+        document.getElementById('btn-quick-service-save').addEventListener('click', async () => {
+            const clientId = document.getElementById('quick-service-client-id').value;
+            const clientName = document.getElementById('quick-service-client-name').innerText;
+            const type = document.getElementById('quick-service-type').value;
+            const date = document.getElementById('quick-service-date').value;
+            const technician = document.getElementById('quick-service-technician').value.trim();
+            const notes = document.getElementById('quick-service-notes').value.trim();
+            
+            if (!clientId) {
+                return alert("Por favor, selecciona un cliente.");
+            }
+            if (!date) {
+                return alert("Por favor, selecciona la fecha del servicio.");
+            }
+            
+            const servicePayload = {
+                id: 'srv_' + Date.now(),
+                clientId,
+                clientName,
+                type,
+                date,
+                price: 0, // No price tracking, default to 0 for database compatibility
+                technician: technician || 'No asignado',
+                notes: notes || '-'
+            };
+            
+            const btn = document.getElementById('btn-quick-service-save');
+            btn.disabled = true;
+            btn.innerText = 'Guardando...';
+            
+            try {
+                if (!appData.services) appData.services = [];
+                appData.services.push(servicePayload);
+                localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
+                
+                if (currentUser && db) {
+                    await db.collection('users').doc(currentUser.uid).collection('services').doc(servicePayload.id).set(servicePayload);
+                }
+                
+                if (technician) {
+                    localStorage.setItem('last_technician', technician);
+                }
+                
+                alert("✅ Servicio registrado exitosamente.");
+                quickServiceModal.classList.remove('active');
+            } catch(e) {
+                console.error("Error saving quick service:", e);
+                alert("Ocurrió un error al guardar el servicio.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = '💾 Guardar Servicio';
+            }
         });
     }
 });
@@ -1096,7 +1208,11 @@ function renderClientsSelect(filter = '') {
         div.className = 'db-item';
         div.style.cursor = 'pointer';
         div.onclick = () => {
-            loadClientToForm(client.id);
+            if (activeClientSelectionTarget === 'quick-service') {
+                loadClientToQuickService(client);
+            } else {
+                loadClientToForm(client.id);
+            }
             document.getElementById('clients-modal').classList.remove('active');
         };
         div.innerHTML = `
@@ -1119,6 +1235,12 @@ function loadClientToForm(id) {
     document.getElementById('card-client').value = client.name || '';
     document.getElementById('card-phone').value = client.phone || '';
     document.getElementById('card-email').value = client.email || '';
+}
+
+function loadClientToQuickService(client) {
+    if (!client) return;
+    document.getElementById('quick-service-client-id').value = client.id;
+    document.getElementById('quick-service-client-name').innerText = client.name;
 }
 
 function saveClientToDirectorySilently(name, phone, email) {
