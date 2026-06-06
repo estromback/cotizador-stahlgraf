@@ -39,6 +39,25 @@
     <!-- Main Container -->
     <main class="finanzas-container">
         
+        <!-- Period Selector -->
+        <div class="period-selector-container" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 15px; border-radius: 12px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap; backdrop-filter: blur(8px);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.25rem;">📅</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 1rem; color: #fff; font-weight: 600;">Período de Análisis</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Filtra todas las métricas, gráficos e historial</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button id="btn-period-all" class="btn btn-primary" style="margin: 0; padding: 8px 16px; font-size: 0.85rem; border-radius: 8px; font-weight: 500;">📊 Todo el Historial</button>
+                <button id="btn-period-current" class="btn btn-primary-outline" style="margin: 0; padding: 8px 16px; font-size: 0.85rem; border-radius: 8px; font-weight: 500;">📅 Mes Actual</button>
+                <div style="display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 4px 8px; height: 38px; box-sizing: border-box;">
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Elegir:</span>
+                    <input type="month" id="global-period-month" style="background: transparent; border: none; color: #fff; outline: none; font-size: 0.85rem; cursor: pointer; padding: 0; height: auto;">
+                </div>
+            </div>
+        </div>
+
         <!-- KPI Metrics Grid -->
         <div class="kpi-grid">
             <div class="kpi-card" style="border-left: 4px solid #3b82f6;">
@@ -215,7 +234,6 @@
                         <option value="all">📁 Todas las categorías</option>
                         <!-- Populated by JS -->
                     </select>
-                    <input type="month" id="filter-month">
                 </div>
 
                 <!-- Table -->

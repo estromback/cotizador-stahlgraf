@@ -36,7 +36,7 @@ let crmList = [];
 let activeFilters = {
     type: 'all',
     category: 'all',
-    month: ''
+    month: new Date().toISOString().substring(0, 7)
 };
 
 function getActiveUid() {
@@ -184,14 +184,16 @@ function updateUI() {
     const kpiPorCobrar = document.getElementById('kpi-por-cobrar');
     const kpiUtilidadCard = document.getElementById('kpi-utilidad-card');
 
+    const selectedMonth = activeFilters.month; // "YYYY-MM" or ""
+
     let totalIngresos = 0;
     let totalEgresos = 0;
     let totalPorCobrar = 0;
     
-    // Monthly Cash Flow Bucket
+    // Monthly Cash Flow Bucket (always calculated globally for the 6-month trend chart)
     const monthlyData = {};
     
-    // Expense Category Bucket
+    // Expense Category Bucket (filtered by period for the donut chart)
     const expenseCategories = {
         'Combustible': 0,
         'Químicos': 0,
@@ -210,6 +212,11 @@ function updateUI() {
         const isPending = (card.column || '').toLowerCase() === 'pago pendiente';
         
         if (isPending) {
+            // Filter by month if selected
+            if (selectedMonth && card.date && card.date.substring(0, 7) !== selectedMonth) {
+                return;
+            }
+            
             let quoteTotal = 0;
             if (card.balanceDue !== undefined && card.balanceDue !== null && card.balanceDue !== '') {
                 quoteTotal = parseFloat(card.balanceDue) || 0;
@@ -228,49 +235,99 @@ function updateUI() {
         }
     });
 
-    // 3. Process Manual Transactions (Ingresos & Egresos)
+    // 2. Process Manual Transactions (Ingresos & Egresos)
     manualTransactions.forEach(tx => {
         const amt = parseFloat(tx.monto) || 0;
         const dateStr = tx.fecha || new Date().toISOString().split('T')[0];
         const monthKey = dateStr.substring(0, 7);
         
+        // Populate monthly trend data globally (unfiltered)
         if (!monthlyData[monthKey]) monthlyData[monthKey] = { income: 0, expense: 0 };
         
         if (tx.tipo === 'ingreso') {
-            totalIngresos += amt;
             monthlyData[monthKey].income += amt;
+            // Filter KPIs by period
+            if (!selectedMonth || monthKey === selectedMonth) {
+                totalIngresos += amt;
+            }
         } else {
-            totalEgresos += amt;
             monthlyData[monthKey].expense += amt;
-            
-            // Group by expense category
-            const cat = tx.categoria || 'Otros Egresos';
-            if (expenseCategories[cat] !== undefined) {
-                expenseCategories[cat] += amt;
-            } else {
-                expenseCategories['Otros Egresos'] += amt;
+            // Filter KPIs by period
+            if (!selectedMonth || monthKey === selectedMonth) {
+                totalEgresos += amt;
+                
+                // Group by expense category (filtered)
+                const cat = tx.categoria || 'Otros Egresos';
+                if (expenseCategories[cat] !== undefined) {
+                    expenseCategories[cat] += amt;
+                } else {
+                    expenseCategories['Otros Egresos'] += amt;
+                }
+            }
+        }
+    });
+
+    // 3. Identify sold/imported quotes globally (to avoid double-counting and cover silent imports)
+    const soldQuoteIds = new Set();
+    
+    // Check which quotes are referenced in manualTransactions (imported quotes)
+    manualTransactions.forEach(tx => {
+        if (tx.tipo === 'ingreso' && tx.id && tx.id.startsWith('tx_imported_quote_')) {
+            const matchingQuote = quotesList.find(q => tx.id.includes('tx_imported_quote_' + q.id));
+            if (matchingQuote) {
+                soldQuoteIds.add(matchingQuote.id);
+            }
+        }
+    });
+    
+    // Check which quotes are marked as "Vendidos" / "Vendido" in CRM
+    crmList.forEach(card => {
+        const isSold = (card.column || '').toLowerCase() === 'vendidos' || (card.column || '').toLowerCase() === 'vendido';
+        if (isSold) {
+            const matchingQuote = quotesList.find(q => q.clientName === card.client || q.clientPhone === card.phone);
+            if (matchingQuote) {
+                soldQuoteIds.add(matchingQuote.id);
             }
         }
     });
 
     // 4. Calculate Quote vs Sold Comparison (Efectividad Comercial)
     let totalCotizado = 0;
+    let totalVendidoCRM = 0;
+
+    // Sum quotes created in the target period
     quotesList.forEach(q => {
-        totalCotizado += parseInt(String(q.total || q.totalStr || '0').replace(/[^0-9-]/g, ""), 10) || 0;
+        const quoteDate = q.timestamp && q.timestamp.toDate ? q.timestamp.toDate().toISOString().split('T')[0] : 'Sin fecha';
+        const quoteMonth = quoteDate !== 'Sin fecha' ? quoteDate.substring(0, 7) : '';
+        
+        // Filter by period if selected
+        if (selectedMonth && quoteMonth !== selectedMonth) {
+            return;
+        }
+        
+        const amount = parseInt(String(q.total || q.totalStr || '0').replace(/[^0-9-]/g, ""), 10) || 0;
+        totalCotizado += amount;
+        
+        if (soldQuoteIds.has(q.id)) {
+            totalVendidoCRM += amount;
+        }
     });
 
-    let totalVendidoCRM = 0;
+    // Sum manual CRM cards in "Vendidos" that have no matching quote
     crmList.forEach(card => {
         const isSold = (card.column || '').toLowerCase() === 'vendidos' || (card.column || '').toLowerCase() === 'vendido';
         if (isSold) {
-            let quoteTotal = 0;
-            const matchingQuote = quotesList.find(q => q.clientName === card.client || q.clientPhone === card.phone);
-            if (matchingQuote) {
-                quoteTotal = parseInt(String(matchingQuote.total || matchingQuote.totalStr || '0').replace(/[^0-9-]/g, ""), 10) || 0;
-            } else {
-                quoteTotal = parseFloat(card.amount) || 0;
+            // Filter by period if selected
+            if (selectedMonth && card.date && card.date.substring(0, 7) !== selectedMonth) {
+                return;
             }
-            totalVendidoCRM += quoteTotal;
+            
+            const matchingQuote = quotesList.find(q => q.clientName === card.client || q.clientPhone === card.phone);
+            if (!matchingQuote) {
+                const amt = parseFloat(card.amount) || 0;
+                totalVendidoCRM += amt;
+                totalCotizado += amt; // Count as quoted and sold to keep efficiency <= 100%
+            }
         }
     });
 
@@ -349,8 +406,9 @@ function renderCashFlowChart(monthlyData) {
         const incPct = (data.income / maxVal) * 100;
         const expPct = (data.expense / maxVal) * 100;
         
+        const isSelected = activeFilters.month === monthKey;
         const group = document.createElement('div');
-        group.className = 'bar-group';
+        group.className = 'bar-group' + (isSelected ? ' active' : '');
         group.innerHTML = `
             <div class="bars-wrapper">
                 <div class="chart-bar income" style="height: ${incPct}%;" data-value="Ingreso: $${data.income.toLocaleString()}"></div>
@@ -613,8 +671,69 @@ function populateFilterCategories() {
     });
 }
 
+function updatePeriodSelectorUI() {
+    const btnAll = document.getElementById('btn-period-all');
+    const btnCurrent = document.getElementById('btn-period-current');
+    const inputMonth = document.getElementById('global-period-month');
+    
+    if (!btnAll || !btnCurrent || !inputMonth) return;
+    
+    const selected = activeFilters.month;
+    const todayStr = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+    
+    // Reset styles
+    btnAll.classList.remove('btn-primary', 'btn-primary-outline');
+    btnCurrent.classList.remove('btn-primary', 'btn-primary-outline');
+    
+    if (selected === '') {
+        btnAll.classList.add('btn-primary');
+        btnCurrent.classList.add('btn-primary-outline');
+        inputMonth.value = '';
+    } else if (selected === todayStr) {
+        btnAll.classList.add('btn-primary-outline');
+        btnCurrent.classList.add('btn-primary');
+        inputMonth.value = todayStr;
+    } else {
+        btnAll.classList.add('btn-primary-outline');
+        btnCurrent.classList.add('btn-primary-outline');
+        inputMonth.value = selected;
+    }
+}
+
 // Bind DOM Events
 document.addEventListener('DOMContentLoaded', () => {
+    // Sync active selector styling and input on load
+    updatePeriodSelectorUI();
+
+    // Bind Global Period Selector
+    const btnAll = document.getElementById('btn-period-all');
+    const btnCurrent = document.getElementById('btn-period-current');
+    const globalInputMonth = document.getElementById('global-period-month');
+    
+    if (btnAll) {
+        btnAll.addEventListener('click', () => {
+            activeFilters.month = '';
+            updatePeriodSelectorUI();
+            updateUI();
+        });
+    }
+    
+    if (btnCurrent) {
+        btnCurrent.addEventListener('click', () => {
+            activeFilters.month = new Date().toISOString().substring(0, 7);
+            updatePeriodSelectorUI();
+            updateUI();
+        });
+    }
+    
+    if (globalInputMonth) {
+        globalInputMonth.addEventListener('change', (e) => {
+            activeFilters.month = e.target.value;
+            updatePeriodSelectorUI();
+            updateUI();
+        });
+    }
+
     // Default form date to today
     const dateInput = document.getElementById('tx-date');
     if (dateInput) {
@@ -759,13 +878,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    const filterMonth = document.getElementById('filter-month');
-    if (filterMonth) {
-        filterMonth.addEventListener('change', (e) => {
-            activeFilters.month = e.target.value; // "YYYY-MM"
-            renderTransactionsTable();
-        });
-    }
     
     // Login Sync Button trigger
     const syncBtn = document.getElementById('btn-sync-login');
