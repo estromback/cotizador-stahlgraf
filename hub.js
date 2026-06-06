@@ -529,6 +529,9 @@ function renderCRMColumnsSelect() {
 }
 
 function renderCalendar(month, year) {
+    if (month === undefined || month === null) month = currentMonth;
+    if (year === undefined || year === null) year = currentYear;
+    
     const grid = document.getElementById('calendar-days');
     const title = document.getElementById('cal-month-title');
     if (!grid || !title) return;
