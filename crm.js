@@ -414,7 +414,8 @@ function openCardModal(card = null) {
             // Wire Prefill button
             const prefillBtn = document.getElementById('btn-prefill-quote');
             prefillBtn.onclick = () => {
-                const prefillUrl = new URL(window.location.origin + window.location.pathname.replace('crm.html', 'cotizador.html'));
+                const baseUrl = window.location.href.split('?')[0].replace('crm.html', 'cotizador.html').replace('index.html', 'cotizador.html');
+                const prefillUrl = new URL(baseUrl);
                 prefillUrl.searchParams.set('prefill', 'true');
                 prefillUrl.searchParams.set('name', fd.clientName || card.client);
                 prefillUrl.searchParams.set('phone', fd.clientPhone || card.phone || '');
@@ -427,11 +428,66 @@ function openCardModal(card = null) {
                     prefillUrl.searchParams.set('size', constSize);
                 }
                 
+                // Calculate coverage
+                let coverage = 'both';
+                if (Array.isArray(fd.treatmentArea)) {
+                    const hasInterior = fd.treatmentArea.includes('Interior');
+                    const hasExterior = fd.treatmentArea.some(a => a && a.startsWith('Exterior'));
+                    if (hasInterior && !hasExterior) {
+                        coverage = 'inside';
+                    } else if (!hasInterior && hasExterior) {
+                        coverage = 'outside';
+                    }
+                }
+                prefillUrl.searchParams.set('coverage', coverage);
+
+                // Calculate rodents
+                let hasRodents = 'no';
+                if (Array.isArray(fd.plagas)) {
+                    if (fd.plagas.some(p => p && p.includes('Roedores'))) {
+                        hasRodents = 'yes';
+                    }
+                }
+                prefillUrl.searchParams.set('rodents', hasRodents);
+
+                // Calculate moths
+                let hasMoths = 'no';
+                if (Array.isArray(fd.plagas)) {
+                    if (fd.plagas.some(p => p && p.includes('Polilla'))) {
+                        hasMoths = 'yes';
+                    }
+                }
+                if (hasMoths === 'no' && fd.comments) {
+                    if (fd.comments.toLowerCase().includes('polilla')) {
+                        hasMoths = 'yes';
+                    }
+                }
+                prefillUrl.searchParams.set('moths', hasMoths);
+
+                // Calculate sanitization
+                let hasSani = 'no';
+                if (Array.isArray(fd.plagas)) {
+                    if (fd.plagas.some(p => p && (p.includes('Sanitiz') || p.includes('Desinfec')))) {
+                        hasSani = 'yes';
+                    }
+                }
+                if (hasSani === 'no' && fd.comments) {
+                    const commentLower = fd.comments.toLowerCase();
+                    if (commentLower.includes('sanitiz') || commentLower.includes('desinfec') || commentLower.includes('virus') || commentLower.includes('bacteria')) {
+                        hasSani = 'yes';
+                    }
+                }
+                prefillUrl.searchParams.set('sanitization', hasSani);
+
+                // Pass client comments as observations
+                if (fd.comments && fd.comments !== 'Sin comentarios adicionales.') {
+                    prefillUrl.searchParams.set('comments', fd.comments);
+                }
+                
                 // Format a robust technical description
                 const areasStr = Array.isArray(fd.treatmentArea) ? fd.treatmentArea.join(', ') : fd.treatmentArea;
                 const plagasStr = Array.isArray(fd.plagas) ? fd.plagas.join(', ') : fd.plagas;
                 const descText = `Control de plagas (${plagasStr || 'No identificadas'}) en propiedad ${fd.propertyType || '-'}. Construcción: ${fd.propertySizeConstruction || '-'} m², Terreno: ${fd.propertySizeTerrain || '-'} m² (${fd.propertyFloors || '-'}). Áreas: ${areasStr || '-'}. Infestación: ${fd.infestationLevel || '-'}.`;
-                
                 prefillUrl.searchParams.set('desc', descText);
                 
                 window.open(prefillUrl.toString(), '_blank');

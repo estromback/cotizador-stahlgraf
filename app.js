@@ -89,6 +89,11 @@ function initApp() {
         const address = urlParams.get('address');
         const size = urlParams.get('size');
         const desc = urlParams.get('desc');
+        const coverage = urlParams.get('coverage');
+        const rodents = urlParams.get('rodents');
+        const moths = urlParams.get('moths');
+        const sanitization = urlParams.get('sanitization');
+        const comments = urlParams.get('comments');
         
         if (name) document.getElementById('client-name').value = name;
         if (phone) document.getElementById('client-phone').value = phone;
@@ -97,7 +102,38 @@ function initApp() {
         if (size && document.getElementById('property-size')) {
             document.getElementById('property-size').value = size;
         }
+        
+        // Cobertura
+        if (coverage && document.getElementById('coverage-type')) {
+            document.getElementById('coverage-type').value = coverage;
+            document.getElementById('coverage-type').dispatchEvent(new Event('change'));
+        }
 
+        // Control de Roedores
+        if (rodents && document.getElementById('rodent-control')) {
+            document.getElementById('rodent-control').value = rodents;
+            document.getElementById('rodent-control').dispatchEvent(new Event('change'));
+        }
+
+        // Control de Polillas
+        if (moths && document.getElementById('moth-control')) {
+            document.getElementById('moth-control').value = moths;
+            document.getElementById('moth-control').dispatchEvent(new Event('change'));
+        }
+
+        // Sanitización
+        if (sanitization && document.getElementById('sanitization-control')) {
+            document.getElementById('sanitization-control').value = sanitization;
+            document.getElementById('sanitization-control').dispatchEvent(new Event('change'));
+            if (size && document.getElementById('sanitization-size')) {
+                document.getElementById('sanitization-size').value = size;
+            }
+        }
+
+        // Comentarios / Notas de Cotización
+        if (comments && document.getElementById('quote-notes')) {
+            document.getElementById('quote-notes').value = comments;
+        }
         
         calculateQuote();
     }
