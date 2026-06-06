@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stahlgraf - Finanzas & Rentabilidad</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="finanzas.css">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="logo.png" alt="Stahlgraf Logo" style="height: 120px; object-fit: contain;" onerror="this.style.display='none'">
+                <h1 class="logo" style="margin: 0;"> <span>Finanzas</span></h1>
+            </div>
+            <div class="nav-actions">
+                <button id="btn-sync-login" class="btn btn-primary-outline" style="margin-right: 10px; display: inline-flex; align-items: center; gap: 5px;">
+                    <span id="sync-icon">☁️</span> <span id="sync-text">Ingresar para Sync</span>
+                </button>
+                <a href="index.html" class="btn btn-secondary">🏠 Volver al Hub</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="finanzas-container">
+        
+        <!-- KPI Metrics Grid -->
+        <div class="kpi-grid">
+            <div class="kpi-card" style="border-left: 4px solid #3b82f6;">
+                <div class="kpi-title">Ingresos Totales</div>
+                <div class="kpi-value" id="kpi-ingresos">$0</div>
+                <div class="kpi-subtext" id="kpi-ingresos-desc">Suma de cobros y facturas ganadas</div>
+            </div>
+            <div class="kpi-card" style="border-left: 4px solid #ef4444;">
+                <div class="kpi-title">Egresos Totales</div>
+                <div class="kpi-value" id="kpi-egresos">$0</div>
+                <div class="kpi-subtext" id="kpi-egresos-desc">Costo operativo + egresos manuales</div>
+            </div>
+            <div class="kpi-card" style="border-left: 4px solid #10b981;" id="kpi-utilidad-card">
+                <div class="kpi-title">Utilidad Neta</div>
+                <div class="kpi-value" id="kpi-utilidad">$0</div>
+                <div class="kpi-subtext" id="kpi-utilidad-desc">Rentabilidad real (Margen: 0%)</div>
+            </div>
+            <div class="kpi-card" style="border-left: 4px solid #fbbf24;">
+                <div class="kpi-title">Cuentas por Cobrar</div>
+                <div class="kpi-value" id="kpi-por-cobrar">$0</div>
+                <div class="kpi-subtext" id="kpi-por-cobrar-desc">Tratos CRM con pago pendiente</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            
+            <!-- Cash Flow Bar Chart -->
+            <div class="chart-card">
+                <div class="chart-title">
+                    <span>📊</span> Flujo de Caja Mensual (Ingresos vs Egresos)
+                </div>
+                <div class="bar-chart-container" id="cash-flow-chart">
+                    <!-- Injected dynamically via JS -->
+                </div>
+                <div style="display: flex; gap: 20px; font-size: 0.8rem; justify-content: center; margin-top: 15px;">
+                    <span style="display:flex; align-items:center; gap:5px;"><span style="display:inline-block; width:12px; height:12px; background:linear-gradient(0deg, #1d4ed8 0%, #3b82f6 100%); border-radius:3px;"></span> Ingresos</span>
+                    <span style="display:flex; align-items:center; gap:5px;"><span style="display:inline-block; width:12px; height:12px; background:linear-gradient(0deg, #b91c1c 0%, #ef4444 100%); border-radius:3px;"></span> Egresos</span>
+                </div>
+            </div>
+
+            <!-- Expense Donut Chart -->
+            <div class="chart-card">
+                <div class="chart-title">
+                    <span>🍕</span> Distribución de Egresos por Categoría
+                </div>
+                <div style="display: flex; justify-content: center; align-items: center; position: relative; height: 180px;">
+                    <svg viewBox="0 0 42 42" class="donut-svg" id="donut-chart-svg">
+                        <circle class="donut-hole" cx="21" cy="21" r="15.91549430918954" fill="transparent"></circle>
+                        <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="rgba(255,255,255,0.05)" stroke-width="3"></circle>
+                        <!-- Segments injected via JS -->
+                    </svg>
+                    <!-- Center text -->
+                    <div style="position: absolute; text-align: center;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Total Gastos</span>
+                        <div style="font-size: 1.15rem; font-weight: bold; color: #fff; margin-top: 2px;" id="donut-total-value">$0</div>
+                    </div>
+                </div>
+                <div class="donut-label-list" id="donut-labels">
+                    <!-- Labels injected via JS -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Split Layout: Form & History Table -->
+        <div class="data-split">
+            
+            <!-- Left Side: Transaction Form -->
+            <div class="form-panel">
+                <h3 style="margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; color: var(--primary);">
+                    <span>➕</span> Registrar Movimiento
+                </h3>
+                <form id="transaction-form" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="input-group">
+                        <label for="tx-type">Tipo de Movimiento</label>
+                        <select id="tx-type" required>
+                            <option value="egreso">Egreso (Gasto/Salida)</option>
+                            <option value="ingreso">Ingreso (Entrada)</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="tx-category">Categoría</label>
+                        <select id="tx-category" required>
+                            <!-- Egresos -->
+                            <option value="Combustible">Combustible</option>
+                            <option value="Químicos">Compra de Químicos</option>
+                            <option value="Insumos">Cajas / Trampas / Equipos</option>
+                            <option value="Sueldos">Sueldos y Personal</option>
+                            <option value="Vehículo">Mantenimiento de Vehículo</option>
+                            <option value="Arriendo">Arriendo de Oficina</option>
+                            <option value="Servicios Básicos">Servicios Básicos (Luz/Agua/Net)</option>
+                            <option value="Marketing">Marketing y Publicidad</option>
+                            <option value="Otros Egresos">Otros Egresos</option>
+                            
+                            <!-- Ingresos -->
+                            <option value="Servicio Adicional" style="display:none;">Servicio Adicional</option>
+                            <option value="Otros Ingresos" style="display:none;">Otros Ingresos</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="tx-date">Fecha de Movimiento</label>
+                        <input type="date" id="tx-date" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="tx-amount">Monto ($)</label>
+                        <input type="number" id="tx-amount" placeholder="Ej: 25000" min="1" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="tx-client">Cliente (Opcional)</label>
+                        <select id="tx-client">
+                            <!-- Populated with clientsList -->
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="tx-method">Método de Pago</label>
+                        <select id="tx-method" required>
+                            <option value="transferencia">Transferencia Bancaria</option>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="tarjeta">Tarjeta (Débito/Crédito)</option>
+                            <option value="cheque">Cheque</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="tx-desc">Descripción / Nota</label>
+                        <textarea id="tx-desc" placeholder="Detalles de la compra, patente de auto, etc." rows="3" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; padding: 10px; font-family: inherit; font-size: 0.9rem; outline: none; resize: vertical;"></textarea>
+                    </div>
+
+                    <button type="submit" id="btn-save-tx" class="btn btn-primary" style="margin-top: 10px; font-weight: 600; width: 100%;">
+                        💾 Guardar Transacción
+                    </button>
+                </form>
+            </div>
+
+            <!-- Right Side: Transactions Table -->
+            <div class="table-panel">
+                <h3 style="margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; color: var(--primary);">
+                    <span>📋</span> Historial Financiero
+                </h3>
+                
+                <!-- Filter bar -->
+                <div class="filter-bar">
+                    <select id="filter-type">
+                        <option value="all">🔍 Todos los movimientos</option>
+                        <option value="ingreso">🟢 Solo Ingresos</option>
+                        <option value="egreso">🔴 Solo Egresos</option>
+                    </select>
+                    <select id="filter-category">
+                        <option value="all">📁 Todas las categorías</option>
+                        <!-- Populated by JS -->
+                    </select>
+                    <input type="month" id="filter-month">
+                </div>
+
+                <!-- Table -->
+                <div style="overflow-x: auto;">
+                    <table class="trans-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Categoría</th>
+                                <th>Descripción</th>
+                                <th>Monto</th>
+                                <th style="text-align: center;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trans-list-tbody">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Scripts -->
+    <script src="finanzas.js"></script>
+</body>
+</html>
