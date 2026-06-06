@@ -119,6 +119,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('btn-save-service').addEventListener('click', saveRecordedService);
+    if (document.getElementById('btn-cancel-edit-service')) {
+        document.getElementById('btn-cancel-edit-service').addEventListener('click', () => {
+            renderServicesTab();
+        });
+    }
     document.getElementById('btn-add-hist-comment').addEventListener('click', addHistoryCrmComment);
 
     // Tab buttons event listeners
@@ -757,6 +762,17 @@ function renderServicesTab() {
     document.getElementById('service-price').value = '';
     document.getElementById('service-technician').value = '';
     document.getElementById('service-notes').value = '';
+    document.getElementById('service-coverage').value = '';
+    document.getElementById('service-exterior-zones').value = 'none';
+    document.getElementById('service-area').value = '';
+    document.getElementById('service-chemical').value = '';
+    
+    const formTitle = document.getElementById('service-form-title');
+    if (formTitle) formTitle.innerText = "Registrar Servicio Realizado";
+    const saveBtn = document.getElementById('btn-save-service');
+    if (saveBtn) saveBtn.innerText = "Guardar Servicio";
+    const cancelBtn = document.getElementById('btn-cancel-edit-service');
+    if (cancelBtn) cancelBtn.style.display = 'none';
     
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('service-date').value = today;
@@ -799,7 +815,8 @@ function renderServicesTab() {
             <td>${s.technician || '-'}</td>
             <td>${detailsHtml}</td>
             <td class="price-column"><strong>$${s.price ? parseInt(s.price).toLocaleString('es-CL') : '0'}</strong></td>
-            <td class="admin-only">
+            <td class="admin-only" style="white-space: nowrap;">
+                <button class="btn btn-secondary btn-sm" style="background: rgba(52, 152, 219, 0.2); color: #3498db; border-color: rgba(52, 152, 219, 0.3); padding: 3px 6px; font-size:0.75rem; margin-right: 5px;" onclick="editRecordedService('${s.id}')">Editar</button>
                 <button class="btn btn-secondary btn-sm" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; border-color: rgba(231, 76, 60, 0.3); padding: 3px 6px; font-size:0.75rem;" onclick="deleteRecordedService('${s.id}')">Eliminar</button>
             </td>
         `;
@@ -1090,18 +1107,27 @@ async function addHistoryCrmComment() {
 }
 
 async function saveRecordedService() {
+    const serviceId = document.getElementById('service-id').value;
     const type = document.getElementById('service-type').value;
     const date = document.getElementById('service-date').value;
     const priceVal = parseFloat(document.getElementById('service-price').value) || 0;
     const technician = document.getElementById('service-technician').value.trim();
     const notes = document.getElementById('service-notes').value.trim();
     
+    const coverage = document.getElementById('service-coverage').value;
+    const exteriorZones = document.getElementById('service-exterior-zones').value;
+    const area = parseInt(document.getElementById('service-area').value) || 0;
+    const chemical = document.getElementById('service-chemical').value.trim();
+    
     if (!date) {
         return alert("Por favor selecciona la fecha del servicio.");
     }
     
+    let isEdit = !!serviceId;
+    let finalId = serviceId || ('srv_' + Date.now());
+    
     const servicePayload = {
-        id: 'srv_' + Date.now(),
+        id: finalId,
         clientId: activeHistoryClientId,
         clientName: activeHistoryClientName,
         type,
@@ -1111,31 +1137,88 @@ async function saveRecordedService() {
         notes: notes || '-'
     };
     
+    // Add technical details to payload if present
+    if (coverage) servicePayload.coverage = coverage;
+    if (exteriorZones) servicePayload.exteriorZones = exteriorZones;
+    if (area) servicePayload.area = area;
+    if (chemical) servicePayload.chemical = chemical;
+    
     const btn = document.getElementById('btn-save-service');
     btn.disabled = true;
     btn.innerText = "Guardando...";
     
     try {
         if (!appData.services) appData.services = [];
-        appData.services.push(servicePayload);
+        
+        if (isEdit) {
+            // Update in appData.services
+            const index = appData.services.findIndex(s => s.id === finalId);
+            if (index >= 0) {
+                appData.services[index] = servicePayload;
+            } else {
+                appData.services.push(servicePayload);
+            }
+            
+            // Update in currentClientServices
+            const localIndex = currentClientServices.findIndex(s => s.id === finalId);
+            if (localIndex >= 0) {
+                currentClientServices[localIndex] = servicePayload;
+            } else {
+                currentClientServices.push(servicePayload);
+            }
+        } else {
+            appData.services.push(servicePayload);
+            currentClientServices.push(servicePayload);
+        }
+        
         localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
         
         if (currentUser && db) {
             await db.collection('users').doc(currentUser.uid).collection('services').doc(servicePayload.id).set(servicePayload);
         }
         
-        currentClientServices.push(servicePayload);
         renderServicesTab();
         
-        alert("✅ Servicio registrado exitosamente.");
+        alert(isEdit ? "✅ Servicio actualizado exitosamente." : "✅ Servicio registrado exitosamente.");
     } catch(e) {
         console.error("Error saving service:", e);
         alert("Ocurrió un error al guardar el servicio.");
     } finally {
         btn.disabled = false;
-        btn.innerText = "Guardar Servicio";
+        if (!isEdit) {
+            btn.innerText = "Guardar Servicio";
+        } else {
+            btn.innerText = "💾 Guardar Cambios";
+        }
     }
 }
+
+window.editRecordedService = function(id) {
+    const s = currentClientServices.find(srv => srv.id === id);
+    if (!s) return;
+    
+    document.getElementById('service-id').value = s.id;
+    document.getElementById('service-type').value = s.type || 'Fumigación';
+    document.getElementById('service-date').value = s.date || '';
+    document.getElementById('service-price').value = s.price !== undefined ? s.price : '';
+    document.getElementById('service-technician').value = s.technician || '';
+    document.getElementById('service-notes').value = s.notes || '';
+    
+    document.getElementById('service-coverage').value = s.coverage || '';
+    document.getElementById('service-exterior-zones').value = s.exteriorZones || 'none';
+    document.getElementById('service-area').value = s.area || '';
+    document.getElementById('service-chemical').value = s.chemical || '';
+    
+    const formTitle = document.getElementById('service-form-title');
+    if (formTitle) formTitle.innerText = "✏️ Editar Servicio Realizado";
+    const saveBtn = document.getElementById('btn-save-service');
+    if (saveBtn) saveBtn.innerText = "💾 Guardar Cambios";
+    const cancelBtn = document.getElementById('btn-cancel-edit-service');
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
+    
+    const formTitleEl = document.getElementById('service-form-title');
+    if (formTitleEl) formTitleEl.scrollIntoView({ behavior: 'smooth' });
+};
 
 async function deleteRecordedService(serviceId) {
     if (!confirm("¿Estás seguro de que deseas eliminar este registro de servicio de forma permanente?")) return;

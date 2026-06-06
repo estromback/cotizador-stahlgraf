@@ -540,7 +540,7 @@
                 <!-- Tab 2: Servicios Realizados -->
                 <div id="history-tab-services" class="tab-panel">
                     <div class="admin-only" style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px;">
-                        <h3 class="history-section-title" style="font-size: 1rem; border-bottom: none; margin-bottom: 10px;">Registrar Servicio Realizado</h3>
+                        <h3 class="history-section-title" id="service-form-title" style="font-size: 1rem; border-bottom: none; margin-bottom: 10px;">Registrar Servicio Realizado</h3>
                         <input type="hidden" id="service-id">
                         <div class="form-row-grid">
                             <div class="input-group">
@@ -569,12 +569,43 @@
                                 <input type="text" id="service-technician" placeholder="Ej. Carlos M.">
                             </div>
                         </div>
-                        <div class="input-group">
+                        
+                        <!-- Technical fields for service details -->
+                        <div class="form-row-grid" style="margin-top: 15px;">
+                            <div class="input-group">
+                                <label>Cobertura</label>
+                                <select id="service-coverage">
+                                    <option value="">No aplica</option>
+                                    <option value="both">Interior y Exterior</option>
+                                    <option value="inside">Solo Interior</option>
+                                    <option value="outside">Solo Exterior</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Zonas Exterior</label>
+                                <select id="service-exterior-zones">
+                                    <option value="none">Ninguna</option>
+                                    <option value="perimeter">Perímetro</option>
+                                    <option value="full">Patio Completo</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>Área (m²)</label>
+                                <input type="number" id="service-area" placeholder="Ej. 120" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label>Producto(s) Químico(s)</label>
+                                <input type="text" id="service-chemical" placeholder="Ej. Deltametrina">
+                            </div>
+                        </div>
+                        
+                        <div class="input-group" style="margin-top: 15px;">
                             <label>Detalles / Observaciones del Servicio</label>
                             <textarea id="service-notes" rows="2" placeholder="Describa el trabajo realizado, químicos aplicados, etc..."></textarea>
                         </div>
-                        <div class="form-btn-row">
+                        <div class="form-btn-row" style="display: flex; gap: 10px;">
                             <button class="btn btn-primary" id="btn-save-service">Guardar Servicio</button>
+                            <button class="btn btn-secondary" id="btn-cancel-edit-service" style="display: none;">Cancelar Edición</button>
                         </div>
                     </div>
                     
