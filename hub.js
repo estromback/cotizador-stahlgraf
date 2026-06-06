@@ -281,6 +281,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('quick-service-type').selectedIndex = 0;
             document.getElementById('quick-service-notes').value = '';
             
+            // Reset technical fields
+            document.getElementById('quick-service-coverage').value = 'both';
+            document.getElementById('quick-service-exterior-zones').value = 'none';
+            document.getElementById('quick-service-area').value = '';
+            document.getElementById('quick-service-chemical').value = '';
+            
             // Set date to today
             const todayStr = new Date().toISOString().split('T')[0];
             document.getElementById('quick-service-date').value = todayStr;
@@ -333,6 +339,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const technician = document.getElementById('quick-service-technician').value.trim();
             const notes = document.getElementById('quick-service-notes').value.trim();
             
+            const coverage = document.getElementById('quick-service-coverage').value;
+            const exteriorZones = document.getElementById('quick-service-exterior-zones').value;
+            const area = parseInt(document.getElementById('quick-service-area').value) || 0;
+            const chemical = document.getElementById('quick-service-chemical').value.trim();
+            
             if (!clientId) {
                 return alert("Por favor, selecciona un cliente.");
             }
@@ -348,6 +359,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 date,
                 price: 0, // No price tracking, default to 0 for database compatibility
                 technician: technician || 'No asignado',
+                coverage,
+                exteriorZones,
+                area,
+                chemical,
                 notes: notes || '-'
             };
             
@@ -1237,10 +1252,74 @@ function loadClientToForm(id) {
     document.getElementById('card-email').value = client.email || '';
 }
 
-function loadClientToQuickService(client) {
+async function loadClientToQuickService(client) {
     if (!client) return;
     document.getElementById('quick-service-client-id').value = client.id;
     document.getElementById('quick-service-client-name').innerText = client.name;
+    
+    // Clear technical fields
+    document.getElementById('quick-service-coverage').value = 'both';
+    document.getElementById('quick-service-exterior-zones').value = 'none';
+    document.getElementById('quick-service-area').value = '';
+    document.getElementById('quick-service-chemical').value = '';
+    
+    if (currentUser && db) {
+        try {
+            const snap = await db.collection('users').doc(currentUser.uid).collection('quotes').where('clientName', '==', client.name).get();
+            if (!snap.empty) {
+                let quotesList = [];
+                snap.forEach(doc => {
+                    quotesList.push(doc.data());
+                });
+                
+                // Sort by correlative descending, then by timestamp descending
+                quotesList.sort((a, b) => {
+                    const corrA = parseInt(a.correlative) || 0;
+                    const corrB = parseInt(b.correlative) || 0;
+                    if (corrB !== corrA) return corrB - corrA;
+                    
+                    const timeA = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : new Date(a.timestamp).getTime()) : 0;
+                    const timeB = b.timestamp ? (b.timestamp.toMillis ? b.timestamp.toMillis() : new Date(b.timestamp).getTime()) : 0;
+                    return timeB - timeA;
+                });
+                
+                const latest = quotesList[0];
+                if (latest) {
+                    if (latest['coverage-type']) {
+                        document.getElementById('quick-service-coverage').value = latest['coverage-type'];
+                    }
+                    if (latest['property-size']) {
+                        document.getElementById('quick-service-area').value = latest['property-size'];
+                    }
+                    if (latest['exterior-zones']) {
+                        document.getElementById('quick-service-exterior-zones').value = latest['exterior-zones'];
+                    }
+                    
+                    // Translate chemical IDs to names
+                    const chemIds = [];
+                    if (latest['interior-chem']) chemIds.push(latest['interior-chem']);
+                    if (latest['exterior-chem']) chemIds.push(latest['exterior-chem']);
+                    if (latest['sanitization-chem']) chemIds.push(latest['sanitization-chem']);
+                    
+                    const names = [];
+                    const chems = appData.chemicals || [];
+                    chemIds.forEach(id => {
+                        const matched = chems.find(c => c.id === id);
+                        if (matched && matched.name) {
+                            names.push(matched.name);
+                        }
+                    });
+                    
+                    const uniqueNames = [...new Set(names)];
+                    if (uniqueNames.length > 0) {
+                        document.getElementById('quick-service-chemical').value = uniqueNames.join(', ');
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Error loading last quote details:", err);
+        }
+    }
 }
 
 function saveClientToDirectorySilently(name, phone, email) {

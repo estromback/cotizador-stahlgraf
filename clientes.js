@@ -769,11 +769,35 @@ function renderServicesTab() {
     
     sorted.forEach(s => {
         const tr = document.createElement('tr');
+        
+        let detailsHtml = s.notes || '-';
+        if (s.coverage || s.area || s.chemical || (s.exteriorZones && s.exteriorZones !== 'none')) {
+            detailsHtml += '<div style="font-size:0.8rem; color:#aaa; margin-top:5px; border-top:1px dashed rgba(255,255,255,0.1); padding-top:4px; line-height: 1.4;">';
+            let parts = [];
+            if (s.coverage) {
+                const covMap = { 'both': 'Int. y Ext.', 'inside': 'Solo Int.', 'outside': 'Solo Ext.' };
+                let covStr = `📍 <strong>CoB:</strong> ${covMap[s.coverage] || s.coverage}`;
+                if (s.coverage !== 'inside' && s.exteriorZones && s.exteriorZones !== 'none') {
+                    const extMap = { 'perimeter': 'Perímetro', 'full': 'Patio Completo' };
+                    covStr += ` (${extMap[s.exteriorZones] || s.exteriorZones})`;
+                }
+                parts.push(covStr);
+            }
+            if (s.area) {
+                parts.push(`📐 <strong>Área:</strong> ${s.area} m²`);
+            }
+            if (s.chemical) {
+                parts.push(`🧪 <strong>Prod:</strong> ${s.chemical}`);
+            }
+            detailsHtml += parts.join(' | ');
+            detailsHtml += '</div>';
+        }
+        
         tr.innerHTML = `
             <td>${s.date || '-'}</td>
             <td><span class="pill-badge pill-badge-primary">${s.type || '-'}</span></td>
             <td>${s.technician || '-'}</td>
-            <td>${s.notes || '-'}</td>
+            <td>${detailsHtml}</td>
             <td class="price-column"><strong>$${s.price ? parseInt(s.price).toLocaleString('es-CL') : '0'}</strong></td>
             <td class="admin-only">
                 <button class="btn btn-secondary btn-sm" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; border-color: rgba(231, 76, 60, 0.3); padding: 3px 6px; font-size:0.75rem;" onclick="deleteRecordedService('${s.id}')">Eliminar</button>

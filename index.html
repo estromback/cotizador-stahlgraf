@@ -648,8 +648,8 @@
                 </div>
 
                 <!-- Form Fields -->
-                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
-                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                <div style="display: flex; gap: 12px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <div class="input-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
                         <label for="quick-service-type">Tipo de Servicio</label>
                         <select id="quick-service-type" style="width: 100%;">
                             <option value="Fumigación">Fumigación</option>
@@ -662,15 +662,46 @@
                             <option value="Otro">Otro</option>
                         </select>
                     </div>
-                    <div class="input-group" style="flex: 1; margin-bottom: 0;">
+                    <div class="input-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
                         <label for="quick-service-date">Fecha de Aplicación</label>
                         <input type="date" id="quick-service-date" style="width: 100%;">
                     </div>
                 </div>
 
-                <div class="input-group" style="margin-bottom: 15px;">
-                    <label for="quick-service-technician">Técnico Responsable</label>
-                    <input type="text" id="quick-service-technician" placeholder="Ej. Carlos M." style="width: 100%;">
+                <!-- Technical Details Row -->
+                <div style="display: flex; gap: 12px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <div class="input-group" style="flex: 1; min-width: 130px; margin-bottom: 0;">
+                        <label for="quick-service-coverage">Cobertura</label>
+                        <select id="quick-service-coverage" style="width: 100%;">
+                            <option value="both">Interior y Exterior</option>
+                            <option value="inside">Solo Interior</option>
+                            <option value="outside">Solo Exterior</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="flex: 1; min-width: 130px; margin-bottom: 0;">
+                        <label for="quick-service-exterior-zones">Zonas Exterior</label>
+                        <select id="quick-service-exterior-zones" style="width: 100%;">
+                            <option value="none">Ninguna</option>
+                            <option value="perimeter">Perímetro</option>
+                            <option value="full">Patio Completo</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="flex: 1; min-width: 100px; margin-bottom: 0;">
+                        <label for="quick-service-area">Área (m²)</label>
+                        <input type="number" id="quick-service-area" placeholder="Ej. 120" min="0" style="width: 100%;">
+                    </div>
+                </div>
+
+                <!-- Technician and Chemical Row -->
+                <div style="display: flex; gap: 12px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <div class="input-group" style="flex: 1; min-width: 180px; margin-bottom: 0;">
+                        <label for="quick-service-technician">Técnico Responsable</label>
+                        <input type="text" id="quick-service-technician" placeholder="Ej. Carlos M." style="width: 100%;">
+                    </div>
+                    <div class="input-group" style="flex: 1; min-width: 180px; margin-bottom: 0;">
+                        <label for="quick-service-chemical">Producto(s) Utilizado(s)</label>
+                        <input type="text" id="quick-service-chemical" placeholder="Ej. Deltametrina 2.5%SC" style="width: 100%;">
+                    </div>
                 </div>
 
                 <div class="input-group" style="margin-bottom: 20px;">
