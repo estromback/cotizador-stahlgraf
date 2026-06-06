@@ -24,15 +24,14 @@
     <!-- Header Navigation -->
     <nav class="navbar">
         <div class="nav-content">
-            <div style="display: flex; align-items: center; gap: 15px;">
+            <a href="index.html" style="display: flex; align-items: center; gap: 15px; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
                 <img src="logo.png" alt="Stahlgraf Logo" style="height: 120px; object-fit: contain;" onerror="this.style.display='none'">
                 <h1 class="logo" style="margin: 0;"> <span>Finanzas</span></h1>
-            </div>
+            </a>
             <div class="nav-actions">
                 <button id="btn-sync-login" class="btn btn-primary-outline" style="margin-right: 10px; display: inline-flex; align-items: center; gap: 5px;">
                     <span id="sync-icon">☁️</span> <span id="sync-text">Ingresar para Sync</span>
                 </button>
-                <a href="index.html" class="btn btn-secondary">🏠 Volver al Hub</a>
             </div>
         </div>
     </nav>

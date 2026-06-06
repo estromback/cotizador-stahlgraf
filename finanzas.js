@@ -213,7 +213,7 @@ function updateUI() {
             let quoteTotal = 0;
             const matchingQuote = quotesList.find(q => q.clientName === card.client || q.clientPhone === card.phone);
             if (matchingQuote) {
-                quoteTotal = parseFloat(String(matchingQuote.total || matchingQuote.totalStr || '0').replace(/[^0-9.-]+/g, "")) || 0;
+                quoteTotal = parseInt(String(matchingQuote.total || matchingQuote.totalStr || '0').replace(/[^0-9-]/g, ""), 10) || 0;
             } else {
                 quoteTotal = parseFloat(card.amount) || 0;
             }
@@ -499,7 +499,7 @@ function populateImportQuotesDropdown() {
     });
     
     pendingQuotes.forEach(quote => {
-        const total = parseFloat(String(quote.total || quote.totalStr || '0').replace(/[^0-9.-]+/g, "")) || 0;
+        const total = parseInt(String(quote.total || quote.totalStr || '0').replace(/[^0-9-]/g, ""), 10) || 0;
         const dateStr = quote.timestamp && quote.timestamp.toDate ? quote.timestamp.toDate().toISOString().split('T')[0] : 'Sin fecha';
         
         const opt = document.createElement('option');
