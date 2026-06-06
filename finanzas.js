@@ -648,9 +648,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return alert("Esta cotización no tiene un monto válido registrado.");
             }
             
-            const confirmMsg = `¿Confirmas el ingreso de $${amount.toLocaleString()} para el cliente "${clientName}" correspondiente a la "${quoteTitle}"?`;
-            if (!confirm(confirmMsg)) return;
-            
             const uid = getActiveUid();
             if (!currentUser || !db || !uid) {
                 return alert("No has iniciado sesión. No se puede guardar en la nube.");
@@ -679,7 +676,6 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await db.collection('users').doc(uid).collection('finanzas_transacciones').doc(txPayload.id).set(txPayload);
                 select.value = '';
-                alert("✅ Transacción importada y registrada con éxito.");
             } catch(err) {
                 console.error("Error importing transaction from quotes:", err);
                 alert("Ocurrió un error al guardar la transacción.");
