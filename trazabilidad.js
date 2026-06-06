@@ -1794,7 +1794,6 @@ function onScanSuccess(decodedText, decodedResult) {
                 // Vibrate if supported
                 if (navigator.vibrate) navigator.vibrate(100);
                 
-                alert(`🎯 Código QR escaneado con éxito:\n${stationId}\n\nEl selector ha sido bloqueado para esta estación.`);
                 closeScanner();
                 
                 // Open Registrar tab automatically to fill the locked station form
