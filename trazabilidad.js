@@ -433,6 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         select.appendChild(opt);
                     }
                     select.value = stationKey;
+                    select.dispatchEvent(new Event('change'));
                 }
                 closeStationDetails();
                 switchToTab('panel-inspeccionar');
@@ -837,6 +838,7 @@ function checkURLParameters() {
             select.appendChild(opt);
         }
         select.value = idParam;
+        select.dispatchEvent(new Event('change'));
         select.disabled = true; // Lock field for safety in field
         if (badge) badge.style.display = 'inline-flex';
         
@@ -1704,6 +1706,7 @@ function onScanSuccess(decodedText, decodedResult) {
                     select.appendChild(opt);
                 }
                 select.value = stationId;
+                select.dispatchEvent(new Event('change'));
                 select.disabled = true; // Lock dropdown for technical inspection
                 
                 // Show badge
