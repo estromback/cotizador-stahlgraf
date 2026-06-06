@@ -565,3 +565,8 @@ h1, h2, h3, h4 {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
 }
+
+/* Ensure the client selector modal is always on top of other modals */
+#clients-modal {
+    z-index: 1100;
+}
