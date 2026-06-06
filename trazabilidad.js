@@ -314,6 +314,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-clear-local').addEventListener('click', clearLocalData);
     document.getElementById('btn-sync-cloud').addEventListener('click', () => syncWithCloud(false));
     
+    const btnSyncTech = document.getElementById('btn-sync-cloud-tech');
+    if (btnSyncTech) {
+        btnSyncTech.addEventListener('click', () => syncWithCloud(false));
+    }
+    
     const btnBackToClients = document.getElementById('btn-back-to-clients');
     if (btnBackToClients) {
         btnBackToClients.addEventListener('click', () => {
@@ -783,6 +788,12 @@ function generateStationDropdown(skipInfoUpdate = false) {
     const currentVal = select.value;
     select.innerHTML = '';
     
+    // Inyectar placeholder neutro
+    const optPlaceholder = document.createElement('option');
+    optPlaceholder.value = '';
+    optPlaceholder.textContent = '-- Seleccionar Estación --';
+    select.appendChild(optPlaceholder);
+    
     const maxStations = getMaxStationNumber();
     for (let i = 1; i <= maxStations; i++) {
         const numStr = String(i).padStart(2, '0');
@@ -803,6 +814,8 @@ function generateStationDropdown(skipInfoUpdate = false) {
     
     if (currentVal && Array.from(select.options).some(o => o.value === currentVal)) {
         select.value = currentVal;
+    } else {
+        select.value = '';
     }
     
     // Refresh info box for the currently selected station
@@ -814,7 +827,51 @@ function generateStationDropdown(skipInfoUpdate = false) {
 // Check if URL has ?id=ESTACION-XX parameter and preserve it across redirect logins
 function checkURLParameters() {
     const params = new URLSearchParams(window.location.search);
+    
+    // Parse mode parameter and persist in sessionStorage
+    let mode = params.get('mode');
+    if (mode === 'tech') {
+        sessionStorage.setItem('trazabilidad_mode', 'tech');
+    } else if (mode === 'admin') {
+        sessionStorage.setItem('trazabilidad_mode', 'admin');
+    } else {
+        // If direct admin link access (search is empty), clear the mode
+        if (!window.location.search) {
+            sessionStorage.removeItem('trazabilidad_mode');
+        }
+    }
+    
+    const activeMode = sessionStorage.getItem('trazabilidad_mode');
+    if (activeMode === 'tech') {
+        // Hide tabs navigation
+        const tabsNav = document.querySelector('.tabs-nav');
+        if (tabsNav) tabsNav.style.display = 'none';
+        
+        // Hide page header sync actions
+        const navActions = document.querySelector('.nav-actions');
+        if (navActions) navActions.style.display = 'none';
+        
+        // Show tech manual sync button in Ficha de Inspección
+        const btnSyncTech = document.getElementById('btn-sync-cloud-tech');
+        if (btnSyncTech) btnSyncTech.style.display = 'flex';
+        
+        // Force switch to Registrar tab
+        switchToTab('panel-inspeccionar');
+    }
+
+    // Extract station ID parameter using robust checks
     let idParam = params.get('id');
+    if (!idParam) {
+        idParam = params.get('');
+    }
+    if (!idParam) {
+        for (const key of params.keys()) {
+            if (key.startsWith('ESTACION-')) {
+                idParam = key;
+                break;
+            }
+        }
+    }
     
     // Save to sessionStorage if present in URL
     if (idParam) {
@@ -1020,6 +1077,13 @@ function resetInspectionForm() {
     
     // Reset cached GPS coordinates
     lastKnownGPS = null;
+    
+    // Restablecer el selector de estación si no está bloqueado por QR activo
+    const select = document.getElementById('station-id');
+    if (select && !select.disabled) {
+        select.value = '';
+        select.dispatchEvent(new Event('change'));
+    }
 }
 
 // Render Monitoreo Panel (Heatmap and Table history)
@@ -1690,6 +1754,17 @@ function onScanSuccess(decodedText, decodedResult) {
         if (decodedText.startsWith("http")) {
             const url = new URL(decodedText);
             stationId = url.searchParams.get("id");
+            if (!stationId) {
+                stationId = url.searchParams.get("");
+            }
+            if (!stationId) {
+                for (const key of url.searchParams.keys()) {
+                    if (key.startsWith('ESTACION-')) {
+                        stationId = key;
+                        break;
+                    }
+                }
+            }
         } else if (decodedText.startsWith("ESTACION-")) {
             stationId = decodedText;
         }
