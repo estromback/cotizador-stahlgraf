@@ -187,6 +187,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Exit Technical View Button (only for admin user looking at tech view)
+    const btnExitTech = document.getElementById('btn-exit-tech-mode');
+    if (btnExitTech) {
+        btnExitTech.addEventListener('click', () => {
+            sessionStorage.removeItem('trazabilidad_mode');
+            window.history.replaceState({}, document.title, window.location.pathname);
+            checkTechnicalMode();
+        });
+    }
+
     // Settings Modal Tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -552,6 +562,14 @@ function checkTechnicalMode() {
     const calendarPanel = document.getElementById('calendar-panel');
     const dashboardPanel = document.getElementById('dashboard-panel');
     const clientPortal = document.getElementById('client-portal-container');
+    const btnExitTech = document.getElementById('btn-exit-tech-mode');
+    
+    // Toggle Exit Tech Mode button for admin users currently viewing tech mode
+    if (role === 'admin' && activeMode === 'tech') {
+        if (btnExitTech) btnExitTech.style.display = 'inline-flex';
+    } else {
+        if (btnExitTech) btnExitTech.style.display = 'none';
+    }
     
     if (role === 'client') {
         // Hide EVERYTHING administrative/tech
@@ -613,8 +631,12 @@ function updateSettingsUI() {
     document.getElementById('setting-moth-trap-price').value = appData.mothTrapPrice;
     document.getElementById('setting-moth-chem-price').value = appData.mothChemPrice;
 
-    document.getElementById('setting-asana-token').value = appData.asanaToken;
-    document.getElementById('setting-asana-project').value = appData.asanaProject;
+    if (document.getElementById('setting-asana-token')) {
+        document.getElementById('setting-asana-token').value = appData.asanaToken || '';
+    }
+    if (document.getElementById('setting-asana-project')) {
+        document.getElementById('setting-asana-project').value = appData.asanaProject || '';
+    }
     
     if (document.getElementById('setting-crm-columns')) {
         document.getElementById('setting-crm-columns').value = appData.crmColumns || 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos';
@@ -721,8 +743,12 @@ function saveSettingsFromUI() {
     appData.mothTrapPrice = parseInt(document.getElementById('setting-moth-trap-price').value) || 5000;
     appData.mothChemPrice = parseInt(document.getElementById('setting-moth-chem-price').value) || 25000;
 
-    appData.asanaToken = document.getElementById('setting-asana-token').value.trim();
-    appData.asanaProject = document.getElementById('setting-asana-project').value.trim();
+    if (document.getElementById('setting-asana-token')) {
+        appData.asanaToken = document.getElementById('setting-asana-token').value.trim();
+    }
+    if (document.getElementById('setting-asana-project')) {
+        appData.asanaProject = document.getElementById('setting-asana-project').value.trim();
+    }
 
     if (document.getElementById('setting-crm-columns')) {
         appData.crmColumns = document.getElementById('setting-crm-columns').value;
