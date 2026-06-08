@@ -1181,8 +1181,8 @@ function getClientMonitoreoSummary() {
                 inspectedCount++;
                 sumAvgConsumption += analytics.avg;
                 
-                // A station is critical if average consumption is > 50% or the latest consumption is high (75% or 100%)
-                if (analytics.avg > 50 || analytics.lastVal === '75%' || analytics.lastVal === '100%') {
+                // A station is critical only if it has >= 5 consecutive inspections of >= 75% consumption
+                if (isStationCritical(stationKey)) {
                     criticalCount++;
                 }
                 
@@ -1368,8 +1368,8 @@ function renderMonitoreo() {
             uniqueInspected.add(stationKey);
             reviewedCount++;
             
-            // A station is critical if average consumption is > 50% or the latest consumption is high (75% or 100%)
-            if (analytics.avg > 50 || analytics.lastVal === '75%' || analytics.lastVal === '100%') {
+            // A station is critical only if it has >= 5 consecutive inspections of >= 75% consumption
+            if (isStationCritical(stationKey)) {
                 criticalCount++;
             }
         } else {
@@ -2334,6 +2334,22 @@ function getConsumptionNumeric(value) {
     return 0;
 }
 
+// Helper: Check if a station is critical (alert condition)
+// An alert is triggered ONLY when a station has more than 4 consecutive inspections (so >= 5 records)
+// and all of those most recent 5 inspections have a consumption over 75% ('75%' or '100%')
+function isStationCritical(stationKey) {
+    const stationRecords = inspections.filter(r => r.station === stationKey);
+    // Sort records by timestamp descending (newest first)
+    const sortedRecords = [...stationRecords].sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+    
+    // Must have more than 4 consecutive inspections (so >= 5 total)
+    if (sortedRecords.length < 5) return false;
+    
+    // Check if all of the last 5 inspections have >= 75% consumption
+    const last5 = sortedRecords.slice(0, 5);
+    return last5.every(r => r.consumption === '75%' || r.consumption === '100%');
+}
+
 // Helper: Calculate consumption average and trend for a station
 function calculateStationAnalytics(stationKey) {
     const stationRecords = inspections.filter(r => r.station === stationKey);
@@ -2725,9 +2741,13 @@ async function generatePDFReport() {
     btn.disabled = true;
     btn.innerText = 'Generando Reporte...';
     
+    // Check if user selected to include alerts in report
+    const chkIncludeAlerts = document.getElementById('chk-include-alerts');
+    const includeAlerts = chkIncludeAlerts ? chkIncludeAlerts.checked : true;
+    
     // 1. Build recommendations block
     let recommendationsHTML = "";
-    if (clientSummary.criticalCount > 0) {
+    if (includeAlerts && clientSummary.criticalCount > 0) {
         recommendationsHTML = `
             <div style="margin-top: 15px; padding: 15px; border-left: 5px solid #ef4444; background: #fef2f2; border-radius: 6px;">
                 <h4 style="margin: 0 0 6px 0; color: #991b1b; font-size: 0.95rem; font-weight: 700;">🚨 Recomendaciones de Acción Inmediata</h4>
@@ -2741,7 +2761,7 @@ async function generatePDFReport() {
                 </ul>
             </div>
         `;
-    } else if (clientSummary.avgConsumption > 20) {
+    } else if (includeAlerts && clientSummary.avgConsumption > 20) {
         recommendationsHTML = `
             <div style="margin-top: 15px; padding: 15px; border-left: 5px solid #fbbf24; background: #fffbef; border-radius: 6px;">
                 <h4 style="margin: 0 0 6px 0; color: #92400e; font-size: 0.95rem; font-weight: 700;">⚠️ Recomendaciones de Control Preventivo</h4>
@@ -2798,9 +2818,12 @@ async function generatePDFReport() {
             lastNotes = analytics.latestRecord.notes || '-';
         }
         
+        const isCritical = isStationCritical(stationKey);
+        const warningIcon = (isCritical && includeAlerts) ? ' <span style="color: #ef4444;">🚨</span>' : '';
+        
         latestInspectionsHTML += `
             <tr style="border-bottom: 1px solid #e2e8f0; font-size: 0.8rem;">
-                <td style="padding: 10px 8px; font-weight: 700; color: #1e293b; text-align: left;">Estación #${String(num).padStart(2, '0')}</td>
+                <td style="padding: 10px 8px; font-weight: 700; color: #1e293b; text-align: left;">Estación #${String(num).padStart(2, '0')}${warningIcon}</td>
                 <td style="padding: 10px 8px; text-align: center;">${lastDate}</td>
                 <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: ${lastCons === '0%' ? '#10b981' : lastCons === '25-50%' ? '#fbbf24' : '#ef4444'};">${lastCons}</td>
                 <td style="padding: 10px 8px; text-align: left; color: #475569;">${lastMaint}</td>

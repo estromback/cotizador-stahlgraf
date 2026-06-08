@@ -511,13 +511,17 @@
             <!-- Vista Detallada de Cliente Seleccionado -->
             <div id="monitoreo-detail-section" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button id="btn-back-to-clients" class="btn btn-primary-outline" style="padding: 8px 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.03); color: #fff;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <button id="btn-back-to-clients" class="btn btn-primary-outline" style="padding: 8px 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.03); color: #fff; margin: 0;">
                             ⬅️ Volver a Resumen de Clientes
                         </button>
-                        <button id="btn-generate-pdf-report" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; border-radius: 8px; cursor: pointer; background: var(--primary); color: #fff; border: none; font-weight: 600;">
+                        <button id="btn-generate-pdf-report" class="btn btn-primary" style="padding: 8px 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; border-radius: 8px; cursor: pointer; background: var(--primary); color: #fff; border: none; font-weight: 600; margin: 0;">
                             📄 Descargar Reporte PDF
                         </button>
+                        <label style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; color: #fff; cursor: pointer; user-select: none; margin: 0; height: 36px; box-sizing: border-box;">
+                            <input type="checkbox" id="chk-include-alerts" checked style="cursor: pointer; accent-color: var(--primary); width: 16px; height: 16px; margin: 0;">
+                            <span>🚨 Incluir Alertas en Reporte</span>
+                        </label>
                     </div>
                     <h3 id="monitoreo-selected-client-name" style="margin: 0; font-size: 1.25rem; color: #fff; font-weight: 600;">Cliente: -</h3>
                 </div>
