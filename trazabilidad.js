@@ -1776,7 +1776,7 @@ function exportCSV() {
     csvContent += "ID_Inspeccion,Estacion,Fecha_Hora,Consumo_Cebo,Mantenimiento,Evidencias,Observaciones,Latitud,Longitud,Estado_Sincronizacion\n";
     
     inspections.forEach(ins => {
-        const maintStr = (ins.maintenance || []).join('; ');
+        const maintStr = (ins.maintenance || []).map(m => m.replace(' (Klerat)', '')).join('; ');
         const evidStr = (ins.evidence || []).join('; ');
         const notesClean = (ins.notes || '').replace(/"/g, '""');
         const lat = ins.coords ? ins.coords.lat : '';
@@ -2737,7 +2737,7 @@ function openStationDetails(stationNum) {
     } else {
         sorted.forEach(r => {
             const tr = document.createElement('tr');
-            const maintStr = (r.maintenance || []).join(', ') || 'Ninguno';
+            const maintStr = (r.maintenance || []).map(m => m.replace(' (Klerat)', '')).join(', ') || 'Ninguno';
             tr.innerHTML = `
                 <td style="padding: 8px 10px;">${r.timestamp.split(' ')[0]}</td>
                 <td style="padding: 8px 10px; font-weight:600;">${r.consumption}</td>
@@ -3092,7 +3092,7 @@ async function generatePDFReport() {
         if (analytics.latestRecord) {
             lastDate = analytics.latestRecord.timestamp.split(' ')[0];
             lastCons = analytics.latestRecord.consumption;
-            lastMaint = (analytics.latestRecord.maintenance || []).join(', ') || 'Ninguno';
+            lastMaint = (analytics.latestRecord.maintenance || []).map(m => m.replace(' (Klerat)', '')).join(', ') || 'Ninguno';
             lastEvid = (analytics.latestRecord.evidence || []).join(', ') || 'Ninguna';
             lastNotes = analytics.latestRecord.notes || '-';
         }
@@ -3121,7 +3121,7 @@ async function generatePDFReport() {
         
         let rows = "";
         sortedRecords.forEach(r => {
-            const maint = (r.maintenance || []).join(', ') || 'Ninguno';
+            const maint = (r.maintenance || []).map(m => m.replace(' (Klerat)', '')).join(', ') || 'Ninguno';
             rows += `
                 <div style="display: flex; justify-content: space-between; font-size: 0.76rem; padding: 5px 0; border-bottom: 1px dashed #e2e8f0; color: #475569;">
                     <span style="font-weight: 500;">📅 ${r.timestamp}</span>
