@@ -1,5 +1,5 @@
 (function() {
-    const role = localStorage.getItem('stahlgraf_user_role') || 'admin';
+    const role = localStorage.getItem('stahlgraf_user_role') || 'guest';
     if (role !== 'admin') {
         alert("⚠️ Acceso denegado: Se requiere perfil de Administrador.");
         window.location.href = 'hub.html';

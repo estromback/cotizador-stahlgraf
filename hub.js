@@ -116,9 +116,12 @@ if (auth) {
                         localStorage.removeItem('stahlgraf_linked_client_id');
                     }
                 } else {
-                    localStorage.setItem('stahlgraf_user_role', 'admin');
-                    localStorage.setItem('stahlgraf_target_uid', user.uid);
-                    localStorage.removeItem('stahlgraf_linked_client_id');
+                    alert("⚠️ Acceso denegado: Su correo no está autorizado en esta plataforma.");
+                    auth.signOut().then(() => {
+                        localStorage.clear();
+                        window.location.href = 'index.html';
+                    });
+                    return;
                 }
                 
                 checkTechnicalMode();
@@ -127,15 +130,11 @@ if (auth) {
                 syncFromFirebase();
             }).catch(err => {
                 console.error("Error checking user role:", err);
-                // Fallback to admin
-                localStorage.setItem('stahlgraf_user_role', 'admin');
-                localStorage.setItem('stahlgraf_target_uid', user.uid);
-                localStorage.removeItem('stahlgraf_linked_client_id');
-                
-                checkTechnicalMode();
-                loadDashboardStats();
-                subscribeToCRM();
-                syncFromFirebase();
+                alert("⚠️ Error de autenticación o acceso denegado. Intente nuevamente.");
+                auth.signOut().then(() => {
+                    localStorage.clear();
+                    window.location.href = 'index.html';
+                });
             });
         } else {
             // Redirect to public landing page if not logged in
@@ -520,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function checkTechnicalMode() {
     const params = new URLSearchParams(window.location.search);
     let mode = params.get('mode');
-    const role = localStorage.getItem('stahlgraf_user_role') || 'admin';
+    const role = localStorage.getItem('stahlgraf_user_role') || 'guest';
     
     // Clear mode parameter if url is empty
     if (!window.location.search) {

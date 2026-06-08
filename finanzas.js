@@ -1,5 +1,5 @@
 (function() {
-    const role = localStorage.getItem('stahlgraf_user_role') || 'admin';
+    const role = localStorage.getItem('stahlgraf_user_role') || 'guest';
     if (role !== 'admin') {
         alert("⚠️ Acceso denegado: Se requiere perfil de Administrador.");
         window.location.href = 'hub.html';
@@ -81,9 +81,12 @@ if (auth) {
                         localStorage.removeItem('stahlgraf_linked_client_id');
                     }
                 } else {
-                    localStorage.setItem('stahlgraf_user_role', 'admin');
-                    localStorage.setItem('stahlgraf_target_uid', user.uid);
-                    localStorage.removeItem('stahlgraf_linked_client_id');
+                    alert("⚠️ Acceso denegado: Su correo no está autorizado en esta plataforma.");
+                    auth.signOut().then(() => {
+                        localStorage.clear();
+                        window.location.href = 'index.html';
+                    });
+                    return;
                 }
                 
                 const role = localStorage.getItem('stahlgraf_user_role');
