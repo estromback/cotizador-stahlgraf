@@ -2,7 +2,7 @@
     const role = localStorage.getItem('stahlgraf_user_role') || 'admin';
     if (role === 'client') {
         alert("⚠️ Acceso denegado: Los clientes no pueden acceder al módulo de trazabilidad.");
-        window.location.href = 'index.html';
+        window.location.href = 'hub.html';
     }
 })();
 
@@ -297,7 +297,7 @@ if (auth) {
                 const role = localStorage.getItem('stahlgraf_user_role');
                 if (role === 'client') {
                     alert("⚠️ Acceso denegado: Los clientes no pueden acceder al módulo de trazabilidad.");
-                    window.location.href = 'index.html';
+                    window.location.href = 'hub.html';
                     return;
                 }
                 
@@ -1191,9 +1191,9 @@ function checkURLParameters() {
         if (btnSyncTech) btnSyncTech.style.display = 'flex';
         
         // Update logo link to preserve mode=tech when returning to dashboard
-        const logoLink = document.querySelector('nav.navbar a[href="index.html"]');
+        const logoLink = document.querySelector('nav.navbar a[href="hub.html"]');
         if (logoLink) {
-            logoLink.href = 'index.html?mode=tech';
+            logoLink.href = 'hub.html?mode=tech';
         }
         
         // Force switch to Registrar tab

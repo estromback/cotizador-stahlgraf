@@ -2,7 +2,7 @@
     const role = localStorage.getItem('stahlgraf_user_role') || 'admin';
     if (role !== 'admin') {
         alert("⚠️ Acceso denegado: Se requiere perfil de Administrador.");
-        window.location.href = 'index.html';
+        window.location.href = 'hub.html';
     }
 })();
 
@@ -423,7 +423,7 @@ function openCardModal(card = null) {
             // Wire Prefill button
             const prefillBtn = document.getElementById('btn-prefill-quote');
             prefillBtn.onclick = () => {
-                const baseUrl = window.location.href.split('?')[0].replace('crm.html', 'cotizador.html').replace('index.html', 'cotizador.html');
+                const baseUrl = window.location.href.split('?')[0].replace('crm.html', 'cotizador.html').replace('index.html', 'cotizador.html').replace('hub.html', 'cotizador.html');
                 const prefillUrl = new URL(baseUrl);
                 prefillUrl.searchParams.set('prefill', 'true');
                 prefillUrl.searchParams.set('name', fd.clientName || card.client);

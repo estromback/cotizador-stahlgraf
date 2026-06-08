@@ -138,15 +138,8 @@ if (auth) {
                 syncFromFirebase();
             });
         } else {
-            syncText.innerText = "Ingresar para Sync";
-            syncIcon.innerText = '☁️';
-            document.getElementById('btn-sync-login').classList.add('btn-primary-outline');
-            document.getElementById('btn-sync-login').classList.remove('btn-secondary');
-            
-            localStorage.removeItem('stahlgraf_user_role');
-            localStorage.removeItem('stahlgraf_target_uid');
-            localStorage.removeItem('stahlgraf_linked_client_id');
-            checkTechnicalMode();
+            // Redirect to public landing page if not logged in
+            window.location.href = 'index.html';
             
             document.getElementById('dashboard-stats').innerHTML = `
                 <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
@@ -1170,7 +1163,7 @@ function openCardModal(card = null, defaultDate = '') {
             
             const prefillBtn = document.getElementById('btn-prefill-quote');
             prefillBtn.onclick = () => {
-                const baseUrl = window.location.href.split('?')[0].replace('crm.html', 'cotizador.html').replace('index.html', 'cotizador.html');
+                const baseUrl = window.location.href.split('?')[0].replace('crm.html', 'cotizador.html').replace('index.html', 'cotizador.html').replace('hub.html', 'cotizador.html');
                 const prefillUrl = new URL(baseUrl);
                 prefillUrl.searchParams.set('prefill', 'true');
                 prefillUrl.searchParams.set('name', fd.clientName || card.client);

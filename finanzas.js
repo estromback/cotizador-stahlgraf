@@ -2,7 +2,7 @@
     const role = localStorage.getItem('stahlgraf_user_role') || 'admin';
     if (role !== 'admin') {
         alert("⚠️ Acceso denegado: Se requiere perfil de Administrador.");
-        window.location.href = 'index.html';
+        window.location.href = 'hub.html';
     }
 })();
 
@@ -89,7 +89,7 @@ if (auth) {
                 const role = localStorage.getItem('stahlgraf_user_role');
                 if (role !== 'admin') {
                     alert("⚠️ Acceso denegado: Se requiere perfil de Administrador.");
-                    window.location.href = 'index.html';
+                    window.location.href = 'hub.html';
                     return;
                 }
                 
