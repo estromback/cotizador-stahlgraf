@@ -1920,6 +1920,14 @@ async function syncWithCloud(silent = false) {
                 if (inspections[localIndex].status === 'pendiente') {
                     inspections[localIndex].status = 'sincronizado';
                 }
+                // Merge cloud changes to the local cached record (e.g. manually set coords from PC)
+                inspections[localIndex].station = pulledRecord.station;
+                inspections[localIndex].consumption = pulledRecord.consumption;
+                inspections[localIndex].maintenance = pulledRecord.maintenance;
+                inspections[localIndex].evidence = pulledRecord.evidence;
+                inspections[localIndex].notes = pulledRecord.notes;
+                inspections[localIndex].coords = pulledRecord.coords;
+                inspections[localIndex].timestamp = pulledRecord.timestamp;
             }
         });
         
