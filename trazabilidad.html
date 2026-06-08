@@ -544,6 +544,25 @@
                     <p style="color: var(--text-muted); font-size: 0.72rem; margin-top: 5px; font-style: italic; opacity: 0.8;">
                         * El mapa satelital requiere conexión a internet para cargar imágenes, pero las coordenadas GPS se registran offline durante la inspección.
                     </p>
+                    
+                    <!-- Ubicar Estaciones Manualmente -->
+                    <div id="unpositioned-stations-container" style="display: none; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 15px; border-radius: 12px; margin-top: 15px; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap; backdrop-filter: blur(5px);">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.25rem;">📍</span>
+                            <div>
+                                <h4 style="margin: 0; font-size: 0.9rem; color: #fff; font-weight: 600;">Ubicar Estaciones Manualmente</h4>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">Estaciones asignadas al cliente sin coordenadas registradas en el mapa.</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <select id="unpositioned-station-select" style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; outline: none; min-width: 150px; height: 38px;">
+                                <option value="" style="background-color: #1e293b; color: #fff;">-- Seleccionar Estación --</option>
+                            </select>
+                            <button type="button" id="btn-manual-position" class="btn btn-secondary" style="margin: 0; padding: 0 15px; font-size: 0.85rem; height: 38px; border-radius: 8px; font-weight: 500;">
+                                📍 Posicionar en el Mapa
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">

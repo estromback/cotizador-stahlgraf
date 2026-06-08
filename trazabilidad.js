@@ -48,6 +48,11 @@ let leafletMap = null;
 let leafletMarkerGroup = null;
 let activeTileLayer = null;
 
+let manualPlacementMode = {
+    active: false,
+    stationNum: null
+};
+
 let globalAppData = {
     clients: [],
     stationAssignments: []
@@ -388,6 +393,19 @@ document.addEventListener('DOMContentLoaded', () => {
         btnGeneratePdf.addEventListener('click', generatePDFReport);
     }
     
+    const btnManualPosition = document.getElementById('btn-manual-position');
+    if (btnManualPosition) {
+        btnManualPosition.addEventListener('click', () => {
+            const select = document.getElementById('unpositioned-station-select');
+            const stationNum = select ? select.value : '';
+            if (!stationNum) {
+                alert("⚠️ Selecciona una estación sin ubicación para posicionarla.");
+                return;
+            }
+            enterManualPlacementMode(parseInt(stationNum, 10));
+        });
+    }
+    
     // Auto-sync when connection is restored
     window.addEventListener('online', () => {
         if (currentUser) {
@@ -665,9 +683,43 @@ function initOrUpdateMap() {
     const mapElement = document.getElementById('monitoreo-map');
 
     if (mapStations.length === 0) {
-        if (placeholder) placeholder.style.display = 'flex';
-        if (mapElement) mapElement.style.opacity = '0';
-        return;
+        // Check if there is an active client selected
+        const filterClientIdSelect = document.getElementById('filter-client-id');
+        const filterClientId = filterClientIdSelect ? filterClientIdSelect.value : '';
+        
+        if (filterClientId && !manualPlacementMode.active) {
+            // Show placeholder explaining they can locate manually
+            if (placeholder) {
+                placeholder.innerHTML = `
+                    <span style="font-size: 2.2rem; margin-bottom: 10px;">📍</span>
+                    <p style="margin: 0; font-size: 0.95rem; color: #fff; font-weight: 600;">Sin datos de ubicación</p>
+                    <p style="margin: 6px 0 0 0; font-size: 0.8rem; color: var(--text-muted); max-width: 320px; line-height: 1.4;">
+                        Este cliente no tiene estaciones ubicadas en el mapa. Selecciona una en el panel inferior y haz clic en "Posicionar en el Mapa".
+                    </p>
+                `;
+                placeholder.style.display = 'flex';
+            }
+            if (mapElement) mapElement.style.opacity = '0';
+            return;
+        } else if (!manualPlacementMode.active) {
+            if (placeholder) {
+                placeholder.innerHTML = `
+                    <span style="font-size: 2.2rem; margin-bottom: 10px;">📍</span>
+                    <p style="margin: 0; font-size: 0.95rem; color: #fff; font-weight: 600;">Sin datos de ubicación</p>
+                    <p style="margin: 6px 0 0 0; font-size: 0.8rem; color: var(--text-muted); max-width: 320px; line-height: 1.4;">
+                        Las estaciones activas no registran coordenadas GPS. Realiza una inspección para capturar la ubicación de la estación en terreno.
+                    </p>
+                `;
+                placeholder.style.display = 'flex';
+            }
+            if (mapElement) mapElement.style.opacity = '0';
+            return;
+        }
+    }
+    
+    if (manualPlacementMode.active) {
+        if (placeholder) placeholder.style.display = 'none';
+        if (mapElement) mapElement.style.opacity = '1';
     } else {
         if (placeholder) placeholder.style.display = 'none';
         if (mapElement) mapElement.style.opacity = '1';
@@ -735,20 +787,7 @@ function initOrUpdateMap() {
                     }
                 });
 
-                // Trend icon
-                let trendIcon = '';
-                if (s.analytics.trend === 'up') trendIcon = '📈';
-                else if (s.analytics.trend === 'down') trendIcon = '📉';
-                else if (s.analytics.trend === 'stable') trendIcon = '➡️';
-                
-                const tooltipText = `${numStr} ${trendIcon}`;
 
-                marker.bindTooltip(tooltipText, {
-                    permanent: true,
-                    direction: 'top',
-                    className: 'premium-map-tooltip',
-                    offset: [0, -12]
-                });
 
                 const popupContent = `
                     <div style="color: #333; font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.4; padding: 5px;">
@@ -780,6 +819,10 @@ function initOrUpdateMap() {
                 } else {
                     leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 19 });
                 }
+            } else {
+                // Default center view if no stations positioned yet
+                const centerCoords = lastKnownGPS ? [lastKnownGPS.lat, lastKnownGPS.lng] : [-37.4612, -72.3514];
+                leafletMap.setView(centerCoords, 17);
             }
         }
     }, 100);
@@ -787,14 +830,15 @@ function initOrUpdateMap() {
 
 // Correct coordinates of a station (updates the latest inspection record with coords)
 function updateStationCoordinates(stationKey, lat, lng) {
-    // Find all inspections of this station that contain valid coords
-    const stationRecords = inspections.filter(r => r.station === stationKey && r.coords && r.coords.lat && r.coords.lng);
+    // Find all inspections of this station
+    const stationRecords = inspections.filter(r => r.station === stationKey);
+    
     if (stationRecords.length > 0) {
-        // Sort newest first
+        // Find latest record (newest first)
         const sorted = [...stationRecords].sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
         const latestRecord = sorted[0];
         
-        // Find it in the master inspections array
+        // Find it in master inspections array
         const recordIndex = inspections.findIndex(r => r.id === latestRecord.id);
         if (recordIndex !== -1) {
             inspections[recordIndex].coords = {
@@ -806,19 +850,253 @@ function updateStationCoordinates(stationKey, lat, lng) {
             inspections[recordIndex].status = 'pendiente'; // Set as pending so it syncs to cloud
             
             localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
-            
-            // Re-render and show success alert
             renderMonitoreo();
-            alert(`✅ La ubicación de la Estación #${stationKey.replace('ESTACION-', '')} ha sido corregida.`);
+            alert(`✅ La ubicación de la Estación #${stationKey.replace('ESTACION-', '')} ha sido registrada.`);
             
             if (navigator.onLine && currentUser) {
                 syncWithCloud(true);
             }
         }
     } else {
-        alert("⚠️ No se encontró un historial de geolocalización previo para esta estación.");
-        initOrUpdateMap();
+        // Create an initial record if no inspections exist
+        const newRecord = {
+            id: 'ins_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            station: stationKey,
+            consumption: '0%',
+            maintenance: [],
+            evidence: [],
+            notes: 'Posicionamiento manual inicial',
+            coords: {
+                lat: lat,
+                lng: lng,
+                accuracy: 0,
+                timestamp: Date.now()
+            },
+            timestamp: new Date().toLocaleString('es-CL'),
+            status: 'pendiente'
+        };
+        inspections.push(newRecord);
+        localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
+        
+        renderMonitoreo();
+        alert(`✅ La ubicación de la Estación #${stationKey.replace('ESTACION-', '')} ha sido registrada.`);
+        
+        if (navigator.onLine && currentUser) {
+            syncWithCloud(true);
+        }
     }
+}
+
+function populateUnpositionedStationsSelector(filterClientId, filterClientName) {
+    const container = document.getElementById('unpositioned-stations-container');
+    const select = document.getElementById('unpositioned-station-select');
+    if (!container || !select) return;
+    
+    if (!filterClientId) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    const clientStations = [];
+    const maxStations = getMaxStationNumber();
+    for (let i = 1; i <= maxStations; i++) {
+        if (getClientIdForStation(i) === filterClientId || getClientNameForStation(i) === filterClientName) {
+            clientStations.push(i);
+        }
+    }
+    
+    const unpositioned = [];
+    clientStations.forEach(num => {
+        const stationKey = `ESTACION-${String(num).padStart(2, '0')}`;
+        const coords = getLatestStationCoords(stationKey);
+        if (!coords || !coords.lat || !coords.lng) {
+            unpositioned.push(num);
+        }
+    });
+    
+    if (unpositioned.length === 0 || manualPlacementMode.active) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    // Populate select
+    select.innerHTML = '<option value="" style="background-color: #1e293b; color: #fff;">-- Seleccionar Estación --</option>';
+    unpositioned.forEach(num => {
+        const opt = document.createElement('option');
+        opt.value = num;
+        opt.textContent = `Estación #${String(num).padStart(2, '0')}`;
+        opt.style.backgroundColor = '#1e293b';
+        opt.style.color = '#fff';
+        select.appendChild(opt);
+    });
+    
+    container.style.display = 'flex';
+}
+
+function enterManualPlacementMode(stationNum) {
+    manualPlacementMode.active = true;
+    manualPlacementMode.stationNum = stationNum;
+    
+    // Hide placeholder, show map
+    const placeholder = document.getElementById('monitoreo-map-placeholder');
+    if (placeholder) placeholder.style.display = 'none';
+    const mapElement = document.getElementById('monitoreo-map');
+    if (mapElement) mapElement.style.opacity = '1';
+    
+    // Ensure map is initialized
+    if (!leafletMap) {
+        leafletMap = L.map('monitoreo-map', {
+            zoomControl: true,
+            scrollWheelZoom: false
+        });
+        activeTileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            attribution: 'Map data &copy; Google',
+            maxZoom: 20,
+            crossOrigin: true
+        }).addTo(leafletMap);
+        leafletMarkerGroup = L.layerGroup().addTo(leafletMap);
+    }
+    
+    // Redraw map with placement state
+    leafletMarkerGroup.clearLayers();
+    
+    // Draw existing markers
+    const mapStations = [];
+    const maxStations = getMaxStationNumber();
+    const filterClientIdSelect = document.getElementById('filter-client-id');
+    const filterClientId = filterClientIdSelect ? filterClientIdSelect.value : '';
+    let filterClientName = '';
+    const clientObj = (globalAppData.clients || []).find(c => c.id === filterClientId);
+    if (clientObj) filterClientName = clientObj.name;
+    
+    for (let i = 1; i <= maxStations; i++) {
+        const numStr = String(i).padStart(2, '0');
+        const stationKey = `ESTACION-${numStr}`;
+        const clientName = getClientNameForStation(i);
+        
+        if (filterClientName && clientName !== filterClientName) continue;
+        
+        const coords = getLatestStationCoords(stationKey);
+        if (coords && coords.lat && coords.lng) {
+            mapStations.push({
+                num: i,
+                key: stationKey,
+                coords: coords,
+                analytics: calculateStationAnalytics(stationKey)
+            });
+        }
+    }
+    
+    function getColorForAvg(avg) {
+        if (avg <= 20) return '#10b981';
+        if (avg <= 50) return '#fbbf24';
+        if (avg <= 75) return '#f97316';
+        return '#ef4444';
+    }
+    
+    mapStations.forEach(s => {
+        const avgColor = getColorForAvg(s.analytics.avg);
+        const numStr = String(s.num).padStart(2, '0');
+        const customIcon = L.divIcon({
+            className: 'custom-station-icon',
+            html: `<div style="background-color: ${avgColor}; width: 22px; height: 22px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.55);">${numStr}</div>`,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+        });
+        const marker = L.marker([s.coords.lat, s.coords.lng], { icon: customIcon });
+        marker.addTo(leafletMarkerGroup);
+    });
+    
+    // Set view center
+    if (mapStations.length > 0) {
+        const bounds = mapStations.map(s => [s.coords.lat, s.coords.lng]);
+        if (mapStations.length === 1) {
+            leafletMap.setView(bounds[0], 17);
+        } else {
+            leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 19 });
+        }
+    } else {
+        const centerCoords = lastKnownGPS ? [lastKnownGPS.lat, lastKnownGPS.lng] : [-37.4612, -72.3514];
+        leafletMap.setView(centerCoords, 17);
+    }
+    
+    leafletMap.invalidateSize();
+    
+    // Set crosshair cursor
+    leafletMap.getContainer().style.cursor = 'crosshair';
+    
+    // Add instruction overlay banner inside map wrapper
+    const wrapper = document.getElementById('monitoreo-map-wrapper');
+    if (wrapper) {
+        const oldBanner = document.getElementById('map-placement-banner');
+        if (oldBanner) oldBanner.remove();
+        
+        const banner = document.createElement('div');
+        banner.id = 'map-placement-banner';
+        banner.style.cssText = `
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--primary);
+            padding: 12px 15px;
+            border-radius: 8px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            border-left: 4px solid var(--primary);
+        `;
+        banner.innerHTML = `
+            <span style="font-size: 0.85rem; color: #fff; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                📍 Modo Posicionamiento: Haz clic en el mapa satelital para ubicar la <strong>Estación #${String(stationNum).padStart(2, '0')}</strong>.
+            </span>
+            <button id="btn-cancel-placement" class="btn btn-secondary btn-sm" style="margin: 0; padding: 5px 12px; font-size: 0.75rem; border-radius: 6px; height: auto; font-weight: 600; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15);">
+                Cancelar
+            </button>
+        `;
+        wrapper.appendChild(banner);
+        
+        document.getElementById('btn-cancel-placement').onclick = (event) => {
+            event.stopPropagation();
+            exitManualPlacementMode();
+        };
+    }
+    
+    leafletMap.on('click', onMapClickForPlacement);
+}
+
+function onMapClickForPlacement(e) {
+    if (!manualPlacementMode.active) return;
+    
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+    const numStr = String(manualPlacementMode.stationNum).padStart(2, '0');
+    const stationKey = `ESTACION-${numStr}`;
+    
+    if (confirm(`¿Deseas ubicar la Estación #${numStr} en este punto del mapa?\n\nLatitud: ${lat.toFixed(6)}\nLongitud: ${lng.toFixed(6)}`)) {
+        updateStationCoordinates(stationKey, lat, lng);
+        exitManualPlacementMode();
+    }
+}
+
+function exitManualPlacementMode() {
+    manualPlacementMode.active = false;
+    manualPlacementMode.stationNum = null;
+    
+    if (leafletMap) {
+        leafletMap.off('click', onMapClickForPlacement);
+        leafletMap.getContainer().style.cursor = '';
+    }
+    
+    const banner = document.getElementById('map-placement-banner');
+    if (banner) banner.remove();
+    
+    renderMonitoreo();
 }
 
 // Load inspections queue from LocalStorage
@@ -1471,7 +1749,8 @@ function renderMonitoreo() {
         tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: #888; padding: 25px;">No hay inspecciones registradas para el cliente seleccionado.</td></tr>`;
     }
     
-    // Update map visualization
+    // Render unpositioned list and update map visualization
+    populateUnpositionedStationsSelector(filterClientId, filterClientName);
     initOrUpdateMap();
 }
 
