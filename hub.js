@@ -1756,10 +1756,15 @@ function isStationAssignedToClient(stationName, clientId, clientName) {
     const targetNorm = normalize(clientName);
     
     return assignments.some(asg => {
+        const idMatch = asg.clientId && clientId && asg.clientId === clientId;
+        if (idMatch) {
+            return num >= parseInt(asg.start, 10) && num <= parseInt(asg.end, 10);
+        }
+        
+        // Fallback to strict normalized name equality if client IDs are missing/not matched
         const asgNorm = normalize(asg.clientName);
-        const nameMatch = asgNorm && (asgNorm === targetNorm || asgNorm.includes(targetNorm) || targetNorm.includes(asgNorm));
-        const idMatch = asg.clientId && asg.clientId === clientId;
-        return (idMatch || nameMatch) &&
+        const nameMatch = asgNorm && (asgNorm === targetNorm);
+        return nameMatch &&
             num >= parseInt(asg.start, 10) &&
             num <= parseInt(asg.end, 10);
     });
@@ -1817,17 +1822,8 @@ async function renderClientPortal() {
     isClientPortalLoading = true;
     const clientName = clientObj.name;
     
-    // Generate name variations to query Firestore robustly (handles different typed naming variations)
-    const nameVariations = [clientName];
-    const cleanName = clientName.trim();
-    const parts = cleanName.split(/\s+/).filter(x => x.length > 0);
-    if (parts.length >= 2) {
-        nameVariations.push(parts.slice(0, 2).join(' ')); // e.g. "Marcela Fuenzalida"
-    }
-    if (parts.length >= 3) {
-        nameVariations.push(parts.slice(0, 3).join(' ')); // e.g. "Marcela Fuenzalida Casa"
-    }
-    const uniqueVariations = [...new Set(nameVariations)];
+    // Query Firestore strictly using the exact client name to prevent data overlap between separate clients with similar names (e.g. "Marcela Fuenzalida" vs "Marcela Fuenzalida Casa")
+    const uniqueVariations = [clientName];
     
     // Helper to query collections safely
     async function safeQuery(collectionName, queryRef) {
@@ -1878,11 +1874,33 @@ async function renderClientPortal() {
                 </div>
             </div>
             
-            <div class="client-portal-grid">
-                <!-- Column 1: Quotes, Reports and Services -->
-                <div style="display: flex; flex-direction: column; gap: 25px;">
+            <!-- Protagonist Area: Control de Estaciones de Cebado (Full Width at the Top) -->
+            <div class="portal-card" id="card-client-stations" style="margin-bottom: 30px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 20px; backdrop-filter: blur(8px);">
+                <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 20px;">
+                    📊 Control de Estaciones de Cebado (Roedores)
+                </h3>
+                
+                <!-- Map Container First (Larger and Protagonist) -->
+                <div id="client-portal-map" style="height: 450px; border-radius: 10px; margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; background: #1a1a1a;"></div>
+                
+                <!-- Grid Container Second -->
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Estaciones de cebado activas en tu propiedad y su nivel de consumo en la última visita:</p>
+                <div id="client-stations-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; margin-bottom: 20px;"></div>
+                
+                <div style="display: flex; gap: 20px; font-size: 0.8rem; justify-content: center; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                    <span style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:12px; background:#10b981; border-radius:50%;"></span> 0% Consumo</span>
+                    <span style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:12px; background:#f59e0b; border-radius:50%;"></span> 50% Consumo</span>
+                    <span style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:12px; background:#ef4444; border-radius:50%;"></span> 75%+ Consumo</span>
+                    <span style="display:flex; align-items:center; gap:6px;"><span style="display:inline-block; width:12px; height:12px; background:#475569; border-radius:50%;"></span> Sin visitas</span>
+                </div>
+            </div>
+
+            <!-- Two-Column Area for Other Documents -->
+            <div class="client-portal-grid" id="client-portal-grid-docs">
+                <!-- Column 1: Quotes and Reports -->
+                <div id="client-col-1" style="display: flex; flex-direction: column; gap: 25px;">
                     <!-- Quotes Section -->
-                    <div class="portal-card">
+                    <div class="portal-card" id="card-client-quotes">
                         <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px;">
                             📄 Cotizaciones Activas
                         </h3>
@@ -1890,46 +1908,30 @@ async function renderClientPortal() {
                     </div>
 
                     <!-- Technical Reports Section -->
-                    <div class="portal-card">
+                    <div class="portal-card" id="card-client-reports">
                         <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px;">
                             📋 Informes Técnicos de Servicio
                         </h3>
                         <div id="client-reports-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 5px;"></div>
                     </div>
-
-                    <!-- Services Section -->
-                    <div class="portal-card">
-                        <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px;">
-                            🛠️ Historial de Aplicaciones Realizadas
-                        </h3>
-                        <div id="client-services-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 5px;"></div>
-                    </div>
                 </div>
 
-                <!-- Column 2: Trazabilidad / Station Monitoring -->
-                <div style="display: flex; flex-direction: column; gap: 25px;">
-                    <!-- Visual Map of Stations -->
-                    <div class="portal-card">
-                        <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px;">
-                            📊 Control de Estaciones de Cebado (Roedores)
-                        </h3>
-                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Estaciones de cebado activas en tu propiedad y su nivel de consumo en la última visita:</p>
-                        <div id="client-stations-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 15px;"></div>
-                        <div id="client-portal-map" style="height: 300px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; background: #1a1a1a;"></div>
-                        <div style="display: flex; gap: 15px; font-size: 0.75rem; justify-content: center; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
-                            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#10b981; border-radius:50%;"></span> 0% Consumo</span>
-                            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#f59e0b; border-radius:50%;"></span> 50% Consumo</span>
-                            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#ef4444; border-radius:50%;"></span> 75%+ Consumo</span>
-                            <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#475569; border-radius:50%;"></span> Sin visitas</span>
-                        </div>
-                    </div>
-
+                <!-- Column 2: Certificates and Services -->
+                <div id="client-col-2" style="display: flex; flex-direction: column; gap: 25px;">
                     <!-- Station Reports Section -->
-                    <div class="portal-card">
+                    <div class="portal-card" id="card-client-station-reports">
                         <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px;">
                             📥 Certificados y Reportes de Monitoreo
                         </h3>
                         <div id="client-station-reports-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 5px;"></div>
+                    </div>
+
+                    <!-- Services Section -->
+                    <div class="portal-card" id="card-client-services">
+                        <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 15px;">
+                            🛠️ Historial de Aplicaciones Realizadas
+                        </h3>
+                        <div id="client-services-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 5px;"></div>
                     </div>
                 </div>
             </div>
@@ -1937,10 +1939,11 @@ async function renderClientPortal() {
         
         // 1. Populate Quotes
         const quotesContainer = document.getElementById('client-quotes-list');
+        const quotesCard = document.getElementById('card-client-quotes');
         let quotesCount = 0;
         
         if (quotesSnap.error) {
-            quotesContainer.innerHTML = `<p style="text-align: center; color: #f87171; font-size: 0.85rem; padding: 15px; margin: 0;">⚠️ Error de permisos al leer cotizaciones.</p>`;
+            if (quotesCard) quotesCard.style.display = 'none';
         } else {
             quotesSnap.forEach(doc => {
                 quotesCount++;
@@ -1961,17 +1964,18 @@ async function renderClientPortal() {
                 `;
                 quotesContainer.appendChild(div);
             });
-            if (quotesCount === 0) {
-                quotesContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay cotizaciones activas en tu historial.</p>`;
+            if (quotesCount === 0 && quotesCard) {
+                quotesCard.style.display = 'none';
             }
         }
         
         // 2. Populate Reports
         const reportsContainer = document.getElementById('client-reports-list');
+        const reportsCard = document.getElementById('card-client-reports');
         let reportsCount = 0;
         
         if (reportsSnap.error) {
-            reportsContainer.innerHTML = `<p style="text-align: center; color: #f87171; font-size: 0.85rem; padding: 15px; margin: 0;">⚠️ Error de permisos al leer informes técnicos.</p>`;
+            if (reportsCard) reportsCard.style.display = 'none';
         } else {
             reportsSnap.forEach(doc => {
                 reportsCount++;
@@ -1991,17 +1995,18 @@ async function renderClientPortal() {
                 `;
                 reportsContainer.appendChild(div);
             });
-            if (reportsCount === 0) {
-                reportsContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay informes técnicos de servicio registrados.</p>`;
+            if (reportsCount === 0 && reportsCard) {
+                reportsCard.style.display = 'none';
             }
         }
         
         // 3. Populate Services
         const servicesContainer = document.getElementById('client-services-list');
+        const servicesCard = document.getElementById('card-client-services');
         let servicesCount = 0;
         
         if (servicesSnap.error) {
-            servicesContainer.innerHTML = `<p style="text-align: center; color: #f87171; font-size: 0.85rem; padding: 15px; margin: 0;">⚠️ Error de permisos al leer servicios.</p>`;
+            if (servicesCard) servicesCard.style.display = 'none';
         } else {
             const sortedServices = [];
             servicesSnap.forEach(doc => {
@@ -2031,18 +2036,19 @@ async function renderClientPortal() {
                 `;
                 servicesContainer.appendChild(div);
             });
-            if (servicesCount === 0) {
-                servicesContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay aplicaciones registradas en el historial.</p>`;
+            if (servicesCount === 0 && servicesCard) {
+                servicesCard.style.display = 'none';
             }
         }
         
         // 4. Populate Stations Grid
         const gridContainer = document.getElementById('client-stations-grid');
+        const stationsCard = document.getElementById('card-client-stations');
         let assignedStationsCount = 0;
         const assignedStationsData = [];
         
         if (inspectionsSnap.error) {
-            gridContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #f87171; font-size: 0.85rem; padding: 20px; margin: 0;">⚠️ Error de permisos al leer estaciones.</p>`;
+            if (stationsCard) stationsCard.style.display = 'none';
         } else {
             // Dynamically calculate max stations based on assignments & records
             let maxStations = 15;
@@ -2135,8 +2141,8 @@ async function renderClientPortal() {
                     });
                 }
             }
-            if (assignedStationsCount === 0) {
-                gridContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 20px; margin: 0;">No tienes estaciones de cebado registradas o asignadas actualmente.</p>`;
+            if (assignedStationsCount === 0 && stationsCard) {
+                stationsCard.style.display = 'none';
             } else {
                 // Initialize/Update the Map with the assigned stations
                 setTimeout(() => {
@@ -2147,10 +2153,11 @@ async function renderClientPortal() {
         
         // 5. Populate Station Reports
         const stationReportsContainer = document.getElementById('client-station-reports-list');
+        const stationReportsCard = document.getElementById('card-client-station-reports');
         let stationReportsCount = 0;
         
         if (reportsSentSnap.error) {
-            stationReportsContainer.innerHTML = `<p style="text-align: center; color: #f87171; font-size: 0.85rem; padding: 15px; margin: 0;">⚠️ Error de permisos al leer reportes de monitoreo.</p>`;
+            if (stationReportsCard) stationReportsCard.style.display = 'none';
         } else {
             reportsSentSnap.forEach(doc => {
                 stationReportsCount++;
@@ -2170,8 +2177,47 @@ async function renderClientPortal() {
                 `;
                 stationReportsContainer.appendChild(div);
             });
-            if (stationReportsCount === 0) {
-                stationReportsContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay certificados o reportes de monitoreo firmados.</p>`;
+            if (stationReportsCount === 0 && stationReportsCard) {
+                stationReportsCard.style.display = 'none';
+            }
+        }
+        
+        // Hide containers / adjust layout depending on element counts
+        const totalVisible = 
+            (assignedStationsCount > 0 ? 1 : 0) +
+            (quotesCount > 0 ? 1 : 0) +
+            (reportsCount > 0 ? 1 : 0) +
+            (servicesCount > 0 ? 1 : 0) +
+            (stationReportsCount > 0 ? 1 : 0);
+            
+        if (totalVisible === 0) {
+            const noDataMessage = document.createElement('div');
+            noDataMessage.id = 'client-portal-no-data-msg';
+            noDataMessage.style.cssText = 'background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255,255,255,0.06); padding: 40px; border-radius: 12px; text-align: center; color: var(--text-muted); margin-top: 20px;';
+            noDataMessage.innerHTML = `
+                <div style="font-size: 3rem; margin-bottom: 15px;">📂</div>
+                <h3 style="color: #fff; margin: 0 0 10px 0;">Sin información disponible</h3>
+                <p style="margin: 0; font-size: 0.9rem;">No se encontraron registros de cotizaciones, visitas técnicas ni estaciones de monitoreo asociadas a tu cuenta actualmente.</p>
+            `;
+            container.appendChild(noDataMessage);
+            
+            const gridDocs = document.getElementById('client-portal-grid-docs');
+            if (gridDocs) gridDocs.style.display = 'none';
+        } else {
+            const col1Visible = (quotesCount > 0 ? 1 : 0) + (reportsCount > 0 ? 1 : 0);
+            const col2Visible = (stationReportsCount > 0 ? 1 : 0) + (servicesCount > 0 ? 1 : 0);
+            
+            const col1 = document.getElementById('client-col-1');
+            const col2 = document.getElementById('client-col-2');
+            const gridDocs = document.getElementById('client-portal-grid-docs');
+            
+            if (col1Visible === 0 && col1) col1.style.display = 'none';
+            if (col2Visible === 0 && col2) col2.style.display = 'none';
+            
+            if (col1Visible === 0 || col2Visible === 0) {
+                if (gridDocs) {
+                    gridDocs.style.gridTemplateColumns = '1fr';
+                }
             }
         }
         
