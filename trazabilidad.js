@@ -3395,6 +3395,22 @@ async function generatePDFReport() {
                                 .then(() => {
                                     console.log("Station report PDF archived in Firebase Storage asynchronously.");
                                 });
+                        } else {
+                            // Failsafe: if storage is not available, immediately convert to base64 and update Firestore!
+                            console.warn("Firebase Storage is unavailable, archiving station report PDF as base64 inline in Firestore.");
+                            const reader = new FileReader();
+                            const uploadUid = getActiveUid();
+                            reader.readAsDataURL(pdfBlob);
+                            reader.onloadend = function() {
+                                const base64data = reader.result;
+                                db.collection('users').doc(uploadUid).collection('station_reports_sent').doc(reportPayloadId).update({
+                                    pdfUrl: base64data
+                                }).then(() => {
+                                    console.log("Station report PDF archived as inline base64 successfully without storage.");
+                                }).catch(dbErr => {
+                                    console.error("Failed to save base64 station report PDF without storage: ", dbErr);
+                                });
+                            };
                         }
                     })
                     .catch(err => {
