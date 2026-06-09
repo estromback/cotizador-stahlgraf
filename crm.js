@@ -35,7 +35,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     auth = firebase.auth();
 }
 
-let appData = { crmColumns: 'Formulario, Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos' };
+let appData = { crmColumns: 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos' };
 let crmCards = [];
 let draggingCardId = null;
 let clientsList = [];
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function getColumns() {
-    const defaultCols = (appData.crmColumns || 'Formulario, Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos')
+    const defaultCols = (appData.crmColumns || 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos')
         .split(',')
         .map(c => c.trim())
         .filter(c => c.length > 0);
