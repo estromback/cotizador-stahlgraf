@@ -3359,11 +3359,23 @@ async function generatePDFReport() {
                                         pdfUrl: downloadUrl
                                     });
                                 })
+                                .catch(storageErr => {
+                                    console.warn("Could not archive station report PDF in Firebase Storage, falling back to base64: ", storageErr);
+                                    const reader = new FileReader();
+                                    reader.readAsDataURL(pdfBlob);
+                                    reader.onloadend = function() {
+                                        const base64data = reader.result;
+                                        db.collection('users').doc(uploadUid).collection('station_reports_sent').doc(reportPayloadId).update({
+                                            pdfUrl: base64data
+                                        }).then(() => {
+                                            console.log("Station report PDF archived as inline base64 in Firestore successfully.");
+                                        }).catch(dbErr => {
+                                            console.error("Failed to archive station report PDF as base64 in Firestore: ", dbErr);
+                                        });
+                                    };
+                                })
                                 .then(() => {
                                     console.log("Station report PDF archived in Firebase Storage asynchronously.");
-                                })
-                                .catch(storageErr => {
-                                    console.warn("Could not archive station report PDF in Firebase Storage: ", storageErr);
                                 });
                         }
                     })

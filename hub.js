@@ -1745,11 +1745,18 @@ function isStationAssignedToClient(stationName, clientId, clientName) {
     const match = stationName.match(/ESTACION-(\d+)/i);
     if (!match) return false;
     const num = parseInt(match[1], 10);
-    return assignments.some(asg => 
-        (asg.clientId === clientId || asg.clientName === clientName) &&
-        num >= parseInt(asg.start, 10) &&
-        num <= parseInt(asg.end, 10)
-    );
+    
+    const normalize = (str) => (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "").trim();
+    const targetNorm = normalize(clientName);
+    
+    return assignments.some(asg => {
+        const asgNorm = normalize(asg.clientName);
+        const nameMatch = asgNorm && (asgNorm === targetNorm || asgNorm.includes(targetNorm) || targetNorm.includes(asgNorm));
+        const idMatch = asg.clientId && asg.clientId === clientId;
+        return (idMatch || nameMatch) &&
+            num >= parseInt(asg.start, 10) &&
+            num <= parseInt(asg.end, 10);
+    });
 }
 
 let isClientPortalLoading = false;
@@ -1802,14 +1809,41 @@ async function renderClientPortal() {
     isClientPortalLoading = true;
     const clientName = clientObj.name;
     
+    // Generate name variations to query Firestore robustly (handles different typed naming variations)
+    const nameVariations = [clientName];
+    const cleanName = clientName.trim();
+    const parts = cleanName.split(/\s+/).filter(x => x.length > 0);
+    if (parts.length >= 2) {
+        nameVariations.push(parts.slice(0, 2).join(' ')); // e.g. "Marcela Fuenzalida"
+    }
+    if (parts.length >= 3) {
+        nameVariations.push(parts.slice(0, 3).join(' ')); // e.g. "Marcela Fuenzalida Casa"
+    }
+    const uniqueVariations = [...new Set(nameVariations)];
+    
+    // Helper to query collections safely
+    async function safeQuery(collectionName, queryRef) {
+        try {
+            return await queryRef.get();
+        } catch (err) {
+            console.error(`Error querying ${collectionName} for client portal:`, err);
+            return {
+                empty: true,
+                forEach: () => {},
+                docs: [],
+                error: err
+            };
+        }
+    }
+    
     try {
-        // Fetch client documents in parallel
+        // Fetch client documents in parallel with safe error wrapping
         const [quotesSnap, reportsSnap, servicesSnap, reportsSentSnap, inspectionsSnap] = await Promise.all([
-            db.collection('users').doc(ownerUid).collection('quotes').where('clientName', '==', clientName).get(),
-            db.collection('users').doc(ownerUid).collection('reports').where('clientName', '==', clientName).get(),
-            db.collection('users').doc(ownerUid).collection('services').where('clientName', '==', clientName).get(),
-            db.collection('users').doc(ownerUid).collection('station_reports_sent').where('clientName', '==', clientName).get(),
-            db.collection('users').doc(ownerUid).collection('inspecciones').get()
+            safeQuery('quotes', db.collection('users').doc(ownerUid).collection('quotes').where('clientName', 'in', uniqueVariations)),
+            safeQuery('reports', db.collection('users').doc(ownerUid).collection('reports').where('clientName', 'in', uniqueVariations)),
+            safeQuery('services', db.collection('users').doc(ownerUid).collection('services').where('clientName', 'in', uniqueVariations)),
+            safeQuery('station_reports_sent', db.collection('users').doc(ownerUid).collection('station_reports_sent').where('clientName', 'in', uniqueVariations)),
+            safeQuery('inspecciones', db.collection('users').doc(ownerUid).collection('inspecciones'))
         ]);
         
         container.innerHTML = `
@@ -1886,156 +1920,179 @@ async function renderClientPortal() {
         // 1. Populate Quotes
         const quotesContainer = document.getElementById('client-quotes-list');
         let quotesCount = 0;
-        quotesSnap.forEach(doc => {
-            quotesCount++;
-            const q = doc.data();
-            const dateStr = q.date || 'Sin fecha';
-            const priceStr = q.total ? `$${q.total.toLocaleString()}` : '-';
-            const correlativeStr = q.correlative || 'N/A';
-            const pdfBtn = q.pdfUrl ? `<button onclick="viewPDF('${q.pdfUrl}', 'Cotizacion_${correlativeStr}.pdf')" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin: 0; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #60a5fa;">📥 PDF</button>` : '<span style="color:#666; font-size:0.75rem;">No disponible</span>';
-            
-            const div = document.createElement('div');
-            div.className = 'portal-item';
-            div.innerHTML = `
-                <div>
-                    <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">Cotización #${correlativeStr}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">📅 ${dateStr} | Total: ${priceStr}</div>
-                </div>
-                <div>${pdfBtn}</div>
-            `;
-            quotesContainer.appendChild(div);
-        });
-        if (quotesCount === 0) {
-            quotesContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay cotizaciones activas en tu historial.</p>`;
+        
+        if (quotesSnap.error) {
+            quotesContainer.innerHTML = `<p style="text-align: center; color: #f87171; font-size: 0.85rem; padding: 15px; margin: 0;">⚠️ Error de permisos al leer cotizaciones.</p>`;
+        } else {
+            quotesSnap.forEach(doc => {
+                quotesCount++;
+                const q = doc.data();
+                const dateStr = q.date || 'Sin fecha';
+                const priceStr = q.total ? `$${q.total.toLocaleString()}` : '-';
+                const correlativeStr = q.correlative || 'N/A';
+                const pdfBtn = q.pdfUrl ? `<button onclick="viewPDF('${q.pdfUrl}', 'Cotizacion_${correlativeStr}.pdf')" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin: 0; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #60a5fa;">📥 PDF</button>` : '<span style="color:#666; font-size:0.75rem;">No disponible</span>';
+                
+                const div = document.createElement('div');
+                div.className = 'portal-item';
+                div.innerHTML = `
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">Cotización #${correlativeStr}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">📅 ${dateStr} | Total: ${priceStr}</div>
+                    </div>
+                    <div>${pdfBtn}</div>
+                `;
+                quotesContainer.appendChild(div);
+            });
+            if (quotesCount === 0) {
+                quotesContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay cotizaciones activas en tu historial.</p>`;
+            }
         }
         
         // 2. Populate Reports
         const reportsContainer = document.getElementById('client-reports-list');
         let reportsCount = 0;
-        reportsSnap.forEach(doc => {
-            reportsCount++;
-            const r = doc.data();
-            const dateStr = r.date || 'Sin fecha';
-            const titleStr = r.title || `Informe Técnico`;
-            const pdfBtn = r.pdfUrl ? `<button onclick="viewPDF('${r.pdfUrl}', 'Informe_${doc.id}.pdf')" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin: 0; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #60a5fa;">📥 PDF</button>` : '<span style="color:#666; font-size:0.75rem;">No disponible</span>';
-            
-            const div = document.createElement('div');
-            div.className = 'portal-item';
-            div.innerHTML = `
-                <div>
-                    <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">${titleStr}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">📅 ${dateStr}</div>
-                </div>
-                <div>${pdfBtn}</div>
-            `;
-            reportsContainer.appendChild(div);
-        });
-        if (reportsCount === 0) {
-            reportsContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay informes técnicos de servicio registrados.</p>`;
+        
+        if (reportsSnap.error) {
+            reportsContainer.innerHTML = `<p style="text-align: center; color: #f87171; font-size: 0.85rem; padding: 15px; margin: 0;">⚠️ Error de permisos al leer informes técnicos.</p>`;
+        } else {
+            reportsSnap.forEach(doc => {
+                reportsCount++;
+                const r = doc.data();
+                const dateStr = r.date || 'Sin fecha';
+                const titleStr = r.title || `Informe Técnico`;
+                const pdfBtn = r.pdfUrl ? `<button onclick="viewPDF('${r.pdfUrl}', 'Informe_${doc.id}.pdf')" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin: 0; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #60a5fa;">📥 PDF</button>` : '<span style="color:#666; font-size:0.75rem;">No disponible</span>';
+                
+                const div = document.createElement('div');
+                div.className = 'portal-item';
+                div.innerHTML = `
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">${titleStr}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">📅 ${dateStr}</div>
+                    </div>
+                    <div>${pdfBtn}</div>
+                `;
+                reportsContainer.appendChild(div);
+            });
+            if (reportsCount === 0) {
+                reportsContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay informes técnicos de servicio registrados.</p>`;
+            }
         }
         
         // 3. Populate Services
         const servicesContainer = document.getElementById('client-services-list');
         let servicesCount = 0;
         
-        const sortedServices = [];
-        servicesSnap.forEach(doc => {
-            sortedServices.push({ id: doc.id, ...doc.data() });
-        });
-        sortedServices.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        sortedServices.forEach(s => {
-            servicesCount++;
-            const dateStr = s.date || 'Sin fecha';
-            const typeStr = s.type || 'Servicio';
-            const techStr = s.technician || 'No asignado';
-            const notesStr = s.notes || '-';
+        if (servicesSnap.error) {
+            servicesContainer.innerHTML = `<p style="text-align: center; color: #f87171; font-size: 0.85rem; padding: 15px; margin: 0;">⚠️ Error de permisos al leer servicios.</p>`;
+        } else {
+            const sortedServices = [];
+            servicesSnap.forEach(doc => {
+                sortedServices.push({ id: doc.id, ...doc.data() });
+            });
+            sortedServices.sort((a, b) => new Date(b.date) - new Date(a.date));
             
-            const div = document.createElement('div');
-            div.className = 'portal-item';
-            div.style.flexDirection = 'column';
-            div.style.alignItems = 'stretch';
-            div.style.gap = '5px';
-            div.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight: 600; font-size: 0.9rem; color: #fff;">🛠️ ${typeStr}</span>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">📅 ${dateStr}</span>
-                </div>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">Técnico: <strong style="color:#ccc;">${techStr}</strong></div>
-                <div style="font-size: 0.75rem; color: #aaa; margin-top: 2px; line-height: 1.3;">${notesStr}</div>
-            `;
-            servicesContainer.appendChild(div);
-        });
-        if (servicesCount === 0) {
-            servicesContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay aplicaciones registradas en el historial.</p>`;
+            sortedServices.forEach(s => {
+                servicesCount++;
+                const dateStr = s.date || 'Sin fecha';
+                const typeStr = s.type || 'Servicio';
+                const techStr = s.technician || 'No asignado';
+                const notesStr = s.notes || '-';
+                
+                const div = document.createElement('div');
+                div.className = 'portal-item';
+                div.style.flexDirection = 'column';
+                div.style.alignItems = 'stretch';
+                div.style.gap = '5px';
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight: 600; font-size: 0.9rem; color: #fff;">🛠️ ${typeStr}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">📅 ${dateStr}</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Técnico: <strong style="color:#ccc;">${techStr}</strong></div>
+                    <div style="font-size: 0.75rem; color: #aaa; margin-top: 2px; line-height: 1.3;">${notesStr}</div>
+                `;
+                servicesContainer.appendChild(div);
+            });
+            if (servicesCount === 0) {
+                servicesContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay aplicaciones registradas en el historial.</p>`;
+            }
         }
         
         // 4. Populate Stations Grid
         const gridContainer = document.getElementById('client-stations-grid');
         let assignedStationsCount = 0;
         
-        for (let i = 1; i <= 15; i++) {
-            const stationName = `ESTACION-${i}`;
-            if (isStationAssignedToClient(stationName, clientId, clientName)) {
-                assignedStationsCount++;
-                
-                let latestInspection = null;
-                inspectionsSnap.forEach(doc => {
-                    const data = doc.data();
-                    if (data.station === stationName) {
-                        if (!latestInspection || data.timestamp > latestInspection.timestamp) {
-                            latestInspection = data;
+        if (inspectionsSnap.error) {
+            gridContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #f87171; font-size: 0.85rem; padding: 20px; margin: 0;">⚠️ Error de permisos al leer estaciones.</p>`;
+        } else {
+            for (let i = 1; i <= 15; i++) {
+                const stationName = `ESTACION-${String(i).padStart(2, '0')}`;
+                if (isStationAssignedToClient(stationName, clientId, clientName)) {
+                    assignedStationsCount++;
+                    
+                    let latestInspection = null;
+                    inspectionsSnap.forEach(doc => {
+                        const data = doc.data();
+                        if (data.station === stationName) {
+                            if (!latestInspection || data.timestamp > latestInspection.timestamp) {
+                                latestInspection = data;
+                            }
                         }
+                    });
+                    
+                    let bgColor = '#475569';
+                    let consumptionText = 'Sin visitas';
+                    if (latestInspection) {
+                        const cons = latestInspection.consumption || '0';
+                        consumptionText = `Consumo: ${cons}`;
+                        if (cons === '0%') bgColor = '#10b981';
+                        else if (cons === '50%') bgColor = '#f59e0b';
+                        else if (cons === '75%' || cons === '100%') bgColor = '#ef4444';
                     }
-                });
-                
-                let bgColor = '#475569';
-                let consumptionText = 'Sin visitas';
-                if (latestInspection) {
-                    const cons = latestInspection.consumption || '0';
-                    consumptionText = `Consumo: ${cons}`;
-                    if (cons === '0%') bgColor = '#10b981';
-                    else if (cons === '50%') bgColor = '#f59e0b';
-                    else if (cons === '75%' || cons === '100%') bgColor = '#ef4444';
+                    
+                    const cell = document.createElement('div');
+                    cell.style.cssText = `background: ${bgColor}; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; border: 1px solid rgba(255,255,255,0.06); cursor: default; display: flex; flex-direction: column; justify-content: center; min-height: 70px;`;
+                    cell.innerHTML = `
+                        <div style="font-size: 0.65rem; opacity: 0.8; color: #fff;">Estación</div>
+                        <div style="font-size: 1.2rem; margin: 2px 0; color: #fff;">${i}</div>
+                        <div style="font-size: 0.65rem; opacity: 0.9; color: #fff; white-space: nowrap;">${consumptionText}</div>
+                    `;
+                    gridContainer.appendChild(cell);
                 }
-                
-                const cell = document.createElement('div');
-                cell.style.cssText = `background: ${bgColor}; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; border: 1px solid rgba(255,255,255,0.06); cursor: default; display: flex; flex-direction: column; justify-content: center; min-height: 70px;`;
-                cell.innerHTML = `
-                    <div style="font-size: 0.65rem; opacity: 0.8; color: #fff;">Estación</div>
-                    <div style="font-size: 1.2rem; margin: 2px 0; color: #fff;">${i}</div>
-                    <div style="font-size: 0.65rem; opacity: 0.9; color: #fff; white-space: nowrap;">${consumptionText}</div>
-                `;
-                gridContainer.appendChild(cell);
             }
-        }
-        if (assignedStationsCount === 0) {
-            gridContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 20px; margin: 0;">No tienes estaciones de cebado registradas o asignadas actualmente.</p>`;
+            if (assignedStationsCount === 0) {
+                gridContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 20px; margin: 0;">No tienes estaciones de cebado registradas o asignadas actualmente.</p>`;
+            }
         }
         
         // 5. Populate Station Reports
         const stationReportsContainer = document.getElementById('client-station-reports-list');
         let stationReportsCount = 0;
-        reportsSentSnap.forEach(doc => {
-            stationReportsCount++;
-            const r = doc.data();
-            const dateStr = r.date || 'Sin fecha';
-            const stationStr = r.station || `Reporte de Monitoreo`;
-            const pdfBtn = r.pdfUrl ? `<button onclick="viewPDF('${r.pdfUrl}', 'Reporte_Monitoreo_${doc.id}.pdf')" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin: 0; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #60a5fa;">📥 PDF</button>` : '<span style="color:#666; font-size:0.75rem;">No disponible</span>';
-            
-            const div = document.createElement('div');
-            div.className = 'portal-item';
-            div.innerHTML = `
-                <div>
-                    <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">${stationStr}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">📅 ${dateStr}</div>
-                </div>
-                <div>${pdfBtn}</div>
-            `;
-            stationReportsContainer.appendChild(div);
-        });
-        if (stationReportsCount === 0) {
-            stationReportsContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay certificados o reportes de monitoreo firmados.</p>`;
+        
+        if (reportsSentSnap.error) {
+            stationReportsContainer.innerHTML = `<p style="text-align: center; color: #f87171; font-size: 0.85rem; padding: 15px; margin: 0;">⚠️ Error de permisos al leer reportes de monitoreo.</p>`;
+        } else {
+            reportsSentSnap.forEach(doc => {
+                stationReportsCount++;
+                const r = doc.data();
+                const dateStr = r.date || 'Sin fecha';
+                const stationStr = r.station || `Reporte de Monitoreo`;
+                const pdfBtn = r.pdfUrl ? `<button onclick="viewPDF('${r.pdfUrl}', 'Reporte_Monitoreo_${doc.id}.pdf')" class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin: 0; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: #60a5fa;">📥 PDF</button>` : '<span style="color:#666; font-size:0.75rem;">No disponible</span>';
+                
+                const div = document.createElement('div');
+                div.className = 'portal-item';
+                div.innerHTML = `
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.9rem; color: #fff;">${stationStr}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">📅 ${dateStr}</div>
+                    </div>
+                    <div>${pdfBtn}</div>
+                `;
+                stationReportsContainer.appendChild(div);
+            });
+            if (stationReportsCount === 0) {
+                stationReportsContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 15px; margin: 0;">No hay certificados o reportes de monitoreo firmados.</p>`;
+            }
         }
         
     } catch(err) {
