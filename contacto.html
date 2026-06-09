@@ -550,6 +550,7 @@
                 description += `Pob. Riesgo: ${riskPopulation}\n`;
                 description += `Detalles: ${comments}`;
 
+                let firestoreSaved = false;
                 try {
                     // We write directly to crm collection under the targeted user's node
                     await db.collection('users').doc(uid).collection('crm').add({
@@ -568,53 +569,67 @@
                             text: "Prospecto creado automáticamente desde el Formulario Público de Contacto."
                         }]
                     });
+                    firestoreSaved = true;
+                    console.log("Successfully recorded in Firestore CRM.");
+                } catch (firestoreErr) {
+                    console.warn("Firestore save failed (likely due to permission rules or network):", firestoreErr);
+                }
 
-                    // Send Email Notification via FormSubmit (AJAX) to estromback@gmail.com
-                    try {
-                        await fetch("https://formsubmit.co/ajax/controlplagas@stahlgraf.cl", {
-                            method: "POST",
-                            headers: { 
-                                "Content-Type": "application/json",
-                                "Accept": "application/json"
-                            },
-                            body: JSON.stringify({
-                                _subject: "Nuevo Formulario de Contacto - Stahlgraf",
-                                "Cliente": name,
-                                "Teléfono": phone,
-                                "Email": email,
-                                "Dirección": address,
-                                "Tipo Propiedad": propertyType,
-                                "Construcción": `${propertySizeConstruction} m²`,
-                                "Terreno": `${propertySizeTerrain} m²`,
-                                "Pisos": propertyFloors,
-                                "Áreas a Tratar": treatmentAreaChecked.join(', '),
-                                "Plagas": plagasChecked.join(', ') || 'No indicadas',
-                                "Infestación": infestationLevel,
-                                "Pob. Riesgo": riskPopulation,
-                                "Comentarios": comments,
-                                "_honey": "" // Honeypot spam protection
-                            })
-                        });
-                    } catch (mailErr) {
-                        console.warn("FormSubmit email notification failed:", mailErr);
+                // Send Email Notification via FormSubmit (AJAX) to controlplagas@stahlgraf.cl
+                let emailNotificationSent = false;
+                try {
+                    const mailRes = await fetch("https://formsubmit.co/ajax/controlplagas@stahlgraf.cl", {
+                        method: "POST",
+                        headers: { 
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        body: JSON.stringify({
+                            _subject: "Nuevo Formulario de Contacto - Stahlgraf",
+                            "Cliente": name,
+                            "Teléfono": phone,
+                            "Email": email,
+                            "Dirección": address,
+                            "Tipo Propiedad": propertyType,
+                            "Construcción": `${propertySizeConstruction} m²`,
+                            "Terreno": `${propertySizeTerrain} m²`,
+                            "Pisos": propertyFloors,
+                            "Áreas a Tratar": treatmentAreaChecked.join(', '),
+                            "Plagas": plagasChecked.join(', ') || 'No indicadas',
+                            "Infestación": infestationLevel,
+                            "Pob. Riesgo": riskPopulation,
+                            "Comentarios": comments,
+                            "_honey": "" // Honeypot spam protection
+                        })
+                    });
+                    
+                    if (mailRes.ok) {
+                        emailNotificationSent = true;
+                        console.log("Email notification request completed.");
+                    } else {
+                        console.warn("FormSubmit response status was not OK:", mailRes.status);
                     }
+                } catch (mailErr) {
+                    console.warn("FormSubmit email notification failed:", mailErr);
+                }
 
-                    // Render beautiful success view
-                    formBodyWrapper.innerHTML = `
-                        <div class="success-container">
-                            <div class="success-icon">✓</div>
-                            <h2 style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 10px;">¡Solicitud Recibida!</h2>
-                            <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.6; margin-bottom: 25px;">Muchas gracias <strong>${name}</strong>, hemos registrado su solicitud de cotización para control de plagas correctamente en nuestro sistema. Uno de nuestros técnicos evaluará los detalles y nos contactaremos con usted a la brevedad.</p>
-                            <p style="color: var(--primary); font-size: 0.9rem; font-weight: 500;">Stahlgraf - Soluciones Profesionales en Fumigación</p>
-                        </div>
-                    `;
-
-                } catch (e) {
-                    console.error("Error submitting form: ", e);
+                // If both Firestore and Email fails, only then show a blocking error
+                if (!firestoreSaved && !emailNotificationSent) {
                     alert("Ocurrió un error al enviar la solicitud. Por favor verifique su conexión e intente nuevamente.");
                     btn.disabled = false;
                     btn.innerText = 'Enviar Solicitud de Cotización';
+                    return;
                 }
+
+                // Render beautiful success view
+                formBodyWrapper.innerHTML = `
+                    <div class="success-container">
+                        <div class="success-icon">✓</div>
+                        <h2 style="font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 10px;">¡Solicitud Recibida!</h2>
+                        <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.6; margin-bottom: 25px;">Muchas gracias <strong>${name}</strong>, hemos registrado su solicitud de cotización para control de plagas correctamente. Uno de nuestros técnicos evaluará los detalles y nos contactaremos con usted a la brevedad.</p>
+                        <p style="color: var(--primary); font-size: 0.9rem; font-weight: 500;">Stahlgraf - Soluciones Profesionales en Fumigación</p>
+                    </div>
+                `;
             });
         }
     </script>
