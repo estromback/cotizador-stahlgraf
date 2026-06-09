@@ -38,6 +38,11 @@
             scroll-behavior: smooth;
         }
 
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+
         body {
             background-color: var(--bg-main);
             background-image: 
@@ -45,7 +50,6 @@
             background-size: 24px 24px;
             color: var(--text-main);
             font-family: var(--font-body);
-            overflow-x: hidden;
             line-height: 1.6;
         }
 
@@ -604,7 +608,10 @@
                 padding-bottom: 60px;
             }
             .hero-text h1 {
-                font-size: 3rem;
+                font-size: 2.8rem;
+            }
+            .section-header h2 {
+                font-size: 2rem;
             }
             .hero-text p {
                 margin-left: auto;
@@ -623,6 +630,45 @@
             }
             .mobile-menu-btn {
                 display: block;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .about-grid, .services-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .glow-sphere {
+                display: none !important;
+            }
+            .contact-layout {
+                padding: 24px 15px;
+            }
+            .contact-form {
+                padding: 20px 15px !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-text h1 {
+                font-size: 2.1rem;
+                letter-spacing: -1px;
+            }
+            .section-header h2 {
+                font-size: 1.7rem;
+            }
+            .hero-actions {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+            .hero-actions .btn {
+                width: 100%;
+            }
+            .nav-container {
+                padding: 12px 15px;
+            }
+            .logo-text {
+                font-size: 1.3rem;
             }
         }
     </style>
