@@ -1874,6 +1874,50 @@ async function renderClientPortal() {
                 </div>
             </div>
             
+            <!-- Dynamic Dashboard Row -->
+            <div class="client-dashboard" id="client-dashboard-row" style="display: none;">
+                <!-- Stations Widget -->
+                <div class="client-dashboard-card" id="dash-card-stations" style="display: none;">
+                    <div class="client-dashboard-icon" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">🎯</div>
+                    <div class="client-dashboard-info">
+                        <span class="client-dashboard-value" id="dash-val-stations">-</span>
+                        <span class="client-dashboard-label">Estaciones de Cebado</span>
+                    </div>
+                </div>
+                <!-- Services Widget -->
+                <div class="client-dashboard-card" id="dash-card-services" style="display: none;">
+                    <div class="client-dashboard-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">🛠️</div>
+                    <div class="client-dashboard-info">
+                        <span class="client-dashboard-value" id="dash-val-services">-</span>
+                        <span class="client-dashboard-label">Servicios Realizados</span>
+                    </div>
+                </div>
+                <!-- Quotes Widget -->
+                <div class="client-dashboard-card" id="dash-card-quotes" style="display: none;">
+                    <div class="client-dashboard-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">📄</div>
+                    <div class="client-dashboard-info">
+                        <span class="client-dashboard-value" id="dash-val-quotes">-</span>
+                        <span class="client-dashboard-label">Cotizaciones Activas</span>
+                    </div>
+                </div>
+                <!-- Technical Reports Widget -->
+                <div class="client-dashboard-card" id="dash-card-reports" style="display: none;">
+                    <div class="client-dashboard-icon" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa;">📋</div>
+                    <div class="client-dashboard-info">
+                        <span class="client-dashboard-value" id="dash-val-reports">-</span>
+                        <span class="client-dashboard-label">Informes Técnicos</span>
+                    </div>
+                </div>
+                <!-- Monitoring Reports Widget -->
+                <div class="client-dashboard-card" id="dash-card-station-reports" style="display: none;">
+                    <div class="client-dashboard-icon" style="background: rgba(6, 182, 212, 0.15); color: #22d3ee;">📥</div>
+                    <div class="client-dashboard-info">
+                        <span class="client-dashboard-value" id="dash-val-station-reports">-</span>
+                        <span class="client-dashboard-label">Reportes de Monitoreo</span>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Protagonist Area: Control de Estaciones de Cebado (Full Width at the Top) -->
             <div class="portal-card" id="card-client-stations" style="margin-bottom: 30px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; padding: 20px; backdrop-filter: blur(8px);">
                 <h3 style="margin-top: 0; color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 20px;">
@@ -2182,6 +2226,59 @@ async function renderClientPortal() {
             }
         }
         
+        // Update Dashboard Summary Widgets
+        const inspectedStationsCount = assignedStationsData.filter(s => s.consumption !== 'Sin visitas').length;
+        
+        // Stations Card
+        const dashCardStations = document.getElementById('dash-card-stations');
+        const dashValStations = document.getElementById('dash-val-stations');
+        if (assignedStationsCount > 0) {
+            if (dashValStations) dashValStations.textContent = `${inspectedStationsCount}/${assignedStationsCount}`;
+            if (dashCardStations) dashCardStations.style.display = 'flex';
+        } else {
+            if (dashCardStations) dashCardStations.style.display = 'none';
+        }
+        
+        // Services Card
+        const dashCardServices = document.getElementById('dash-card-services');
+        const dashValServices = document.getElementById('dash-val-services');
+        if (servicesCount > 0) {
+            if (dashValServices) dashValServices.textContent = `${servicesCount}`;
+            if (dashCardServices) dashCardServices.style.display = 'flex';
+        } else {
+            if (dashCardServices) dashCardServices.style.display = 'none';
+        }
+        
+        // Quotes Card
+        const dashCardQuotes = document.getElementById('dash-card-quotes');
+        const dashValQuotes = document.getElementById('dash-val-quotes');
+        if (quotesCount > 0) {
+            if (dashValQuotes) dashValQuotes.textContent = `${quotesCount}`;
+            if (dashCardQuotes) dashCardQuotes.style.display = 'flex';
+        } else {
+            if (dashCardQuotes) dashCardQuotes.style.display = 'none';
+        }
+        
+        // Reports Card
+        const dashCardReports = document.getElementById('dash-card-reports');
+        const dashValReports = document.getElementById('dash-val-reports');
+        if (reportsCount > 0) {
+            if (dashValReports) dashValReports.textContent = `${reportsCount}`;
+            if (dashCardReports) dashCardReports.style.display = 'flex';
+        } else {
+            if (dashCardReports) dashCardReports.style.display = 'none';
+        }
+        
+        // Station Reports Card
+        const dashCardStationReports = document.getElementById('dash-card-station-reports');
+        const dashValStationReports = document.getElementById('dash-val-station-reports');
+        if (stationReportsCount > 0) {
+            if (dashValStationReports) dashValStationReports.textContent = `${stationReportsCount}`;
+            if (dashCardStationReports) dashCardStationReports.style.display = 'flex';
+        } else {
+            if (dashCardStationReports) dashCardStationReports.style.display = 'none';
+        }
+        
         // Hide containers / adjust layout depending on element counts
         const totalVisible = 
             (assignedStationsCount > 0 ? 1 : 0) +
@@ -2189,6 +2286,15 @@ async function renderClientPortal() {
             (reportsCount > 0 ? 1 : 0) +
             (servicesCount > 0 ? 1 : 0) +
             (stationReportsCount > 0 ? 1 : 0);
+            
+        const dashRow = document.getElementById('client-dashboard-row');
+        if (dashRow) {
+            if (totalVisible > 0) {
+                dashRow.style.display = 'grid';
+            } else {
+                dashRow.style.display = 'none';
+            }
+        }
             
         if (totalVisible === 0) {
             const noDataMessage = document.createElement('div');
