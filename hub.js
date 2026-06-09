@@ -71,7 +71,7 @@ let appData = {
     mothChemPrice: 25000,
     asanaToken: '',
     asanaProject: '',
-    crmColumns: 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos'
+    crmColumns: 'Formulario, Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos'
 };
 
 function loadData() {
@@ -637,7 +637,7 @@ function updateSettingsUI() {
     }
     
     if (document.getElementById('setting-crm-columns')) {
-        document.getElementById('setting-crm-columns').value = appData.crmColumns || 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos';
+        document.getElementById('setting-crm-columns').value = appData.crmColumns || 'Formulario, Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos';
     }
 
     renderChemicalsSettings();
@@ -925,7 +925,7 @@ function syncFromFirebase() {
 }
 
 function getCRMColumns() {
-    const defaultCols = (appData.crmColumns || 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos')
+    const defaultCols = (appData.crmColumns || 'Formulario, Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos')
         .split(',')
         .map(c => c.trim())
         .filter(c => c.length > 0);

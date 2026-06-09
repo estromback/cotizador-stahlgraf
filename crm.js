@@ -35,12 +35,12 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     auth = firebase.auth();
 }
 
-let appData = { crmColumns: 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos' };
+let appData = { crmColumns: 'Formulario, Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos' };
 let crmCards = [];
 let draggingCardId = null;
 let clientsList = [];
 let isUserConfigLoaded = false;
-
+ 
 function loadData() {
     const saved = localStorage.getItem('stahlgraf_data_v4');
     if (saved) {
@@ -52,21 +52,22 @@ function loadData() {
         } catch(e) {}
     }
 }
-
+ 
 function loadUserConfig() {
     if (!currentUser) return;
     db.collection('users').doc(currentUser.uid).get().then(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
+            appData = { ...appData, ...cloudData };
             if (cloudData.clients) {
                 clientsList = cloudData.clients;
-                localStorage.setItem('stahlgraf_data_v4', JSON.stringify({ ...JSON.parse(localStorage.getItem('stahlgraf_data_v4') || '{}'), clients: clientsList }));
             }
+            localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
         }
         isUserConfigLoaded = true;
         syncCrmClientsToDirectory();
     }).catch(e => {
-        console.error("Error loading clients from Firestore: ", e);
+        console.error("Error loading config from Firestore: ", e);
         isUserConfigLoaded = true;
         syncCrmClientsToDirectory();
     });
@@ -173,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function getColumns() {
-    const defaultCols = (appData.crmColumns || 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos')
+    const defaultCols = (appData.crmColumns || 'Formulario, Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos')
         .split(',')
         .map(c => c.trim())
         .filter(c => c.length > 0);
