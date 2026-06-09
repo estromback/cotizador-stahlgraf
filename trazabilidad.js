@@ -240,6 +240,15 @@ function saveGlobalAppData() {
     if (currentUser && db) {
         db.collection('users').doc(getActiveUid()).set(globalAppData, { merge: true })
             .catch(err => console.error("Error saving global configuration to Firebase:", err));
+            
+        // Sync station assignments to a document in the inspections collection (which clients can read)
+        if (globalAppData.stationAssignments) {
+            db.collection('users').doc(getActiveUid()).collection('inspecciones').doc('assignments_config').set({
+                stationAssignments: globalAppData.stationAssignments
+            }, { merge: true })
+            .then(() => console.log("Station assignments config synced to inspections subcollection successfully."))
+            .catch(err => console.error("Error syncing station assignments config to inspections subcollection:", err));
+        }
     }
 }
 
@@ -251,6 +260,15 @@ function syncGlobalDataFromFirebase() {
             const cloudData = doc.data();
             globalAppData = { ...globalAppData, ...cloudData };
             localStorage.setItem('stahlgraf_data_v4', JSON.stringify(globalAppData));
+            
+            // Auto-sync assignments to inspections subcollection for client portal access
+            if (globalAppData.stationAssignments) {
+                db.collection('users').doc(getActiveUid()).collection('inspecciones').doc('assignments_config').set({
+                    stationAssignments: globalAppData.stationAssignments
+                }, { merge: true })
+                .then(() => console.log("Station assignments config auto-synced on load successfully."))
+                .catch(err => console.error("Error auto-syncing assignments config on load:", err));
+            }
             
             // Refresh views
             populateClientsDropdown();

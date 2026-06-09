@@ -25,6 +25,10 @@ let isUserConfigLoaded = false;
 let activeClientSelectionTarget = 'crm';
 let quickServiceFetchedPrice = 0;
 
+// Client portal map variables
+let clientPortalMap = null;
+let clientPortalMarkerGroup = null;
+
 function getActiveUid() {
     return localStorage.getItem('stahlgraf_target_uid') || (currentUser ? currentUser.uid : null);
 }
@@ -112,8 +116,10 @@ if (auth) {
                     localStorage.setItem('stahlgraf_target_uid', roleData.ownerUid || user.uid);
                     if (roleData.linkedClientId) {
                         localStorage.setItem('stahlgraf_linked_client_id', roleData.linkedClientId);
+                        localStorage.setItem('stahlgraf_client_name', roleData.clientName || '');
                     } else {
                         localStorage.removeItem('stahlgraf_linked_client_id');
+                        localStorage.removeItem('stahlgraf_client_name');
                     }
                 } else {
                     alert("⚠️ Acceso denegado: Su correo no está autorizado en esta plataforma.");
@@ -1796,14 +1802,16 @@ async function renderClientPortal() {
         return;
     }
     
-    const clientObj = clientsList.find(c => c.id === clientId);
+    let clientObj = clientsList.find(c => c.id === clientId);
     if (!clientObj) {
-        container.innerHTML = `
-            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 20px; border-radius: 8px; color: #f87171; text-align: center;">
-                ⚠️ Error: El cliente vinculado (ID: ${clientId}) no existe en el directorio principal. Contacta al administrador.
-            </div>
-        `;
-        return;
+        const storedName = localStorage.getItem('stahlgraf_client_name') || 'Cliente';
+        clientObj = {
+            id: clientId,
+            name: storedName,
+            address: 'Dirección registrada en el sistema',
+            phone: 'No disponible',
+            email: currentUser ? currentUser.email : 'No disponible'
+        };
     }
     
     isClientPortalLoading = true;
@@ -1831,20 +1839,29 @@ async function renderClientPortal() {
                 empty: true,
                 forEach: () => {},
                 docs: [],
-                error: err
+                error: err,
+                exists: false,
+                data: () => ({})
             };
         }
     }
     
     try {
         // Fetch client documents in parallel with safe error wrapping
-        const [quotesSnap, reportsSnap, servicesSnap, reportsSentSnap, inspectionsSnap] = await Promise.all([
+        const [quotesSnap, reportsSnap, servicesSnap, reportsSentSnap, inspectionsSnap, assignmentsConfigSnap] = await Promise.all([
             safeQuery('quotes', db.collection('users').doc(ownerUid).collection('quotes').where('clientName', 'in', uniqueVariations)),
             safeQuery('reports', db.collection('users').doc(ownerUid).collection('reports').where('clientName', 'in', uniqueVariations)),
             safeQuery('services', db.collection('users').doc(ownerUid).collection('services').where('clientName', 'in', uniqueVariations)),
             safeQuery('station_reports_sent', db.collection('users').doc(ownerUid).collection('station_reports_sent').where('clientName', 'in', uniqueVariations)),
-            safeQuery('inspecciones', db.collection('users').doc(ownerUid).collection('inspecciones'))
+            safeQuery('inspecciones', db.collection('users').doc(ownerUid).collection('inspecciones')),
+            safeQuery('inspecciones/assignments_config', db.collection('users').doc(ownerUid).collection('inspecciones').doc('assignments_config'))
         ]);
+        
+        let assignments = [];
+        if (assignmentsConfigSnap && !assignmentsConfigSnap.error && assignmentsConfigSnap.exists) {
+            assignments = assignmentsConfigSnap.data().stationAssignments || [];
+        }
+        appData.stationAssignments = assignments;
         
         container.innerHTML = `
             <div class="client-portal-header" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
@@ -1898,6 +1915,7 @@ async function renderClientPortal() {
                         </h3>
                         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Estaciones de cebado activas en tu propiedad y su nivel de consumo en la última visita:</p>
                         <div id="client-stations-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-bottom: 15px;"></div>
+                        <div id="client-portal-map" style="height: 300px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; background: #1a1a1a;"></div>
                         <div style="display: flex; gap: 15px; font-size: 0.75rem; justify-content: center; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                             <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#10b981; border-radius:50%;"></span> 0% Consumo</span>
                             <span style="display:flex; align-items:center; gap:4px;"><span style="display:inline-block; width:10px; height:10px; background:#f59e0b; border-radius:50%;"></span> 50% Consumo</span>
@@ -2021,33 +2039,81 @@ async function renderClientPortal() {
         // 4. Populate Stations Grid
         const gridContainer = document.getElementById('client-stations-grid');
         let assignedStationsCount = 0;
+        const assignedStationsData = [];
         
         if (inspectionsSnap.error) {
             gridContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #f87171; font-size: 0.85rem; padding: 20px; margin: 0;">⚠️ Error de permisos al leer estaciones.</p>`;
         } else {
-            for (let i = 1; i <= 15; i++) {
+            // Dynamically calculate max stations based on assignments & records
+            let maxStations = 15;
+            if (Array.isArray(assignments)) {
+                assignments.forEach(asg => {
+                    const s = parseInt(asg.start, 10);
+                    const e = parseInt(asg.end, 10);
+                    if (!isNaN(s) && s > maxStations) maxStations = s;
+                    if (!isNaN(e) && e > maxStations) maxStations = e;
+                });
+            }
+            if (!inspectionsSnap.error && inspectionsSnap.forEach) {
+                inspectionsSnap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.station) {
+                        const match = data.station.match(/ESTACION-(\d+)/i);
+                        if (match) {
+                            const num = parseInt(match[1], 10);
+                            if (!isNaN(num) && num > maxStations) maxStations = num;
+                        }
+                    }
+                });
+            }
+
+            for (let i = 1; i <= maxStations; i++) {
                 const stationName = `ESTACION-${String(i).padStart(2, '0')}`;
                 if (isStationAssignedToClient(stationName, clientId, clientName)) {
                     assignedStationsCount++;
                     
                     let latestInspection = null;
+                    let coords = null;
+                    
                     inspectionsSnap.forEach(doc => {
                         const data = doc.data();
                         if (data.station === stationName) {
-                            if (!latestInspection || data.timestamp > latestInspection.timestamp) {
+                            const currentTimestamp = data.localTimestamp || data.timestamp || '';
+                            const latestTimestamp = latestInspection ? (latestInspection.localTimestamp || latestInspection.timestamp || '') : '';
+                            if (!latestInspection || currentTimestamp > latestTimestamp) {
                                 latestInspection = data;
+                            }
+                            
+                            // Get station coordinates from the latest inspection record that has coords
+                            if (data.coords && data.coords.lat && data.coords.lng) {
+                                if (!coords || currentTimestamp > (coords.timestamp || '')) {
+                                    coords = {
+                                        lat: parseFloat(data.coords.lat),
+                                        lng: parseFloat(data.coords.lng),
+                                        timestamp: currentTimestamp
+                                    };
+                                }
                             }
                         }
                     });
                     
                     let bgColor = '#475569';
                     let consumptionText = 'Sin visitas';
+                    let formattedTimestamp = '-';
+                    let alertActive = false;
+                    
                     if (latestInspection) {
-                        const cons = latestInspection.consumption || '0';
+                        const cons = latestInspection.consumption || '0%';
                         consumptionText = `Consumo: ${cons}`;
+                        formattedTimestamp = latestInspection.localTimestamp || latestInspection.timestamp || '-';
+                        
                         if (cons === '0%') bgColor = '#10b981';
-                        else if (cons === '50%') bgColor = '#f59e0b';
-                        else if (cons === '75%' || cons === '100%') bgColor = '#ef4444';
+                        else if (cons === '25-50%' || cons === '50%') bgColor = '#f59e0b';
+                        else if (cons === '75%' || cons === '100%' || cons === '50-75%' || cons === '75-100%') bgColor = '#ef4444';
+                        
+                        const highCons = ['50-75%', '75%', '100%', '75-100%'].includes(cons);
+                        const hasEvid = latestInspection.evidence && latestInspection.evidence.length > 0 && !latestInspection.evidence.includes('Ninguna');
+                        alertActive = highCons || hasEvid;
                     }
                     
                     const cell = document.createElement('div');
@@ -2058,10 +2124,24 @@ async function renderClientPortal() {
                         <div style="font-size: 0.65rem; opacity: 0.9; color: #fff; white-space: nowrap;">${consumptionText}</div>
                     `;
                     gridContainer.appendChild(cell);
+                    
+                    assignedStationsData.push({
+                        num: i,
+                        key: stationName,
+                        coords: coords,
+                        consumption: latestInspection ? (latestInspection.consumption || '0%') : 'Sin visitas',
+                        timestamp: formattedTimestamp,
+                        alertActive: alertActive
+                    });
                 }
             }
             if (assignedStationsCount === 0) {
                 gridContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 20px; margin: 0;">No tienes estaciones de cebado registradas o asignadas actualmente.</p>`;
+            } else {
+                // Initialize/Update the Map with the assigned stations
+                setTimeout(() => {
+                    initClientPortalMap(assignedStationsData);
+                }, 100);
             }
         }
         
@@ -2105,6 +2185,84 @@ async function renderClientPortal() {
     } finally {
         isClientPortalLoading = false;
     }
+}
+
+function initClientPortalMap(assignedStationsData) {
+    if (typeof L === 'undefined') {
+        console.warn("Leaflet is not loaded.");
+        return;
+    }
+    
+    const mapContainer = document.getElementById('client-portal-map');
+    if (!mapContainer) return;
+    
+    if (!clientPortalMap) {
+        clientPortalMap = L.map('client-portal-map', {
+            zoomControl: true,
+            scrollWheelZoom: false
+        });
+        
+        L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            attribution: 'Map data &copy; Google',
+            maxZoom: 19,
+            crossOrigin: true
+        }).addTo(clientPortalMap);
+        
+        clientPortalMarkerGroup = L.layerGroup().addTo(clientPortalMap);
+    } else {
+        clientPortalMarkerGroup.clearLayers();
+    }
+    
+    const markerCoords = [];
+    
+    assignedStationsData.forEach(st => {
+        if (st.coords && st.coords.lat && st.coords.lng) {
+            const lat = parseFloat(st.coords.lat);
+            const lng = parseFloat(st.coords.lng);
+            markerCoords.push([lat, lng]);
+            
+            let color = '#10b981'; // Green
+            if (st.alertActive) color = '#ef4444'; // Red
+            else if (st.consumption !== '0%' && st.consumption !== 'No inspeccionada' && st.consumption !== 'Sin visitas') color = '#fbbf24'; // Yellow
+            else if (st.consumption === 'Sin visitas' || st.consumption === 'No inspeccionada') color = '#475569'; // Grey
+            
+            const labelIcon = L.divIcon({
+                className: 'custom-station-icon',
+                html: `<div style="background: ${color}; color: #fff; font-weight: bold; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border: 2px solid rgba(255,255,255,0.8); box-shadow: 0 2px 5px rgba(0,0,0,0.5);">${String(st.num).padStart(2, '0')}</div>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
+            });
+            
+            const marker = L.marker([lat, lng], { icon: labelIcon });
+            
+            const popupContent = `
+                <div style="color: #333; font-family: sans-serif; font-size: 0.85rem; line-height: 1.4;">
+                    <h4 style="margin: 0 0 5px 0; font-size: 0.95rem; border-bottom: 1px solid #ddd; padding-bottom: 4px;">Estación #${String(st.num).padStart(2, '0')}</h4>
+                    <p style="margin: 3px 0;"><strong>Consumo:</strong> ${st.consumption}</p>
+                    <p style="margin: 3px 0;"><strong>Última Insp:</strong> ${st.timestamp}</p>
+                    <p style="margin: 3px 0; font-size: 0.75rem; color: #666;">Coords: ${lat.toFixed(6)}, ${lng.toFixed(6)}</p>
+                </div>
+            `;
+            marker.bindPopup(popupContent);
+            clientPortalMarkerGroup.addLayer(marker);
+        }
+    });
+    
+    if (markerCoords.length > 0) {
+        clientPortalMap.fitBounds(markerCoords);
+    } else {
+        clientPortalMap.setView([-37.4612, -72.3514], 16);
+    }
+    
+    // Invalidate Leaflet map size to fix any rendering size glitches inside dynamic elements
+    setTimeout(() => {
+        if (clientPortalMap) {
+            clientPortalMap.invalidateSize();
+            if (markerCoords.length > 0) {
+                clientPortalMap.fitBounds(markerCoords);
+            }
+        }
+    }, 300);
 }
 
 window.viewPDF = function(pdfData, filename) {
