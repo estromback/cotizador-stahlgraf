@@ -812,7 +812,7 @@ function initOrUpdateMap() {
 
                 const popupContent = `
                     <div style="color: #333; font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.4; padding: 5px;">
-                        <h4 style="margin: 0 0 5px 0; font-size: 1rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+                        <h4 style="margin: 0 0 5px 0; font-size: 1rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; cursor: pointer;" onclick="window.selectStationFromMap('${numStr}')" title="Toca para registrar inspección">
                             📍 Estación #${numStr}
                         </h4>
                         <p style="margin: 4px 0;"><strong>Cliente:</strong> ${s.clientName}</p>
@@ -1289,6 +1289,35 @@ function switchToTab(targetId) {
         requestGPSLock();
     }
 }
+
+// Select a station directly from the map popup and switch to the inspection tab
+window.selectStationFromMap = function(stationNum) {
+    const select = document.getElementById('station-id');
+    const badge = document.getElementById('station-locked-badge');
+    if (select) {
+        const idVal = 'ESTACION-' + stationNum;
+        
+        // Ensure option exists
+        const exists = Array.from(select.options).some(opt => opt.value === idVal);
+        if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = idVal;
+            opt.textContent = `Estación #${stationNum}`;
+            select.appendChild(opt);
+        }
+        
+        select.value = idVal;
+        select.dispatchEvent(new Event('change'));
+        
+        // Unlock field in case it was locked by QR scan earlier
+        select.disabled = false;
+        if (badge) badge.style.display = 'none';
+        
+        updateStationClientInfo();
+        
+        switchToTab('panel-inspeccionar');
+    }
+};
 
 // Switch tabs dynamically via event listeners
 function setupTabSwitching() {
