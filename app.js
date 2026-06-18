@@ -524,8 +524,30 @@ function calculateQuote() {
         tbody.appendChild(tr);
     });
 
-    document.getElementById('doc-subtotal').innerText = formatter.format(totalCost);
-    document.getElementById('doc-total').innerText = formatter.format(totalCost);
+    const applyIva = document.getElementById('apply-iva') ? document.getElementById('apply-iva').value === 'yes' : false;
+    
+    let subtotalCost = totalCost;
+    let ivaCost = 0;
+    let finalTotalCost = totalCost;
+    
+    if (applyIva) {
+        ivaCost = Math.round(subtotalCost * 0.19);
+        finalTotalCost = subtotalCost + ivaCost;
+    }
+
+    document.getElementById('doc-subtotal').innerText = formatter.format(subtotalCost);
+    
+    const rowIva = document.getElementById('row-iva');
+    if (rowIva) {
+        if (applyIva) {
+            rowIva.style.display = '';
+            document.getElementById('doc-iva').innerText = formatter.format(ivaCost);
+        } else {
+            rowIva.style.display = 'none';
+        }
+    }
+    
+    document.getElementById('doc-total').innerText = formatter.format(finalTotalCost);
 
     const hasFumigation = interiorSize > 0 || exteriorSize > 0;
 

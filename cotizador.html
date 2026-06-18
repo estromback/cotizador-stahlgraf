@@ -250,6 +250,20 @@
                     </div>
                 </div>
 
+                <!-- Impuestos / IVA -->
+                <div class="form-section">
+                    <h3>7. Impuestos y Facturación</h3>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label for="apply-iva">¿Agregar IVA (19%)?</label>
+                            <select id="apply-iva">
+                                <option value="no">No (Exento / Sin Factura)</option>
+                                <option value="yes">Sí (+ 19%)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
             </form>
         </div>
 
@@ -310,6 +324,10 @@
                                 <tr>
                                     <th colspan="4" class="text-right">Subtotal</th>
                                     <td class="text-right"><strong id="doc-subtotal">$0</strong></td>
+                                </tr>
+                                <tr id="row-iva" style="display: none;">
+                                    <th colspan="4" class="text-right">IVA (19%)</th>
+                                    <td class="text-right"><strong id="doc-iva">$0</strong></td>
                                 </tr>
                                 <tr>
                                     <th colspan="4" class="text-right">TOTAL FINAL</th>
