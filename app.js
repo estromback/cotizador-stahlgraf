@@ -524,24 +524,30 @@ function calculateQuote() {
         tbody.appendChild(tr);
     });
 
-    const applyIva = document.getElementById('apply-iva') ? document.getElementById('apply-iva').value === 'yes' : false;
+    const applyIvaEl = document.getElementById('apply-iva');
+    const ivaPercentageEl = document.getElementById('iva-percentage');
+    
+    const applyIva = applyIvaEl ? applyIvaEl.value === 'yes' : true;
+    const ivaPercentage = ivaPercentageEl ? parseFloat(ivaPercentageEl.value) || 0 : 19;
     
     let subtotalCost = totalCost;
     let ivaCost = 0;
     let finalTotalCost = totalCost;
     
     if (applyIva) {
-        ivaCost = Math.round(subtotalCost * 0.19);
+        ivaCost = Math.round(subtotalCost * (ivaPercentage / 100));
         finalTotalCost = subtotalCost + ivaCost;
     }
 
     document.getElementById('doc-subtotal').innerText = formatter.format(subtotalCost);
     
     const rowIva = document.getElementById('row-iva');
+    const labelIva = document.getElementById('label-iva');
     if (rowIva) {
         if (applyIva) {
-            rowIva.style.display = '';
+            rowIva.style.display = 'table-row';
             document.getElementById('doc-iva').innerText = formatter.format(ivaCost);
+            if (labelIva) labelIva.innerText = `IVA (${ivaPercentage}%)`;
         } else {
             rowIva.style.display = 'none';
         }
