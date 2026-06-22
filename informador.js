@@ -288,11 +288,23 @@ async function saveReportToCloud(silent = false) {
         lastSavedReportId = reportId;
         const photoUrls = [];
 
-        // Save compressed photos as base64 in Firestore directly to prevent Storage hangs
+        // Upload photos to Firebase Storage instead of storing base64 in Firestore
         if (currentPhotos.length > 0) {
-            if (btn) btn.innerText = "Procesando fotos...";
+            if (btn) btn.innerText = "Subiendo fotos...";
             for (let i = 0; i < currentPhotos.length; i++) {
-                photoUrls.push(currentPhotos[i].dataUrl);
+                if (currentPhotos[i].dataUrl.startsWith('data:image')) {
+                    try {
+                        const photoRef = storage.ref().child(`users/${currentUser.uid}/reports/${reportId}/photos/photo_${Date.now()}_${i}.jpg`);
+                        await photoRef.putString(currentPhotos[i].dataUrl, 'data_url');
+                        const downloadUrl = await photoRef.getDownloadURL();
+                        photoUrls.push(downloadUrl);
+                    } catch (uploadErr) {
+                        console.error("Error al subir foto a Storage: ", uploadErr);
+                        photoUrls.push(currentPhotos[i].dataUrl); // Fallback a base64 si falla
+                    }
+                } else {
+                    photoUrls.push(currentPhotos[i].dataUrl); // Ya es URL o ya estaba subida
+                }
             }
         }
 
