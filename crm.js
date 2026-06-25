@@ -404,6 +404,15 @@ function openCardModal(card = null) {
         document.getElementById('card-desc').value = card.desc || '';
         document.getElementById('btn-delete-card').style.display = 'block';
         
+        const btnViewHistory = document.getElementById('btn-view-history');
+        btnViewHistory.style.display = 'block';
+        btnViewHistory.onclick = () => {
+            const baseUrl = window.location.href.split('?')[0].replace('crm.html', 'clientes.html').replace('index.html', 'clientes.html').replace('hub.html', 'clientes.html');
+            const historyUrl = new URL(baseUrl);
+            historyUrl.searchParams.set('historialName', card.client);
+            window.location.href = historyUrl.toString();
+        };
+        
         if (card.formDetails) {
             formContainer.style.display = 'block';
             const fd = card.formDetails;
@@ -520,6 +529,7 @@ function openCardModal(card = null) {
         document.getElementById('card-time').value = '';
         document.getElementById('card-desc').value = '';
         document.getElementById('btn-delete-card').style.display = 'none';
+        document.getElementById('btn-view-history').style.display = 'none';
         
         formContainer.style.display = 'none';
         formContent.innerHTML = '';

@@ -99,6 +99,17 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
     renderClients();
 
+    // Check for URL parameters to auto-open history modal from CRM
+    const urlParams = new URLSearchParams(window.location.search);
+    const historialName = urlParams.get('historialName');
+    if (historialName) {
+        const targetNorm = normalize(historialName);
+        const client = appData.clients.find(c => c.name.toLowerCase() === historialName.toLowerCase() || normalize(c.name) === targetNorm);
+        if (client) {
+            setTimeout(() => openHistoryModal(client.id), 300);
+        }
+    }
+
     // Event Listeners
     document.getElementById('client-search').addEventListener('input', renderClients);
     document.getElementById('btn-add-client').addEventListener('click', () => openModal());
