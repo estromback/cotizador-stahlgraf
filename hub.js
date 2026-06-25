@@ -1149,6 +1149,17 @@ function openCardModal(card = null, defaultDate = '') {
         document.getElementById('card-desc').value = card.desc || '';
         document.getElementById('btn-delete-card').style.display = 'block';
         
+        const btnViewHistory = document.getElementById('btn-view-history');
+        if (btnViewHistory) {
+            btnViewHistory.style.display = 'block';
+            btnViewHistory.onclick = () => {
+                const baseUrl = window.location.href.split('?')[0].replace('hub.html', 'clientes.html').replace('index.html', 'clientes.html').replace('crm.html', 'clientes.html');
+                const historyUrl = new URL(baseUrl);
+                historyUrl.searchParams.set('historialName', card.client);
+                window.location.href = historyUrl.toString();
+            };
+        }
+        
         if (card.formDetails) {
             formContainer.style.display = 'block';
             const fd = card.formDetails;
@@ -1262,6 +1273,8 @@ function openCardModal(card = null, defaultDate = '') {
         document.getElementById('card-time').value = '';
         document.getElementById('card-desc').value = '';
         document.getElementById('btn-delete-card').style.display = 'none';
+        const btnViewHistory = document.getElementById('btn-view-history');
+        if (btnViewHistory) btnViewHistory.style.display = 'none';
         
         formContainer.style.display = 'none';
         formContent.innerHTML = '';
