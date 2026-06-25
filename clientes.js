@@ -103,8 +103,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const historialName = urlParams.get('historialName');
     if (historialName) {
-        const targetNorm = normalize(historialName);
-        const client = appData.clients.find(c => c.name.toLowerCase() === historialName.toLowerCase() || normalize(c.name) === targetNorm);
+        const norm = (str) => (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "").trim();
+        const targetNorm = norm(historialName);
+        const client = appData.clients.find(c => c.name.toLowerCase() === historialName.toLowerCase() || norm(c.name) === targetNorm);
         if (client) {
             setTimeout(() => openHistoryModal(client.id), 300);
         }
