@@ -3241,6 +3241,8 @@ async function generatePDFReport() {
         font-family: 'Inter', system-ui, sans-serif;
         box-sizing: border-box;
         line-height: 1.5;
+        width: 794px;
+        max-width: none;
     `;
     
     reportContainer.innerHTML = `
@@ -3249,7 +3251,7 @@ async function generatePDFReport() {
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <img src="logo.png" alt="Stahlgraf Logo" style="max-height: 90px; width: auto; object-fit: contain;" onerror="this.style.display='none'">
                 <div style="text-align: right;">
-                    <h1 style="margin: 0; font-size: 18pt; color: #222; text-transform: uppercase; font-weight: 700;">INFORME DE TRAZABILIDAD QR</h1>
+                    <h1 style="margin: 0; font-size: 18pt; color: #222; text-transform: uppercase; font-weight: 700;">INFORME DE TRAZABILIDAD</h1>
                     <p style="margin: 5px 0 0 0; font-size: 10pt; color: #555;">Fecha: <strong>${new Date().toLocaleDateString('es-CL')}</strong></p>
                     <p style="margin: 0; font-size: 10pt; color: #555;">Estaciones Activas: <strong>${clientStations.length}</strong></p>
                 </div>
@@ -3370,7 +3372,8 @@ async function generatePDFReport() {
                     scale: 2, 
                     useCORS: true,
                     logging: false,
-                    scrollY: 0
+                    scrollY: 0,
+                    windowWidth: 794
                 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                 pagebreak: { mode: ['css', 'legacy'] }

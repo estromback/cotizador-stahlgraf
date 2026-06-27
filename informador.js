@@ -333,25 +333,26 @@ async function saveReportToCloud(silent = false) {
         await db.collection('users').doc(currentUser.uid).collection('reports').doc(reportId).set(reportData);
 
         // Increment correlative
+        let appData = {};
         const savedData = localStorage.getItem('stahlgraf_data_v4');
         if (savedData) {
-            const appData = JSON.parse(savedData);
-            appData.reportCorrelative = (appData.reportCorrelative || 1) + 1;
-            localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
-            
-            if (currentUser && db) {
-                db.collection('users').doc(currentUser.uid).set(appData, { merge: true }).catch(e => console.error(e));
-            }
-            
-            loadedReportCorrelative = appData.reportCorrelative;
-            document.getElementById('doc-correlative').innerText = loadedReportCorrelative;
+            appData = JSON.parse(savedData);
         }
+        appData.reportCorrelative = (appData.reportCorrelative || 1) + 1;
+        localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
+        
+        if (currentUser && db) {
+            db.collection('users').doc(currentUser.uid).set(appData, { merge: true }).catch(e => console.error(e));
+        }
+        
+        loadedReportCorrelative = appData.reportCorrelative;
+        document.getElementById('doc-correlative').innerText = String(loadedReportCorrelative).padStart(4, '0');
 
         // Auto-guardar cliente en el directorio
         saveClientToDirectorySilently(clientName, document.getElementById('client-address').value, document.getElementById('client-phone').value, clientEmail);
 
         // Sincronizar con CRM
-        await syncReportToCRM(reportData, reportId, loadedReportCorrelative || 1);
+        await syncReportToCRM(reportData, reportId, String(loadedReportCorrelative).padStart(4, '0'));
 
         if (!silent) alert("¡Informe guardado exitosamente!");
         if (btn) {
@@ -687,12 +688,14 @@ function saveClientToDirectorySilently(name, address, phone, email) {
 }
 
 function loadUserConfig() {
+    let loadedCorrelative = 1;
     const savedData = localStorage.getItem('stahlgraf_data_v4');
     if (savedData) {
         const appData = JSON.parse(savedData);
-        loadedReportCorrelative = appData.reportCorrelative || 1;
-        document.getElementById('doc-correlative').innerText = loadedReportCorrelative;
+        loadedCorrelative = appData.reportCorrelative || 1;
     }
+    loadedReportCorrelative = loadedCorrelative;
+    document.getElementById('doc-correlative').innerText = String(loadedReportCorrelative).padStart(4, '0');
 }
 
 // ---- History and Dashboard ----
