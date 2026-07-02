@@ -31,6 +31,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
+        if (typeof initFirestorePersistence === "function") initFirestorePersistence(db);
         auth = firebase.auth();
         storage = firebase.storage();
     } catch (e) {
@@ -38,6 +39,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     }
 } else if (firebase.apps.length) {
     db = firebase.firestore();
+        if (typeof initFirestorePersistence === "function") initFirestorePersistence(db);
     auth = firebase.auth();
     storage = firebase.storage();
 }
@@ -258,7 +260,11 @@ function syncGlobalDataFromFirebase() {
     db.collection('users').doc(getActiveUid()).get().then(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
-            globalAppData = { ...globalAppData, ...cloudData };
+            if (typeof mergeAppData === 'function') {
+                globalAppData = mergeAppData(globalAppData, cloudData);
+            } else {
+                globalAppData = { ...globalAppData, ...cloudData };
+            }
             localStorage.setItem('stahlgraf_data_v4', JSON.stringify(globalAppData));
             
             // Auto-sync assignments to inspections subcollection for client portal access

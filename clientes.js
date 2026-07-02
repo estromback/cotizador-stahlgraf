@@ -27,6 +27,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
+        if (typeof initFirestorePersistence === "function") initFirestorePersistence(db);
         auth = firebase.auth();
         storage = firebase.storage();
     } catch (e) {
@@ -34,6 +35,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     }
 } else if (firebase.apps.length) {
     db = firebase.firestore();
+        if (typeof initFirestorePersistence === "function") initFirestorePersistence(db);
     auth = firebase.auth();
     storage = firebase.storage();
 }
@@ -88,7 +90,11 @@ function syncFromFirebase() {
     userDocListener = db.collection('users').doc(currentUser.uid).onSnapshot(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
-            appData = { ...appData, ...cloudData };
+            if (typeof mergeAppData === 'function') {
+                appData = mergeAppData(appData, cloudData);
+            } else {
+                appData = { ...appData, ...cloudData };
+            }
             localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
             renderClients();
         }

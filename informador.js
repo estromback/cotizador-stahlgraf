@@ -26,6 +26,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
+        if (typeof initFirestorePersistence === "function") initFirestorePersistence(db);
         auth = firebase.auth();
         storage = firebase.storage();
     } catch (e) {

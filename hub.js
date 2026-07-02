@@ -37,12 +37,14 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
+        if (typeof initFirestorePersistence === "function") initFirestorePersistence(db);
         auth = firebase.auth();
     } catch (e) {
         console.warn("Firebase config is incomplete or invalid.");
     }
 } else if (firebase.apps.length) {
     db = firebase.firestore();
+        if (typeof initFirestorePersistence === "function") initFirestorePersistence(db);
     auth = firebase.auth();
 }
 
@@ -899,7 +901,11 @@ function syncFromFirebase() {
             const cloudData = doc.data();
             
             // Merge cloud data into appData
-            appData = { ...appData, ...cloudData };
+            if (typeof mergeAppData === 'function') {
+                appData = mergeAppData(appData, cloudData);
+            } else {
+                appData = { ...appData, ...cloudData };
+            }
             
             if (cloudData.clients) {
                 clientsList = cloudData.clients;
