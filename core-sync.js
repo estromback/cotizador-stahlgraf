@@ -17,22 +17,40 @@ function mergeAppData(localData, cloudData) {
             const cloudArr = cloudData[key] || [];
             
             const map = new Map();
+            const noIdItems = [];
+            
+            // Helper to get a unique identifier
+            const getIdentifier = (item) => item.id || item.clientId || (key === 'clients' ? item.name : null);
             
             // Add cloud items first (source of truth)
             cloudArr.forEach(item => {
-                if (item && item.id) {
-                    map.set(item.id, item);
+                if (!item) return;
+                const id = getIdentifier(item);
+                if (id) {
+                    map.set(id, item);
+                } else {
+                    noIdItems.push(item);
                 }
             });
             
             // Add or intelligently merge local items
             localArr.forEach(item => {
-                if (!item || !item.id) return;
+                if (!item) return;
                 
-                const cloudItem = map.get(item.id);
+                const id = getIdentifier(item);
+                if (!id) {
+                    // If no identifier, avoid adding exact duplicates
+                    const str = JSON.stringify(item);
+                    if (!noIdItems.some(ci => JSON.stringify(ci) === str)) {
+                        noIdItems.push(item);
+                    }
+                    return;
+                }
+                
+                const cloudItem = map.get(id);
                 if (!cloudItem) {
                     // Local addition that hasn't synced yet! Preserve it.
-                    map.set(item.id, item);
+                    map.set(id, item);
                 } else {
                     // Conflict resolution based on optional timestamps
                     let preferLocal = false;
@@ -47,12 +65,12 @@ function mergeAppData(localData, cloudData) {
                     }
                     
                     if (preferLocal) {
-                        map.set(item.id, item);
+                        map.set(id, item);
                     }
                 }
             });
             
-            merged[key] = Array.from(map.values());
+            merged[key] = [...Array.from(map.values()), ...noIdItems];
         }
     });
 
