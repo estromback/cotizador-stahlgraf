@@ -262,6 +262,10 @@ function syncGlobalDataFromFirebase() {
             const cloudData = doc.data();
             if (typeof mergeAppData === 'function') {
                 globalAppData = mergeAppData(globalAppData, cloudData);
+                // Enforce cloud as absolute source of truth for clients on the iPad 
+                // to prevent core-sync from resurrecting deleted clients as "offline additions".
+                // We DO NOT overwrite stationAssignments because the iPad creates them in "Modo Instalación".
+                if (cloudData.clients) globalAppData.clients = cloudData.clients;
             } else {
                 globalAppData = { ...globalAppData, ...cloudData };
             }
@@ -1677,8 +1681,12 @@ function renderMonitoreo() {
         const clientName = getClientNameForStation(i);
         
         // Filter logic
-        if (filterClientName && clientName !== filterClientName) {
-            continue; // Skip this cell if filtering and it doesn't belong to the client
+        if (filterClientName && clientName) {
+            const safeFilter = String(filterClientName).trim().toLowerCase();
+            const safeClient = String(clientName).trim().toLowerCase();
+            if (safeClient !== safeFilter) continue;
+        } else if (filterClientName && !clientName) {
+            continue;
         }
         
         totalCount++;
@@ -1777,8 +1785,12 @@ function renderMonitoreo() {
         if (filterClientName) {
             const num = parseInt(ins.station.replace('ESTACION-', ''), 10);
             const instClient = getClientNameForStation(num);
-            if (instClient !== filterClientName) {
-                return; // Skip this history row if it doesn't belong to the client
+            if (instClient) {
+                const safeFilter = String(filterClientName).trim().toLowerCase();
+                const safeClient = String(instClient).trim().toLowerCase();
+                if (safeClient !== safeFilter) return;
+            } else {
+                return;
             }
         }
         
