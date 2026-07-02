@@ -488,15 +488,26 @@ function closeHistoryModal() {
 }
 
 function isStationAssignedToClient(stationName, clientId, clientName) {
-    const assignments = appData.stationAssignments || [];
-    const match = stationName.match(/ESTACION-(\d+)/i);
-    if (!match) return false;
-    const num = parseInt(match[1], 10);
-    return assignments.some(asg => 
-        (asg.clientId === clientId || asg.clientName === clientName) &&
-        num >= parseInt(asg.start, 10) &&
-        num <= parseInt(asg.end, 10)
-    );
+    try {
+        if (!stationName || typeof stationName !== 'string') return false;
+        
+        const assignments = appData.stationAssignments || [];
+        const match = stationName.match(/ESTACION-(\d+)/i);
+        if (!match) return false;
+        const num = parseInt(match[1], 10);
+        
+        const safeName1 = (clientName || '').trim().toLowerCase();
+        
+        return assignments.some(asg => {
+            const safeName2 = (asg.clientName || '').trim().toLowerCase();
+            return (asg.clientId === clientId || safeName1 === safeName2) &&
+                   num >= parseInt(asg.start, 10) &&
+                   num <= parseInt(asg.end, 10);
+        });
+    } catch (e) {
+        console.warn("isStationAssignedToClient error for", stationName, e);
+        return false;
+    }
 }
 
 async function loadClientHistoryFromFirebaseAndLocal(clientId, clientName) {
@@ -666,7 +677,20 @@ function initHistoryMap(clientId, clientName) {
             const stationKey = `ESTACION-${String(i).padStart(2, '0')}`;
             const stationInsps = allInspections
                 .filter(ins => ins.station === stationKey)
-                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                .sort((a, b) => {
+                    const getMs = (obj) => {
+                        if (!obj.timestamp && !obj.localTimestamp) return 0;
+                        const ts = obj.timestamp || obj.localTimestamp;
+                        const parsed = new Date(ts).getTime();
+                        if (!isNaN(parsed)) return parsed;
+                        if (typeof ts === 'string') {
+                            const p = ts.split(',')[0].split('-').reverse().join('-');
+                            return new Date(p).getTime() || 0;
+                        }
+                        return 0;
+                    };
+                    return getMs(b) - getMs(a);
+                });
                 
             const latest = stationInsps[0];
             let coords = null;

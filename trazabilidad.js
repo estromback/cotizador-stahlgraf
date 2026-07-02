@@ -1921,12 +1921,14 @@ async function syncWithCloud(silent = false) {
             pending.forEach(item => {
                 const docRef = userRef.collection('inspecciones').doc(item.id);
                 batch.set(docRef, {
+                    id: item.id,
                     station: item.station,
                     consumption: item.consumption,
                     maintenance: item.maintenance,
                     evidence: item.evidence,
                     notes: item.notes,
                     coords: item.coords || null,
+                    timestamp: item.timestamp,
                     localTimestamp: item.timestamp,
                     syncedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
