@@ -1948,7 +1948,7 @@ async function syncWithCloud(silent = false) {
         
         // 2. PULL: Download historical inspections from Firestore and merge
         const userRef = db.collection('users').doc(getActiveUid());
-        const snapshot = await userRef.collection('inspecciones').orderBy('localTimestamp', 'desc').limit(100).get();
+        const snapshot = await userRef.collection('inspecciones').orderBy('localTimestamp', 'desc').limit(5000).get();
         
         let pulledCount = 0;
         

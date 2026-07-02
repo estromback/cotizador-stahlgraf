@@ -586,10 +586,14 @@ async function loadClientHistoryFromFirebaseAndLocal(clientId, clientName) {
             
             inspectionsSnap.forEach(doc => {
                 const data = doc.data();
-                if (data.station && isStationAssignedToClient(data.station, clientId, clientName)) {
-                    currentClientInspections.push({ id: doc.id, ...data });
+                if (data.station) {
+                    const isAssigned = isStationAssignedToClient(data.station, clientId, clientName);
+                    if (isAssigned) {
+                        currentClientInspections.push({ id: doc.id, ...data });
+                    }
                 }
             });
+            console.log(`[DEBUG] Loaded ${currentClientInspections.length} inspections for ${clientName}`);
             
             // Sync local cache
             if (!appData.services) appData.services = [];
@@ -666,6 +670,8 @@ function initHistoryMap(clientId, clientName) {
         }
     });
     
+    console.log(`[DEBUG] Total inspections in allInspections for rendering: ${allInspections.length}`);
+    
     const assignedStationsData = [];
     let activeAlerts = 0;
     let latestInspDate = null;
@@ -676,7 +682,18 @@ function initHistoryMap(clientId, clientName) {
         for (let i = start; i <= end; i++) {
             const stationKey = `ESTACION-${String(i).padStart(2, '0')}`;
             const stationInsps = allInspections
-                .filter(ins => ins.station === stationKey)
+                .filter(ins => {
+                    if (!ins.station) return false;
+                    const normalizedIns = ins.station.toUpperCase().replace('Ó', 'O').replace(' ', '');
+                    const normalizedKey = stationKey.toUpperCase();
+                    // also handle missing padding e.g. ESTACION-1 vs ESTACION-01
+                    const matchIns = normalizedIns.match(/ESTACION-0*(\d+)/);
+                    const matchKey = normalizedKey.match(/ESTACION-0*(\d+)/);
+                    if (matchIns && matchKey) {
+                        return matchIns[1] === matchKey[1];
+                    }
+                    return normalizedIns === normalizedKey;
+                })
                 .sort((a, b) => {
                     const getMs = (obj) => {
                         if (!obj.timestamp && !obj.localTimestamp) return 0;
@@ -692,6 +709,10 @@ function initHistoryMap(clientId, clientName) {
                     return getMs(b) - getMs(a);
                 });
                 
+            if (stationInsps.length > 0) {
+                console.log(`[DEBUG] Found ${stationInsps.length} inspections for ${stationKey}`);
+            }
+                
             const latest = stationInsps[0];
             let coords = null;
             let consumption = 'No inspeccionada';
@@ -703,14 +724,17 @@ function initHistoryMap(clientId, clientName) {
             
             if (latest) {
                 consumption = latest.consumption || '0%';
-                timestamp = latest.timestamp || '-';
+                let actualTimestamp = latest.timestamp || latest.localTimestamp;
+                timestamp = actualTimestamp || '-';
                 const highConsumption = ['50-75%', '75%', '100%', '75-100%'].includes(consumption);
                 const hasEvidence = latest.evidence && latest.evidence.length > 0 && !latest.evidence.includes('Ninguna');
                 alertActive = highConsumption || hasEvidence;
                 if (alertActive) activeAlerts++;
                 
-                if (!latestInspDate || new Date(latest.timestamp) > new Date(latestInspDate)) {
-                    latestInspDate = latest.timestamp;
+                if (actualTimestamp) {
+                    if (!latestInspDate || new Date(actualTimestamp) > new Date(latestInspDate)) {
+                        latestInspDate = actualTimestamp;
+                    }
                 }
             }
             
