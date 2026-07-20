@@ -1906,6 +1906,14 @@ function clearLocalData() {
     }
 }
 
+// Helper: Promise wrapper with timeout to prevent hanging UI
+function promiseWithTimeout(promise, timeoutMs = 12000, errorMsg = "La conexión con el servidor tardó demasiado. Por favor verifica tu señal de internet e intenta nuevamente.") {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), timeoutMs))
+    ]);
+}
+
 // Two-way Sync (Push pending offline logs, and Pull last 100 entries from Cloud)
 async function syncWithCloud(silent = false) {
     if (!currentUser || !db) {
@@ -1923,24 +1931,41 @@ async function syncWithCloud(silent = false) {
         return;
     }
     
+    const uid = getActiveUid();
+    if (!uid) {
+        if (!silent) {
+            alert("⚠️ No se pudo obtener la información del usuario activo. Por favor vuelve a iniciar sesión.");
+        }
+        return;
+    }
+    
     loadLocalInspections();
     const pending = inspections.filter(r => r && r.id && r.id !== 'assignments_config' && r.station && r.status === 'pendiente');
     
     const spinner = document.getElementById('sync-spinner');
     const syncBtn = document.getElementById('btn-sync-cloud');
+    const syncBtnTech = document.getElementById('btn-sync-cloud-tech');
     
-    if (spinner && syncBtn) {
-        spinner.style.display = 'inline-block';
-        syncBtn.disabled = true;
-        syncBtn.innerText = 'Sincronizando...';
-    }
+    const setSyncingUI = (loading) => {
+        if (spinner) spinner.style.display = loading ? 'inline-block' : 'none';
+        if (syncBtn) {
+            syncBtn.disabled = loading;
+            syncBtn.innerText = loading ? 'Sincronizando...' : 'Sincronizar con Servidor';
+        }
+        if (syncBtnTech) {
+            syncBtnTech.disabled = loading;
+            syncBtnTech.innerText = loading ? '⏳ Sincronizando...' : '☁️ Sincronizar con Servidor';
+        }
+    };
+    
+    setSyncingUI(true);
     
     try {
         let uploadedCount = 0;
+        const userRef = db.collection('users').doc(uid);
         
         // 1. PUSH: Upload pending local inspections to Firestore in batches (max 400 per batch)
         if (pending.length > 0) {
-            const userRef = db.collection('users').doc(getActiveUid());
             const BATCH_SIZE = 400;
             const syncedIds = new Set();
             
@@ -1966,7 +1991,7 @@ async function syncWithCloud(silent = false) {
                     syncedIds.add(item.id);
                 });
                 
-                await batch.commit();
+                await promiseWithTimeout(batch.commit(), 15000, "Error al enviar los registros a la nube: La transacción tardó demasiado.");
             }
             
             // Update local state to synced
@@ -1980,8 +2005,11 @@ async function syncWithCloud(silent = false) {
         }
         
         // 2. PULL: Download historical inspections from Firestore and merge
-        const userRef = db.collection('users').doc(getActiveUid());
-        const snapshot = await userRef.collection('inspecciones').get();
+        const snapshot = await promiseWithTimeout(
+            userRef.collection('inspecciones').get(),
+            15000,
+            "Error al obtener registros de la nube: Tiempo de espera agotado."
+        );
         
         let pulledCount = 0;
         
@@ -2044,14 +2072,10 @@ async function syncWithCloud(silent = false) {
     } catch (err) {
         console.error("Sync failed: ", err);
         if (!silent) {
-            alert("Ocurrió un error al sincronizar con Firestore: " + err.message + "\nPor favor, verifica tu conexión a internet.");
+            alert("Ocurrió un error al sincronizar con Firestore: " + err.message);
         }
     } finally {
-        if (spinner && syncBtn) {
-            spinner.style.display = 'none';
-            syncBtn.disabled = false;
-            syncBtn.innerText = 'Sincronizar con Servidor';
-        }
+        setSyncingUI(false);
     }
 }
 
