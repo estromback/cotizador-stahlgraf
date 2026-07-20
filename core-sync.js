@@ -93,11 +93,20 @@ function mergeAppData(localData, cloudData) {
 // Function to enable persistence safely
 function initFirestorePersistence(db) {
     if (db) {
-        db.enablePersistence({ synchronizeTabs: true })
-            .then(() => console.log("Firebase Offline Persistence Enabled"))
+        // Detect iOS / iPadOS to prevent WebKit IndexedDB synchronizeTabs deadlock in PWA mode
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
+        const persistencePromise = isIOS 
+            ? db.enablePersistence() 
+            : db.enablePersistence({ synchronizeTabs: true });
+
+        persistencePromise
+            .then(() => console.log(`Firebase Offline Persistence Enabled (${isIOS ? 'single tab iOS mode' : 'multi-tab mode'})`))
             .catch(err => {
                 if (err.code === 'failed-precondition') {
-                    console.warn("Multiple tabs open, persistence can only be enabled in one tab at a time.");
+                    console.warn("Multiple tabs open, fallback to single tab persistence.");
+                    db.enablePersistence().catch(e => console.warn("Single tab persistence failed:", e));
                 } else if (err.code === 'unimplemented') {
                     console.warn("The current browser does not support all of the features required to enable persistence.");
                 } else {
