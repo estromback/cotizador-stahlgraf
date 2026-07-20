@@ -1837,15 +1837,24 @@ function renderMonitoreo() {
 
 // Export data as JSON file download
 function exportJSON() {
-    if (inspections.length === 0) return alert("No hay datos para exportar.");
+    loadLocalInspections();
+    if (!inspections || inspections.length === 0) return alert("No hay datos para exportar.");
     
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(inspections, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `inspecciones_cebado_${Date.now()}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+    try {
+        const jsonStr = JSON.stringify(inspections, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", url);
+        downloadAnchor.setAttribute("download", `inspecciones_cebado_${Date.now()}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+        alert("Error al exportar JSON: " + e.message);
+    }
 }
 
 // Export data as CSV file download
@@ -1946,19 +1955,19 @@ async function syncWithCloud(silent = false) {
     const syncBtn = document.getElementById('btn-sync-cloud');
     const syncBtnTech = document.getElementById('btn-sync-cloud-tech');
     
-    const setSyncingUI = (loading) => {
+    const setSyncingUI = (loading, msg = 'Sincronizando...') => {
         if (spinner) spinner.style.display = loading ? 'inline-block' : 'none';
         if (syncBtn) {
             syncBtn.disabled = loading;
-            syncBtn.innerText = loading ? 'Sincronizando...' : 'Sincronizar con Servidor';
+            syncBtn.innerText = loading ? msg : 'Sincronizar con Servidor';
         }
         if (syncBtnTech) {
             syncBtnTech.disabled = loading;
-            syncBtnTech.innerText = loading ? '⏳ Sincronizando...' : '☁️ Sincronizar con Servidor';
+            syncBtnTech.innerText = loading ? ('⏳ ' + msg) : '☁️ Sincronizar con Servidor';
         }
     };
     
-    setSyncingUI(true);
+    setSyncingUI(true, 'Conectando con servidor...');
     
     try {
         let uploadedCount = 0;
@@ -1966,6 +1975,7 @@ async function syncWithCloud(silent = false) {
         
         // 0. Sync global config (clients & station assignments)
         if (globalAppData && (globalAppData.clients || globalAppData.stationAssignments)) {
+            setSyncingUI(true, 'Subiendo directorio y asignaciones...');
             try {
                 await promiseWithTimeout(userRef.set(globalAppData, { merge: true }), 8000);
                 if (globalAppData.stationAssignments) {
@@ -1985,9 +1995,12 @@ async function syncWithCloud(silent = false) {
         if (pending.length > 0) {
             const syncedIds = new Set();
             let pushErrors = [];
+            let currentIdx = 0;
             
             for (const item of pending) {
+                currentIdx++;
                 if (!item.id || item.id === 'assignments_config' || !item.station) continue;
+                setSyncingUI(true, `Subiendo ${currentIdx} de ${pending.length}...`);
                 const docRef = userRef.collection('inspecciones').doc(item.id);
                 try {
                     await promiseWithTimeout(docRef.set({
@@ -2021,6 +2034,7 @@ async function syncWithCloud(silent = false) {
         }
         
         // 2. PULL: Download historical inspections from Firestore and merge
+        setSyncingUI(true, 'Descargando historial...');
         const snapshot = await promiseWithTimeout(
             userRef.collection('inspecciones').get(),
             15000,

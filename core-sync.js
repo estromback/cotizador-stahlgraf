@@ -93,16 +93,17 @@ function mergeAppData(localData, cloudData) {
 // Function to enable persistence safely
 function initFirestorePersistence(db) {
     if (db) {
-        // Detect iOS / iPadOS to prevent WebKit IndexedDB synchronizeTabs deadlock in PWA mode
+        // Detect iOS / iPadOS to skip IndexedDB persistence and prevent WebKit hangs in PWA mode
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         
-        const persistencePromise = isIOS 
-            ? db.enablePersistence() 
-            : db.enablePersistence({ synchronizeTabs: true });
+        if (isIOS) {
+            console.log("iOS/iPadOS detected: Using direct network mode for Firestore to avoid WebKit IndexedDB locks.");
+            return;
+        }
 
-        persistencePromise
-            .then(() => console.log(`Firebase Offline Persistence Enabled (${isIOS ? 'single tab iOS mode' : 'multi-tab mode'})`))
+        db.enablePersistence({ synchronizeTabs: true })
+            .then(() => console.log("Firebase Offline Persistence Enabled (multi-tab mode)"))
             .catch(err => {
                 if (err.code === 'failed-precondition') {
                     console.warn("Multiple tabs open, fallback to single tab persistence.");
