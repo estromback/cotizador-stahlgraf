@@ -1964,19 +1964,33 @@ async function syncWithCloud(silent = false) {
         let uploadedCount = 0;
         const userRef = db.collection('users').doc(uid);
         
-        // 1. PUSH: Upload pending local inspections to Firestore in batches (max 400 per batch)
+        // 0. Sync global config (clients & station assignments)
+        if (globalAppData && (globalAppData.clients || globalAppData.stationAssignments)) {
+            try {
+                await promiseWithTimeout(userRef.set(globalAppData, { merge: true }), 8000);
+                if (globalAppData.stationAssignments) {
+                    await promiseWithTimeout(
+                        userRef.collection('inspecciones').doc('assignments_config').set({
+                            stationAssignments: globalAppData.stationAssignments
+                        }, { merge: true }),
+                        8000
+                    );
+                }
+            } catch (gErr) {
+                console.warn("Global configuration sync warning:", gErr);
+            }
+        }
+        
+        // 1. PUSH: Upload pending local inspections to Firestore individually to avoid batch locks
         if (pending.length > 0) {
-            const BATCH_SIZE = 400;
             const syncedIds = new Set();
+            let pushErrors = [];
             
-            for (let i = 0; i < pending.length; i += BATCH_SIZE) {
-                const chunk = pending.slice(i, i + BATCH_SIZE);
-                const batch = db.batch();
-                
-                chunk.forEach(item => {
-                    if (!item.id || item.id === 'assignments_config' || !item.station) return;
-                    const docRef = userRef.collection('inspecciones').doc(item.id);
-                    batch.set(docRef, {
+            for (const item of pending) {
+                if (!item.id || item.id === 'assignments_config' || !item.station) continue;
+                const docRef = userRef.collection('inspecciones').doc(item.id);
+                try {
+                    await promiseWithTimeout(docRef.set({
                         id: String(item.id),
                         station: String(item.station),
                         consumption: item.consumption || '0%',
@@ -1987,14 +2001,16 @@ async function syncWithCloud(silent = false) {
                         timestamp: item.timestamp || new Date().toLocaleString('es-CL'),
                         localTimestamp: item.timestamp || new Date().toLocaleString('es-CL'),
                         syncedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    }), 10000, `Tiempo agotado al subir la estación ${item.station}`);
+                    
                     syncedIds.add(item.id);
-                });
-                
-                await promiseWithTimeout(batch.commit(), 15000, "Error al enviar los registros a la nube: La transacción tardó demasiado.");
+                } catch (itemErr) {
+                    console.error(`Error uploading item ${item.id}:`, itemErr);
+                    pushErrors.push(`${item.station}: ${itemErr.message}`);
+                }
             }
             
-            // Update local state to synced
+            // Update local state to synced for succeeded items
             inspections.forEach(item => {
                 if (syncedIds.has(item.id)) {
                     item.status = 'sincronizado';
