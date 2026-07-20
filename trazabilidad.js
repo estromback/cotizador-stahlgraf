@@ -262,10 +262,16 @@ function syncGlobalDataFromFirebase() {
             const cloudData = doc.data();
             if (typeof mergeAppData === 'function') {
                 globalAppData = mergeAppData(globalAppData, cloudData);
-                // Enforce cloud as absolute source of truth for clients on the iPad 
-                // to prevent core-sync from resurrecting deleted clients as "offline additions".
-                // We DO NOT overwrite stationAssignments because the iPad creates them in "Modo Instalación".
-                if (cloudData.clients) globalAppData.clients = cloudData.clients;
+                // Preserve local clients added offline or pending sync
+                if (cloudData.clients && Array.isArray(cloudData.clients)) {
+                    const localClients = globalAppData.clients || [];
+                    cloudData.clients.forEach(cc => {
+                        if (!localClients.some(lc => lc.id === cc.id || lc.name === cc.name)) {
+                            localClients.push(cc);
+                        }
+                    });
+                    globalAppData.clients = localClients;
+                }
             } else {
                 globalAppData = { ...globalAppData, ...cloudData };
             }
@@ -1135,7 +1141,13 @@ function loadLocalInspections() {
     const saved = localStorage.getItem('stahlgraf_qr_inspecciones');
     if (saved) {
         try {
-            inspections = JSON.parse(saved);
+            const raw = JSON.parse(saved);
+            if (Array.isArray(raw)) {
+                // Filter out invalid items, missing stations, or system config documents like assignments_config
+                inspections = raw.filter(r => r && r.id && r.id !== 'assignments_config' && r.station && typeof r.station === 'string');
+            } else {
+                inspections = [];
+            }
         } catch (e) {
             console.error("Error reading LocalStorage", e);
             inspections = [];
@@ -1782,6 +1794,7 @@ function renderMonitoreo() {
     let renderedRows = 0;
     
     sorted.forEach(ins => {
+        if (!ins || !ins.station || typeof ins.station !== 'string') return;
         if (filterClientName) {
             const num = parseInt(ins.station.replace('ESTACION-', ''), 10);
             const instClient = getClientNameForStation(num);
@@ -1911,7 +1924,7 @@ async function syncWithCloud(silent = false) {
     }
     
     loadLocalInspections();
-    const pending = inspections.filter(r => r.status === 'pendiente');
+    const pending = inspections.filter(r => r && r.id && r.id !== 'assignments_config' && r.station && r.status === 'pendiente');
     
     const spinner = document.getElementById('sync-spinner');
     const syncBtn = document.getElementById('btn-sync-cloud');
@@ -1925,37 +1938,45 @@ async function syncWithCloud(silent = false) {
     try {
         let uploadedCount = 0;
         
-        // 1. PUSH: Upload pending local inspections to Firestore
+        // 1. PUSH: Upload pending local inspections to Firestore in batches (max 400 per batch)
         if (pending.length > 0) {
-            const batch = db.batch();
             const userRef = db.collection('users').doc(getActiveUid());
+            const BATCH_SIZE = 400;
+            const syncedIds = new Set();
             
-            pending.forEach(item => {
-                const docRef = userRef.collection('inspecciones').doc(item.id);
-                batch.set(docRef, {
-                    id: item.id,
-                    station: item.station,
-                    consumption: item.consumption,
-                    maintenance: item.maintenance,
-                    evidence: item.evidence,
-                    notes: item.notes,
-                    coords: item.coords || null,
-                    timestamp: item.timestamp,
-                    localTimestamp: item.timestamp,
-                    syncedAt: firebase.firestore.FieldValue.serverTimestamp()
+            for (let i = 0; i < pending.length; i += BATCH_SIZE) {
+                const chunk = pending.slice(i, i + BATCH_SIZE);
+                const batch = db.batch();
+                
+                chunk.forEach(item => {
+                    if (!item.id || item.id === 'assignments_config' || !item.station) return;
+                    const docRef = userRef.collection('inspecciones').doc(item.id);
+                    batch.set(docRef, {
+                        id: String(item.id),
+                        station: String(item.station),
+                        consumption: item.consumption || '0%',
+                        maintenance: Array.isArray(item.maintenance) ? item.maintenance : [],
+                        evidence: Array.isArray(item.evidence) ? item.evidence : [],
+                        notes: item.notes || '',
+                        coords: item.coords || null,
+                        timestamp: item.timestamp || new Date().toLocaleString('es-CL'),
+                        localTimestamp: item.timestamp || new Date().toLocaleString('es-CL'),
+                        syncedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    syncedIds.add(item.id);
                 });
-            });
-            
-            await batch.commit();
+                
+                await batch.commit();
+            }
             
             // Update local state to synced
             inspections.forEach(item => {
-                if (item.status === 'pendiente') {
+                if (syncedIds.has(item.id)) {
                     item.status = 'sincronizado';
                 }
             });
             localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
-            uploadedCount = pending.length;
+            uploadedCount = syncedIds.size;
         }
         
         // 2. PULL: Download historical inspections from Firestore and merge
@@ -1965,18 +1986,21 @@ async function syncWithCloud(silent = false) {
         let pulledCount = 0;
         
         snapshot.forEach(doc => {
+            if (doc.id === 'assignments_config') return;
             const data = doc.data();
+            if (!data || !data.station) return;
+            
             const recordId = doc.id;
             
             const pulledRecord = {
                 id: recordId,
                 station: data.station,
-                consumption: data.consumption,
+                consumption: data.consumption || '0%',
                 maintenance: data.maintenance || [],
                 evidence: data.evidence || [],
                 notes: data.notes || '',
                 coords: data.coords || null,
-                timestamp: data.localTimestamp || new Date(data.syncedAt?.seconds * 1000).toLocaleString('es-CL'),
+                timestamp: data.localTimestamp || (data.syncedAt?.seconds ? new Date(data.syncedAt.seconds * 1000).toLocaleString('es-CL') : new Date().toLocaleString('es-CL')),
                 status: 'sincronizado'
             };
             
