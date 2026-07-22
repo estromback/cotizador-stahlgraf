@@ -2,6 +2,22 @@
 // Handles intelligent merging of appData arrays (clients, services, chemicals, etc.)
 // Prevents offline data loss during synchronization
 
+const STAHLGRAF_VERSION = "v4.2.4";
+
+if (typeof window !== 'undefined') {
+    window.STAHLGRAF_VERSION = STAHLGRAF_VERSION;
+    const applyVersionBadges = () => {
+        document.querySelectorAll('.app-version-badge, #app-version-badge').forEach(el => {
+            el.innerText = STAHLGRAF_VERSION;
+        });
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyVersionBadges);
+    } else {
+        applyVersionBadges();
+    }
+}
+
 function mergeAppData(localData, cloudData) {
     if (!localData) return cloudData || {};
     if (!cloudData) return localData || {};
