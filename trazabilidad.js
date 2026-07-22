@@ -3311,32 +3311,86 @@ async function generatePDFReport() {
         `;
     });
 
-    // Collect active map stations coordinates for bounds centering inside generation
+    // Check map snapshot
     const mapStations = [];
     clientStations.forEach(num => {
         const stationKey = `ESTACION-${String(num).padStart(2, '0')}`;
         const coords = getLatestStationCoords(stationKey);
         if (coords && coords.lat && coords.lng) {
-            mapStations.push({
-                num: num,
-                coords: coords
-            });
+            mapStations.push({ num: num, coords: coords });
         }
     });
 
-    // 4. Create a hidden layout container (fixed at 0,0 but z-indexed behind the main app)
+    const originalMap = document.getElementById('monitoreo-map');
+    const hasMapData = mapStations.length > 0 && originalMap && (originalMap.offsetWidth > 0 || originalMap.offsetHeight > 0);
+    
+    let mapSectionHTML = '';
+    if (hasMapData) {
+        let snapshotDataUrl = null;
+        if (typeof html2canvas !== 'undefined') {
+            try {
+                const mapCanvas = await html2canvas(originalMap, {
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    scale: 1.5,
+                    ignoreElements: (el) => el.classList && el.classList.contains('leaflet-control-container')
+                });
+                snapshotDataUrl = mapCanvas.toDataURL('image/png');
+            } catch (err) {
+                console.warn("Could not render live Leaflet map snapshot for PDF:", err);
+            }
+        }
+        
+        if (snapshotDataUrl) {
+            mapSectionHTML = `
+                <div class="doc-section">
+                    <h2>2. Plano Satelital del Predio</h2>
+                    <div style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; text-align: center;">
+                        <img src="${snapshotDataUrl}" style="width: 100%; max-height: 350px; object-fit: cover; display: block;">
+                    </div>
+                </div>
+            `;
+        } else {
+            mapSectionHTML = `
+                <div class="doc-section">
+                    <h2>2. Plano Satelital del Predio</h2>
+                    <div style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; color: #64748b; padding: 20px; text-align: center; box-sizing: border-box;">
+                        <span style="font-size: 2rem; margin-bottom: 6px; display: block;">📍</span>
+                        <strong style="color: #334155; font-size: 0.9rem; font-weight: 700; display: block;">Plano de Estaciones en Predio</strong>
+                        <p style="margin: 4px 0 0 0; font-size: 0.78rem; color: #64748b; max-width: 400px; line-height: 1.4;">
+                            ${clientStations.length} estaciones activas registradas para ${clientName}.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        mapSectionHTML = `
+            <div class="doc-section">
+                <h2>2. Plano Satelital del Predio</h2>
+                <div style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; color: #64748b; padding: 20px; text-align: center; box-sizing: border-box;">
+                    <span style="font-size: 2rem; margin-bottom: 6px; display: block;">📍</span>
+                    <strong style="color: #334155; font-size: 0.9rem; font-weight: 700; display: block;">Ubicación Satelital Pendiente</strong>
+                    <p style="margin: 4px 0 0 0; font-size: 0.78rem; color: #64748b; max-width: 400px; line-height: 1.4;">
+                        Las estaciones de este cliente no poseen coordenadas geográficas registradas.
+                    </p>
+                </div>
+            </div>
+        `;
+    }
+
+    // 4. Create printable report wrapper at left: -9999px
     const pdfWrapper = document.createElement('div');
     pdfWrapper.id = 'temp-pdf-wrapper';
     pdfWrapper.style.cssText = `
-        position: fixed;
+        position: absolute;
+        left: -9999px;
         top: 0;
-        left: 0;
-        width: 210mm;
-        height: 100%;
-        overflow: hidden;
-        z-index: -9999;
-        background: transparent;
-        pointer-events: none;
+        width: 794px;
+        background: #ffffff;
+        color: #1e293b;
+        z-index: 1000;
     `;
 
     const reportContainer = document.createElement('div');
@@ -3351,6 +3405,7 @@ async function generatePDFReport() {
         line-height: 1.5;
         width: 794px;
         max-width: none;
+        padding: 20px;
     `;
     
     reportContainer.innerHTML = `
@@ -3391,11 +3446,7 @@ async function generatePDFReport() {
             </table>
         </div>
 
-        <!-- Map Container Area inside PDF -->
-        <div class="doc-section">
-            <h2>2. Plano Satelital del Predio</h2>
-            <div id="pdf-map-placeholder" style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; height: 350px;"></div>
-        </div>
+        ${mapSectionHTML}
         
         <!-- Recommendations block -->
         <div class="doc-section">
@@ -3437,159 +3488,77 @@ async function generatePDFReport() {
     pdfWrapper.appendChild(reportContainer);
     document.body.appendChild(pdfWrapper);
 
-    // 5. Temporarily move map container into report container if map exists and has station coordinates
-    const originalMap = document.getElementById('monitoreo-map');
-    let originalParent = null;
-    let nextSibling = null;
-    const hasMapData = mapStations.length > 0 && leafletMap;
-
-    const pdfMapPlaceholder = reportContainer.querySelector('#pdf-map-placeholder');
-    const bounds = mapStations.map(s => [s.coords.lat, s.coords.lng]);
-    
-    if (hasMapData) {
-        originalParent = originalMap.parentNode;
-        nextSibling = originalMap.nextSibling;
-        pdfMapPlaceholder.appendChild(originalMap);
+    try {
+        const options = {
+            margin: [10, 0, 15, 0],
+            filename: `Reporte_Monitoreo_${clientName.replace(/\s+/g, '_')}_${Date.now()}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+                scale: 2, 
+                useCORS: true,
+                allowTaint: true,
+                logging: false,
+                scrollY: 0,
+                windowWidth: 794
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'] }
+        };
         
-        // Re-draw map and recalculate Leaflet dimensions
-        leafletMap.invalidateSize();
+        const worker = html2pdf().set(options).from(reportContainer);
+        const pdfBlob = await worker.outputPdf('blob');
+        await worker.save();
         
-        // Fit map bounds to make sure the screenshot fits perfectly
-        if (bounds.length > 0) {
-            if (bounds.length === 1) {
-                leafletMap.setView(bounds[0], 17);
-            } else {
-                leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 19 });
-            }
-        }
-    } else {
-        // Render a clean placeholder inside the PDF
-        pdfMapPlaceholder.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #f8fafc; color: #64748b; padding: 40px; text-align: center; box-sizing: border-box; font-family: sans-serif;">
-                <span style="font-size: 2.2rem; margin-bottom: 10px; display: block;">📍</span>
-                <strong style="color: #334155; font-size: 0.95rem; font-weight: 700; display: block;">Ubicación Satelital Pendiente</strong>
-                <p style="margin: 6px 0 0 0; font-size: 0.8rem; color: #64748b; max-width: 320px; line-height: 1.45;">
-                    Las estaciones de este cliente no poseen coordenadas geográficas registradas. Registre una ubicación en el modo instalación para habilitar el plano.
-                </p>
-            </div>
-        `;
-    }
-    
-    // 6. Wait for rendering, then run html2pdf
-    setTimeout(async () => {
-        try {
-            const options = {
-                margin: [10, 0, 15, 0],
-                filename: `Reporte_Monitoreo_${clientName.replace(/\s+/g, '_')}_${Date.now()}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2, 
-                    useCORS: true,
-                    logging: false,
-                    scrollY: 0,
-                    windowWidth: 794
-                },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] }
+        // Auto-save this report to Firebase Storage and Firestore collection `station_reports_sent`
+        if (currentUser && db) {
+            const reportPayloadId = 'rep_sent_' + Date.now();
+            const reportPayload = {
+                id: reportPayloadId,
+                clientId: filterClientId,
+                clientName: clientName,
+                date: new Date().toISOString().split('T')[0],
+                emails: (clientObj && clientObj.email) ? clientObj.email : 'Descargado localmente',
+                notes: `Reporte de cebado generado automáticamente (${clientSummary.inspectedStations} de ${clientSummary.totalStations} estaciones revisadas - Consumo última visita: ${clientSummary.lastVisitAvgConsumption}%, Global: ${clientSummary.avgConsumption}%).`,
+                pdfUrl: ''
             };
-            
-            const worker = html2pdf().from(reportContainer).set(options);
-            const pdfBlob = await worker.outputPdf('blob');
-            await worker.save();
-            
-            // Auto-save this report to Firebase Storage and Firestore collection `station_reports_sent`
-            if (currentUser && db) {
-                const reportPayloadId = 'rep_sent_' + Date.now();
-                const reportPayload = {
-                    id: reportPayloadId,
-                    clientId: filterClientId,
-                    clientName: clientName,
-                    date: new Date().toISOString().split('T')[0],
-                    emails: (clientObj && clientObj.email) ? clientObj.email : 'Descargado localmente',
-                    notes: `Reporte de cebado generado automáticamente (${clientSummary.inspectedStations} de ${clientSummary.totalStations} estaciones revisadas - Consumo última visita: ${clientSummary.lastVisitAvgConsumption}%, Global: ${clientSummary.avgConsumption}%).`,
-                    pdfUrl: ''
-                };
 
-                // Save initial record in Firestore
-                db.collection('users').doc(getActiveUid()).collection('station_reports_sent').doc(reportPayloadId).set(reportPayload)
-                    .then(() => {
-                        console.log("Recorded station report sent metadata in Firestore.");
-                        if (storage) {
-                            const uploadUid = getActiveUid();
-                            storage.ref().child(`users/${uploadUid}/station_reports/${reportPayloadId}.pdf`).put(pdfBlob)
-                                .then(snapshot => snapshot.ref.getDownloadURL())
-                                .then(downloadUrl => {
-                                    return db.collection('users').doc(uploadUid).collection('station_reports_sent').doc(reportPayloadId).update({
-                                        pdfUrl: downloadUrl
+            db.collection('users').doc(getActiveUid()).collection('station_reports_sent').doc(reportPayloadId).set(reportPayload)
+                .then(() => {
+                    console.log("Recorded station report sent metadata in Firestore.");
+                    if (storage) {
+                        const uploadUid = getActiveUid();
+                        storage.ref().child(`users/${uploadUid}/station_reports/${reportPayloadId}.pdf`).put(pdfBlob)
+                            .then(snapshot => snapshot.ref.getDownloadURL())
+                            .then(downloadUrl => {
+                                return db.collection('users').doc(uploadUid).collection('station_reports_sent').doc(reportPayloadId).update({
+                                    pdfUrl: downloadUrl
+                                });
+                            })
+                            .catch(storageErr => {
+                                console.warn("Could not archive station report PDF in Storage, using base64 fallback:", storageErr);
+                                const reader = new FileReader();
+                                reader.readAsDataURL(pdfBlob);
+                                reader.onloadend = function() {
+                                    const base64data = reader.result;
+                                    db.collection('users').doc(uploadUid).collection('station_reports_sent').doc(reportPayloadId).update({
+                                        pdfUrl: base64data
                                     });
-                                })
-                                .catch(storageErr => {
-                                    console.warn("Could not archive station report PDF in Firebase Storage, falling back to base64: ", storageErr);
-                                    const reader = new FileReader();
-                                    reader.readAsDataURL(pdfBlob);
-                                    reader.onloadend = function() {
-                                        const base64data = reader.result;
-                                        db.collection('users').doc(uploadUid).collection('station_reports_sent').doc(reportPayloadId).update({
-                                            pdfUrl: base64data
-                                        }).then(() => {
-                                            console.log("Station report PDF archived as inline base64 in Firestore successfully.");
-                                        }).catch(dbErr => {
-                                            console.error("Failed to archive station report PDF as base64 in Firestore: ", dbErr);
-                                        });
-                                    };
-                                })
-                                .then(() => {
-                                    console.log("Station report PDF archived in Firebase Storage asynchronously.");
-                                });
-                        } else {
-                            // Failsafe: if storage is not available, immediately convert to base64 and update Firestore!
-                            console.warn("Firebase Storage is unavailable, archiving station report PDF as base64 inline in Firestore.");
-                            const reader = new FileReader();
-                            const uploadUid = getActiveUid();
-                            reader.readAsDataURL(pdfBlob);
-                            reader.onloadend = function() {
-                                const base64data = reader.result;
-                                db.collection('users').doc(uploadUid).collection('station_reports_sent').doc(reportPayloadId).update({
-                                    pdfUrl: base64data
-                                }).then(() => {
-                                    console.log("Station report PDF archived as inline base64 successfully without storage.");
-                                }).catch(dbErr => {
-                                    console.error("Failed to save base64 station report PDF without storage: ", dbErr);
-                                });
-                            };
-                        }
-                    })
-                    .catch(err => {
-                        console.error("Failed to automatically record station report:", err);
-                    });
-            }
-        } catch (err) {
-            console.error("PDF generation failed:", err);
-            alert("⚠️ Error al generar el PDF. Asegúrate de tener conexión a internet para descargar las imágenes del mapa.");
-        } finally {
-            if (hasMapData && originalParent) {
-                // Restore map back to its UI home!
-                originalParent.insertBefore(originalMap, nextSibling);
-                
-                // Re-invalidate UI map layout
-                leafletMap.invalidateSize();
-                if (bounds.length > 0) {
-                    if (bounds.length === 1) {
-                        leafletMap.setView(bounds[0], 17);
-                    } else {
-                        leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 19 });
+                                };
+                            });
                     }
-                }
-            }
-            
-            // Remove printable report template elements from DOM
-            pdfWrapper.remove();
-            
-            // Restore button text
-            btn.disabled = false;
-            btn.innerText = originalText;
+                })
+                .catch(err => console.error("Failed to record station report:", err));
         }
-    }, 400); // 400ms wait to allow Leaflet mapping to fully settle in PDF div
+    } catch (err) {
+        console.error("PDF generation failed:", err);
+        alert("⚠️ Error al generar el PDF. Ocurrió un problema inesperado.");
+    } finally {
+        if (pdfWrapper && pdfWrapper.parentNode) {
+            pdfWrapper.parentNode.removeChild(pdfWrapper);
+        }
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
 }
 
 // Expose deleteAssignment and other handlers globally
