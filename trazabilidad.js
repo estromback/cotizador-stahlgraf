@@ -1519,6 +1519,7 @@ function getClientMonitoreoSummary() {
         
         let inspectedCount = 0;
         let sumAvgConsumption = 0;
+        let sumLastConsumption = 0;
         let criticalCount = 0;
         let trendUpCount = 0;
         let trendDownCount = 0;
@@ -1530,6 +1531,9 @@ function getClientMonitoreoSummary() {
             if (analytics.recordsCount > 0) {
                 inspectedCount++;
                 sumAvgConsumption += analytics.avg;
+                if (analytics.latestRecord) {
+                    sumLastConsumption += getConsumptionNumeric(analytics.latestRecord.consumption);
+                }
                 
                 // A station is critical only if it has >= 5 consecutive inspections of >= 75% consumption
                 if (isStationCritical(stationKey)) {
@@ -1542,6 +1546,7 @@ function getClientMonitoreoSummary() {
         });
         
         const avgConsumption = inspectedCount > 0 ? Math.round(sumAvgConsumption / inspectedCount) : 0;
+        const lastVisitAvgConsumption = inspectedCount > 0 ? Math.round(sumLastConsumption / inspectedCount) : 0;
         
         let overallTrend = 'stable';
         if (trendUpCount > trendDownCount) overallTrend = 'up';
@@ -1555,6 +1560,7 @@ function getClientMonitoreoSummary() {
             totalStations: clientStations.length,
             inspectedStations: inspectedCount,
             avgConsumption,
+            lastVisitAvgConsumption,
             criticalCount,
             trend: overallTrend
         });
@@ -1632,14 +1638,18 @@ function renderMonitoreo() {
                                 📍 ${c.address}
                             </p>
                             
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-                                <div style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.04);">
-                                    <span style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Estaciones</span>
-                                    <span style="font-size: 1.05rem; font-weight: 700; color: #fff;">${c.inspectedStations} / ${c.totalStations}</span>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                                <div style="background: rgba(255,255,255,0.02); padding: 8px 4px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.04);">
+                                    <span style="font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Estaciones</span>
+                                    <span style="font-size: 0.95rem; font-weight: 700; color: #fff;">${c.inspectedStations}/${c.totalStations}</span>
                                 </div>
-                                <div style="background: rgba(255,255,255,0.02); padding: 8px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.04);">
-                                    <span style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Promedio</span>
-                                    <span style="font-size: 1.05rem; font-weight: 700; color: ${c.avgConsumption > 50 ? '#ef4444' : '#10b981'};">${c.avgConsumption}%</span>
+                                <div style="background: rgba(255,255,255,0.02); padding: 8px 4px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.04);">
+                                    <span style="font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Últ. Visita</span>
+                                    <span style="font-size: 0.95rem; font-weight: 700; color: ${c.lastVisitAvgConsumption > 50 ? '#ef4444' : c.lastVisitAvgConsumption > 20 ? '#fbbf24' : '#10b981'};">${c.lastVisitAvgConsumption}%</span>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.02); padding: 8px 4px; border-radius: 8px; text-align: center; border: 1px solid rgba(255,255,255,0.04);">
+                                    <span style="font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Prom. Global</span>
+                                    <span style="font-size: 0.95rem; font-weight: 700; color: ${c.avgConsumption > 50 ? '#ef4444' : c.avgConsumption > 20 ? '#fbbf24' : '#10b981'};">${c.avgConsumption}%</span>
                                 </div>
                             </div>
                         </div>
@@ -3187,7 +3197,7 @@ async function generatePDFReport() {
             <div style="margin-top: 15px; padding: 15px; border-left: 5px solid #ef4444; background: #fef2f2; border-radius: 6px;">
                 <h4 style="margin: 0 0 6px 0; color: #991b1b; font-size: 0.95rem; font-weight: 700;">🚨 Recomendaciones de Acción Inmediata</h4>
                 <p style="margin: 0; font-size: 0.82rem; color: #7f1d1d; line-height: 1.45;">
-                    Se han identificado <strong>${clientSummary.criticalCount} estaciones en estado crítico</strong> (consumo promedio de cebo superior al 50% o con incidentes recientes de consumo del 75%-100%). Se aconsejan las siguientes medidas de control de plagas:
+                    Se han identificado <strong>${clientSummary.criticalCount} estaciones en estado crítico</strong> (consumo promedio elevado superior al 50% o con incidentes recientes de consumo del 75%-100%). Se aconsejan las siguientes medidas de control de plagas:
                 </p>
                 <ul style="margin: 6px 0 0 0; padding-left: 20px; font-size: 0.8rem; color: #7f1d1d; line-height: 1.45;">
                     <li><strong>Aumentar frecuencia</strong>: Acortar el ciclo de revisión a visitas semanales en las zonas de las estaciones afectadas.</li>
@@ -3196,12 +3206,12 @@ async function generatePDFReport() {
                 </ul>
             </div>
         `;
-    } else if (includeAlerts && clientSummary.avgConsumption > 20) {
+    } else if (includeAlerts && (clientSummary.lastVisitAvgConsumption > 20 || clientSummary.avgConsumption > 20)) {
         recommendationsHTML = `
             <div style="margin-top: 15px; padding: 15px; border-left: 5px solid #fbbf24; background: #fffbef; border-radius: 6px;">
                 <h4 style="margin: 0 0 6px 0; color: #92400e; font-size: 0.95rem; font-weight: 700;">⚠️ Recomendaciones de Control Preventivo</h4>
                 <p style="margin: 0; font-size: 0.82rem; color: #78350f; line-height: 1.45;">
-                    Se detectó una actividad moderada en el predio (consumo promedio del <strong>${clientSummary.avgConsumption}%</strong>). Se sugiere:
+                    Se detectó actividad moderada en el predio (consumo en última visita: <strong>${clientSummary.lastVisitAvgConsumption}%</strong> | promedio global: <strong>${clientSummary.avgConsumption}%</strong>). Se sugiere:
                 </p>
                 <ul style="margin: 6px 0 0 0; padding-left: 20px; font-size: 0.8rem; color: #78350f; line-height: 1.45;">
                     <li><strong>Monitoreo Quincenal</strong>: Continuar con visitas quincenales regulares para supervisar los focos intermedios.</li>
@@ -3215,7 +3225,7 @@ async function generatePDFReport() {
             <div style="margin-top: 15px; padding: 15px; border-left: 5px solid #10b981; background: #ecfdf5; border-radius: 6px;">
                 <h4 style="margin: 0 0 6px 0; color: #065f46; font-size: 0.95rem; font-weight: 700;">✅ Estado de Monitoreo: Bajo Control</h4>
                 <p style="margin: 0; font-size: 0.82rem; color: #064e3b; line-height: 1.45;">
-                    El predio presenta niveles muy bajos de actividad de roedores (consumo promedio del <strong>${clientSummary.avgConsumption}%</strong>). Se sugiere:
+                    El predio presenta niveles muy bajos de actividad de roedores (consumo en última visita: <strong>${clientSummary.lastVisitAvgConsumption}%</strong> | promedio global: <strong>${clientSummary.avgConsumption}%</strong>). Se sugiere:
                 </p>
                 <ul style="margin: 6px 0 0 0; padding-left: 20px; font-size: 0.8rem; color: #064e3b; line-height: 1.45;">
                     <li><strong>Mantenimiento Regular</strong>: Mantener el ciclo ordinario mensual de visitas técnicas para recambiar cebo deteriorado.</li>
@@ -3361,16 +3371,22 @@ async function generatePDFReport() {
             <h2>1. Información del Cliente & Resumen</h2>
             <table class="doc-table-simple">
                 <tr>
-                    <th style="width: 25%; background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Cliente</th>
-                    <td style="width: 40%; font-weight: 600; padding: 6px; border: 1px solid #ddd;">${clientName}</td>
-                    <th style="width: 20%; background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Revisadas</th>
+                    <th style="width: 22%; background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Cliente</th>
+                    <td style="width: 38%; font-weight: 600; padding: 6px; border: 1px solid #ddd;">${clientName}</td>
+                    <th style="width: 25%; background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Estaciones Revisadas</th>
                     <td style="width: 15%; padding: 6px; border: 1px solid #ddd;">${clientSummary.inspectedStations} / ${clientSummary.totalStations}</td>
                 </tr>
                 <tr>
                     <th style="background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Dirección</th>
                     <td style="padding: 6px; border: 1px solid #ddd;">${clientAddress}</td>
-                    <th style="background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Consumo Promedio</th>
-                    <td style="font-weight: 700; color: ${clientSummary.avgConsumption > 50 ? '#ef4444' : '#10b981'}; padding: 6px; border: 1px solid #ddd;">${clientSummary.avgConsumption}%</td>
+                    <th style="background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Consumo Última Visita</th>
+                    <td style="font-weight: 700; color: ${clientSummary.lastVisitAvgConsumption > 50 ? '#ef4444' : clientSummary.lastVisitAvgConsumption > 20 ? '#d97706' : '#10b981'}; padding: 6px; border: 1px solid #ddd;">${clientSummary.lastVisitAvgConsumption}%</td>
+                </tr>
+                <tr>
+                    <th style="background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Tendencia General</th>
+                    <td style="padding: 6px; border: 1px solid #ddd;">${clientSummary.trend === 'up' ? '📈 En Alza' : clientSummary.trend === 'down' ? '📉 En Baja' : '➡️ Estable'}</td>
+                    <th style="background: #f8f9fa; font-weight: bold; text-align: left; padding: 6px; border: 1px solid #ddd;">Consumo Prom. Global</th>
+                    <td style="font-weight: 700; color: ${clientSummary.avgConsumption > 50 ? '#ef4444' : clientSummary.avgConsumption > 20 ? '#d97706' : '#10b981'}; padding: 6px; border: 1px solid #ddd;">${clientSummary.avgConsumption}%</td>
                 </tr>
             </table>
         </div>
@@ -3490,7 +3506,7 @@ async function generatePDFReport() {
                     clientName: clientName,
                     date: new Date().toISOString().split('T')[0],
                     emails: (clientObj && clientObj.email) ? clientObj.email : 'Descargado localmente',
-                    notes: `Reporte de cebado generado automáticamente (${clientSummary.inspectedCount} de ${clientSummary.totalCount} estaciones revisadas).`,
+                    notes: `Reporte de cebado generado automáticamente (${clientSummary.inspectedStations} de ${clientSummary.totalStations} estaciones revisadas - Consumo última visita: ${clientSummary.lastVisitAvgConsumption}%, Global: ${clientSummary.avgConsumption}%).`,
                     pdfUrl: ''
                 };
 
