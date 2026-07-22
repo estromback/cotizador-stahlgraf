@@ -23,6 +23,10 @@ let currentUser = null;
 let currentQuoteId = null;
 let loadedCorrelative = null;
 
+function getActiveUid() {
+    return localStorage.getItem('stahlgraf_target_uid') || (currentUser ? currentUser.uid : null);
+}
+
 let storage = null;
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
@@ -237,18 +241,17 @@ function updateSettingsUI() {
 
 function saveData() {
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
-    
-    // Sync to Firebase if logged in
-    if (currentUser && db) {
-        db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
-            .catch(err => console.error("Error saving to Firebase:", err));
+    const activeUid = getActiveUid();
+    if (activeUid && db) {
+        db.collection('users').doc(activeUid).set(appData, { merge: true })
+            .catch(err => console.error("Error saving data to Firebase:", err));
     }
 }
 
 function syncFromFirebase() {
-    if (!currentUser || !db) return;
-    
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) return;
+    db.collection('users').doc(activeUid).get().then(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
             if (typeof mergeAppData === 'function') {
@@ -891,7 +894,8 @@ function setupEventListeners() {
     const btnImport = document.getElementById('btn-import-clients');
     if (btnImport) {
         btnImport.addEventListener('click', async () => {
-            if (!currentUser || !db) {
+            const activeUid = getActiveUid();
+            if (!activeUid || !db) {
                 alert("Debes iniciar sesión con Google primero para importar desde la nube.");
                 return;
             }
@@ -900,7 +904,7 @@ function setupEventListeners() {
             btnImport.disabled = true;
 
             try {
-                const snap = await db.collection('users').doc(currentUser.uid).collection('quotes').get();
+                const snap = await db.collection('users').doc(activeUid).collection('quotes').get();
                 if (snap.empty) {
                     alert("No se encontraron cotizaciones previas en la nube.");
                     return;
@@ -1160,7 +1164,7 @@ async function generatePDF() {
             saveQuote(true).then(saved => {
                 if (saved && storage && currentQuoteId) {
                     const uploadQuoteId = currentQuoteId;
-                    const uploadUid = currentUser.uid;
+                    const uploadUid = getActiveUid();
                     storage.ref().child(`users/${uploadUid}/quotes/${uploadQuoteId}.pdf`).put(pdfBlob)
                         .then(snapshot => snapshot.ref.getDownloadURL())
                         .then(downloadUrl => {
@@ -1211,7 +1215,8 @@ function resetForm() {
 }
 
 async function saveQuote(silent = false) {
-    if (!currentUser || !db) {
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) {
         alert("Atención: No has iniciado sesión con Google. La cotización NO se guardará en la nube, pero el PDF sí se generará.");
         return false;
     }
@@ -1254,11 +1259,11 @@ async function saveQuote(silent = false) {
             }
             quoteData.correlative = loadedCorrelative;
             
-            const ref = await db.collection('users').doc(currentUser.uid).collection('quotes').add(quoteData);
+            const ref = await db.collection('users').doc(activeUid).collection('quotes').add(quoteData);
             currentQuoteId = ref.id;
         } else {
             quoteData.correlative = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
-            await db.collection('users').doc(currentUser.uid).collection('quotes').doc(currentQuoteId).set(quoteData, { merge: true });
+            await db.collection('users').doc(activeUid).collection('quotes').doc(currentQuoteId).set(quoteData, { merge: true });
         }
         
         if (!silent) alert("✅ Cotización guardada exitosamente en Firestore.");
@@ -1284,7 +1289,8 @@ async function saveQuote(silent = false) {
 }
 
 async function syncToCRM(quoteData, quoteId) {
-    if (!currentUser || !db) return;
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) return;
     
     const clientName = quoteData.clientName;
     const totalStr = quoteData.totalStr;
@@ -1294,11 +1300,11 @@ async function syncToCRM(quoteData, quoteId) {
     const dateStr = new Date().toLocaleString();
     
     try {
-        const snapQuote = await db.collection('users').doc(currentUser.uid).collection('crm').where('quoteId', '==', quoteId).limit(1).get();
+        const snapQuote = await db.collection('users').doc(activeUid).collection('crm').where('quoteId', '==', quoteId).limit(1).get();
         
         if (!snapQuote.empty) {
             const docId = snapQuote.docs[0].id;
-            await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
+            await db.collection('users').doc(activeUid).collection('crm').doc(docId).update({
                 client: clientName,
                 phone: phone,
                 email: email,
@@ -1307,7 +1313,7 @@ async function syncToCRM(quoteData, quoteId) {
             return;
         }
 
-        const snapClient = await db.collection('users').doc(currentUser.uid).collection('crm').where('client', '==', clientName).get();
+        const snapClient = await db.collection('users').doc(activeUid).collection('crm').where('client', '==', clientName).get();
         let targetDoc = null;
 
         if (!snapClient.empty) {
@@ -1322,7 +1328,7 @@ async function syncToCRM(quoteData, quoteId) {
 
         if (targetDoc) {
             const docId = targetDoc.id;
-            await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
+            await db.collection('users').doc(activeUid).collection('crm').doc(docId).update({
                 email: email,
                 comments: firebase.firestore.FieldValue.arrayUnion({
                     text: `Se generó la Cotización #${correlative} por un total de ${totalStr}.`,
@@ -1343,7 +1349,7 @@ async function syncToCRM(quoteData, quoteId) {
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 comments: []
             };
-            await db.collection('users').doc(currentUser.uid).collection('crm').add(payload);
+            await db.collection('users').doc(activeUid).collection('crm').add(payload);
         }
     } catch(e) {
         console.error("No se pudo sincronizar con CRM automáticamente", e);
@@ -1352,14 +1358,15 @@ async function syncToCRM(quoteData, quoteId) {
 
 window.tempHistorySnap = null;
 async function loadHistoryUI() {
-    if (!currentUser || !db) {
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) {
         document.getElementById('history-list').innerHTML = '<p>Inicia sesión primero para ver tu historial.</p>';
         return;
     }
     
     document.getElementById('history-list').innerHTML = '<p>Cargando de la nube...</p>';
     try {
-        const snap = await db.collection('users').doc(currentUser.uid).collection('quotes')
+        const snap = await db.collection('users').doc(activeUid).collection('quotes')
           .orderBy('timestamp', 'desc').limit(50).get();
           
         if (snap.empty) {
@@ -1423,18 +1430,20 @@ window.loadQuoteFromDB = function(id, silent = false) {
 
 window.deleteQuoteFromDB = async function(id) {
     if(!confirm("¿Estás seguro de eliminar esta cotización definitivamente?")) return;
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) return;
     try {
         // Delete PDF from Firebase Storage if storage is initialized
-        if (storage && currentUser) {
+        if (storage) {
             try {
-                await storage.ref().child(`users/${currentUser.uid}/quotes/${id}.pdf`).delete();
+                await storage.ref().child(`users/${activeUid}/quotes/${id}.pdf`).delete();
                 console.log("Deleted quote PDF from Firebase Storage.");
             } catch (storageErr) {
                 // If it doesn't exist (e.g. was base64 or legacy), just log it
                 console.log("No Storage PDF to delete or already removed:", storageErr.message);
             }
         }
-        await db.collection('users').doc(currentUser.uid).collection('quotes').doc(id).delete();
+        await db.collection('users').doc(activeUid).collection('quotes').doc(id).delete();
         if (currentQuoteId === id) resetForm(); // If it was loaded, reset UI
         loadHistoryUI();
     } catch(err) {

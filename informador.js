@@ -22,6 +22,10 @@ let auth = null;
 let storage = null;
 let currentUser = null;
 
+function getActiveUid() {
+    return localStorage.getItem('stahlgraf_target_uid') || (currentUser ? currentUser.uid : null);
+}
+
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
@@ -295,7 +299,8 @@ async function saveReportToCloud(silent = false) {
             for (let i = 0; i < currentPhotos.length; i++) {
                 if (currentPhotos[i].dataUrl.startsWith('data:image')) {
                     try {
-                        const photoRef = storage.ref().child(`users/${currentUser.uid}/reports/${reportId}/photos/photo_${Date.now()}_${i}.jpg`);
+                        const activeUid = getActiveUid();
+                        const photoRef = storage.ref().child(`users/${activeUid}/reports/${reportId}/photos/photo_${Date.now()}_${i}.jpg`);
                         await photoRef.putString(currentPhotos[i].dataUrl, 'data_url');
                         const downloadUrl = await photoRef.getDownloadURL();
                         photoUrls.push(downloadUrl);
@@ -331,7 +336,8 @@ async function saveReportToCloud(silent = false) {
             timestamp: timestamp
         };
 
-        await db.collection('users').doc(currentUser.uid).collection('reports').doc(reportId).set(reportData);
+        const activeUid = getActiveUid();
+        await db.collection('users').doc(activeUid).collection('reports').doc(reportId).set(reportData);
 
         // Increment correlative
         let appData = {};
@@ -342,8 +348,8 @@ async function saveReportToCloud(silent = false) {
         appData.reportCorrelative = (appData.reportCorrelative || 1) + 1;
         localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
         
-        if (currentUser && db) {
-            db.collection('users').doc(currentUser.uid).set(appData, { merge: true }).catch(e => console.error(e));
+        if (activeUid && db) {
+            db.collection('users').doc(activeUid).set(appData, { merge: true }).catch(e => console.error(e));
         }
         
         loadedReportCorrelative = appData.reportCorrelative;
@@ -597,10 +603,11 @@ function loadClientsFromFirebase() {
         if (appData.clients) {
             clientsList = appData.clients;
         }
-    }
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) return;
     
     // Try to sync with firebase user doc
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
+    db.collection('users').doc(activeUid).get().then(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
             if (cloudData.clients) {
@@ -682,8 +689,9 @@ function saveClientToDirectorySilently(name, address, phone, email) {
     clientsList = appData.clients;
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
     
-    if (currentUser && db) {
-        db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
+    const activeUid = getActiveUid();
+    if (activeUid && db) {
+        db.collection('users').doc(activeUid).set(appData, { merge: true })
             .catch(err => console.error("Error saving client directory from Informador:", err));
     }
 }
@@ -704,10 +712,11 @@ async function loadHistoryUI() {
     const listEl = document.getElementById('history-list');
     listEl.innerHTML = '<p style="color: #666;">Cargando informes...</p>';
 
-    if (!currentUser || !db) return;
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) return;
 
     try {
-        const snapshot = await db.collection('users').doc(currentUser.uid).collection('reports').orderBy('timestamp', 'desc').limit(20).get();
+        const snapshot = await db.collection('users').doc(activeUid).collection('reports').orderBy('timestamp', 'desc').limit(20).get();
         if (snapshot.empty) {
             listEl.innerHTML = '<p style="color: #666;">No hay informes guardados aún.</p>';
             return;
@@ -739,16 +748,17 @@ async function loadHistoryUI() {
                 const id = e.target.getAttribute('data-id');
                 if (confirm('¿Estás seguro de que deseas eliminar este informe del historial de forma permanente?')) {
                     try {
+                        const actUid = getActiveUid();
                         // Delete PDF from Firebase Storage if storage is initialized
-                        if (storage && currentUser) {
+                        if (storage && actUid) {
                             try {
-                                await storage.ref().child(`users/${currentUser.uid}/reports/${id}.pdf`).delete();
+                                await storage.ref().child(`users/${actUid}/reports/${id}.pdf`).delete();
                                 console.log("Deleted report PDF from Firebase Storage.");
                             } catch (storageErr) {
                                 console.log("No Storage PDF to delete or already removed:", storageErr.message);
                             }
                         }
-                        await db.collection('users').doc(currentUser.uid).collection('reports').doc(id).delete();
+                        await db.collection('users').doc(actUid).collection('reports').doc(id).delete();
                         loadHistoryUI(); // Reload list
                     } catch (error) {
                         alert("Error al eliminar: " + error.message);

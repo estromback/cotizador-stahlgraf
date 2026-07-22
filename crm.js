@@ -22,6 +22,10 @@ let db = null;
 let auth = null;
 let currentUser = null;
 
+function getActiveUid() {
+    return localStorage.getItem('stahlgraf_target_uid') || (currentUser ? currentUser.uid : null);
+}
+
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
@@ -56,8 +60,9 @@ function loadData() {
 }
  
 function loadUserConfig() {
-    if (!currentUser) return;
-    db.collection('users').doc(currentUser.uid).get().then(doc => {
+    const activeUid = getActiveUid();
+    if (!activeUid) return;
+    db.collection('users').doc(activeUid).get().then(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
             if (typeof mergeAppData === 'function') {
@@ -127,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!currentUser) return alert("Debes iniciar sesión primero.");
             
             // Build the URL to contacto.html
-            const formUrl = window.location.origin + window.location.pathname.replace('crm.html', 'contacto.html') + '?uid=' + currentUser.uid;
+            const formUrl = window.location.origin + window.location.pathname.replace('crm.html', 'contacto.html') + '?uid=' + getActiveUid();
             
             navigator.clipboard.writeText(formUrl).then(() => {
                 const oldHTML = copyFormBtn.innerHTML;
@@ -253,9 +258,10 @@ function normalizeId(str) {
 }
 
 async function loadCardsFromFirebase() {
-    if (!currentUser) return;
+    const activeUid = getActiveUid();
+    if (!activeUid) return;
     
-    db.collection('users').doc(currentUser.uid).collection('crm')
+    db.collection('users').doc(activeUid).collection('crm')
         .onSnapshot(snap => {
             crmCards = [];
             snap.forEach(doc => {
@@ -570,12 +576,13 @@ async function saveCard() {
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
+        const activeUid = getActiveUid();
         if (id) {
-            await db.collection('users').doc(currentUser.uid).collection('crm').doc(id).update(payload);
+            await db.collection('users').doc(activeUid).collection('crm').doc(id).update(payload);
         } else {
             payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
             payload.comments = [];
-            await db.collection('users').doc(currentUser.uid).collection('crm').add(payload);
+            await db.collection('users').doc(activeUid).collection('crm').add(payload);
         }
         
         // Auto-save client to directory
@@ -592,13 +599,14 @@ async function saveCard() {
 }
 
 async function deleteCard() {
-    if (!currentUser) return;
+    const activeUid = getActiveUid();
+    if (!activeUid) return;
     const id = document.getElementById('card-id').value;
     if (!id) return;
     
     if (confirm("¿Seguro que deseas eliminar este registro?")) {
         try {
-            await db.collection('users').doc(currentUser.uid).collection('crm').doc(id).delete();
+            await db.collection('users').doc(activeUid).collection('crm').doc(id).delete();
             document.getElementById('card-modal').classList.remove('active');
         } catch(e) {
             alert("Error al eliminar.");
@@ -607,16 +615,10 @@ async function deleteCard() {
 }
 
 async function moveCard(cardId, newCol) {
-    if (!currentUser) return;
-    const card = crmCards.find(c => c.id === cardId);
-    if (!card || card.column === newCol) return;
-
-    // Optimistic update
-    card.column = newCol;
-    renderCards();
-    
+    const activeUid = getActiveUid();
+    if (!activeUid) return;
     try {
-        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+        await db.collection('users').doc(activeUid).collection('crm').doc(cardId).update({
             column: newCol,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -628,25 +630,22 @@ async function moveCard(cardId, newCol) {
 }
 
 async function addComment() {
-    if (!currentUser) return;
-    const cardId = document.getElementById('card-id').value;
-    if (!cardId) {
-        alert("Debes guardar el registro nuevo antes de agregar comentarios.");
-        return;
-    }
-
+    const activeUid = getActiveUid();
+    if (!activeUid) return alert("Debes iniciar sesión para agregar comentarios.");
     const textInput = document.getElementById('new-comment-text');
     const text = textInput.value.trim();
     if (!text) return;
+    const cardId = document.getElementById('card-id').value;
+    if (!cardId) return;
 
     const btn = document.getElementById('btn-add-comment');
     btn.disabled = true;
 
     try {
         const now = new Date();
-        const dateStr = now.toLocaleString(); // e.g. "10/24/2023, 10:30:00 AM"
+        const dateStr = now.toLocaleString();
 
-        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+        await db.collection('users').doc(activeUid).collection('crm').doc(cardId).update({
             comments: firebase.firestore.FieldValue.arrayUnion({
                 text: text,
                 date: dateStr
@@ -655,8 +654,6 @@ async function addComment() {
         });
         
         textInput.value = '';
-        // Automatically close/reopen or rely on loadCardsFromFirebase snapshot to update UI?
-        // Let's just update the modal UI manually so it feels instant
         const commentsList = document.getElementById('card-comments-list');
         if (commentsList.innerHTML.includes('No hay comentarios aún')) commentsList.innerHTML = '';
         
@@ -738,7 +735,7 @@ function renderModalComments(card) {
                 const newText = textarea.value.trim();
                 if (!newText) return;
                 
-                await updateCardComment(card.id, index, newText);
+                await updateComment(index, newText);
                 card.comments[index].text = newText;
                 renderModalComments(card);
             };
@@ -747,7 +744,7 @@ function renderModalComments(card) {
         deleteLink.onclick = async (e) => {
             e.preventDefault();
             if (confirm("¿Seguro que deseas eliminar este comentario?")) {
-                await deleteCardComment(card.id, index);
+                await deleteComment(index);
                 card.comments.splice(index, 1);
                 renderModalComments(card);
             }
@@ -758,35 +755,41 @@ function renderModalComments(card) {
     commentsList.scrollTop = commentsList.scrollHeight;
 }
 
-async function updateCardComment(cardId, index, newText) {
-    if (!currentUser || !db) return;
+async function updateComment(index, newText) {
+    const activeUid = getActiveUid();
+    if (!activeUid) return;
+    const cardId = document.getElementById('card-id').value;
+    if (!cardId) return;
     const card = crmCards.find(c => c.id === cardId);
-    if (!card || !card.comments || !card.comments[index]) return;
-
-    const updatedComments = [...card.comments];
-    updatedComments[index].text = newText;
+    if (!card) return;
 
     try {
-        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+        const updatedComments = [...(card.comments || [])];
+        updatedComments[index].text = newText;
+
+        await db.collection('users').doc(activeUid).collection('crm').doc(cardId).update({
             comments: updatedComments,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
     } catch (e) {
         console.error(e);
-        alert("Error al actualizar el comentario.");
+        alert("Error al actualizar comentario.");
     }
 }
 
-async function deleteCardComment(cardId, index) {
-    if (!currentUser || !db) return;
+async function deleteComment(index) {
+    const activeUid = getActiveUid();
+    if (!activeUid) return;
+    const cardId = document.getElementById('card-id').value;
+    if (!cardId) return;
     const card = crmCards.find(c => c.id === cardId);
-    if (!card || !card.comments || !card.comments[index]) return;
-
-    const updatedComments = [...card.comments];
-    updatedComments.splice(index, 1);
+    if (!card) return;
 
     try {
-        await db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId).update({
+        const updatedComments = [...(card.comments || [])];
+        updatedComments.splice(index, 1);
+
+        await db.collection('users').doc(activeUid).collection('crm').doc(cardId).update({
             comments: updatedComments,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -881,14 +884,16 @@ function saveClientToDirectorySilently(name, phone, email) {
     clientsList = appData.clients;
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
     
-    if (currentUser && db) {
-        db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
+    const activeUid = getActiveUid();
+    if (activeUid && db) {
+        db.collection('users').doc(activeUid).set(appData, { merge: true })
             .catch(err => console.error("Error saving client directory from CRM:", err));
     }
 }
 
 function syncCrmClientsToDirectory() {
-    if (!currentUser || !db || !isUserConfigLoaded) return;
+    const activeUid = getActiveUid();
+    if (!activeUid || !db || !isUserConfigLoaded) return;
     if (crmCards.length === 0) return;
 
     let appDataLocal = {};
@@ -953,7 +958,7 @@ function syncCrmClientsToDirectory() {
         clientsList = appDataLocal.clients;
         localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appDataLocal));
         
-        db.collection('users').doc(currentUser.uid).set(appDataLocal, { merge: true })
+        db.collection('users').doc(activeUid).set(appDataLocal, { merge: true })
             .then(() => {
                 console.log("Client directory auto-synchronized with CRM cards.");
             })

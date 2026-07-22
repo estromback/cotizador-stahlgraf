@@ -23,6 +23,10 @@ let auth = null;
 let storage = null;
 let currentUser = null;
 
+function getActiveUid() {
+    return localStorage.getItem('stahlgraf_target_uid') || (currentUser ? currentUser.uid : null);
+}
+
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     try {
         firebase.initializeApp(firebaseConfig);
@@ -55,8 +59,9 @@ function loadData() {
 
 function saveData() {
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
-    if (currentUser && db) {
-        db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
+    const activeUid = getActiveUid();
+    if (activeUid && db) {
+        db.collection('users').doc(activeUid).set(appData, { merge: true })
             .catch(err => console.error("Error saving clients list to Firebase:", err));
     }
 }
@@ -70,9 +75,25 @@ if (auth) {
         const syncIcon = document.getElementById('sync-icon');
         
         if (user) {
-            syncText.innerText = "Conectado";
+            syncText.innerText = user.email;
             syncIcon.innerText = "🟢";
-            syncFromFirebase();
+            
+            const emailKey = user.email.toLowerCase().trim();
+            db.collection('user_roles').doc(emailKey).get().then(doc => {
+                if (doc.exists) {
+                    const roleData = doc.data();
+                    localStorage.setItem('stahlgraf_user_role', roleData.role || 'tech');
+                    localStorage.setItem('stahlgraf_target_uid', roleData.ownerUid || user.uid);
+                    if (roleData.linkedClientId) {
+                        localStorage.setItem('stahlgraf_linked_client_id', roleData.linkedClientId);
+                        localStorage.setItem('stahlgraf_client_name', roleData.clientName || '');
+                    }
+                }
+                syncFromFirebase();
+            }).catch(err => {
+                console.error("Error checking user role:", err);
+                syncFromFirebase();
+            });
         } else {
             syncText.innerText = "Ingresar para Sync";
             syncIcon.innerText = '☁️';
@@ -85,9 +106,10 @@ if (auth) {
 }
 
 function syncFromFirebase() {
-    if (!currentUser || !db) return;
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) return;
     if (userDocListener) userDocListener();
-    userDocListener = db.collection('users').doc(currentUser.uid).onSnapshot(doc => {
+    userDocListener = db.collection('users').doc(activeUid).onSnapshot(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
             if (typeof mergeAppData === 'function') {
@@ -316,17 +338,18 @@ async function deleteClientCascading(id) {
 
     if (cascade) {
         try {
+            const activeUid = getActiveUid();
             // Delete CRM cards
-            const crmSnap = await db.collection('users').doc(currentUser.uid).collection('crm').where('client', '==', client.name).get();
+            const crmSnap = await db.collection('users').doc(activeUid).collection('crm').where('client', '==', client.name).get();
             const crmBatch = db.batch();
             crmSnap.forEach(doc => crmBatch.delete(doc.ref));
             await crmBatch.commit();
 
             // Delete Quotes
-            const quotesSnap = await db.collection('users').doc(currentUser.uid).collection('quotes').where('clientName', '==', client.name).get();
+            const quotesSnap = await db.collection('users').doc(activeUid).collection('quotes').where('clientName', '==', client.name).get();
             if (storage) {
                 const quoteDeletePromises = quotesSnap.docs.map(quoteDoc => {
-                    return storage.ref().child(`users/${currentUser.uid}/quotes/${quoteDoc.id}.pdf`).delete()
+                    return storage.ref().child(`users/${activeUid}/quotes/${quoteDoc.id}.pdf`).delete()
                         .then(() => console.log(`Deleted quote PDF ${quoteDoc.id} from Storage.`))
                         .catch(err => console.log(`No Storage PDF to delete for quote ${quoteDoc.id}:`, err.message));
                 });
@@ -337,10 +360,10 @@ async function deleteClientCascading(id) {
             await quotesBatch.commit();
 
             // Delete Reports
-            const reportsSnap = await db.collection('users').doc(currentUser.uid).collection('reports').where('clientName', '==', client.name).get();
+            const reportsSnap = await db.collection('users').doc(activeUid).collection('reports').where('clientName', '==', client.name).get();
             if (storage) {
                 const reportDeletePromises = reportsSnap.docs.map(reportDoc => {
-                    return storage.ref().child(`users/${currentUser.uid}/reports/${reportDoc.id}.pdf`).delete()
+                    return storage.ref().child(`users/${activeUid}/reports/${reportDoc.id}.pdf`).delete()
                         .then(() => console.log(`Deleted report PDF ${reportDoc.id} from Storage.`))
                         .catch(err => console.log(`No Storage PDF to delete for report ${reportDoc.id}:`, err.message));
                 });
@@ -351,10 +374,10 @@ async function deleteClientCascading(id) {
             await reportsBatch.commit();
 
             // Delete Station Reports Sent (Cebado)
-            const stationReportsSnap = await db.collection('users').doc(currentUser.uid).collection('station_reports_sent').where('clientName', '==', client.name).get();
+            const stationReportsSnap = await db.collection('users').doc(activeUid).collection('station_reports_sent').where('clientName', '==', client.name).get();
             if (storage) {
                 const stationReportDeletePromises = stationReportsSnap.docs.map(srDoc => {
-                    return storage.ref().child(`users/${currentUser.uid}/station_reports/${srDoc.id}.pdf`).delete()
+                    return storage.ref().child(`users/${activeUid}/station_reports/${srDoc.id}.pdf`).delete()
                         .then(() => console.log(`Deleted station report PDF ${srDoc.id} from Storage.`))
                         .catch(err => console.log(`No Storage PDF to delete for station report ${srDoc.id}:`, err.message));
                 });
@@ -527,16 +550,17 @@ async function loadClientHistoryFromFirebaseAndLocal(clientId, clientName) {
     const localReportsSent = appData.reportsSent || [];
     currentClientReportsSent = localReportsSent.filter(rs => rs.clientId === clientId || rs.clientName === clientName);
     
-    if (currentUser && db) {
+    const activeUid = getActiveUid();
+    if (activeUid && db) {
         try {
             // Parallel fetches
             const [quotesSnap, reportsSnap, crmSnap, servicesSnap, reportsSentSnap, inspectionsSnap] = await Promise.all([
-                db.collection('users').doc(currentUser.uid).collection('quotes').where('clientName', '==', clientName).get(),
-                db.collection('users').doc(currentUser.uid).collection('reports').where('clientName', '==', clientName).get(),
-                db.collection('users').doc(currentUser.uid).collection('crm').get(),
-                db.collection('users').doc(currentUser.uid).collection('services').where('clientName', '==', clientName).get(),
-                db.collection('users').doc(currentUser.uid).collection('station_reports_sent').where('clientName', '==', clientName).get(),
-                db.collection('users').doc(currentUser.uid).collection('inspecciones').get()
+                db.collection('users').doc(activeUid).collection('quotes').where('clientName', '==', clientName).get(),
+                db.collection('users').doc(activeUid).collection('reports').where('clientName', '==', clientName).get(),
+                db.collection('users').doc(activeUid).collection('crm').get(),
+                db.collection('users').doc(activeUid).collection('services').where('clientName', '==', clientName).get(),
+                db.collection('users').doc(activeUid).collection('station_reports_sent').where('clientName', '==', clientName).get(),
+                db.collection('users').doc(activeUid).collection('inspecciones').get()
             ]);
             
             quotesSnap.forEach(doc => currentClientQuotes.push({ id: doc.id, ...doc.data() }));
@@ -1108,9 +1132,10 @@ function renderCrmTab() {
 }
 
 async function updateHistoryCrmComment(cardId, index, newText) {
-    if (!currentUser || !db) return;
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) return;
     try {
-        const docRef = db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId);
+        const docRef = db.collection('users').doc(activeUid).collection('crm').doc(cardId);
         const updatedComments = [...currentClientCrmCard.comments];
         updatedComments[index].text = newText;
 
@@ -1125,9 +1150,10 @@ async function updateHistoryCrmComment(cardId, index, newText) {
 }
 
 async function deleteHistoryCrmComment(cardId, index) {
-    if (!currentUser || !db) return;
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) return;
     try {
-        const docRef = db.collection('users').doc(currentUser.uid).collection('crm').doc(cardId);
+        const docRef = db.collection('users').doc(activeUid).collection('crm').doc(cardId);
         const updatedComments = [...currentClientCrmCard.comments];
         updatedComments.splice(index, 1);
 
@@ -1157,8 +1183,9 @@ async function addHistoryCrmComment() {
     try {
         const now = new Date();
         const dateStr = now.toLocaleString();
+        const activeUid = getActiveUid();
         
-        await db.collection('users').doc(currentUser.uid).collection('crm').doc(currentClientCrmCard.id).update({
+        await db.collection('users').doc(activeUid).collection('crm').doc(currentClientCrmCard.id).update({
             comments: firebase.firestore.FieldValue.arrayUnion({
                 text: text,
                 date: dateStr
@@ -1247,8 +1274,9 @@ async function saveRecordedService() {
         
         localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
         
-        if (currentUser && db) {
-            await db.collection('users').doc(currentUser.uid).collection('services').doc(servicePayload.id).set(servicePayload);
+        const activeUid = getActiveUid();
+        if (activeUid && db) {
+            await db.collection('users').doc(activeUid).collection('services').doc(servicePayload.id).set(servicePayload);
         }
         
         renderServicesTab();
@@ -1303,8 +1331,9 @@ async function deleteRecordedService(serviceId) {
             localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
         }
         
-        if (currentUser && db) {
-            await db.collection('users').doc(currentUser.uid).collection('services').doc(serviceId).delete();
+        const activeUid = getActiveUid();
+        if (activeUid && db) {
+            await db.collection('users').doc(activeUid).collection('services').doc(serviceId).delete();
         }
         
         currentClientServices = currentClientServices.filter(s => s.id !== serviceId);
@@ -1328,16 +1357,17 @@ async function deleteReportSent(reportSentId) {
             localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
         }
         
-        if (currentUser && db) {
+        const activeUid = getActiveUid();
+        if (activeUid && db) {
             if (storage) {
                 try {
-                    await storage.ref().child(`users/${currentUser.uid}/station_reports/${reportSentId}.pdf`).delete();
+                    await storage.ref().child(`users/${activeUid}/station_reports/${reportSentId}.pdf`).delete();
                     console.log("Deleted station report PDF from Firebase Storage.");
                 } catch (storageErr) {
                     console.log("No Storage PDF to delete or already removed:", storageErr.message);
                 }
             }
-            await db.collection('users').doc(currentUser.uid).collection('station_reports_sent').doc(reportSentId).delete();
+            await db.collection('users').doc(activeUid).collection('station_reports_sent').doc(reportSentId).delete();
         }
         
         currentClientReportsSent = currentClientReportsSent.filter(r => r.id !== reportSentId);
