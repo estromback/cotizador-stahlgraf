@@ -148,11 +148,14 @@ if (auth) {
             // Redirect to public landing page if not logged in
             window.location.href = 'index.html';
             
-            document.getElementById('dashboard-stats').innerHTML = `
-                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
-                    <p style="margin: 0; color: #ccc;">Inicia sesión para ver las estadísticas en la nube.</p>
-                </div>
-            `;
+            const dashStats = document.getElementById('dashboard-stats');
+            if (dashStats) {
+                dashStats.innerHTML = `
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
+                        <p style="margin: 0; color: #ccc;">Inicia sesión para ver las estadísticas en la nube.</p>
+                    </div>
+                `;
+            }
             
             if (crmListener) {
                 crmListener();
@@ -809,6 +812,7 @@ function renderChemicalsSettings() {
 async function loadDashboardStats() {
     const statsDiv = document.getElementById('dashboard-stats');
     const chartDiv = document.getElementById('pests-chart-bars');
+    if (!statsDiv || !chartDiv) return;
     if (!currentUser || !db) return;
     
     try {
