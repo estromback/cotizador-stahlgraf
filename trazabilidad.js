@@ -3322,63 +3322,15 @@ async function generatePDFReport() {
     });
 
     const originalMap = document.getElementById('monitoreo-map');
-    const hasMapData = mapStations.length > 0 && originalMap && (originalMap.offsetWidth > 0 || originalMap.offsetHeight > 0);
+    const originalMapParent = originalMap ? originalMap.parentNode : null;
+    const originalMapNextSibling = originalMap ? originalMap.nextSibling : null;
     
-    let mapSectionHTML = '';
-    if (hasMapData) {
-        let snapshotDataUrl = null;
-        if (typeof html2canvas !== 'undefined') {
-            try {
-                const mapCanvas = await html2canvas(originalMap, {
-                    useCORS: true,
-                    allowTaint: true,
-                    logging: false,
-                    scale: 1.5,
-                    ignoreElements: (el) => el.classList && el.classList.contains('leaflet-control-container')
-                });
-                snapshotDataUrl = mapCanvas.toDataURL('image/png');
-            } catch (err) {
-                console.warn("Could not render live Leaflet map snapshot for PDF:", err);
-            }
-        }
-        
-        if (snapshotDataUrl) {
-            mapSectionHTML = `
-                <div class="doc-section">
-                    <h2>2. Plano Satelital del Predio</h2>
-                    <div style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; text-align: center;">
-                        <img src="${snapshotDataUrl}" style="width: 100%; max-height: 350px; object-fit: cover; display: block;">
-                    </div>
-                </div>
-            `;
-        } else {
-            mapSectionHTML = `
-                <div class="doc-section">
-                    <h2>2. Plano Satelital del Predio</h2>
-                    <div style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; color: #64748b; padding: 20px; text-align: center; box-sizing: border-box;">
-                        <span style="font-size: 2rem; margin-bottom: 6px; display: block;">📍</span>
-                        <strong style="color: #334155; font-size: 0.9rem; font-weight: 700; display: block;">Plano de Estaciones en Predio</strong>
-                        <p style="margin: 4px 0 0 0; font-size: 0.78rem; color: #64748b; max-width: 400px; line-height: 1.4;">
-                            ${clientStations.length} estaciones activas registradas para ${clientName}.
-                        </p>
-                    </div>
-                </div>
-            `;
-        }
-    } else {
-        mapSectionHTML = `
-            <div class="doc-section">
-                <h2>2. Plano Satelital del Predio</h2>
-                <div style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8fafc; color: #64748b; padding: 20px; text-align: center; box-sizing: border-box;">
-                    <span style="font-size: 2rem; margin-bottom: 6px; display: block;">📍</span>
-                    <strong style="color: #334155; font-size: 0.9rem; font-weight: 700; display: block;">Ubicación Satelital Pendiente</strong>
-                    <p style="margin: 4px 0 0 0; font-size: 0.78rem; color: #64748b; max-width: 400px; line-height: 1.4;">
-                        Las estaciones de este cliente no poseen coordenadas geográficas registradas.
-                    </p>
-                </div>
-            </div>
-        `;
-    }
+    let mapSectionHTML = `
+        <div class="doc-section">
+            <h2>2. Plano Satelital del Predio</h2>
+            <div id="pdf-map-placeholder" style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; height: 350px; background: #f8fafc; width: 100%;"></div>
+        </div>
+    `;
 
     // 4. Create floating status toast notification
     const statusToast = document.createElement('div');
@@ -3520,8 +3472,20 @@ async function generatePDFReport() {
     pdfWrapper.appendChild(reportContainer);
     document.body.appendChild(pdfWrapper);
 
-    // Give browser a short tick to compute layout before html2pdf capture
-    await new Promise(r => setTimeout(r, 200));
+    // Attach live Leaflet map element to the printable placeholder
+    const mapPlaceholder = reportContainer.querySelector('#pdf-map-placeholder');
+    if (mapPlaceholder && originalMap) {
+        mapPlaceholder.appendChild(originalMap);
+        originalMap.style.width = '100%';
+        originalMap.style.height = '350px';
+        originalMap.style.display = 'block';
+        if (typeof leafletMap !== 'undefined' && leafletMap) {
+            leafletMap.invalidateSize();
+        }
+    }
+
+    // Give Leaflet tiles and browser layout a short tick to render
+    await new Promise(r => setTimeout(r, 450));
 
     try {
         const options = {
@@ -3587,6 +3551,19 @@ async function generatePDFReport() {
         console.error("PDF generation failed:", err);
         alert("⚠️ Error al generar el PDF. Ocurrió un problema inesperado.");
     } finally {
+        // Restore Leaflet map to original DOM container
+        if (originalMap && originalMapParent) {
+            originalMap.style.width = '';
+            originalMap.style.height = '';
+            if (originalMapNextSibling) {
+                originalMapParent.insertBefore(originalMap, originalMapNextSibling);
+            } else {
+                originalMapParent.appendChild(originalMap);
+            }
+            if (typeof leafletMap !== 'undefined' && leafletMap) {
+                leafletMap.invalidateSize();
+            }
+        }
         if (pdfWrapper && pdfWrapper.parentNode) {
             pdfWrapper.parentNode.removeChild(pdfWrapper);
         }
