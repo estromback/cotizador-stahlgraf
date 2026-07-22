@@ -3380,7 +3380,31 @@ async function generatePDFReport() {
         `;
     }
 
-    // 4. Create printable report wrapper overlay
+    // 4. Create floating status toast notification
+    const statusToast = document.createElement('div');
+    statusToast.id = 'temp-pdf-toast';
+    statusToast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100000;
+        background: #1e293b;
+        color: #60a5fa;
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        border: 1px solid rgba(96, 165, 250, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    `;
+    statusToast.innerHTML = `<span>⚙️</span> Generando Informe de Trazabilidad... Por favor espera unos segundos.`;
+    document.body.appendChild(statusToast);
+
+    // 5. Create printable report wrapper at fixed top: 0, left: 0
     const pdfWrapper = document.createElement('div');
     pdfWrapper.id = 'temp-pdf-wrapper';
     pdfWrapper.style.cssText = `
@@ -3390,34 +3414,13 @@ async function generatePDFReport() {
         width: 100vw;
         height: 100vh;
         z-index: 99999;
-        background: rgba(15, 23, 42, 0.85);
+        background: rgba(15, 23, 42, 0.92);
         backdrop-filter: blur(4px);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
         overflow-y: auto;
-        padding: 30px 10px;
+        margin: 0;
+        padding: 0;
         box-sizing: border-box;
     `;
-
-    const statusBanner = document.createElement('div');
-    statusBanner.style.cssText = `
-        background: #1e293b;
-        color: #60a5fa;
-        padding: 12px 24px;
-        border-radius: 30px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        border: 1px solid rgba(96, 165, 250, 0.3);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-shrink: 0;
-    `;
-    statusBanner.innerHTML = `<span>⚙️</span> Generando Informe de Trazabilidad... Por favor espera unos segundos.`;
-    pdfWrapper.appendChild(statusBanner);
 
     const reportContainer = document.createElement('div');
     reportContainer.id = 'temp-pdf-report';
@@ -3586,6 +3589,9 @@ async function generatePDFReport() {
     } finally {
         if (pdfWrapper && pdfWrapper.parentNode) {
             pdfWrapper.parentNode.removeChild(pdfWrapper);
+        }
+        if (statusToast && statusToast.parentNode) {
+            statusToast.parentNode.removeChild(statusToast);
         }
         btn.disabled = false;
         btn.innerText = originalText;
