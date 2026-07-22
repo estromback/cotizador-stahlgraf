@@ -3380,32 +3380,61 @@ async function generatePDFReport() {
         `;
     }
 
-    // 4. Create printable report wrapper at left: -9999px
+    // 4. Create printable report wrapper overlay
     const pdfWrapper = document.createElement('div');
     pdfWrapper.id = 'temp-pdf-wrapper';
     pdfWrapper.style.cssText = `
-        position: absolute;
-        left: -9999px;
+        position: fixed;
         top: 0;
-        width: 794px;
-        background: #ffffff;
-        color: #1e293b;
-        z-index: 1000;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 99999;
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(4px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow-y: auto;
+        padding: 30px 10px;
+        box-sizing: border-box;
     `;
+
+    const statusBanner = document.createElement('div');
+    statusBanner.style.cssText = `
+        background: #1e293b;
+        color: #60a5fa;
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        border: 1px solid rgba(96, 165, 250, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+    `;
+    statusBanner.innerHTML = `<span>⚙️</span> Generando Informe de Trazabilidad... Por favor espera unos segundos.`;
+    pdfWrapper.appendChild(statusBanner);
 
     const reportContainer = document.createElement('div');
     reportContainer.id = 'temp-pdf-report';
     reportContainer.className = 'formal-document';
     reportContainer.style.cssText = `
         position: relative;
-        background: #ffffff;
-        color: #1e293b;
-        font-family: 'Inter', system-ui, sans-serif;
-        box-sizing: border-box;
-        line-height: 1.5;
-        width: 794px;
-        max-width: none;
-        padding: 20px;
+        background: #ffffff !important;
+        color: #1e293b !important;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+        box-sizing: border-box !important;
+        line-height: 1.5 !important;
+        width: 794px !important;
+        max-width: 794px !important;
+        padding: 40px !important;
+        margin: 0 auto !important;
+        transform: none !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
     `;
     
     reportContainer.innerHTML = `
@@ -3488,6 +3517,9 @@ async function generatePDFReport() {
     pdfWrapper.appendChild(reportContainer);
     document.body.appendChild(pdfWrapper);
 
+    // Give browser a short tick to compute layout before html2pdf capture
+    await new Promise(r => setTimeout(r, 200));
+
     try {
         const options = {
             margin: [10, 0, 15, 0],
@@ -3498,8 +3530,7 @@ async function generatePDFReport() {
                 useCORS: true,
                 allowTaint: true,
                 logging: false,
-                scrollY: 0,
-                windowWidth: 794
+                scrollY: 0
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak: { mode: ['css', 'legacy'] }
