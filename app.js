@@ -653,6 +653,14 @@ function calculateQuote() {
             docSectionNotes.style.display = 'none';
         }
     }
+
+    // Render Commercial Terms (Forma de Pago)
+    const paymentTerm = document.getElementById('payment-term')?.value || '100% al finalizar el servicio';
+    const docPaymentTerm = document.getElementById('doc-payment-term');
+    if (docPaymentTerm) {
+        const cleanTerm = paymentTerm.trim();
+        docPaymentTerm.innerText = cleanTerm + (cleanTerm.endsWith('.') ? '' : '.');
+    }
 }
 
 // Event Listeners

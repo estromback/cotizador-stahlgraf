@@ -258,8 +258,16 @@
 
                 <!-- Impuestos / IVA -->
                 <div class="form-section">
-                    <h3>7. Impuestos y Facturación</h3>
+                    <h3>7. Impuestos y Condiciones Comerciales</h3>
                     <div class="form-grid">
+                        <div class="input-group">
+                            <label for="payment-term">Forma de Pago</label>
+                            <select id="payment-term">
+                                <option value="100% al finalizar el servicio" selected>100% al finalizar el servicio</option>
+                                <option value="100% antes del servicio">100% antes del servicio</option>
+                                <option value="50% anticipado + 50% al finalizar">50% anticipado + 50% al finalizar</option>
+                            </select>
+                        </div>
                         <div class="input-group">
                             <label for="apply-iva">¿Agregar Impuesto?</label>
                             <select id="apply-iva">
@@ -394,7 +402,7 @@
                     <div class="doc-section">
                         <h2>5. Condiciones Comerciales</h2>
                         <ul>
-                            <li><strong>Forma de Pago:</strong> 100% al finalizar el servicio.</li>
+                            <li><strong>Forma de Pago:</strong> <span id="doc-payment-term">100% al finalizar el servicio.</span></li>
                             <li><strong>Métodos de Pago:</strong> Transferencia bancaria, Efectivo.</li>
                             <li><strong>Cancelaciones:</strong> Favor de avisar con 24 horas de antelación.</li>
                         </ul>
