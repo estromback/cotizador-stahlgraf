@@ -1109,8 +1109,10 @@ async function generatePDF() {
         appData.correlative++;
         document.getElementById('setting-correlative').value = appData.correlative;
         saveData();
-        calculateQuote();
     }
+
+    // Actualizar siempre la vista previa del documento antes de exportar
+    calculateQuote();
 
     const btn = document.getElementById('btn-generate-pdf');
     const oldText = btn.innerText;
