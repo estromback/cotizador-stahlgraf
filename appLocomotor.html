@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Locomotor - 4° Básico</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #f0fdf4;
+    }
+    h1, h2, h3, .font-fun {
+      font-family: 'Fredoka', cursive;
+    }
+    .card-hover {
+      transition: all 0.2s ease-in-out;
+    }
+    .card-hover:hover {
+      transform: translateY(-3px);
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #e2e8f0;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #10b981;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const playSound = (type) => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'correct') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.1);
+          osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.25, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.3);
+        } else if (type === 'wrong') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(146.83, ctx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.25, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.3);
+        } else if (type === 'win') {
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((freq, idx) => {
+            const oscWin = ctx.createOscillator();
+            const gainWin = ctx.createGain();
+            oscWin.connect(gainWin);
+            gainWin.connect(ctx.destination);
+            oscWin.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.12);
+            gainWin.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.12);
+            gainWin.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.12 + 0.25);
+            oscWin.start(ctx.currentTime + idx * 0.12);
+            oscWin.stop(ctx.currentTime + idx * 0.12 + 0.25);
+          });
+        }
+      } catch (e) {}
+    };
+
+    const MASTER_QUESTIONS = [
+      {
+        question: "¿Cuáles son las 3 estructuras principales que forman el Sistema Locomotor?",
+        options: ["Huesos, músculos y articulaciones", "Corazón, pulmones y estómago", "Dientes, boca y lengua", "Sangre, piel y pelo"],
+        answer: 0,
+        explanation: "El sistema locomotor está formado por el esqueleto (huesos), la musculatura (músculos) y las articulaciones."
+      },
+      {
+        question: "¿Cuál es la función principal de los músculos en el cuerpo?",
+        options: ["Contraerse y relajarse para producir movimiento", "Digera los alimentos que comemos", "Sostener la sangre en las venas", "Guardar el aire que respiramos"],
+        answer: 0,
+        explanation: "Los músculos son tejidos elásticos que al contraerse y relajarse mueven los huesos y el cuerpo."
+      },
+      {
+        question: "¿Qué estructura conecta o une directamente un músculo con un hueso?",
+        options: ["Los tendones", "Las articulaciones", "Las venas", "Los nervios"],
+        answer: 0,
+        explanation: "Los tendones son cordones súper resistentes que unen el músculo con el hueso."
+      },
+      {
+        question: "¿Qué son las articulaciones?",
+        options: ["Las uniones entre dos o más huesos que permiten doblar el cuerpo", "Los hilos que sostienen los órganos", "La piel que cubre las piernas", "Los músculos del corazón"],
+        answer: 0,
+        explanation: "Las articulaciones (como el codo o la rodilla) son las uniones entre huesos que permiten el movimiento."
+      },
+      {
+        question: "¿Dónde se encuentra ubicado el músculo BÍCEPS?",
+        options: ["En la parte delantera del brazo", "En la parte trasera de la pierna", "En la espalda", "En el pecho"],
+        answer: 0,
+        explanation: "El bíceps está en la cara anterior (delantera) del brazo."
+      },
+      {
+        question: "Cuando contraes el BÍCEPS, ¿qué acción realiza tu brazo?",
+        options: ["Dobla el codo y sube el antebrazo", "Estira la pierna hacia atrás", "Pone los pies de puntas", "Extiende los dedos"],
+        answer: 0,
+        explanation: "El bíceps flexiona el codo acercando la mano al hombro (por ejemplo para cargar la mochila)."
+      },
+      {
+        question: "¿Dónde se ubica el músculo TRÍCEPS?",
+        options: ["En la parte trasera del brazo", "En la delantera del muslo", "En el abdomen", "En la pantorrilla"],
+        answer: 0,
+        explanation: "El tríceps está en la cara posterior (trasera) del brazo."
+      },
+      {
+        question: "¿Cuál es la función principal del TRÍCEPS?",
+        options: ["Estirar el brazo y empujar objetos", "Mover los dedos de los pies", "Arrugar la frente", "Rotar la cabeza"],
+        answer: 0,
+        explanation: "El tríceps extienda (estira) el codo y ayuda en movimientos de empuje o lanzamientos."
+      },
+      {
+        question: "¿Dónde se encuentran los músculos PECTORALES?",
+        options: ["En la parte delantera del pecho", "En las piernas", "En el cuello", "En los pies"],
+        answer: 0,
+        explanation: "Los pectorales son músculos anchos ubicados en la zona del pecho."
+      },
+      {
+        question: "¿Para qué acciones usamos principalmente los PECTORALES?",
+        options: ["Abrazar, empujar una puerta y mover los brazos adelante", "Masticar la comida", "Caminar despacio", "Saludar con las orejas"],
+        answer: 0,
+        explanation: "Los pectorales mueven los brazos hacia adelante, sirviendo para empujar y dar abrazos."
+      },
+      {
+        question: "¿Dónde se ubican los músculos ABDOMINALES?",
+        options: ["En el vientre o tronco delantero", "En la espalda alta", "En los talones", "En las muñecas"],
+        answer: 0,
+        explanation: "Los abdominales están en la parte frontal de la barriga o abdomen."
+      },
+      {
+        question: "¿Qué importante función cumplen los ABDOMINALES además de doblar el tronco?",
+        options: ["Proteger los órganos internos suaves y mantener la postura", "Pump sangre al cerebro", "Producir saliva", "Ver de noche"],
+        answer: 0,
+        explanation: "Protegen los órganos blandos (estómago, intestinos) y ayudan a sostener firme el cuerpo."
+      },
+      {
+        question: "¿Dónde están ubicados los músculos CUÁDRICEPS?",
+        options: ["En la parte delantera del muslo", "En la pantorrilla", "En los hombros", "En la mano"],
+        answer: 0,
+        explanation: "Los cuádriceps están en la cara anterior (delantera) del muslo."
+      },
+      {
+        question: "¿Por qué se llama 'CUÁDRICEPS'?",
+        options: ["Porque está compuesto por un grupo de cuatro músculos", "Porque es de color verde", "Porque tiene 4 esquinas exactas", "Porque vive en 4 lugares"],
+        answer: 0,
+        explanation: "Viene de 'cuatro cabezas' ya que son 4 músculos que trabajan juntos en el muslo."
+      },
+      {
+        question: "¿Cuál es la función del CUÁDRICEPS al mover las piernas?",
+        options: ["Enderezar la rodilla para correr, saltar y patear", "Doblar los dedos del pie", "Encoger los hombros", "Mover la lengua"],
+        answer: 0,
+        explanation: "El cuádriceps extiende la rodilla dando gran fuerza para saltar, correr y subir escaleras."
+      },
+      {
+        question: "¿Dónde están los músculos GEMELOS?",
+        options: ["En la pantorrilla (parte trasera de la pierna)", "En la delantera del brazo", "En las mejillas de la cara", "En la espalda"],
+        answer: 0,
+        explanation: "Los gemelos se ubican en la parte posterior inferior de la pierna (pantorrilla)."
+      },
+      {
+        question: "¿Para qué acción usamos los GEMELOS?",
+        options: ["Ponerse de puntas de pie, saltar y dar impulso al caminar", "Peinarse el pelo", "Sonreír a un amigo", "Escribir con lápiz"],
+        answer: 0,
+        explanation: "Los gemelos levantan el talón para elevarnos sobre las puntas de los pies y saltar."
+      },
+      {
+        question: "¿Cómo es la textura y consistencia de los MÚSCULOS?",
+        options: ["Blandos y elásticos", "Duros como piedra", "Metálicos y rígidos", "Líquidos y transparentes"],
+        answer: 0,
+        explanation: "Los músculos son blandos y elásticos, lo que les permite cambiar de forma sin romperse."
+      },
+      {
+        question: "Cuando un músculo se acorta y hace fuerza, decimos que se:",
+        options: ["Contrae", "Relaja", "Rompe", "Congela"],
+        answer: 0,
+        explanation: "La contracción es el acortamiento del músculo para tirar del hueso."
+      },
+      {
+        question: "Cuando un músculo vuelve a su tamaño normal de descanso, decimos que se:",
+        options: ["Relaja", "Desaparece", "Agranda", "Durece"],
+        answer: 0,
+        explanation: "Tras la contracción, el músculo se relaja para quedar listo para el siguiente movimiento."
+      },
+      {
+        question: "El Bíceps y el Tríceps trabajan en pareja de manera opuesta. Esto significa que:",
+        options: ["Cuando uno se contrae, el otro se relaja", "Ambos se rompen juntos", "Nunca se mueven", "Se convierten en hueso"],
+        answer: 0,
+        explanation: "Trabajan en parejas antagónicas: si el bíceps dobla el brazo (se contrae), el tríceps se estira (relaja)."
+      },
+      {
+        question: "¿Qué característica diferencia a los HUESOS de los músculos?",
+        options: ["Los huesos son duros y rígidos", "Los huesos son blandos y elásticos", "Los huesos cambian de color con el sol", "Los huesos son liquidos"],
+        answer: 0,
+        explanation: "Los huesos contienen minerales como calcio que los hacen firmes y duros."
+      },
+      {
+        question: "¿Qué órgano es un músculo especial que trabaja sin parar toda la vida?",
+        options: ["El corazón", "El bíceps", "El cuádriceps", "El pulmón"],
+        answer: 0,
+        explanation: "El corazón está formado por músculo cardíaco que se contrae de forma involuntaria las 24 horas."
+      },
+      {
+        question: "Si levantas una mochila pesada desde el suelo, el músculo del brazo que más se contrae para doblar el codo es:",
+        options: ["El Bíceps", "El Gemelo", "El Pectoral", "El Cuádriceps"],
+        answer: 0,
+        explanation: "El bíceps tira del antebrazo hacia arriba para doblar el codo."
+      },
+      {
+        question: "Si lanzas una pelota con fuerza hacia adelante, el músculo que ayuda a estirar el brazo es:",
+        options: ["El Tríceps", "El Gemelo", "El Abdominal", "El Cuádriceps"],
+        answer: 0,
+        explanation: "El tríceps empuja el antebrazo estirando la articulación del codo."
+      },
+      {
+        question: "Al ponerte de puntas para alcanzar un libro en el estante alto, usas principalmente:",
+        options: ["Los Gemelos", "Los Pectorales", "Los Abdominales", "El Bíceps"],
+        answer: 0,
+        explanation: "Los gemelos se contraen fuertemente para levantar los talones."
+      },
+      {
+        question: "Al pedalear en bicicleta o subir una escalera alta, las piernas usan con fuerza:",
+        options: ["Los Cuádriceps", "El Tríceps", "El Bíceps", "Los Pectorales"],
+        answer: 0,
+        explanation: "Los cuádriceps hacen la fuerza para extender la rodilla e impulsarte arriba."
+      },
+      {
+        question: "¿Qué articulación se usa principalmente al doblar la pierna para patear una pelota?",
+        options: ["La rodilla", "El codo", "La muñeca", "El hombro"],
+        answer: 0,
+        explanation: "La rodilla permite flexionar y extender la pierna."
+      },
+      {
+        question: "¿Qué articulación une el brazo con el hombro y permite girar el brazo en muchas direcciones?",
+        options: ["El hombro", "El tobillo", "La rodilla", "El cuello"],
+        answer: 0,
+        explanation: "El hombro es una articulación de gran movilidad que une la extremidad superior al tronco."
+      },
+      {
+        question: "Al hacer ejercicios de abdominales o al toser, ¿qué zona muscular se contrae?",
+        options: ["Los Abdominales", "Los Gemelos", "El Tríceps", "Los Cuádriceps"],
+        answer: 0,
+        explanation: "El grupo de abdominales afirma la pared del vientre y flexiona la columna."
+      },
+      {
+        question: "¿Cuál es un buen cuidado para tus músculos y huesos después de correr o hacer deporte?",
+        options: ["Estirar los músculos y beber agua fresca", "Cargar cosas ultra pesadas", "Comer dulces sin parar", "No dormir de noche"],
+        answer: 0,
+        explanation: "El agua rehidrata y el estiramiento evita calambres y lesiones."
+      },
+      {
+        question: "¿Qué consecuencia puede traer cargar una mochila con demasiado peso en la espalda?",
+        options: ["Dañar la postura y causar dolor en la columna y músculos", "Hacer que los huesos sean de oro", "Volver los cuádriceps transparentes", "Ninguna consecuencia"],
+        answer: 0,
+        explanation: "El exceso de carga sobrefatiga la columna vertebral y la musculatura de la espalda."
+      },
+      {
+        question: "Para mantener huesos y músculos fuertes y sanos debes:",
+        options: ["Alimentarte bien, tomar agua y ejercitarte", "Jugar acostado todo el día sin moverte", "Comer comida chatarra siempre", "Dormir 1 hora por día"],
+        answer: 0,
+        explanation: "La combinación de buena nutrición (calcio, proteínas) y ejercicio mantiene sano el sistema locomotor."
+      },
+      {
+        question: "¿Qué ocurre si haces ejercicio durante muchas horas sin parar?",
+        options: ["Los músculos se fatigan (se cansan) y necesitan descansar", "Los músculos se derriten", "Los huesos desaparecen", "Te vuelves un robot"],
+        answer: 0,
+        explanation: "El músculo se agota y requiere tiempo de descanso para reparar sus fibras."
+      },
+      {
+        question: "¿Quién envía las órdenes o señales por los nervios para que un músculo se mueva?",
+        options: ["El cerebro", "El talón", "El codo", "El estómago"],
+        answer: 0,
+        explanation: "El cerebro es el órgano del sistema nervioso que controla los movimientos voluntarios."
+      },
+      {
+        question: "Huesos como las COSTILLAS y el CRÁNEO tienen la función de:",
+        options: ["Proteger órganos delicados como el corazón, pulmones y cerebro", "Unir los dedos del pie", "Nadar más rápido", "Masticar la comida"],
+        answer: 0,
+        explanation: "Son estructuras óseas en forma de caja o casco que protegen órganos vitales."
+      },
+      {
+        question: "¿En qué parte del cuerpo se encuentra el hueso FÉMUR?",
+        options: ["En el muslo (pierna)", "En el brazo", "En la cabeza", "En los dedos"],
+        answer: 0,
+        explanation: "El fémur es el hueso más largo del cuerpo y está ubicado en el muslo."
+      },
+      {
+        question: "¿Cómo se llama la articulación que une la mano con el antebrazo?",
+        options: ["Muñeca", "Tobillo", "Rodilla", "Cadera"],
+        answer: 0,
+        explanation: "La muñeca conecta los huesos del brazo con los de la mano."
+      },
+      {
+        question: "¿Cómo se llama la articulación que une el pie con la pierna?",
+        options: ["Tobillo", "Codo", "Hombro", "Cuello"],
+        answer: 0,
+        explanation: "El tobillo permite mover el pie hacia arriba, abajo y a los lados."
+      },
+      {
+        question: "¿Cuál de estos es un beneficio de hacer actividad física regularmente?",
+        options: ["Fortalece los músculos y mejora el equilibrio", "Debilita los huesos", "Hace que te canses más rápido al caminar", "Provoca dolor constante"],
+        answer: 0,
+        explanation: "El ejercicio frecuente desarrolla fuerza, flexibilidad, equilibrio y coordinación."
+      },
+      {
+        question: "Si das un abrazo apretado a un familiar, usas principalmente los músculos:",
+        options: ["Pectorales", "Gemelos", "Tobillos", "Glúteos"],
+        answer: 0,
+        explanation: "Los pectorales atraen los brazos hacia la línea media del pecho para abrazar."
+      },
+      {
+        question: "¿Qué articulación usas al agacharte para atar tus cordones?",
+        options: ["Rodillas y caderas", "Orejas", "Dientes", "Cráneo"],
+        answer: 0,
+        explanation: "Las rodillas y la cadera se doblan para permitir agacharse hacia el suelo."
+      },
+      {
+        question: "¿Cuál de estas opciones describe MEJOR a las articulaciones?",
+        options: ["Son las uniones entre huesos que permiten el movimiento", "Son tubos por donde corre sangre", "Son tejidos que se derriten con el calor", "Son uñas duras"],
+        answer: 0,
+        explanation: "Articulación es el punto de contacto entre dos o más huesos vecinos."
+      },
+      {
+        question: "¿Qué ocurriría si el cuerpo humano tuviera huesos pero NO tuviera músculos?",
+        options: ["El cuerpo sería como un esqueleto rígido que no podría moverse", "Nos moveríamos más rápido", "Volaríamos", "Seríamos transparentes"],
+        answer: 0,
+        explanation: "Los huesos son la parte pasiva y los músculos la parte activa. Sin músculos no hay fuerza de movimiento."
+      },
+      {
+        question: "Al peinarte el cabello en las mañanas, ¿qué músculo flexiona tu codo?",
+        options: ["Bíceps", "Gemelo", "Cuádriceps", "Fémur"],
+        answer: 0,
+        explanation: "El bíceps tira del antebrazo acercando el peine a la cabeza."
+      },
+      {
+        question: "¿Qué hábito ayuda a tener huesos bien fuertes desde niños?",
+        options: ["Consumir alimentos ricos en calcio como leche y yogur y tomar sol con cuidado", "Tomar solo bebidas con gas", "No comer verduras", "No salir a jugar"],
+        answer: 0,
+        explanation: "El calcio de los lácteos y la vitamina D del sol fortalecen los huesos."
+      },
+      {
+        question: "Los músculos de las piernas como Cuádriceps y Gemelos nos ayudan en la vida diaria a:",
+        options: ["Caminar, saltar, correr y subir escaleras", "Escribir en la computadora con las manos", "Parpadear", "Hablar por teléfono"],
+        answer: 0,
+        explanation: "Toda la locomoción de desplazamiento depende del conjunto muscular de las piernas."
+      },
+      {
+        question: "¿Por qué es importante realizar un calentamiento suave antes de jugar fútbol o hacer gimnasia?",
+        options: ["Para preparar los músculos y evitar estiramientos dolorosos o lesiones", "Para enfriar el cuerpo", "Para quedarse dormido", "Para no usar zapatillas"],
+        answer: 0,
+        explanation: "El calentamiento prepara el flujo sanguíneo y la elasticidad de los músculos."
+      },
+      {
+        question: "Si mantienes una postura erguida y bien sentada en tu silla del colegio, estás cuidando:",
+        options: ["Tu columna vertebral y tus músculos del tronco", "Tus uñas", "Tus pestañas", "Tus dientes"],
+        answer: 0,
+        explanation: "Sentarse bien distribuye el peso sin recargar de forma incorrecta la columna y espalda."
+      },
+      {
+        question: "En resumen, el Sistema Locomotor trabaja gracias a la acción coordinada de:",
+        options: ["Huesos (soporte), Músculos (fuerza) y Articulaciones (unión y movimiento)", "Solo el corazón", "La piel sola", "Las uñas de las manos"],
+        answer: 0,
+        explanation: "El trabajo en equipo de huesos, músculos, tendones y articulaciones permite el movimiento."
+      }
+    ];
+
+    const shuffleArray = (array) => {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+
+    const calculateGrade = (score, total) => {
+      if (total === 0) return "1.0";
+      const percentage = score / total;
+      let grade;
+      if (percentage < 0.6) {
+        grade = 1.0 + (percentage / 0.6) * 3.0;
+      } else {
+        grade = 4.0 + ((percentage - 0.6) / 0.4) * 3.0;
+      }
+      return grade.toFixed(1);
+    };
+
+    function App() {
+      const [activeTab, setActiveTab] = React.useState('summary');
+      const [selectedBodyPart, setSelectedBodyPart] = React.useState('biceps');
+
+      // Quiz State
+      const [quizStarted, setQuizStarted] = React.useState(false);
+      const [currentQuestions, setCurrentQuestions] = React.useState([]);
+      const [currentIndex, setCurrentIndex] = React.useState(0);
+      const [userAnswers, setUserAnswers] = React.useState([]);
+      const [selectedOption, setSelectedOption] = React.useState(null);
+      const [quizCompleted, setQuizCompleted] = React.useState(false);
+      const [score, setScore] = React.useState(0);
+
+      const startQuiz = (questionCount = 50) => {
+        let pool = shuffleArray(MASTER_QUESTIONS);
+        let selected = pool.slice(0, Math.min(questionCount, pool.length));
+
+        const formatted = selected.map((q) => {
+          const originalOpts = q.options.map((opt, i) => ({ text: opt, isCorrect: i === q.answer }));
+          const shuffledOpts = shuffleArray(originalOpts);
+          const newCorrectIdx = shuffledOpts.findIndex(o => o.isCorrect);
+          return {
+            question: q.question,
+            options: shuffledOpts.map(o => o.text),
+            answer: newCorrectIdx,
+            explanation: q.explanation
+          };
+        });
+
+        setCurrentQuestions(formatted);
+        setCurrentIndex(0);
+        setUserAnswers([]);
+        setSelectedOption(null);
+        setQuizCompleted(false);
+        setScore(0);
+        setQuizStarted(true);
+      };
+
+      const handleOptionSelect = (optIdx) => {
+        if (selectedOption !== null) return;
+
+        setSelectedOption(optIdx);
+        const isCorrect = optIdx === currentQuestions[currentIndex].answer;
+
+        if (isCorrect) {
+          playSound('correct');
+          setScore(prev => prev + 1);
+        } else {
+          playSound('wrong');
+        }
+
+        const newAnswers = [...userAnswers, {
+          questionIdx: currentIndex,
+          selected: optIdx,
+          correct: currentQuestions[currentIndex].answer,
+          isCorrect
+        }];
+        setUserAnswers(newAnswers);
+
+        setTimeout(() => {
+          if (currentIndex + 1 < currentQuestions.length) {
+            setCurrentIndex(prev => prev + 1);
+            setSelectedOption(null);
+          } else {
+            setQuizCompleted(true);
+            playSound('win');
+          }
+        }, 1100);
+      };
+
+      return (
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          {}
+          <header className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 rounded-3xl p-6 text-white shadow-lg mb-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl border border-white/30 shadow-inner">
+                  🦵💪
+                </div>
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold tracking-wide">¡Súper Locomotor!</h1>
+                  <p className="text-emerald-100 font-medium text-sm md:text-base">
+                    Estudio Interactivo para 4° Básico - Huesos, Músculos y Articulaciones
+                  </p>
+                </div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20 flex items-center gap-2">
+                <i className="fa-solid fa-graduation-cap text-yellow-300 text-xl"></i>
+                <span className="font-semibold text-sm">Ciencias Naturales</span>
+              </div>
+            </div>
+          </header>
+
+          {}
+          <nav className="flex flex-wrap gap-2 mb-6 bg-white p-2 rounded-2xl shadow-sm border border-emerald-100">
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`flex-1 min-w-[130px] py-3 px-4 rounded-xl font-fun font-semibold text-sm md:text-base transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'summary' ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-600 hover:bg-emerald-50'
+              }`}
+            >
+              <i className="fa-solid fa-book-open"></i> 1. Repaso Materia
+            </button>
+            <button
+              onClick={() => setActiveTab('explorer')}
+              className={`flex-1 min-w-[130px] py-3 px-4 rounded-xl font-fun font-semibold text-sm md:text-base transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'explorer' ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-600 hover:bg-emerald-50'
+              }`}
+            >
+              <i className="fa-solid fa-street-view"></i> 2. Mapa Corporal
+            </button>
+            <button
+              onClick={() => setActiveTab('actions')}
+              className={`flex-1 min-w-[130px] py-3 px-4 rounded-xl font-fun font-semibold text-sm md:text-base transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'actions' ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-600 hover:bg-emerald-50'
+              }`}
+            >
+              <i className="fa-solid fa-person-running"></i> 3. Acciones
+            </button>
+            <button
+              onClick={() => setActiveTab('quiz')}
+              className={`flex-1 min-w-[130px] py-3 px-4 rounded-xl font-fun font-semibold text-sm md:text-base transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'quiz' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'text-purple-700 bg-purple-50 hover:bg-purple-100'
+              }`}
+            >
+              <i className="fa-solid fa-bolt text-yellow-300"></i> 4. Quiz (50 Q)
+            </button>
+          </nav>
+
+          {}
+          {activeTab === 'summary' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-emerald-500 card-hover">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-fun text-xl text-emerald-700">Músculos</h3>
+                    <span className="text-2xl">💪</span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Tejidos <strong>blandos y elásticos</strong>. Se contraen y relajan para producir el movimiento del cuerpo.
+                  </p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-amber-500 card-hover">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-fun text-xl text-amber-700">Huesos</h3>
+                    <span className="text-2xl">🦴</span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Estructuras <strong>duras y resistentes</strong>. Sostienen el cuerpo y protegen los órganos delicados.
+                  </p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-blue-500 card-hover">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-fun text-xl text-blue-700">Tendones</h3>
+                    <span className="text-2xl">🎗️</span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Cordones muy firmes que <strong>unen el músculo al hueso</strong> para tirar de él al moverse.
+                  </p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-purple-500 card-hover">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-fun text-xl text-purple-700">Articulaciones</h3>
+                    <span className="text-2xl">⚙️</span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Puntos donde <strong>se unen dos o más huesos</strong> permitiendo doblar brazos y piernas (codo, rodilla).
+                  </p>
+                </div>
+              </div>
+
+              {/* Muscles Detailed List */}
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-emerald-100">
+                <h2 className="text-2xl font-fun text-emerald-800 mb-4 flex items-center gap-2">
+                  <i className="fa-solid fa-child-reaching text-emerald-500"></i>
+                  Músculos Principales y su Ubicación
+                </h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-emerald-500 text-white font-bold px-2 py-0.5 rounded text-xs">BRAZO</span>
+                      <h4 className="font-fun text-lg text-emerald-900">Bíceps</h4>
+                    </div>
+                    <p className="text-xs text-slate-700">
+                      <strong>📍 Dónde está:</strong> Parte delantera del brazo.<br/>
+                      <strong>⚡ Qué hace:</strong> Dobla el codo y levanta objetos (ej. cargar la mochila).
+                    </p>
+                  </div>
+
+                  <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-emerald-500 text-white font-bold px-2 py-0.5 rounded text-xs">BRAZO</span>
+                      <h4 className="font-fun text-lg text-emerald-900">Tríceps</h4>
+                    </div>
+                    <p className="text-xs text-slate-700">
+                      <strong>📍 Dónde está:</strong> Parte trasera del brazo.<br/>
+                      <strong>⚡ Qué hace:</strong> Estira el codo y ayuda a empujar (ej. lanzar una pelota).
+                    </p>
+                  </div>
+
+                  <div className="bg-teal-50/70 p-4 rounded-2xl border border-teal-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-teal-600 text-white font-bold px-2 py-0.5 rounded text-xs">TRONCO</span>
+                      <h4 className="font-fun text-lg text-teal-900">Pectorales</h4>
+                    </div>
+                    <p className="text-xs text-slate-700">
+                      <strong>📍 Dónde está:</strong> Parte delantera del pecho.<br/>
+                      <strong>⚡ Qué hace:</strong> Mueve brazos hacia adelante (ej. dar un abrazo, empujar).
+                    </p>
+                  </div>
+
+                  <div className="bg-teal-50/70 p-4 rounded-2xl border border-teal-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-teal-600 text-white font-bold px-2 py-0.5 rounded text-xs">TRONCO</span>
+                      <h4 className="font-fun text-lg text-teal-900">Abdominales</h4>
+                    </div>
+                    <p className="text-xs text-slate-700">
+                      <strong>📍 Dónde está:</strong> Frente del abdomen (barriga).<br/>
+                      <strong>⚡ Qué hace:</strong> Dobla el tronco, sostiene la postura y protege órganos.
+                    </p>
+                  </div>
+
+                  <div className="bg-cyan-50/70 p-4 rounded-2xl border border-cyan-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-cyan-600 text-white font-bold px-2 py-0.5 rounded text-xs">PIERNA</span>
+                      <h4 className="font-fun text-lg text-cyan-900">Cuádriceps</h4>
+                    </div>
+                    <p className="text-xs text-slate-700">
+                      <strong>📍 Dónde está:</strong> Parte delantera del muslo (4 músculos).<br/>
+                      <strong>⚡ Qué hace:</strong> Endereza la rodilla para correr, saltar y patear.
+                    </p>
+                  </div>
+
+                  <div className="bg-cyan-50/70 p-4 rounded-2xl border border-cyan-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="bg-cyan-600 text-white font-bold px-2 py-0.5 rounded text-xs">PIERNA</span>
+                      <h4 className="font-fun text-lg text-cyan-900">Gemelos</h4>
+                    </div>
+                    <p className="text-xs text-slate-700">
+                      <strong>📍 Dónde está:</strong> Parte trasera de la pierna (pantorrilla).<br/>
+                      <strong>⚡ Qué hace:</strong> Pone los pies de puntas y da impulso al saltar.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {}
+          {activeTab === 'explorer' && (
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-emerald-100">
+              <h2 className="text-2xl font-fun text-emerald-800 mb-2">
+                🧭 Explorador del Cuerpo Humano
+              </h2>
+              <p className="text-xs text-slate-600 mb-6">
+                Toca cada botón para destacar la posición del músculo en la ilustración y leer su detalle.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                {/* SVG Human Figure */}
+                <div className="md:col-span-5 flex justify-center bg-slate-50 p-4 rounded-3xl border border-slate-200">
+                  <svg viewBox="0 0 300 500" className="w-full max-w-[240px] h-auto">
+                    {/* Head */}
+                    <circle cx="150" cy="50" r="28" fill="#fef08a" stroke="#ca8a04" strokeWidth="2" />
+                    <circle cx="140" cy="45" r="3.5" fill="#1e293b" />
+                    <circle cx="160" cy="45" r="3.5" fill="#1e293b" />
+                    <path d="M 140 60 Q 150 68 160 60" fill="none" stroke="#1e293b" strokeWidth="2.5" />
+
+                    {/* Torso Base */}
+                    <rect x="125" y="80" width="50" height="120" rx="8" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="2" />
+
+                    {/* Pectorales */}
+                    <path
+                      d="M 128 95 C 135 90, 148 90, 148 115 C 135 120, 128 110, 128 95 Z"
+                      fill={selectedBodyPart === 'pectorales' ? '#ef4444' : '#fca5a5'}
+                      stroke="#dc2626"
+                      strokeWidth="2"
+                      className="cursor-pointer hover:opacity-80 transition-all"
+                      onClick={() => setSelectedBodyPart('pectorales')}
+                    />
+                    <path
+                      d="M 172 95 C 165 90, 152 90, 152 115 C 165 120, 172 110, 172 95 Z"
+                      fill={selectedBodyPart === 'pectorales' ? '#ef4444' : '#fca5a5'}
+                      stroke="#dc2626"
+                      strokeWidth="2"
+                      className="cursor-pointer hover:opacity-80 transition-all"
+                      onClick={() => setSelectedBodyPart('pectorales')}
+                    />
+
+                    {/* Abdominales */}
+                    <rect
+                      x="135" y="125" width="30" height="65" rx="4"
+                      fill={selectedBodyPart === 'abdominales' ? '#ef4444' : '#fca5a5'}
+                      stroke="#dc2626"
+                      strokeWidth="2"
+                      className="cursor-pointer hover:opacity-80 transition-all"
+                      onClick={() => setSelectedBodyPart('abdominales')}
+                    />
+
+                    {/* Arms */}
+                    <ellipse
+                      cx="105" cy="120" rx="12" ry="24"
+                      fill={selectedBodyPart === 'biceps' ? '#ef4444' : '#fca5a5'}
+                      stroke="#dc2626"
+                      strokeWidth="2"
+                      className="cursor-pointer hover:opacity-80 transition-all"
+                      onClick={() => setSelectedBodyPart('biceps')}
+                    />
+                    <ellipse
+                      cx="195" cy="120" rx="12" ry="24"
+                      fill={selectedBodyPart === 'triceps' ? '#ef4444' : '#fca5a5'}
+                      stroke="#dc2626"
+                      strokeWidth="2"
+                      className="cursor-pointer hover:opacity-80 transition-all"
+                      onClick={() => setSelectedBodyPart('triceps')}
+                    />
+
+                    {/* Lower Arms */}
+                    <rect x="98" y="148" width="14" height="42" rx="4" fill="#cbd5e1" stroke="#64748b" strokeWidth="2" />
+                    <rect x="188" y="148" width="14" height="42" rx="4" fill="#cbd5e1" stroke="#64748b" strokeWidth="2" />
+
+                    {/* Cuádriceps */}
+                    <path
+                      d="M 125 205 L 145 205 L 142 300 L 125 300 Z"
+                      fill={selectedBodyPart === 'cuadriceps' ? '#ef4444' : '#fca5a5'}
+                      stroke="#dc2626"
+                      strokeWidth="2"
+                      className="cursor-pointer hover:opacity-80 transition-all"
+                      onClick={() => setSelectedBodyPart('cuadriceps')}
+                    />
+                    <path
+                      d="M 155 205 L 175 205 L 175 300 L 158 300 Z"
+                      fill={selectedBodyPart === 'cuadriceps' ? '#ef4444' : '#fca5a5'}
+                      stroke="#dc2626"
+                      strokeWidth="2"
+                      className="cursor-pointer hover:opacity-80 transition-all"
+                      onClick={() => setSelectedBodyPart('cuadriceps')}
+                    />
+
+                    {/* Knees */}
+                    <circle
+                      cx="134" cy="310" r="9"
+                      fill={selectedBodyPart === 'articulaciones' ? '#2563eb' : '#93c5fd'}
+                      stroke="#1d4ed8"
+                      strokeWidth="2"
+                      className="cursor-pointer hover:opacity-80 transition-all"
+                      onClick={() => setSelectedBodyPart('articulaciones')}
+                    />
+                    <circle
+                      cx="166" cy="310" r="9"
+                      fill={selectedBodyPart === 'articulaciones' ? '#2563eb' : '#93c5fd'}
+                      stroke="#1d4ed8"
+                      strokeWidth="2"
+                      className="cursor-pointer hover:opacity-80 transition-all"
+                      onClick={() => setSelectedBodyPart('articulaciones')}
+                    />
+
+                    {/* Gemelos */}
+                    <ellipse
+                      cx="134" cy="370" rx="12" ry="32"
+                      fill={selectedBodyPart === 'gemelos' ? '#ef4444' : '#fca5a5'}
+                      stroke="#dc2626"
+                      strokeWidth="2"
+                      className="cursor-pointer hover:opacity-80 transition-all"
+                      onClick={() => setSelectedBodyPart('gemelos')}
+                    />
+                    <ellipse
+                      cx="166" cy="370" rx="12" ry="32"
+                      fill={selectedBodyPart === 'gemelos' ? '#ef4444' : '#fca5a5'}
+                      stroke="#dc2626"
+                      strokeWidth="2"
+                      className="cursor-pointer hover:opacity-80 transition-all"
+                      onClick={() => setSelectedBodyPart('gemelos')}
+                    />
+
+                    {/* Feet */}
+                    <ellipse cx="128" cy="418" rx="14" ry="7" fill="#cbd5e1" stroke="#64748b" strokeWidth="2" />
+                    <ellipse cx="172" cy="418" rx="14" ry="7" fill="#cbd5e1" stroke="#64748b" strokeWidth="2" />
+                  </svg>
+                </div>
+
+                {/* Right Selector Panel */}
+                <div className="md:col-span-7 space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setSelectedBodyPart('biceps')}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold ${selectedBodyPart === 'biceps' ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-700'}`}
+                    >
+                      💪 Bíceps
+                    </button>
+                    <button
+                      onClick={() => setSelectedBodyPart('triceps')}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold ${selectedBodyPart === 'triceps' ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-700'}`}
+                    >
+                      💪 Tríceps
+                    </button>
+                    <button
+                      onClick={() => setSelectedBodyPart('pectorales')}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold ${selectedBodyPart === 'pectorales' ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-700'}`}
+                    >
+                      👕 Pectorales
+                    </button>
+                    <button
+                      onClick={() => setSelectedBodyPart('abdominales')}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold ${selectedBodyPart === 'abdominales' ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-700'}`}
+                    >
+                      🛡️ Abdominales
+                    </button>
+                    <button
+                      onClick={() => setSelectedBodyPart('cuadriceps')}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold ${selectedBodyPart === 'cuadriceps' ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-700'}`}
+                    >
+                      🦵 Cuádriceps
+                    </button>
+                    <button
+                      onClick={() => setSelectedBodyPart('gemelos')}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold ${selectedBodyPart === 'gemelos' ? 'bg-red-500 text-white' : 'bg-slate-100 text-slate-700'}`}
+                    >
+                      🦶 Gemelos
+                    </button>
+                    <button
+                      onClick={() => setSelectedBodyPart('articulaciones')}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold ${selectedBodyPart === 'articulaciones' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}
+                    >
+                      ⚙️ Articulaciones
+                    </button>
+                  </div>
+
+                  {/* Body Card */}
+                  <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200">
+                    {selectedBodyPart === 'biceps' && (
+                      <div>
+                        <h3 className="font-fun text-xl text-emerald-900 mb-1">Bíceps</h3>
+                        <p className="text-xs text-slate-700 mb-2">
+                          Se ubica en la parte anterior (delantera) del brazo. Permite flexionar el codo.
+                        </p>
+                        <div className="bg-white p-3 rounded-xl text-xs text-emerald-800 font-semibold">
+                          💡 Ej: Cargar la mochila escolar, peinarse o tomar un vaso de agua.
+                        </div>
+                      </div>
+                    )}
+                    {selectedBodyPart === 'triceps' && (
+                      <div>
+                        <h3 className="font-fun text-xl text-emerald-900 mb-1">Tríceps</h3>
+                        <p className="text-xs text-slate-700 mb-2">
+                          Se ubica en la parte posterior (trasera) del brazo. Permite extender (estirar) el codo.
+                        </p>
+                        <div className="bg-white p-3 rounded-xl text-xs text-emerald-800 font-semibold">
+                          💡 Ej: Lanzar un balón hacia adelante o empujar una puerta.
+                        </div>
+                      </div>
+                    )}
+                    {selectedBodyPart === 'pectorales' && (
+                      <div>
+                        <h3 className="font-fun text-xl text-emerald-900 mb-1">Pectorales</h3>
+                        <p className="text-xs text-slate-700 mb-2">
+                          Ubicados en la zona del pecho. Mueven los brazos hacia adelante y hacia el centro.
+                        </p>
+                        <div className="bg-white p-3 rounded-xl text-xs text-emerald-800 font-semibold">
+                          💡 Ej: Dar un abrazo o hacer flexiones de brazos.
+                        </div>
+                      </div>
+                    )}
+                    {selectedBodyPart === 'abdominales' && (
+                      <div>
+                        <h3 className="font-fun text-xl text-emerald-900 mb-1">Abdominales</h3>
+                        <p className="text-xs text-slate-700 mb-2">
+                          Músculos de la barriga. Mantienen erguida la postura y protegen los órganos suaves.
+                        </p>
+                        <div className="bg-white p-3 rounded-xl text-xs text-emerald-800 font-semibold">
+                          💡 Ej: Sentarse en la silla, toser o hacer abdominales.
+                        </div>
+                      </div>
+                    )}
+                    {selectedBodyPart === 'cuadriceps' && (
+                      <div>
+                        <h3 className="font-fun text-xl text-emerald-900 mb-1">Cuádriceps</h3>
+                        <p className="text-xs text-slate-700 mb-2">
+                          Ubicados en el frente del muslo. Son de los músculos más potentes del cuerpo.
+                        </p>
+                        <div className="bg-white p-3 rounded-xl text-xs text-emerald-800 font-semibold">
+                          💡 Ej: Correr a toda velocidad, subir escaleras o pedalear en bicicleta.
+                        </div>
+                      </div>
+                    )}
+                    {selectedBodyPart === 'gemelos' && (
+                      <div>
+                        <h3 className="font-fun text-xl text-emerald-900 mb-1">Gemelos</h3>
+                        <p className="text-xs text-slate-700 mb-2">
+                          Ubicados en la pantorrilla. Elevan el talón para dar el impulso de despegue.
+                        </p>
+                        <div className="bg-white p-3 rounded-xl text-xs text-emerald-800 font-semibold">
+                          💡 Ej: Ponerse de puntas de pie para alcanzar la repisa alta o saltar la cuerda.
+                        </div>
+                      </div>
+                    )}
+                    {selectedBodyPart === 'articulaciones' && (
+                      <div>
+                        <h3 className="font-fun text-xl text-blue-900 mb-1">Articulaciones (Ej: Rodillas)</h3>
+                        <p className="text-xs text-slate-700 mb-2">
+                          Puntos de unión entre dos huesos que posibilitan la flexión y rotación.
+                        </p>
+                        <div className="bg-white p-3 rounded-xl text-xs text-blue-800 font-semibold">
+                          💡 Ej: Permite doblar las piernas para sentarse o agacharse.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {}
+          {activeTab === 'actions' && (
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-emerald-100">
+              <h2 className="text-2xl font-fun text-emerald-800 mb-4">
+                🏃 Detectives del Movimiento: ¿Qué partes usas?
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-3xl">🏃‍♂️</span>
+                    <h3 className="font-fun text-lg text-amber-900">Correr y Saltar</h3>
+                  </div>
+                  <div className="space-y-1 text-xs text-slate-800">
+                    <p className="bg-white p-2 rounded-lg"><strong>💪 Músculos:</strong> Cuádriceps y Gemelos.</p>
+                    <p className="bg-white p-2 rounded-lg"><strong>⚙️ Articulaciones:</strong> Rodilla y Tobillo.</p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-3xl">🎒</span>
+                    <h3 className="font-fun text-lg text-blue-900">Levantar la Mochila</h3>
+                  </div>
+                  <div className="space-y-1 text-xs text-slate-800">
+                    <p className="bg-white p-2 rounded-lg"><strong>💪 Músculos:</strong> Bíceps y Abdominales.</p>
+                    <p className="bg-white p-2 rounded-lg"><strong>⚙️ Articulaciones:</strong> Codo y Hombro.</p>
+                  </div>
+                </div>
+
+                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-3xl">⚽</span>
+                    <h3 className="font-fun text-lg text-emerald-900">Lanzar una Pelota</h3>
+                  </div>
+                  <div className="space-y-1 text-xs text-slate-800">
+                    <p className="bg-white p-2 rounded-lg"><strong>💪 Músculos:</strong> Tríceps y Pectorales.</p>
+                    <p className="bg-white p-2 rounded-lg"><strong>⚙️ Articulaciones:</strong> Hombro y Codo.</p>
+                  </div>
+                </div>
+
+                <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-3xl">🦶</span>
+                    <h3 className="font-fun text-lg text-purple-900">Ponerse de Puntas</h3>
+                  </div>
+                  <div className="space-y-1 text-xs text-slate-800">
+                    <p className="bg-white p-2 rounded-lg"><strong>💪 Músculos:</strong> Gemelos.</p>
+                    <p className="bg-white p-2 rounded-lg"><strong>⚙️ Articulaciones:</strong> Tobillo.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {}
+          {activeTab === 'quiz' && (
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-purple-100">
+              {!quizStarted ? (
+                <div className="text-center py-8 max-w-md mx-auto space-y-5">
+                  <div className="w-20 h-20 bg-purple-100 text-purple-600 rounded-3xl flex items-center justify-center text-4xl mx-auto shadow-inner">
+                    ⚡
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-fun text-slate-800">Súper Quiz de 50 Preguntas</h2>
+                    <p className="text-xs text-slate-600 mt-1">
+                      Preguntas aleatorias de alternativa cada partida con calificación automática en escala chilena.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <button
+                      onClick={() => startQuiz(50)}
+                      className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-fun text-lg rounded-2xl shadow-lg shadow-purple-200 transition-all transform hover:scale-[1.01]"
+                    >
+                      🚀 Comenzar Quiz de 50 Preguntas
+                    </button>
+                    <button
+                      onClick={() => startQuiz(15)}
+                      className="w-full py-3 bg-purple-100 hover:bg-purple-200 text-purple-800 font-fun text-sm rounded-2xl transition-all"
+                    >
+                      ⏱️ Modo Rápido (15 Preguntas)
+                    </button>
+                  </div>
+                </div>
+              ) : quizCompleted ? (
+                <div className="space-y-6 py-2">
+                  <div className="bg-gradient-to-br from-purple-600 to-indigo-700 text-white p-6 rounded-3xl text-center space-y-3 shadow-xl">
+                    <span className="text-5xl">🏆</span>
+                    <h2 className="text-3xl font-fun">¡Quiz Completado!</h2>
+                    
+                    <div className="flex justify-center items-center gap-6 my-2">
+                      <div className="bg-white/20 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/30">
+                        <span className="text-[11px] uppercase tracking-wider block text-purple-200">Puntaje</span>
+                        <span className="text-2xl font-extrabold">{score} / {currentQuestions.length}</span>
+                      </div>
+
+                      <div className="bg-white/20 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-white/30">
+                        <span className="text-[11px] uppercase tracking-wider block text-purple-200">Nota Estimada</span>
+                        <span className="text-2xl font-extrabold text-yellow-300">
+                          {calculateGrade(score, currentQuestions.length)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => startQuiz(currentQuestions.length)}
+                      className="px-5 py-2.5 bg-white text-purple-700 font-fun font-bold rounded-xl shadow hover:bg-purple-50 transition-all text-sm"
+                    >
+                      🔄 Probar otro Quiz Aleatorio
+                    </button>
+                  </div>
+
+                  {/* Review Answers */}
+                  <div className="space-y-3">
+                    <h3 className="font-fun text-lg text-slate-800">Revisión de Preguntas</h3>
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                      {userAnswers.map((ans, idx) => {
+                        const q = currentQuestions[ans.questionIdx];
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-3 rounded-2xl border text-xs ${
+                              ans.isCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-bold text-slate-700">P{idx + 1}</span>
+                              <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${
+                                ans.isCorrect ? 'bg-emerald-200 text-emerald-800' : 'bg-red-200 text-red-800'
+                              }`}>
+                                {ans.isCorrect ? 'Correcta ✓' : 'Incorrecta ✗'}
+                              </span>
+                            </div>
+                            <p className="font-semibold text-slate-800 mb-1">{q.question}</p>
+                            <p className="text-slate-600">
+                              Tu respuesta: <strong className={ans.isCorrect ? 'text-emerald-700' : 'text-red-700'}>{q.options[ans.selected]}</strong>
+                            </p>
+                            {!ans.isCorrect && (
+                              <p className="text-emerald-700 font-medium mt-0.5">
+                                Correcta: <strong>{q.options[q.answer]}</strong>
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+                    <span>Pregunta {currentIndex + 1} de {currentQuestions.length}</span>
+                    <span className="text-purple-600">Correctas: {score}</span>
+                  </div>
+
+                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-purple-600 transition-all duration-300"
+                      style={{ width: `${((currentIndex + 1) / currentQuestions.length) * 100}%` }}
+                    ></div>
+                  </div>
+
+                  <div className="bg-purple-50/60 p-5 rounded-2xl border border-purple-100">
+                    <h3 className="font-fun text-lg md:text-xl text-slate-800">
+                      {currentQuestions[currentIndex].question}
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {currentQuestions[currentIndex].options.map((optText, optIdx) => {
+                      let btnStyle = "bg-white border-slate-200 hover:border-purple-300 text-slate-700";
+
+                      if (selectedOption !== null) {
+                        if (optIdx === currentQuestions[currentIndex].answer) {
+                          btnStyle = "bg-emerald-500 border-emerald-600 text-white font-bold shadow";
+                        } else if (optIdx === selectedOption) {
+                          btnStyle = "bg-red-500 border-red-600 text-white font-bold";
+                        } else {
+                          btnStyle = "bg-slate-50 border-slate-200 text-slate-400 opacity-60";
+                        }
+                      }
+
+                      return (
+                        <button
+                          key={optIdx}
+                          disabled={selectedOption !== null}
+                          onClick={() => handleOptionSelect(optIdx)}
+                          className={`w-full p-3.5 rounded-2xl border-2 text-left text-xs md:text-sm font-semibold transition-all flex items-center justify-between ${btnStyle}`}
+                        >
+                          <span>{optText}</span>
+                          {selectedOption !== null && optIdx === currentQuestions[currentIndex].answer && (
+                            <i className="fa-solid fa-circle-check text-base"></i>
+                          )}
+                          {selectedOption !== null && optIdx === selectedOption && optIdx !== currentQuestions[currentIndex].answer && (
+                            <i className="fa-solid fa-circle-xmark text-base"></i>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {}
+          <footer className="mt-8 text-center text-xs text-slate-500">
+            <p><strong>App de Estudio para 4° Básico - Sistema Locomotor</strong></p>
+          </footer>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
