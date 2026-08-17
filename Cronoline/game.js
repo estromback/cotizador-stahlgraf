@@ -288,15 +288,15 @@ function startNewGame() {
       gameState.players.push({
         name: name,
         lives: gameState.maxLives,
-        score: 0,
+        score: gameState.timelineMode === 'individual' ? 1 : 0,
         isDead: false,
         placedCards: [] // Línea temporal individual
       });
     }
     
     gameState.activePlayerIndex = 0;
-    scoreLabel.textContent = 'Aciertos';
-    scoreValue.textContent = '0';
+    scoreLabel.textContent = gameState.timelineMode === 'individual' ? 'Cartas en Línea' : 'Aciertos';
+    scoreValue.textContent = gameState.timelineMode === 'individual' ? '1' : '0';
     updateMultiplayerHeader();
   }
   
@@ -862,7 +862,11 @@ function endGame(isVictory, winnerOverride = null) {
       gameoverTitle.textContent = `¡Victoria para ${winner.name}!`;
       const livesText = winner.lives === Infinity ? 'vidas ilimitadas' : (winner.lives === 1 ? '1 vida' : `${winner.lives} vidas`);
       if (gameState.winCondition === 'race') {
-        gameoverDesc.textContent = `¡Ha alcanzado el objetivo de ${gameState.targetCards} cartas correctamente posicionadas! Finalizó con ${livesText}.`;
+        if (gameState.timelineMode === 'individual') {
+          gameoverDesc.textContent = `¡Ha alcanzado el objetivo de tener ${gameState.targetCards} cartas en su línea de tiempo! Finalizó con ${livesText}.`;
+        } else {
+          gameoverDesc.textContent = `¡Ha alcanzado el objetivo de ${gameState.targetCards} cartas correctamente posicionadas! Finalizó con ${livesText}.`;
+        }
       } else {
         gameoverDesc.textContent = `Ha sobrevivido a la historia con ${livesText} y ${winner.score} aciertos.`;
       }
