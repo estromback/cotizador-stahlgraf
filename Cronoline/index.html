@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cronoline - Juego de Línea de Tiempo Histórica</title>
+  <!-- Estilos del Juego -->
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Clases de utilidad rápidas */
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PANTALLA DE INICIO / SETUP -->
+  <section id="setup-screen" class="screen">
+    <div class="setup-card">
+      <div class="brand-container">
+        <h1 class="brand-title">Cronoline</h1>
+        <p class="brand-subtitle">Línea de Tiempo Histórica</p>
+      </div>
+
+      <!-- Selección de Modo de Juego -->
+      <div class="setup-group">
+        <label>Modo de Juego</label>
+        <div class="mode-selector">
+          <button type="button" id="btn-mode-solitario" class="mode-btn active">Solitario</button>
+          <button type="button" id="btn-mode-multiplayer" class="mode-btn">Multijugador</button>
+        </div>
+      </div>
+
+      <!-- Selección de Dificultad -->
+      <div class="setup-group">
+        <label>Nivel de Dificultad</label>
+        <div class="mode-selector" id="diff-selector">
+          <button type="button" class="mode-btn diff-btn active" data-diff="todas">Todas</button>
+          <button type="button" class="mode-btn diff-btn" data-diff="facil">Fácil</button>
+          <button type="button" class="mode-btn diff-btn" data-diff="media">Intermedia</button>
+          <button type="button" class="mode-btn diff-btn" data-diff="dificil">Difícil</button>
+        </div>
+      </div>
+
+      <!-- Configuración Multijugador (Oculta por defecto) -->
+      <div id="multiplayer-config" class="setup-group player-config hidden">
+        <label>Modalidad de Línea Temporal</label>
+        <div class="mode-selector" style="margin-bottom: 1.5rem;">
+          <button type="button" id="btn-timeline-shared" class="mode-btn active">Línea Compartida</button>
+          <button type="button" id="btn-timeline-individual" class="mode-btn">Líneas Individuales</button>
+        </div>
+
+        <label>Cantidad de Jugadores / Equipos</label>
+        <div class="player-count-selector">
+          <button type="button" class="count-btn active" data-count="2">2</button>
+          <button type="button" class="count-btn" data-count="3">3</button>
+          <button type="button" class="count-btn" data-count="4">4</button>
+        </div>
+
+        <label>Vidas por Jugador</label>
+        <div class="player-count-selector" id="lives-selector" style="margin-bottom: 1.5rem;">
+          <button type="button" class="count-btn" data-lives="1">1 💔</button>
+          <button type="button" class="count-btn active" data-lives="3">3 ❤️</button>
+          <button type="button" class="count-btn" data-lives="5">5 💖</button>
+          <button type="button" class="count-btn" data-lives="8">8 🛡️</button>
+          <button type="button" class="count-btn" data-lives="infinite">♾️ Ilimitadas</button>
+        </div>
+
+        <label>Objetivo de la Partida</label>
+        <div class="mode-selector" id="game-goal-selector" style="margin-bottom: 1.5rem;">
+          <button type="button" id="btn-goal-survival" class="mode-btn active" data-goal="survival">Supervivencia</button>
+          <button type="button" id="btn-goal-race" class="mode-btn" data-goal="race">Carrera</button>
+        </div>
+
+        <div id="race-target-config" class="setup-group hidden" style="margin-bottom: 1.5rem; padding: 0;">
+          <label>Cartas para Ganar (Carrera)</label>
+          <div class="player-count-selector" id="target-cards-selector">
+            <button type="button" class="count-btn active" data-target="5">5</button>
+            <button type="button" class="count-btn" data-target="10">10</button>
+            <button type="button" class="count-btn" data-target="15">15</button>
+            <button type="button" class="count-btn" data-target="20">20</button>
+          </div>
+        </div>
+
+        <label>Nombres de Jugadores / Grupos</label>
+        <div class="player-input-list" id="player-inputs">
+          <div class="input-wrapper">
+            <span>P1</span>
+            <input type="text" id="player-name-1" value="Jugador 1" placeholder="Nombre..." maxlength="12">
+          </div>
+          <div class="input-wrapper">
+            <span>P2</span>
+            <input type="text" id="player-name-2" value="Jugador 2" placeholder="Nombre..." maxlength="12">
+          </div>
+          <div class="input-wrapper hidden">
+            <span>P3</span>
+            <input type="text" id="player-name-3" value="Jugador 3" placeholder="Nombre..." maxlength="12">
+          </div>
+          <div class="input-wrapper hidden">
+            <span>P4</span>
+            <input type="text" id="player-name-4" value="Jugador 4" placeholder="Nombre..." maxlength="12">
+          </div>
+        </div>
+      </div>
+
+      <!-- Categorías de Cartas -->
+      <div class="setup-group">
+        <label>Categorías del Mazo</label>
+        <div class="categories-grid">
+          <input type="checkbox" id="cat-chile-cb" class="category-checkbox" checked>
+          <label for="cat-chile-cb" class="category-label cat-chile" style="--color-accent: #e11d48; --glow-accent: rgba(225, 29, 72, 0.4)">
+            <span>🇨🇱</span> Historia de Chile
+          </label>
+
+          <input type="checkbox" id="cat-universal-cb" class="category-checkbox" checked>
+          <label for="cat-universal-cb" class="category-label cat-universal" style="--color-accent: #2563eb; --glow-accent: rgba(37, 99, 235, 0.4)">
+            <span>🌍</span> Historia Universal
+          </label>
+
+          <input type="checkbox" id="cat-ciencia-cb" class="category-checkbox" checked>
+          <label for="cat-ciencia-cb" class="category-label cat-ciencia" style="--color-accent: #059669; --glow-accent: rgba(5, 150, 105, 0.4)">
+            <span>💡</span> Ciencia y Tecnología
+          </label>
+
+          <input type="checkbox" id="cat-arte-cb" class="category-checkbox" checked>
+          <label for="cat-arte-cb" class="category-label cat-arte" style="--color-accent: #7c3aed; --glow-accent: rgba(124, 58, 237, 0.4)">
+            <span>🎨</span> Arte y Literatura
+          </label>
+        </div>
+      </div>
+
+      <button type="button" id="btn-start-game" class="btn-primary">Comenzar</button>
+    </div>
+  </section>
+
+  <!-- INTERFAZ PRINCIPAL DE JUEGO -->
+  <main id="game-screen" class="game-container hidden">
+    <!-- Botón para volver al Menú Principal -->
+    <button type="button" id="btn-exit-game" class="btn-floating">Salir al Menú</button>
+
+    <!-- Cabecera / Info del Juego -->
+    <header class="game-header">
+      <div class="player-info">
+        <span class="current-player-tag" id="game-active-player">Solitario</span>
+        <div class="lives-container id-lives-container" id="lives-display">
+          <!-- Vidas del jugador (corazones) -->
+        </div>
+      </div>
+      <div class="score-display">
+        <span class="score-label" id="score-label">Aciertos Seguidos</span>
+        <span class="score-value" id="score-value">0</span>
+      </div>
+    </header>
+
+    <!-- Línea de Tiempo (Mesa del juego) -->
+    <section class="timeline-section" id="timeline-section">
+      <div class="timeline-wrapper" id="timeline-wrapper">
+        <div class="timeline-line"></div>
+        <!-- Las cartas y ranuras de inserción se generan aquí dinámicamente -->
+      </div>
+    </section>
+
+    <!-- Mano del Jugador / Carta Activa a colocar -->
+    <section class="hand-section">
+      <h3 class="hand-title">Tu Carta a Colocar</h3>
+      <div class="active-card-container" id="active-card-container">
+        <!-- La carta actual aparece aquí -->
+      </div>
+    </section>
+  </main>
+
+  <!-- PANTALLA DE ERROR / FEEDBACK MAL COLOCADO -->
+  <div id="error-overlay" class="overlay incorrect-overlay">
+    <div class="overlay-card" id="error-card-container">
+      <h2 class="overlay-title">¡Incorrecto!</h2>
+      <p class="overlay-desc">Ese evento no ocurrió en ese orden.</p>
+      
+      <!-- Contenedor para mostrar la carta con su año correcto en grande -->
+      <div style="display: flex; justify-content: center; margin-bottom: 2rem;" id="error-card-preview">
+        <!-- Carta clonada aquí -->
+      </div>
+
+      <button type="button" id="btn-continue-error" class="btn-primary">Continuar</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA DE PASAR EL DISPOSITIVO (Pass & Play) -->
+  <div id="transition-overlay" class="overlay">
+    <div class="overlay-card">
+      <div class="pass-play-indicator">📱</div>
+      <h2 class="overlay-title" id="transition-player-title">Turno de Jugador 2</h2>
+      <p class="overlay-desc" id="transition-player-desc">Pásale el dispositivo al siguiente jugador. Asegúrate de que no vea la pantalla antes de aceptar.</p>
+      <button type="button" id="btn-transition-start" class="btn-primary">¡Listo para Jugar!</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA DE FIN DEL JUEGO / GAME OVER -->
+  <div id="gameover-overlay" class="overlay">
+    <div class="overlay-card">
+      <h2 class="overlay-title" id="gameover-title">Partida Terminada</h2>
+      <p class="overlay-desc" id="gameover-desc">Has completado tu recorrido histórico.</p>
+
+      <!-- Tabla de eventos cronológicos ordenados que lograron colocar -->
+      <div class="gameover-summary" id="gameover-summary-list">
+        <!-- Items de resumen -->
+      </div>
+
+      <button type="button" id="btn-restart-game" class="btn-primary">Jugar de Nuevo</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE INSPECCIÓN DE CARTA -->
+  <div id="inspect-overlay" class="overlay">
+    <div class="overlay-card" style="max-width: 450px;">
+      <h2 class="overlay-title" id="inspect-card-title" style="color: var(--gold); text-shadow: 0 0 10px var(--gold-glow); font-size: 1.8rem; margin-bottom: 0.5rem;">Título del Evento</h2>
+      <span class="card-category-badge" id="inspect-card-badge" style="margin: 0.5rem auto 1.5rem auto; display: inline-block;">Categoría</span>
+      <p class="overlay-desc" id="inspect-card-desc" style="text-align: center; font-size: 1.1rem; line-height: 1.6; color: var(--text-white); margin-bottom: 2rem;">Descripción detallada...</p>
+      <button type="button" id="btn-close-inspect" class="btn-primary" style="margin-top: 0;">Volver al Juego</button>
+    </div>
+  </div>
+
+  <!-- Destello de Feedback visual (Acierto/Fallo rápido en pantalla) -->
+  <div id="flash-feedback" class="flash-feedback"></div>
+
+  <!-- Carga de Base de Datos y Scripts -->
+  <script src="cards.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
