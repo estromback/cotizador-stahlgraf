@@ -372,6 +372,9 @@ const INITIAL_CARDS = [
 
 
 
+
+
+
 const CARDS_HISTORIA = INITIAL_CARDS;
 
 const CARDS_CANCIONES = [
@@ -2578,401 +2581,401 @@ const CARDS_PELICULAS = [
   },
   {
     "id": 614,
-    "titulo": "El Ciudadano del Mundo (Varios)",
-    "descripcion_corta": "Cine experimental de posguerra.",
-    "año": 1950,
-    "categoria": "clasico"
-  },
-  {
-    "id": 615,
     "titulo": "Cantando bajo la Lluvia (Gene Kelly)",
     "descripcion_corta": "El musical de Hollywood por excelencia, ambientado en la llegada del cine sonoro.",
     "año": 1952,
     "categoria": "clasico"
   },
   {
-    "id": 616,
+    "id": 615,
     "titulo": "Los Siete Samuráis (Akira Kurosawa)",
     "descripcion_corta": "Épica de acción feudal japonesa que inspiró decenas de remakes.",
     "año": 1954,
     "categoria": "clasico"
   },
   {
-    "id": 617,
+    "id": 616,
     "titulo": "La Ventana Indiscreta (Alfred Hitchcock)",
     "descripcion_corta": "Thriller de suspenso sobre un fotógrafo en silla de ruedas que espía a sus vecinos.",
     "año": 1954,
     "categoria": "clasico"
   },
   {
-    "id": 618,
+    "id": 617,
     "titulo": "Vértigo (Alfred Hitchcock)",
     "descripcion_corta": "Drama de suspenso psicológico sobre la obsesión y acrofobia.",
     "año": 1958,
     "categoria": "clasico"
   },
   {
-    "id": 619,
+    "id": 618,
     "titulo": "Con faldas y a lo loco / Algunos prefieren quemarse (Billy Wilder)",
     "descripcion_corta": "Mítica comedia de enredos protagonizada por Marilyn Monroe.",
     "año": 1959,
     "categoria": "clasico"
   },
   {
-    "id": 620,
+    "id": 619,
     "titulo": "Ben-Hur (William Wyler)",
     "descripcion_corta": "Colosal producción de época romana ganadora de 11 premios Oscar.",
     "año": 1959,
     "categoria": "clasico"
   },
   {
-    "id": 621,
+    "id": 620,
     "titulo": "La Dolce Vita (Federico Fellini)",
     "descripcion_corta": "Retrato de la decadencia burguesa de Roma del director italiano.",
     "año": 1960,
     "categoria": "clasico"
   },
   {
-    "id": 622,
+    "id": 621,
     "titulo": "Lawrence de Arabia (David Lean)",
     "descripcion_corta": "Épica histórica biográfica del militar británico en el desierto árabe.",
     "año": 1962,
     "categoria": "clasico"
   },
   {
-    "id": 623,
+    "id": 622,
     "titulo": "2001: Odisea del Espacio (Stanley Kubrick)",
     "descripcion_corta": "Faro de la ciencia ficción filosófica y espacial.",
     "año": 1968,
     "categoria": "clasico"
   },
   {
-    "id": 624,
+    "id": 623,
     "titulo": "El Padrino II (Francis Ford Coppola)",
     "descripcion_corta": "Aclamada secuela que narra los inicios de Vito Corleone y el reinado de Michael.",
     "año": 1974,
     "categoria": "clasico"
   },
   {
-    "id": 625,
+    "id": 624,
     "titulo": "Taxi Driver (Martin Scorsese)",
     "descripcion_corta": "Crudo drama criminal urbano sobre la paranoia en Nueva York.",
     "año": 1976,
     "categoria": "clasico"
   },
   {
-    "id": 626,
+    "id": 625,
     "titulo": "Apocalypse Now (Francis Ford Coppola)",
     "descripcion_corta": "Épico retrato psicológico de la guerra de Vietnam.",
     "año": 1979,
     "categoria": "clasico"
   },
   {
-    "id": 627,
+    "id": 626,
     "titulo": "Alien, el octavo pasajero (Ridley Scott)",
     "descripcion_corta": "Obra cumbre de la ciencia ficción de terror claustrofóbico.",
     "año": 1979,
     "categoria": "clasico"
   },
   {
-    "id": 628,
+    "id": 627,
     "titulo": "Blade Runner (Ridley Scott)",
     "descripcion_corta": "Filme ciberpunk existencialista basado en la novela de Philip K. Dick.",
     "año": 1982,
     "categoria": "clasico"
   },
   {
-    "id": 629,
+    "id": 628,
     "titulo": "Terminator (James Cameron)",
     "descripcion_corta": "Ciencia ficción de acción sobre un ciborg asesino enviado del futuro.",
     "año": 1984,
     "categoria": "clasico"
   },
   {
-    "id": 630,
+    "id": 629,
     "titulo": "El Imperio Contraataca (Irvin Kershner)",
     "descripcion_corta": "Considerada por la crítica como la mejor entrega de la saga Star Wars.",
     "año": 1980,
     "categoria": "clasico"
   },
   {
-    "id": 631,
+    "id": 630,
     "titulo": "Platoon (Oliver Stone)",
     "descripcion_corta": "Realista retrato del conflicto de Vietnam basado en la experiencia del director.",
     "año": 1986,
     "categoria": "clasico"
   },
   {
-    "id": 632,
+    "id": 631,
     "titulo": "Depredador (John McTiernan)",
     "descripcion_corta": "Acción y ciencia ficción en la selva protagonizada por Arnold Schwarzenegger.",
     "año": 1987,
     "categoria": "clasico"
   },
   {
-    "id": 633,
+    "id": 632,
     "titulo": "Duro de Matar (John McTiernan)",
     "descripcion_corta": "Acción en el Nakatomi Plaza protagonizada por Bruce Willis.",
     "año": 1988,
     "categoria": "clasico"
   },
   {
-    "id": 634,
+    "id": 633,
     "titulo": "Batman (Tim Burton)",
     "descripcion_corta": "La adaptación gótica del superhéroe que cambió las producciones del género.",
     "año": 1989,
     "categoria": "clasico"
   },
   {
+    "id": 634,
+    "titulo": "Metrópolis (Fritz Lang)",
+    "descripcion_corta": "Hito del expresionismo alemán de ciencia ficción con su robot icónico.",
+    "año": 1927,
+    "categoria": "clasico"
+  },
+  {
     "id": 635,
-    "titulo": "Cine Clásico #35 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 35.",
-    "año": 1965,
+    "titulo": "Nosferatu (F.W. Murnau)",
+    "descripcion_corta": "Obra cumbre del cine expresionista de terror vampírico basada en Drácula.",
+    "año": 1922,
     "categoria": "clasico"
   },
   {
     "id": 636,
-    "titulo": "Cine Clásico #36 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 36.",
-    "año": 1966,
+    "titulo": "El gabinete del doctor Caligari (Robert Wiene)",
+    "descripcion_corta": "Obra iniciadora del expresionismo alemán y pionera en terror psicológico.",
+    "año": 1920,
     "categoria": "clasico"
   },
   {
     "id": 637,
-    "titulo": "Cine Clásico #37 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 37.",
-    "año": 1967,
+    "titulo": "El acorazado Potemkin (Serguéi Eisenstein)",
+    "descripcion_corta": "Obra maestra de la propaganda soviética famosa por el montaje de la escalera de Odesa.",
+    "año": 1925,
     "categoria": "clasico"
   },
   {
     "id": 638,
-    "titulo": "Cine Clásico #38 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 38.",
-    "año": 1968,
-    "categoria": "clasico"
-  },
-  {
-    "id": 639,
-    "titulo": "Cine Clásico #39 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 39.",
-    "año": 1969,
-    "categoria": "clasico"
-  },
-  {
-    "id": 640,
-    "titulo": "Cine Clásico #40 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 40.",
-    "año": 1970,
-    "categoria": "clasico"
-  },
-  {
-    "id": 641,
-    "titulo": "Cine Clásico #41 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 41.",
-    "año": 1971,
-    "categoria": "clasico"
-  },
-  {
-    "id": 642,
-    "titulo": "Cine Clásico #42 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 42.",
-    "año": 1972,
-    "categoria": "clasico"
-  },
-  {
-    "id": 643,
-    "titulo": "Cine Clásico #43 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 43.",
-    "año": 1973,
-    "categoria": "clasico"
-  },
-  {
-    "id": 644,
-    "titulo": "Cine Clásico #44 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 44.",
-    "año": 1974,
-    "categoria": "clasico"
-  },
-  {
-    "id": 645,
-    "titulo": "Cine Clásico #45 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 45.",
-    "año": 1975,
-    "categoria": "clasico"
-  },
-  {
-    "id": 646,
-    "titulo": "Cine Clásico #46 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 46.",
-    "año": 1976,
-    "categoria": "clasico"
-  },
-  {
-    "id": 647,
-    "titulo": "Cine Clásico #47 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 47.",
-    "año": 1977,
-    "categoria": "clasico"
-  },
-  {
-    "id": 648,
-    "titulo": "Cine Clásico #48 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 48.",
-    "año": 1978,
-    "categoria": "clasico"
-  },
-  {
-    "id": 649,
-    "titulo": "Cine Clásico #49 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 49.",
-    "año": 1979,
-    "categoria": "clasico"
-  },
-  {
-    "id": 650,
-    "titulo": "Cine Clásico #50 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 50.",
-    "año": 1980,
-    "categoria": "clasico"
-  },
-  {
-    "id": 651,
-    "titulo": "Cine Clásico #51 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 51.",
-    "año": 1981,
-    "categoria": "clasico"
-  },
-  {
-    "id": 652,
-    "titulo": "Cine Clásico #52 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 52.",
-    "año": 1982,
-    "categoria": "clasico"
-  },
-  {
-    "id": 653,
-    "titulo": "Cine Clásico #53 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 53.",
-    "año": 1983,
-    "categoria": "clasico"
-  },
-  {
-    "id": 654,
-    "titulo": "Cine Clásico #54 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 54.",
-    "año": 1984,
-    "categoria": "clasico"
-  },
-  {
-    "id": 655,
-    "titulo": "Cine Clásico #55 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 55.",
-    "año": 1985,
-    "categoria": "clasico"
-  },
-  {
-    "id": 656,
-    "titulo": "Cine Clásico #56 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 56.",
-    "año": 1986,
-    "categoria": "clasico"
-  },
-  {
-    "id": 657,
-    "titulo": "Cine Clásico #57 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 57.",
-    "año": 1987,
-    "categoria": "clasico"
-  },
-  {
-    "id": 658,
-    "titulo": "Cine Clásico #58 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 58.",
-    "año": 1988,
-    "categoria": "clasico"
-  },
-  {
-    "id": 659,
-    "titulo": "Cine Clásico #59 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 59.",
-    "año": 1989,
-    "categoria": "clasico"
-  },
-  {
-    "id": 660,
-    "titulo": "Cine Clásico #60 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 60.",
-    "año": 1930,
-    "categoria": "clasico"
-  },
-  {
-    "id": 661,
-    "titulo": "Cine Clásico #61 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 61.",
-    "año": 1931,
-    "categoria": "clasico"
-  },
-  {
-    "id": 662,
-    "titulo": "Cine Clásico #62 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 62.",
-    "año": 1932,
-    "categoria": "clasico"
-  },
-  {
-    "id": 663,
-    "titulo": "Cine Clásico #63 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 63.",
+    "titulo": "King Kong (Merian C. Cooper)",
+    "descripcion_corta": "Aventura fundacional del simio gigante capturado en la Isla Calavera.",
     "año": 1933,
     "categoria": "clasico"
   },
   {
-    "id": 664,
-    "titulo": "Cine Clásico #64 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 64.",
-    "año": 1934,
+    "id": 639,
+    "titulo": "Rebeca (Alfred Hitchcock)",
+    "descripcion_corta": "Thriller de intriga y obsesión, única película de Hitchcock ganadora del Oscar principal.",
+    "año": 1940,
     "categoria": "clasico"
   },
   {
-    "id": 665,
-    "titulo": "Cine Clásico #65 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 65.",
+    "id": 640,
+    "titulo": "Las uvas de la ira (John Ford)",
+    "descripcion_corta": "Drama de superación y crisis basado en la novela de John Steinbeck.",
+    "año": 1940,
+    "categoria": "clasico"
+  },
+  {
+    "id": 641,
+    "titulo": "El gran dictador (Charles Chaplin)",
+    "descripcion_corta": "Valiente sátira de Chaplin que parodia y critica abiertamente al fascismo.",
+    "año": 1940,
+    "categoria": "clasico"
+  },
+  {
+    "id": 642,
+    "titulo": "El halcón maltés (John Huston)",
+    "descripcion_corta": "Cine negro clásico protagonizado por Humphrey Bogart encarnando al detective Sam Spade.",
+    "año": 1941,
+    "categoria": "clasico"
+  },
+  {
+    "id": 643,
+    "titulo": "Qué bello es vivir (Frank Capra)",
+    "descripcion_corta": "Clásico navideño estadounidense sobre la importancia y el valor de una vida humana.",
+    "año": 1946,
+    "categoria": "clasico"
+  },
+  {
+    "id": 644,
+    "titulo": "Ladrón de bicicletas (Vittorio De Sica)",
+    "descripcion_corta": "Cumbre del neorrealismo italiano sobre un padre desempleado que busca su herramienta de trabajo.",
+    "año": 1948,
+    "categoria": "clasico"
+  },
+  {
+    "id": 645,
+    "titulo": "El tercer hombre (Carol Reed)",
+    "descripcion_corta": "Brillante filme negro en una Viena dividida de posguerra con música de cítara.",
+    "año": 1949,
+    "categoria": "clasico"
+  },
+  {
+    "id": 646,
+    "titulo": "Rashomon (Akira Kurosawa)",
+    "descripcion_corta": "Cinta japonesa que popularizó la estructura narrativa de múltiples verdades subjetivas.",
+    "año": 1950,
+    "categoria": "clasico"
+  },
+  {
+    "id": 647,
+    "titulo": "Sunset Boulevard (Billy Wilder)",
+    "descripcion_corta": "Sarcástica e impecable mirada al declive del cine mudo y las actrices olvidadas.",
+    "año": 1950,
+    "categoria": "clasico"
+  },
+  {
+    "id": 648,
+    "titulo": "Una noche en la ópera (Sam Wood)",
+    "descripcion_corta": "Disparatada e icónica comedia protagonizada por los Hermanos Marx.",
     "año": 1935,
     "categoria": "clasico"
   },
   {
+    "id": 649,
+    "titulo": "El puente sobre el río Kwai (David Lean)",
+    "descripcion_corta": "Drama de prisioneros de guerra británicos obligados a construir un puente ferroviario en Asia.",
+    "año": 1957,
+    "categoria": "clasico"
+  },
+  {
+    "id": 650,
+    "titulo": "Los diez mandamientos (Cecil B. DeMille)",
+    "descripcion_corta": "Espectacular epopeya bíblica sobre la liberación de Moisés protagonizada por Charlton Heston.",
+    "año": 1956,
+    "categoria": "clasico"
+  },
+  {
+    "id": 651,
+    "titulo": "La novicia rebelde (Robert Wise)",
+    "descripcion_corta": "Aclamado musical familiar de la familia Von Trapp que huye de la ocupación nazi.",
+    "año": 1965,
+    "categoria": "clasico"
+  },
+  {
+    "id": 652,
+    "titulo": "El graduado (Mike Nichols)",
+    "descripcion_corta": "Drama satírico juvenil con Dustin Hoffman enfrentado a la seducción y futuro incierto.",
+    "año": 1967,
+    "categoria": "clasico"
+  },
+  {
+    "id": 653,
+    "titulo": "El bebé de Rosemary (Roman Polanski)",
+    "descripcion_corta": "Thriller psicológico de terror sobre el embarazo de una mujer acechada por vecinos satánicos.",
+    "año": 1968,
+    "categoria": "clasico"
+  },
+  {
+    "id": 654,
+    "titulo": "La naranja mecánica (Stanley Kubrick)",
+    "descripcion_corta": "Cine distópico ultra violento sobre el condicionamiento conductual impuesto por el Estado.",
+    "año": 1971,
+    "categoria": "clasico"
+  },
+  {
+    "id": 655,
+    "titulo": "El exorcista (William Friedkin)",
+    "descripcion_corta": "La película de terror más aterradora sobre posesiones demoníacas y fe sacerdotal.",
+    "año": 1973,
+    "categoria": "clasico"
+  },
+  {
+    "id": 656,
+    "titulo": "Chinatown (Roman Polanski)",
+    "descripcion_corta": "Neo-noir magistral sobre conspiración del agua e intrigas policiales en Los Ángeles.",
+    "año": 1974,
+    "categoria": "clasico"
+  },
+  {
+    "id": 657,
+    "titulo": "Atrapado sin salida (Milos Forman)",
+    "descripcion_corta": "Drama carcelario y de rebeldía institucionalizado en un manicomio con Jack Nicholson.",
+    "año": 1975,
+    "categoria": "clasico"
+  },
+  {
+    "id": 658,
+    "titulo": "Rocky (John G. Avildsen)",
+    "descripcion_corta": "Fábula deportiva del boxeador que lucha por el sueño americano escrita por Stallone.",
+    "año": 1976,
+    "categoria": "clasico"
+  },
+  {
+    "id": 659,
+    "titulo": "En busca del arca perdida (Steven Spielberg)",
+    "descripcion_corta": "Aclamada aventura arqueológica que introdujo al intrépido Indiana Jones.",
+    "año": 1981,
+    "categoria": "clasico"
+  },
+  {
+    "id": 660,
+    "titulo": "Scarface (Brian De Palma)",
+    "descripcion_corta": "Épica de la mafia y el ascenso criminal del refugiado cubano Tony Montana en Miami.",
+    "año": 1983,
+    "categoria": "clasico"
+  },
+  {
+    "id": 661,
+    "titulo": "Amadeus (Milos Forman)",
+    "descripcion_corta": "Estudio dramático sobre el talento musical innato de Mozart y la envidia de Salieri.",
+    "año": 1984,
+    "categoria": "clasico"
+  },
+  {
+    "id": 662,
+    "titulo": "Cinema Paradiso (Giuseppe Tornatore)",
+    "descripcion_corta": "Nostálgica y conmovedora cinta italiana de amor por las salas de cine en la infancia.",
+    "año": 1988,
+    "categoria": "clasico"
+  },
+  {
+    "id": 663,
+    "titulo": "La sociedad de los poetas muertos (Peter Weir)",
+    "descripcion_corta": "Emotivo drama sobre un profesor que inspira a sus alumnos mediante la poesía y 'Carpe Diem'.",
+    "año": 1989,
+    "categoria": "clasico"
+  },
+  {
+    "id": 664,
+    "titulo": "Breakfast Club (John Hughes)",
+    "descripcion_corta": "El retrato definitivo sobre los arquetipos de adolescentes confinados en detención escolar.",
+    "año": 1985,
+    "categoria": "clasico"
+  },
+  {
+    "id": 665,
+    "titulo": "La princessa prometida (Rob Reiner)",
+    "descripcion_corta": "Fantasía humorística de espadas, gigantes y milagros de culto familiar.",
+    "año": 1987,
+    "categoria": "clasico"
+  },
+  {
     "id": 666,
-    "titulo": "Cine Clásico #66 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 66.",
-    "año": 1936,
+    "titulo": "El nombre de la rosa (Jean-Jacques Annaud)",
+    "descripcion_corta": "Intriga detectivesca medieval en una abadía benedictina adaptada de Umberto Eco.",
+    "año": 1986,
     "categoria": "clasico"
   },
   {
     "id": 667,
-    "titulo": "Cine Clásico #67 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 67.",
-    "año": 1937,
+    "titulo": "Atracción fatal (Adrian Lyne)",
+    "descripcion_corta": "Thriller pasional sobre una aventura extramatrimonial que deriva en acoso mortal.",
+    "año": 1987,
     "categoria": "clasico"
   },
   {
     "id": 668,
-    "titulo": "Cine Clásico #68 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 68.",
-    "año": 1938,
+    "titulo": "Toro salvaje (Martin Scorsese)",
+    "descripcion_corta": "Brutal retrato biográfico en blanco y negro del boxeador Jake LaMotta y sus demonios.",
+    "año": 1980,
     "categoria": "clasico"
   },
   {
     "id": 669,
-    "titulo": "Cine Clásico #69 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 69.",
-    "año": 1939,
+    "titulo": "Mad Max 2: El guerrero de la carretera (George Miller)",
+    "descripcion_corta": "Acción postapocalíptica del desierto que definió la estética del colapso social.",
+    "año": 1981,
     "categoria": "clasico"
   },
   {
     "id": 670,
-    "titulo": "Cine Clásico #70 (Director Varios)",
-    "descripcion_corta": "Resumen de la película clásica número 70.",
-    "año": 1940,
+    "titulo": "Dirty Dancing (Emile Ardolino)",
+    "descripcion_corta": "Drama romántico musical de baile veraniego que marcó una generación.",
+    "año": 1987,
     "categoria": "clasico"
   },
   {
@@ -3124,555 +3127,555 @@ const CARDS_PELICULAS = [
   },
   {
     "id": 692,
-    "titulo": "El Rey León (Roger Allers)",
-    "descripcion_corta": "Aclamado largometraje animado de Walt Disney.",
-    "año": 1994,
-    "categoria": "moderno"
-  },
-  {
-    "id": 693,
     "titulo": "Sueños de Fuga / Cadena Perpetua (Frank Darabont)",
     "descripcion_corta": "Considerada en ránkings de Internet como una de las mejores películas de la historia.",
     "año": 1994,
     "categoria": "moderno"
   },
   {
-    "id": 694,
+    "id": 693,
     "titulo": "Se7en / Pecados Capitales (David Fincher)",
     "descripcion_corta": "Oscuro y perturbador thriller policiaco sobre un asesino serial.",
     "año": 1995,
     "categoria": "moderno"
   },
   {
-    "id": 695,
+    "id": 694,
     "titulo": "Sospechosos Comunes (Bryan Singer)",
     "descripcion_corta": "Thriller de suspenso famoso por su giro final e identidad de Keyser Söze.",
     "año": 1995,
     "categoria": "moderno"
   },
   {
-    "id": 696,
+    "id": 695,
     "titulo": "Fargo (Hermanos Coen)",
     "descripcion_corta": "Comedia negra criminal en la nieve del medio oeste de EE.UU.",
     "año": 1996,
     "categoria": "moderno"
   },
   {
-    "id": 697,
+    "id": 696,
     "titulo": "Rescatando al Soldado Ryan (Steven Spielberg)",
     "descripcion_corta": "Bélico destacado por su hiperrealista secuencia inicial del desembarco del Día D.",
     "año": 1998,
     "categoria": "moderno"
   },
   {
-    "id": 698,
+    "id": 697,
     "titulo": "El Sexto Sentido (M. Night Shyamalan)",
     "descripcion_corta": "Famosa película de suspenso sobrenatural sobre un niño que ve gente muerta.",
     "año": 2000,
     "categoria": "moderno"
   },
   {
-    "id": 699,
+    "id": 698,
     "titulo": "Memento (Christopher Nolan)",
     "descripcion_corta": "Complejo thriller de montaje inverso sobre un hombre sin memoria de corto plazo.",
     "año": 2000,
     "categoria": "moderno"
   },
   {
-    "id": 700,
+    "id": 699,
     "titulo": "El Señor de los Anillos: El Retorno del Rey (Peter Jackson)",
     "descripcion_corta": "Ganadora de 11 premios Oscar, culminación de la saga.",
     "año": 2003,
     "categoria": "moderno"
   },
   {
-    "id": 701,
+    "id": 700,
     "titulo": "Eterno Resplandor de una Mente sin Recuerdos (Michel Gondry)",
     "descripcion_corta": "Original drama romántico sobre el olvido inducido.",
     "año": 2004,
     "categoria": "moderno"
   },
   {
-    "id": 702,
+    "id": 701,
     "titulo": "Secreto en la Montaña (Ang Lee)",
     "descripcion_corta": "Revolucionario e influyente drama romántico del oeste entre dos vaqueros.",
     "año": 2005,
     "categoria": "moderno"
   },
   {
-    "id": 703,
+    "id": 702,
     "titulo": "Bastardos sin Gloria (Quentin Tarantino)",
     "descripcion_corta": "Ucronicidad de la 2ª Guerra Mundial del director norteamericano.",
     "año": 2009,
     "categoria": "moderno"
   },
   {
-    "id": 704,
+    "id": 703,
     "titulo": "Whiplash (Damien Chazelle)",
     "descripcion_corta": "Intenso drama musical sobre la obsesión de un baterista de jazz.",
     "año": 2014,
     "categoria": "moderno"
   },
   {
-    "id": 705,
+    "id": 704,
     "titulo": "Mad Max: Furia en el Camino (George Miller)",
-    "descripcion_corta": "Aclamada acción postapocalíptica y vertiginosa de persecución vial.",
+    "descripcion_corta": "Aclamada acción postapocalíptica y vertiginosa de de persecución vial.",
     "año": 2015,
     "categoria": "moderno"
   },
   {
-    "id": 706,
+    "id": 705,
     "titulo": "La La Land (Damien Chazelle)",
     "descripcion_corta": "Colorido y nostálgico tributo musical a los clásicos de Hollywood.",
     "año": 2016,
     "categoria": "moderno"
   },
   {
-    "id": 707,
+    "id": 706,
     "titulo": "Guasón / Joker (Todd Phillips)",
     "descripcion_corta": "Estudio sicológico del villano de Batman protagonizado por Joaquin Phoenix.",
     "año": 2019,
     "categoria": "moderno"
   },
   {
-    "id": 708,
+    "id": 707,
     "titulo": "Duna (Denis Villeneuve)",
     "descripcion_corta": "Espectacular y fiel adaptación de la novela de ciencia ficción de Frank Herbert.",
     "año": 2021,
     "categoria": "moderno"
   },
   {
-    "id": 709,
+    "id": 708,
     "titulo": "Oppenheimer (Christopher Nolan)",
     "descripcion_corta": "Película biográfica sobre el padre de la bomba atómica Robert Oppenheimer.",
     "año": 2023,
     "categoria": "moderno"
   },
   {
-    "id": 710,
+    "id": 709,
     "titulo": "Barbie (Greta Gerwig)",
     "descripcion_corta": "Fenómeno de taquilla de comedia feminista que causó furor veraniego.",
     "año": 2023,
     "categoria": "moderno"
   },
   {
-    "id": 711,
-    "titulo": "Cine Moderno #41 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 41.",
-    "año": 1997,
-    "categoria": "moderno"
-  },
-  {
-    "id": 712,
-    "titulo": "Cine Moderno #42 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 42.",
-    "año": 1998,
-    "categoria": "moderno"
-  },
-  {
-    "id": 713,
-    "titulo": "Cine Moderno #43 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 43.",
-    "año": 1999,
-    "categoria": "moderno"
-  },
-  {
-    "id": 714,
-    "titulo": "Cine Moderno #44 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 44.",
-    "año": 2000,
-    "categoria": "moderno"
-  },
-  {
-    "id": 715,
-    "titulo": "Cine Moderno #45 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 45.",
-    "año": 2001,
-    "categoria": "moderno"
-  },
-  {
-    "id": 716,
-    "titulo": "Cine Moderno #46 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 46.",
-    "año": 2002,
-    "categoria": "moderno"
-  },
-  {
-    "id": 717,
-    "titulo": "Cine Moderno #47 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 47.",
-    "año": 2003,
-    "categoria": "moderno"
-  },
-  {
-    "id": 718,
-    "titulo": "Cine Moderno #48 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 48.",
-    "año": 2004,
-    "categoria": "moderno"
-  },
-  {
-    "id": 719,
-    "titulo": "Cine Moderno #49 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 49.",
-    "año": 2005,
-    "categoria": "moderno"
-  },
-  {
-    "id": 720,
-    "titulo": "Cine Moderno #50 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 50.",
-    "año": 2006,
-    "categoria": "moderno"
-  },
-  {
-    "id": 721,
-    "titulo": "Cine Moderno #51 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 51.",
-    "año": 2007,
-    "categoria": "moderno"
-  },
-  {
-    "id": 722,
-    "titulo": "Cine Moderno #52 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 52.",
-    "año": 2008,
-    "categoria": "moderno"
-  },
-  {
-    "id": 723,
-    "titulo": "Cine Moderno #53 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 53.",
-    "año": 2009,
-    "categoria": "moderno"
-  },
-  {
-    "id": 724,
-    "titulo": "Cine Moderno #54 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 54.",
-    "año": 2010,
-    "categoria": "moderno"
-  },
-  {
-    "id": 725,
-    "titulo": "Cine Moderno #55 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 55.",
-    "año": 2011,
-    "categoria": "moderno"
-  },
-  {
-    "id": 726,
-    "titulo": "Cine Moderno #56 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 56.",
-    "año": 2012,
-    "categoria": "moderno"
-  },
-  {
-    "id": 727,
-    "titulo": "Cine Moderno #57 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 57.",
-    "año": 2013,
-    "categoria": "moderno"
-  },
-  {
-    "id": 728,
-    "titulo": "Cine Moderno #58 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 58.",
-    "año": 2014,
-    "categoria": "moderno"
-  },
-  {
-    "id": 729,
-    "titulo": "Cine Moderno #59 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 59.",
-    "año": 2015,
-    "categoria": "moderno"
-  },
-  {
-    "id": 730,
-    "titulo": "Cine Moderno #60 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 60.",
-    "año": 2016,
-    "categoria": "moderno"
-  },
-  {
-    "id": 731,
-    "titulo": "Cine Moderno #61 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 61.",
-    "año": 2017,
-    "categoria": "moderno"
-  },
-  {
-    "id": 732,
-    "titulo": "Cine Moderno #62 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 62.",
-    "año": 2018,
-    "categoria": "moderno"
-  },
-  {
-    "id": 733,
-    "titulo": "Cine Moderno #63 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 63.",
-    "año": 2019,
-    "categoria": "moderno"
-  },
-  {
-    "id": 734,
-    "titulo": "Cine Moderno #64 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 64.",
-    "año": 2020,
-    "categoria": "moderno"
-  },
-  {
-    "id": 735,
-    "titulo": "Cine Moderno #65 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 65.",
-    "año": 2021,
-    "categoria": "moderno"
-  },
-  {
-    "id": 736,
-    "titulo": "Cine Moderno #66 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 66.",
-    "año": 2022,
-    "categoria": "moderno"
-  },
-  {
-    "id": 737,
-    "titulo": "Cine Moderno #67 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 67.",
-    "año": 2023,
-    "categoria": "moderno"
-  },
-  {
-    "id": 738,
-    "titulo": "Cine Moderno #68 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 68.",
+    "id": 710,
+    "titulo": "Mi pobre angelito (Chris Columbus)",
+    "descripcion_corta": "Famosa comedia navideña de un niño que defiende su hogar de ladrones.",
     "año": 1990,
     "categoria": "moderno"
   },
   {
-    "id": 739,
-    "titulo": "Cine Moderno #69 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 69.",
+    "id": 711,
+    "titulo": "El joven manos de tijera (Tim Burton)",
+    "descripcion_corta": "Cuento gótico romántico con Johnny Depp encarnando al humano artificial.",
+    "año": 1990,
+    "categoria": "moderno"
+  },
+  {
+    "id": 712,
+    "titulo": "Punto de quiebra (Kathryn Bigelow)",
+    "descripcion_corta": "Adrenalínica acción policiaca infiltrada en el mundo del surf y asalto de bancos.",
     "año": 1991,
     "categoria": "moderno"
   },
   {
-    "id": 740,
-    "titulo": "Cine Moderno #70 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 70.",
+    "id": 713,
+    "titulo": "La bella y la bestia (Gary Trousdale)",
+    "descripcion_corta": "Mítico musical animado tradicional de Disney galardonado por su música.",
+    "año": 1991,
+    "categoria": "moderno"
+  },
+  {
+    "id": 714,
+    "titulo": "Los imperdonables (Clint Eastwood)",
+    "descripcion_corta": "Western crepuscular desgarrador que analiza la crudeza de la violencia fronteriza.",
     "año": 1992,
     "categoria": "moderno"
   },
   {
-    "id": 741,
-    "titulo": "Cine Moderno #71 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 71.",
+    "id": 715,
+    "titulo": "Philadelphia (Jonathan Demme)",
+    "descripcion_corta": "Drama social sobre el SIDA y la discriminación laboral protagonizado por Tom Hanks.",
     "año": 1993,
     "categoria": "moderno"
   },
   {
-    "id": 742,
-    "titulo": "Cine Moderno #72 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 72.",
+    "id": 716,
+    "titulo": "La máscara (Chuck Russell)",
+    "descripcion_corta": "Hilarante y disparatada comedia fantástica con Jim Carrey y Cameron Diaz.",
     "año": 1994,
     "categoria": "moderno"
   },
   {
-    "id": 743,
-    "titulo": "Cine Moderno #73 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 73.",
+    "id": 717,
+    "titulo": "Corazón valiente (Mel Gibson)",
+    "descripcion_corta": "Épica histórica bélica sobre la rebelión de William Wallace contra el reino inglés.",
     "año": 1995,
     "categoria": "moderno"
   },
   {
-    "id": 744,
-    "titulo": "Cine Moderno #74 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 74.",
+    "id": 718,
+    "titulo": "Scream: Grita antes de morir (Wes Craven)",
+    "descripcion_corta": "Revolucionó el género de terror adolescente con una fórmula autoconsciente.",
     "año": 1996,
     "categoria": "moderno"
   },
   {
-    "id": 745,
-    "titulo": "Cine Moderno #75 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 75.",
+    "id": 719,
+    "titulo": "Hombres de negro (Barry Sonnenfeld)",
+    "descripcion_corta": "Divertida y exitosa comedia de extraterrestres secretos infiltrados en la Tierra.",
     "año": 1997,
     "categoria": "moderno"
   },
   {
-    "id": 746,
-    "titulo": "Cine Moderno #76 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 76.",
+    "id": 720,
+    "titulo": "La vida es bella (Roberto Benigni)",
+    "descripcion_corta": "Conmovedora fábula del holocausto donde un padre protege a su hijo usando la imaginación.",
+    "año": 1997,
+    "categoria": "moderno"
+  },
+  {
+    "id": 721,
+    "titulo": "El show de Truman (Peter Weir)",
+    "descripcion_corta": "Sátira premonitoria sobre la telerrealidad y un hombre cuya vida es grabada sin saberlo.",
     "año": 1998,
     "categoria": "moderno"
   },
   {
-    "id": 747,
-    "titulo": "Cine Moderno #77 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 77.",
-    "año": 1999,
-    "categoria": "moderno"
-  },
-  {
-    "id": 748,
-    "titulo": "Cine Moderno #78 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 78.",
+    "id": 722,
+    "titulo": "Réquiem por un sueño (Darren Aronofsky)",
+    "descripcion_corta": "Estilizado e implacable drama sobre la espiral destructiva de diversas adicciones.",
     "año": 2000,
     "categoria": "moderno"
   },
   {
-    "id": 749,
-    "titulo": "Cine Moderno #79 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 79.",
+    "id": 723,
+    "titulo": "Náufrago (Robert Zemeckis)",
+    "descripcion_corta": "Drama de supervivencia humana sobre un empleado postal varado en una isla desierta.",
+    "año": 2000,
+    "categoria": "moderno"
+  },
+  {
+    "id": 724,
+    "titulo": "Shrek (Andrew Adamson)",
+    "descripcion_corta": "Comedia animada que parodió y revitalizó los clásicos cuentos de hadas infantiles.",
     "año": 2001,
     "categoria": "moderno"
   },
   {
-    "id": 750,
-    "titulo": "Cine Moderno #80 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 80.",
+    "id": 725,
+    "titulo": "Monsters, Inc. (Pete Docter)",
+    "descripcion_corta": "Ingeniosa aventura de Pixar sobre monstruos cuya energía proviene de los sustos infantiles.",
+    "año": 2001,
+    "categoria": "moderno"
+  },
+  {
+    "id": 726,
+    "titulo": "El viaje de Chihiro (Hayao Miyazaki)",
+    "descripcion_corta": "Fábula mágica de animación japonesa que ganó el Oscar a Mejor Película Animada.",
+    "año": 2001,
+    "categoria": "moderno"
+  },
+  {
+    "id": 727,
+    "titulo": "Ciudad de Dios (Fernando Meirelles)",
+    "descripcion_corta": "Cruda e impactante historia del ascenso del narcotráfico en las favelas brasileñas.",
     "año": 2002,
     "categoria": "moderno"
   },
   {
-    "id": 751,
-    "titulo": "Cine Moderno #81 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 81.",
+    "id": 728,
+    "titulo": "Kill Bill: Volumen 1 (Quentin Tarantino)",
+    "descripcion_corta": "Estilizado festín de artes marciales y venganza liderado por Uma Thurman.",
     "año": 2003,
     "categoria": "moderno"
   },
   {
-    "id": 752,
-    "titulo": "Cine Moderno #82 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 82.",
+    "id": 729,
+    "titulo": "Buscando a Nemo (Andrew Stanton)",
+    "descripcion_corta": "Aventura de Pixar de un pez payaso que cruza el océano para rescatar a su hijo.",
+    "año": 2003,
+    "categoria": "moderno"
+  },
+  {
+    "id": 730,
+    "titulo": "Piratas del Caribe: La maldición del Perla Negra (Gore Verbinski)",
+    "descripcion_corta": "Aventura marítima que encumbró al pirata Jack Sparrow interpretado por Depp.",
+    "año": 2003,
+    "categoria": "moderno"
+  },
+  {
+    "id": 731,
+    "titulo": "El diario de Noah (Nick Cassavetes)",
+    "descripcion_corta": "Popular drama romántico de una joven pareja de diferentes clases sociales.",
     "año": 2004,
     "categoria": "moderno"
   },
   {
-    "id": 753,
-    "titulo": "Cine Moderno #83 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 83.",
+    "id": 732,
+    "titulo": "Batman inicia (Christopher Nolan)",
+    "descripcion_corta": "Reinicio oscuro y realista del héroe de Gotham enfocado en sus miedos iniciales.",
     "año": 2005,
     "categoria": "moderno"
   },
   {
-    "id": 754,
-    "titulo": "Cine Moderno #84 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 84.",
+    "id": 733,
+    "titulo": "Orgullo y prejuicio (Joe Wright)",
+    "descripcion_corta": "Bella y aclamada adaptación cinematográfica de la novela clásica de Jane Austen.",
+    "año": 2005,
+    "categoria": "moderno"
+  },
+  {
+    "id": 734,
+    "titulo": "El laberinto del fauno (Guillermo del Toro)",
+    "descripcion_corta": "Fantasía oscura hispana ambientada en la dura posguerra del franquismo español.",
     "año": 2006,
     "categoria": "moderno"
   },
   {
-    "id": 755,
-    "titulo": "Cine Moderno #85 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 85.",
+    "id": 735,
+    "titulo": "Los infiltrados (Martin Scorsese)",
+    "descripcion_corta": "Excelente thriller criminal de topos cruzados en Boston, ganadora de mejor película.",
+    "año": 2006,
+    "categoria": "moderno"
+  },
+  {
+    "id": 736,
+    "titulo": "Supercool (Greg Mottola)",
+    "descripcion_corta": "Divertida e hilarante comedia sobre la pubertad e intentos desesperados por comprar alcohol.",
     "año": 2007,
     "categoria": "moderno"
   },
   {
-    "id": 756,
-    "titulo": "Cine Moderno #86 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 86.",
+    "id": 737,
+    "titulo": "Sin lugar para los débiles (Ethan Coen)",
+    "descripcion_corta": "Tenso e implacable thriller de violencia fronteriza con el icónico asesino Anton Chigurh.",
+    "año": 2007,
+    "categoria": "moderno"
+  },
+  {
+    "id": 738,
+    "titulo": "Wall-E (Andrew Stanton)",
+    "descripcion_corta": "Aclamada y tierna distopía espacial sobre un robot compactador abandonado en la Tierra.",
     "año": 2008,
     "categoria": "moderno"
   },
   {
-    "id": 757,
-    "titulo": "Cine Moderno #87 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 87.",
+    "id": 739,
+    "titulo": "Up: Una aventura de altura (Pete Docter)",
+    "descripcion_corta": "Maravillosa aventura de un viudo que viaja a Sudamérica usando globos en su casa.",
     "año": 2009,
     "categoria": "moderno"
   },
   {
-    "id": 758,
-    "titulo": "Cine Moderno #88 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 88.",
+    "id": 740,
+    "titulo": "La red social (David Fincher)",
+    "descripcion_corta": "Afilado drama de traiciones comerciales que narra el nacimiento de Facebook.",
     "año": 2010,
     "categoria": "moderno"
   },
   {
-    "id": 759,
-    "titulo": "Cine Moderno #89 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 89.",
+    "id": 741,
+    "titulo": "Harry Potter y las reliquias de la Muerte: Parte 2 (David Yates)",
+    "descripcion_corta": "Culminación de una década mágica del cine con el duelo definitivo contra Voldemort.",
     "año": 2011,
     "categoria": "moderno"
   },
   {
-    "id": 760,
-    "titulo": "Cine Moderno #90 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 90.",
+    "id": 742,
+    "titulo": "Los juegos del hambre (Gary Ross)",
+    "descripcion_corta": "Thriller distópico de supervivencia basado en la novela de Suzanne Collins.",
     "año": 2012,
     "categoria": "moderno"
   },
   {
-    "id": 761,
-    "titulo": "Cine Moderno #91 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 91.",
+    "id": 743,
+    "titulo": "Django sin cadenas (Quentin Tarantino)",
+    "descripcion_corta": "Violento y estiloso western sobre la liberación de un esclavo afroamericano.",
+    "año": 2012,
+    "categoria": "moderno"
+  },
+  {
+    "id": 744,
+    "titulo": "Gravedad (Alfonso Cuarón)",
+    "descripcion_corta": "Claustrofóbico suspenso de supervivencia en órbita terrestre del director mexicano.",
     "año": 2013,
     "categoria": "moderno"
   },
   {
-    "id": 762,
-    "titulo": "Cine Moderno #92 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 92.",
-    "año": 2014,
+    "id": 745,
+    "titulo": "Frozen (Chris Buck)",
+    "descripcion_corta": "Exitoso fenómeno musical animado moderno del estudio de Walt Disney.",
+    "año": 2013,
     "categoria": "moderno"
   },
   {
-    "id": 763,
-    "titulo": "Cine Moderno #93 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 93.",
+    "id": 746,
+    "titulo": "El lobo de Wall Street (Martin Scorsese)",
+    "descripcion_corta": "Excesiva y frenética sátira financiera sobre el estafador de bolsa Jordan Belfort.",
+    "año": 2013,
+    "categoria": "moderno"
+  },
+  {
+    "id": 747,
+    "titulo": "Intensa-Mente (Pete Docter)",
+    "descripcion_corta": "Brillante aventura psicológica sobre las emociones humanas controlando a una niña.",
     "año": 2015,
     "categoria": "moderno"
   },
   {
-    "id": 764,
-    "titulo": "Cine Moderno #94 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 94.",
-    "año": 2016,
-    "categoria": "moderno"
-  },
-  {
-    "id": 765,
-    "titulo": "Cine Moderno #95 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 95.",
+    "id": 748,
+    "titulo": "¡Huye! (Jordan Peele)",
+    "descripcion_corta": "Sátira social de terror de Jordan Peele sobre el racismo y opresión liberal.",
     "año": 2017,
     "categoria": "moderno"
   },
   {
-    "id": 766,
-    "titulo": "Cine Moderno #96 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 96.",
+    "id": 749,
+    "titulo": "Bohemian Rhapsody (Bryan Singer)",
+    "descripcion_corta": "Biografía musical de la vida de Freddie Mercury que recrea el Live Aid.",
     "año": 2018,
     "categoria": "moderno"
   },
   {
-    "id": 767,
-    "titulo": "Cine Moderno #97 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 97.",
+    "id": 750,
+    "titulo": "Spider-Man: Un nuevo universo (Bob Persichetti)",
+    "descripcion_corta": "Aclamada cinta que revolucionó la estética visual animada con el Spider-Verse.",
+    "año": 2018,
+    "categoria": "moderno"
+  },
+  {
+    "id": 751,
+    "titulo": "Jojo Rabbit (Taika Waititi)",
+    "descripcion_corta": "Sátira dramática bélica sobre un niño nazi y su ingenuo amigo imaginario Adolf Hitler.",
     "año": 2019,
     "categoria": "moderno"
   },
   {
-    "id": 768,
-    "titulo": "Cine Moderno #98 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 98.",
+    "id": 752,
+    "titulo": "Todo en todas partes al mismo tiempo (Daniel Kwan)",
+    "descripcion_corta": "Aventura caótica existencial del multiverso que barrió los premios de la Academia.",
+    "año": 2022,
+    "categoria": "moderno"
+  },
+  {
+    "id": 753,
+    "titulo": "Top Gun: Maverick (Joseph Kosinski)",
+    "descripcion_corta": "Exitosa y aclamada secuela que destaca por sus efectos prácticos y cazas reales.",
+    "año": 2022,
+    "categoria": "moderno"
+  },
+  {
+    "id": 754,
+    "titulo": "Dunkirk (Dunkerque)",
+    "descripcion_corta": "Tenso y asfixiante relato bélico sobre la evacuación de soldados aliados en Francia.",
+    "año": 2017,
+    "categoria": "moderno"
+  },
+  {
+    "id": 755,
+    "titulo": "El gran hotel Budapest (Wes Anderson)",
+    "descripcion_corta": "Excéntrica y colorida comedia de enredos con la simetría visual clásica de Anderson.",
+    "año": 2014,
+    "categoria": "moderno"
+  },
+  {
+    "id": 756,
+    "titulo": "Birdman (Alejandro González Iñárritu)",
+    "descripcion_corta": "Original comedia dramática grabada simulando un plano secuencia de principio a fin.",
+    "año": 2014,
+    "categoria": "moderno"
+  },
+  {
+    "id": 757,
+    "titulo": "Mad Max: Furia en la carretera (George Miller)",
+    "descripcion_corta": "Espectacular y frenética obra maestra de la persecución vehicular desértica.",
+    "año": 2015,
+    "categoria": "moderno"
+  },
+  {
+    "id": 758,
+    "titulo": "El renacido (Alejandro González Iñárritu)",
+    "descripcion_corta": "Drama brutal de supervivencia que le valió el Oscar a Leonardo DiCaprio.",
+    "año": 2015,
+    "categoria": "moderno"
+  },
+  {
+    "id": 759,
+    "titulo": "La llegada (Arrival)",
+    "descripcion_corta": "Inteligente ciencia ficción filosófica sobre la comunicación con vida extraterrestre.",
+    "año": 2016,
+    "categoria": "moderno"
+  },
+  {
+    "id": 760,
+    "titulo": "El hilo invisible (Phantom Thread)",
+    "descripcion_corta": "Obsesivo e intrincado romance de época en la moda de alta costura de Londres.",
+    "año": 2017,
+    "categoria": "moderno"
+  },
+  {
+    "id": 761,
+    "titulo": "Roma (Alfonso Cuarón)",
+    "descripcion_corta": "Íntimo y poético retrato en blanco y negro del México de los años setenta.",
+    "año": 2018,
+    "categoria": "moderno"
+  },
+  {
+    "id": 762,
+    "titulo": "Joker (Guasón)",
+    "descripcion_corta": "Drama psicológico y violento origen del villano de Batman protagonizado por Joaquin Phoenix.",
+    "año": 2019,
+    "categoria": "moderno"
+  },
+  {
+    "id": 763,
+    "titulo": "El irlandés (Martin Scorsese)",
+    "descripcion_corta": "Elegía crepuscular mafiosa protagonizada por De Niro, Al Pacino y Joe Pesci.",
+    "año": 2019,
+    "categoria": "moderno"
+  },
+  {
+    "id": 764,
+    "titulo": "Midsommar (Ari Aster)",
+    "descripcion_corta": "Película de terror folk diurno y perturbador ambientado en el solsticio sueco.",
+    "año": 2019,
+    "categoria": "moderno"
+  },
+  {
+    "id": 765,
+    "titulo": "Tenet (Christopher Nolan)",
+    "descripcion_corta": "Thriller de espionaje y ciencia ficción basado en la inversión del flujo temporal.",
     "año": 2020,
     "categoria": "moderno"
   },
   {
+    "id": 766,
+    "titulo": "La ballena (The Whale)",
+    "descripcion_corta": "Drama teatral íntimo sobre la redención y obesidad con Brendan Fraser.",
+    "año": 2022,
+    "categoria": "moderno"
+  },
+  {
+    "id": 767,
+    "titulo": "El niño y la garza (Hayao Miyazaki)",
+    "descripcion_corta": "Fantasía surrealista animada que marca la madurez y despedida del director.",
+    "año": 2023,
+    "categoria": "moderno"
+  },
+  {
+    "id": 768,
+    "titulo": "Los asesinos de la luna (Martin Scorsese)",
+    "descripcion_corta": "Cruenta investigación histórica de los asesinatos del pueblo Osage por su petróleo.",
+    "año": 2023,
+    "categoria": "moderno"
+  },
+  {
     "id": 769,
-    "titulo": "Cine Moderno #99 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 99.",
-    "año": 2021,
+    "titulo": "Spider-Man 2 (Sam Raimi)",
+    "descripcion_corta": "Considerada una de las mejores secuelas de superhéroes por la lucha de Peter Parker.",
+    "año": 2004,
     "categoria": "moderno"
   },
   {
     "id": 770,
-    "titulo": "Cine Moderno #100 (Director Varios)",
-    "descripcion_corta": "Resumen de la película moderna número 100.",
-    "año": 2022,
+    "titulo": "The Dark Knight Rises (Christopher Nolan)",
+    "descripcion_corta": "Épica e intensa conclusión de la trilogía de Batman frente a la gran amenaza de Bane.",
+    "año": 2012,
     "categoria": "moderno"
   },
   {
@@ -3852,37 +3855,37 @@ const CARDS_PELICULAS = [
   },
   {
     "id": 796,
-    "titulo": "Cine Chileno #26 (Director Varios)",
-    "descripcion_corta": "Resumen del filme nacional número 26.",
-    "año": 1986,
+    "titulo": "El regalo (Cristián Galaz)",
+    "descripcion_corta": "Tierna comedia dramática sobre un jubilado y el viaje de fin de semana con sus viejos amigos.",
+    "año": 2008,
     "categoria": "chileno"
   },
   {
     "id": 797,
-    "titulo": "Cine Chileno #27 (Director Varios)",
-    "descripcion_corta": "Resumen del filme nacional número 27.",
-    "año": 1987,
+    "titulo": "Play (Alicia Scherson)",
+    "descripcion_corta": "Aclamada comedia urbana ambientada en un Santiago fragmentado y poético.",
+    "año": 2005,
     "categoria": "chileno"
   },
   {
     "id": 798,
-    "titulo": "Cine Chileno #28 (Director Varios)",
-    "descripcion_corta": "Resumen del filme nacional número 28.",
-    "año": 1988,
+    "titulo": "Mi mejor enemigo (Álex Bowen)",
+    "descripcion_corta": "Drama bélico sobre la tensión fronteriza entre patrullas chilenas y argentinas en 1978.",
+    "año": 2005,
     "categoria": "chileno"
   },
   {
     "id": 799,
-    "titulo": "Cine Chileno #29 (Director Varios)",
-    "descripcion_corta": "Resumen del filme nacional número 29.",
-    "año": 1989,
+    "titulo": "Caluga o mentira (Gonzalo Justiniano)",
+    "descripcion_corta": "Clásico retrato de la juventud marginal santiaguina a inicios de la transición democrática.",
+    "año": 1990,
     "categoria": "chileno"
   },
   {
     "id": 800,
-    "titulo": "Cine Chileno #30 (Director Varios)",
-    "descripcion_corta": "Resumen del filme nacional número 30.",
-    "año": 1990,
+    "titulo": "Johnny Cien Pesos (Gustavo Graef Marino)",
+    "descripcion_corta": "Un joven estudiante participa en un asalto que se convierte en un secuestro televisado.",
+    "año": 1993,
     "categoria": "chileno"
   }
 ];
@@ -3890,702 +3893,422 @@ const CARDS_PELICULAS = [
 const CARDS_FARANDULA = [
   {
     "id": 801,
-    "titulo": "Pelea de Raquel Argandoña y Vivi Kreutzberger",
-    "descripcion_corta": "Raquel lanza su frase sobre la infidelidad del marido de Vivi en pleno estelar de Canal 13.",
-    "año": 2003,
+    "titulo": "El Bolocazo en el Festival de Viña",
+    "descripcion_corta": "Cecilia Bolocco realiza una atrevida maniobra de baile que es captada por fotógrafos.",
+    "año": 2000,
     "categoria": "tv"
   },
   {
     "id": 802,
-    "titulo": "Edmundo Varas canta 'Solo para ti'",
-    "descripcion_corta": "El participante conquista a Cari cantando a capela en el reality de Canal 13.",
-    "año": 2008,
+    "titulo": "Primer capítulo de Mekano",
+    "descripcion_corta": "Debuta el mítico programa juvenil de baile conducido originalmente por José Miguel Viñuela.",
+    "año": 1997,
     "categoria": "tv"
   },
   {
     "id": 803,
-    "titulo": "El 'Buenas noches Viña' de Sergio Lagos",
-    "descripcion_corta": "La eufórica introducción de Sergio Lagos para presentar a Daddy Yankee en el Festival.",
-    "año": 2006,
+    "titulo": "Estreno de Rojo, Fama contra Fama",
+    "descripcion_corta": "Comienza el exitoso programa buscatalentos musicales de TVN conducido por Rafael Araneda.",
+    "año": 2002,
     "categoria": "tv"
   },
   {
     "id": 804,
-    "titulo": "El piscinazo de Tonka Tomicic",
-    "descripcion_corta": "La reina del certamen realiza el tradicional piquero de espalda en la piscina.",
-    "año": 2006,
+    "titulo": "Estreno de Protagonistas de la Fama",
+    "descripcion_corta": "Primer reality show de la televisión chilena, emitido por Canal 13.",
+    "año": 2003,
     "categoria": "tv"
   },
   {
     "id": 805,
-    "titulo": "Junior Playboy y el completo con tenedor",
-    "descripcion_corta": "El participante intenta comer comida rápida con cubiertos en el programa de Chilevisión.",
-    "año": 2013,
+    "titulo": "Raquel Argandoña y el 'no te metas con mi marido'",
+    "descripcion_corta": "Argandoña desata una furiosa discusión en vivo con la animadora Viviana Nunes en Vértigo.",
+    "año": 2003,
     "categoria": "tv"
   },
   {
     "id": 806,
-    "titulo": "Pamela Díaz vs Cathy Barriga en La Granja VIP",
-    "descripcion_corta": "Pelea de las participantes y posterior robo de joyas en el reality del canal católico.",
-    "año": 2005,
+    "titulo": "El baile del Koala de Rocío Marengo",
+    "descripcion_corta": "Marengo populariza el atrevido baile de colgarse de los animadores en televisión.",
+    "año": 2007,
     "categoria": "tv"
   },
   {
     "id": 807,
-    "titulo": "Yerko Puchento sin censura en Vértigo",
-    "descripcion_corta": "El personaje inicia su era de rutinas ácidas contra políticos y la farándula chilena.",
-    "año": 2012,
+    "titulo": "Felipe Avello y la parodia de Bryan Tully",
+    "descripcion_corta": "Avello desata risas en SQP interpretando a un falso cantante y humorista angloparlante.",
+    "año": 2007,
     "categoria": "tv"
   },
   {
     "id": 808,
-    "titulo": "Álvaro Ballero gana Protagonistas de la Fama",
-    "descripcion_corta": "Ganador del primer reality show chileno instalando el dicho 'Yo amo a Ballero'.",
-    "año": 2003,
+    "titulo": "Debut de Yingo en Chilevisión",
+    "descripcion_corta": "Debuta el programa juvenil de competencias y canciones que rivalizó con Mekano.",
+    "año": 2007,
     "categoria": "tv"
   },
   {
     "id": 809,
-    "titulo": "El baile de la colita de Nelson Mauri",
-    "descripcion_corta": "Bailarín adolescente realiza su recordada y parodiada presentación en TVN.",
-    "año": 2003,
+    "titulo": "Estreno de El Club de la Comedia",
+    "descripcion_corta": "Comienza el legendario programa de stand-up comedy de Chilevisión.",
+    "año": 2007,
     "categoria": "tv"
   },
   {
     "id": 810,
-    "titulo": "Carlalí es la primera eliminada del reality",
-    "descripcion_corta": "Hito de los realities: la primera eliminada de Protagonistas de la Fama.",
-    "año": 2003,
+    "titulo": "Edmundo Varas canta a Francoise Perrot",
+    "descripcion_corta": "Edmundo canta 'Solo para ti' desde la altura en el reality Amor Ciego.",
+    "año": 2008,
     "categoria": "tv"
   },
   {
     "id": 811,
-    "titulo": "Miguelito debuta en Morandé con Compañía",
-    "descripcion_corta": "El comediante de baja estatura se integra al estelar de Mega liderado por el Kike.",
-    "año": 2009,
+    "titulo": "La mechoneada de Tanza Varela y Angie Alvarado",
+    "descripcion_corta": "Feroz pelea física y de insultos entre ambas participantes en un reality de Canal 13.",
+    "año": 2011,
     "categoria": "tv"
   },
   {
     "id": 812,
-    "titulo": "La entrevista de Robbie Williams y Lucho Jara",
-    "descripcion_corta": "Robbie dice 'Hi, I'm Robbie' y Lucho responde con su recordado 'Yes, I am Lucho'.",
-    "año": 2004,
+    "titulo": "El impasse de Felipe Camiroaga en Viña",
+    "descripcion_corta": "El querido animador es pifiado por el público tras defender a Américo del jurado.",
+    "año": 2010,
     "categoria": "tv"
   },
   {
     "id": 813,
-    "titulo": "Hito de la TV #13",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 13.",
-    "año": 2003,
+    "titulo": "Trágico accidente de Juan Fernández",
+    "descripcion_corta": "Desaparición del avión de la FACh donde viajaba Felipe Camiroaga y el equipo del matinal.",
+    "año": 2011,
     "categoria": "tv"
   },
   {
     "id": 814,
-    "titulo": "Hito de la TV #14",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 14.",
-    "año": 2004,
+    "titulo": "Yerko Puchento y sus rutinas en Vértigo",
+    "descripcion_corta": "El personaje humorístico de Daniel Alcaíno debuta con sus rutinas polémicas y sin filtro.",
+    "año": 2012,
     "categoria": "tv"
   },
   {
     "id": 815,
-    "titulo": "Hito de la TV #15",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 15.",
-    "año": 2005,
+    "titulo": "El show de las Iluminadas en Morandé",
+    "descripcion_corta": "Las humoristas Eva y Angélica debutan con sus bailes espirituales y frases graciosas.",
+    "año": 2012,
     "categoria": "tv"
   },
   {
     "id": 816,
-    "titulo": "Hito de la TV #16",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 16.",
-    "año": 2006,
+    "titulo": "El Tío Emilio y el 'te pillamos po compadre'",
+    "descripcion_corta": "Frase acuñada por Emilio Sutherland al encarar a estafadores en En Su Propia Trampa.",
+    "año": 2013,
     "categoria": "tv"
   },
   {
     "id": 817,
-    "titulo": "Hito de la TV #17",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 17.",
-    "año": 2007,
+    "titulo": "Lucho Jara y el impasse del inglés con Robbie Williams",
+    "descripcion_corta": "Lucho Jara intenta entrevistar en inglés a Robbie Williams terminando de forma hilarante.",
+    "año": 2006,
     "categoria": "tv"
   },
   {
     "id": 818,
-    "titulo": "Hito de la TV #18",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 18.",
-    "año": 2008,
+    "titulo": "Felipe Avello le tira una silla a René Naranjo",
+    "descripcion_corta": "El comediante desata el caos tirándole una silla al opinólogo en pleno matinal.",
+    "año": 2004,
     "categoria": "tv"
   },
   {
     "id": 819,
-    "titulo": "Hito de la TV #19",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 19.",
-    "año": 2009,
+    "titulo": "Arturo Longton exige su pago en reality",
+    "descripcion_corta": "Longton desata una rabieta exigiendo el pago de su sueldo en La Granja VIP.",
+    "año": 2005,
     "categoria": "tv"
   },
   {
     "id": 820,
-    "titulo": "Hito de la TV #20",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 20.",
-    "año": 2010,
+    "titulo": "El 'estúpida, mi pelo, idiota' en Caso Cerrado",
+    "descripcion_corta": "El joven chileno Jay Colindres se hace viral mundialmente tras su participación en el programa.",
+    "año": 2014,
     "categoria": "tv"
   },
   {
     "id": 821,
-    "titulo": "Hito de la TV #21",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 21.",
-    "año": 2011,
-    "categoria": "tv"
+    "titulo": "El Rey León de Pinilla y Coté López",
+    "descripcion_corta": "Escándalo farandulero tras el encuentro entre el futbolista y la modelo.",
+    "año": 2007,
+    "categoria": "escandalo"
   },
   {
     "id": 822,
-    "titulo": "Hito de la TV #22",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 22.",
-    "año": 2012,
-    "categoria": "tv"
-  },
-  {
-    "id": 823,
-    "titulo": "Hito de la TV #23",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 23.",
-    "año": 2013,
-    "categoria": "tv"
-  },
-  {
-    "id": 824,
-    "titulo": "Hito de la TV #24",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 24.",
-    "año": 2014,
-    "categoria": "tv"
-  },
-  {
-    "id": 825,
-    "titulo": "Hito de la TV #25",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 25.",
-    "año": 2015,
-    "categoria": "tv"
-  },
-  {
-    "id": 826,
-    "titulo": "Hito de la TV #26",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 26.",
-    "año": 2016,
-    "categoria": "tv"
-  },
-  {
-    "id": 827,
-    "titulo": "Hito de la TV #27",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 27.",
-    "año": 2017,
-    "categoria": "tv"
-  },
-  {
-    "id": 828,
-    "titulo": "Hito de la TV #28",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 28.",
-    "año": 2018,
-    "categoria": "tv"
-  },
-  {
-    "id": 829,
-    "titulo": "Hito de la TV #29",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 29.",
-    "año": 2019,
-    "categoria": "tv"
-  },
-  {
-    "id": 830,
-    "titulo": "Hito de la TV #30",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 30.",
-    "año": 2020,
-    "categoria": "tv"
-  },
-  {
-    "id": 831,
-    "titulo": "Hito de la TV #31",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 31.",
-    "año": 2021,
-    "categoria": "tv"
-  },
-  {
-    "id": 832,
-    "titulo": "Hito de la TV #32",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 32.",
-    "año": 2022,
-    "categoria": "tv"
-  },
-  {
-    "id": 833,
-    "titulo": "Hito de la TV #33",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 33.",
-    "año": 2023,
-    "categoria": "tv"
-  },
-  {
-    "id": 834,
-    "titulo": "Hito de la TV #34",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 34.",
-    "año": 1990,
-    "categoria": "tv"
-  },
-  {
-    "id": 835,
-    "titulo": "Hito de la TV #35",
-    "descripcion_corta": "Descripción de este gran momento televisivo número 35.",
-    "año": 1991,
-    "categoria": "tv"
-  },
-  {
-    "id": 836,
-    "titulo": "El Bolocazo",
-    "descripcion_corta": "Cecilia Bolocco y su percance con su vestido blanco en la obertura de Viña.",
-    "año": 2000,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 837,
-    "titulo": "El 'Rey León' de Coté López y Pinilla",
-    "descripcion_corta": "La excusa de que pasaron la noche juntos viendo la película animada de Disney.",
-    "año": 2007,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 838,
-    "titulo": "Kenita Larraín llega en silla de ruedas",
-    "descripcion_corta": "Kenita regresa de Costa Rica tras el accidente y quiebre amoroso con el Chino Ríos.",
-    "año": 2006,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 839,
-    "titulo": "Boda cancelada de Zamorano y Kenita",
-    "descripcion_corta": "Se suspende el civil a solo días del matrimonio civil más comentado del año.",
-    "año": 2004,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 840,
-    "titulo": "El choque del Ferrari de Arturo Vidal",
-    "descripcion_corta": "El jugador choca en estado de ebriedad en plena Copa América, declarando '¿cómo voy a ser yo?'.",
-    "año": 2015,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 841,
-    "titulo": "El bautizazo",
-    "descripcion_corta": "Cinco seleccionados son marginados por llegar tarde tras el bautizo del hijo de Jorge Valdivia.",
-    "año": 2011,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 842,
-    "titulo": "El mechoneo de Pablo Mackenna",
-    "descripcion_corta": "Incidente policial y pelea del animador de CQC en un local nocturno.",
-    "año": 2005,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 843,
-    "titulo": "Marlen Olivari y el escote en Viña",
-    "descripcion_corta": "La showwoman y jurado de Viña protagoniza un comentado destape frente a la prensa.",
-    "año": 2007,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 844,
-    "titulo": "Video filtrado de Ronny Dance y Mariana Marino",
-    "descripcion_corta": "Filtración privada que remeció las redes y programas de farándula.",
-    "año": 2013,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 845,
-    "titulo": "El empujón de Mauriziano a Bonvallet",
-    "descripcion_corta": "Fuerte discusión y empujón en vivo entre los dos panelistas deportivos.",
+    "titulo": "El video prohibido de la Geisha Chilena",
+    "descripcion_corta": "Anita Alvarado desata polémica nacional tras filtrarse videos íntimos y declaraciones.",
     "año": 2002,
     "categoria": "escandalo"
   },
   {
-    "id": 846,
-    "titulo": "Arturo Longton exige su plata",
-    "descripcion_corta": "El participante desata una rabieta exigiendo el pago de su sueldo del reality.",
-    "año": 2005,
+    "id": 823,
+    "titulo": "La huida de Pamela Díaz vestida de novia",
+    "descripcion_corta": "Pamela Díaz arranca de la prensa farandulera subiendo a un auto con su vestido de novia.",
+    "año": 2006,
     "categoria": "escandalo"
   },
   {
-    "id": 847,
-    "titulo": "Escándalo Farandulero #12",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 12.",
-    "año": 2007,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 848,
-    "titulo": "Escándalo Farandulero #13",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 13.",
-    "año": 2008,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 849,
-    "titulo": "Escándalo Farandulero #14",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 14.",
-    "año": 2009,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 850,
-    "titulo": "Escándalo Farandulero #15",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 15.",
-    "año": 2010,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 851,
-    "titulo": "Escándalo Farandulero #16",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 16.",
+    "id": 824,
+    "titulo": "El 'bautizazo' de la selección chilena",
+    "descripcion_corta": "Jugadores de la Roja llegan tarde y en estado de ebriedad a Juan Pinto Durán.",
     "año": 2011,
     "categoria": "escandalo"
   },
   {
-    "id": 852,
-    "titulo": "Escándalo Farandulero #17",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 17.",
+    "id": 825,
+    "titulo": "Daniela Aránguiz y el 'tengo la pura cara de cuica'",
+    "descripcion_corta": "Aránguiz acuña la mítica frase telefónica en una discusión con una modelo.",
     "año": 2012,
     "categoria": "escandalo"
   },
   {
-    "id": 853,
-    "titulo": "Escándalo Farandulero #18",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 18.",
-    "año": 2013,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 854,
-    "titulo": "Escándalo Farandulero #19",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 19.",
-    "año": 2014,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 855,
-    "titulo": "Escándalo Farandulero #20",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 20.",
+    "id": 826,
+    "titulo": "El choque de Vidal en Copa América",
+    "descripcion_corta": "Arturo Vidal choca su Ferrari ebrio en pleno torneo continental.",
     "año": 2015,
     "categoria": "escandalo"
   },
   {
-    "id": 856,
-    "titulo": "Escándalo Farandulero #21",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 21.",
-    "año": 2016,
+    "id": 827,
+    "titulo": "Kenita Larraín llega en silla de ruedas al aeropuerto",
+    "descripcion_corta": "Kenita vuelve de Costa Rica en silla de ruedas tras un confuso altercado con Marcelo Ríos.",
+    "año": 2006,
     "categoria": "escandalo"
   },
   {
-    "id": 857,
-    "titulo": "Escándalo Farandulero #22",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 22.",
-    "año": 2017,
+    "id": 828,
+    "titulo": "Chino Ríos orina a periodistas en La Serena",
+    "descripcion_corta": "El ex número uno de tenis protagoniza un escándalo al orinar a la prensa en una discoteca.",
+    "año": 2001,
     "categoria": "escandalo"
   },
   {
-    "id": 858,
-    "titulo": "Escándalo Farandulero #23",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 23.",
-    "año": 2018,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 859,
-    "titulo": "Escándalo Farandulero #24",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 24.",
-    "año": 2019,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 860,
-    "titulo": "Escándalo Farandulero #25",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 25.",
-    "año": 2020,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 861,
-    "titulo": "Escándalo Farandulero #26",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 26.",
-    "año": 2021,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 862,
-    "titulo": "Escándalo Farandulero #27",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 27.",
-    "año": 2022,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 863,
-    "titulo": "Escándalo Farandulero #28",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 28.",
-    "año": 2023,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 864,
-    "titulo": "Escándalo Farandulero #29",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 29.",
-    "año": 2024,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 865,
-    "titulo": "Escándalo Farandulero #30",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 30.",
-    "año": 1995,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 866,
-    "titulo": "Escándalo Farandulero #31",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 31.",
-    "año": 1996,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 867,
-    "titulo": "Escándalo Farandulero #32",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 32.",
-    "año": 1997,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 868,
-    "titulo": "Escándalo Farandulero #33",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 33.",
-    "año": 1998,
-    "categoria": "escandalo"
-  },
-  {
-    "id": 869,
-    "titulo": "Escándalo Farandulero #34",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 34.",
+    "id": 829,
+    "titulo": "El video prohibido de Lucho Jara",
+    "descripcion_corta": "Polémica por la filtración de un video del cantante en una situación comprometida.",
     "año": 1999,
     "categoria": "escandalo"
   },
   {
-    "id": 870,
-    "titulo": "Escándalo Farandulero #35",
-    "descripcion_corta": "Detalles sobre este recordado escándalo nacional número 35.",
-    "año": 2000,
+    "id": 830,
+    "titulo": "El fin de la relación de Marcelo Ríos y Kenita Larraín",
+    "descripcion_corta": "Quiebre matrimonial express que copó los matinales y portadas chilenas.",
+    "año": 2004,
     "categoria": "escandalo"
   },
   {
-    "id": 871,
+    "id": 831,
+    "titulo": "La mechoneada de la farándula",
+    "descripcion_corta": "Pelea en una discoteca de Santiago entre Titi Ahubert y Daniella Campos por Iván Zamorano.",
+    "año": 1999,
+    "categoria": "escandalo"
+  },
+  {
+    "id": 832,
+    "titulo": "El escándalo del raspado de la olla",
+    "descripcion_corta": "Se filtran correos de políticos pidiendo financiamiento ilegal en el caso Penta.",
+    "año": 2014,
+    "categoria": "escandalo"
+  },
+  {
+    "id": 833,
+    "titulo": "El caso de la Quintrala",
+    "descripcion_corta": "Detención de María del Pilar Pérez tras encargar asesinatos familiares en Providencia.",
+    "año": 2008,
+    "categoria": "escandalo"
+  },
+  {
+    "id": 834,
+    "titulo": "La detención del Profesor Campusano",
+    "descripcion_corta": "El popular educador de la TV es detenido por deudas, copando la prensa rosa.",
+    "año": 2002,
+    "categoria": "escandalo"
+  },
+  {
+    "id": 835,
+    "titulo": "Jordi Castell y el 'bomba' en SQP",
+    "descripcion_corta": "Jordi lanza un rumor explosivo iniciando una nueva era de filtraciones en vivo.",
+    "año": 2005,
+    "categoria": "escandalo"
+  },
+  {
+    "id": 836,
+    "titulo": "El choque de la 'Fiera' Pamela Díaz",
+    "descripcion_corta": "Pamela Díaz protagoniza un altercado de tránsito tras colisionar con otro vehículo.",
+    "año": 2007,
+    "categoria": "escandalo"
+  },
+  {
+    "id": 837,
+    "titulo": "El autogolazo de Junior Playboy en Twitter",
+    "descripcion_corta": "El personaje de realities sube por error una foto polémica comprometiendo a un animador.",
+    "año": 2013,
+    "categoria": "escandalo"
+  },
+  {
+    "id": 838,
+    "titulo": "El Bulo de la Geisha en España",
+    "descripcion_corta": "Anita Alvarado viaja a España prometiendo revelar secretos de magnates.",
+    "año": 2003,
+    "categoria": "escandalo"
+  },
+  {
+    "id": 839,
+    "titulo": "El 'puertazo' de la selección en Venezuela",
+    "descripcion_corta": "Jugadores chilenos destrozan el hotel de concentración en la Copa América de Venezuela.",
+    "año": 2007,
+    "categoria": "escandalo"
+  },
+  {
+    "id": 840,
+    "titulo": "El escándalo del 'Arañazo'",
+    "descripcion_corta": "Maura Rivera y Yamna Lobos protagonizan una tensa pelea de camarines y celos en Rojo.",
+    "año": 2013,
+    "categoria": "escandalo"
+  },
+  {
+    "id": 841,
     "titulo": "El viral de Rosa Espinoza",
-    "descripcion_corta": "Discusión familiar santiaguina llena de garabatos ingeniosos en los inicios de YouTube.",
+    "descripcion_corta": "Discusión familiar santiaguina llena de ingeniosos garabatos en los inicios de YouTube.",
     "año": 2007,
     "categoria": "viral"
   },
   {
-    "id": 872,
+    "id": 842,
     "titulo": "Adiós Tía Paty, Adiós Tía Lela",
     "descripcion_corta": "Madre graba una canción para maestras y reparte golpes a sus hijos por interrumpirla.",
     "año": 2012,
     "categoria": "viral"
   },
   {
-    "id": 873,
+    "id": 843,
     "titulo": "El Zafrada",
-    "descripcion_corta": "El niño Víctor Díaz enternece al país tras el terremoto de 2010 al pedir zafradas.",
+    "descripcion_corta": "El niño Víctor Díaz enternece al país tras el terremoto al pedir 'zafradas'.",
     "año": 2010,
     "categoria": "viral"
   },
   {
-    "id": 874,
+    "id": 844,
     "titulo": "La caída del Tarro",
-    "descripcion_corta": "Niño cae acrobáticamente de su bicicleta en Talca rodeado de sus amigos relatores.",
+    "descripcion_corta": "Niño cae acrobáticamente de su bicicleta en Talca rodeado de amigos relatores.",
     "año": 2014,
     "categoria": "viral"
   },
   {
-    "id": 875,
+    "id": 845,
     "titulo": "Las Calilas y las Mojojojo",
-    "descripcion_corta": "Entrevista vecinal en Maipú donde se acuñan apodos míticos.",
+    "descripcion_corta": "Entrevista vecinal en Maipú donde se acuñan míticos apodos del barrio.",
     "año": 2019,
     "categoria": "viral"
   },
   {
-    "id": 876,
+    "id": 846,
     "titulo": "El entierro de Chimuelo",
     "descripcion_corta": "Funeral de una cotorra en el patio que termina con un perro atacando el cuerpo.",
     "año": 2019,
     "categoria": "viral"
   },
   {
-    "id": 877,
+    "id": 847,
     "titulo": "La caída de Edgar",
-    "descripcion_corta": "Hito viral hispanoamericano: la caída de un niño al río desde un tronco.",
+    "descripcion_corta": "Hito viral hispanoamericano: la caída de un niño al río desde un tronco de madera.",
     "año": 2006,
     "categoria": "viral"
   },
   {
-    "id": 878,
+    "id": 848,
     "titulo": "Alexis Sánchez y el penal de la Copa América",
     "descripcion_corta": "Alexis pica el penal definitivo, coronando a Chile campeón de América por primera vez.",
     "año": 2015,
     "categoria": "viral"
   },
   {
-    "id": 879,
-    "titulo": "Viral Chileno #9",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 9.",
+    "id": 849,
+    "titulo": "El Manjarsh",
+    "descripcion_corta": "Hombre prueba un trago al aire libre y exclama de forma graciosa 'un manjarsh'.",
     "año": 2015,
     "categoria": "viral"
   },
   {
-    "id": 880,
-    "titulo": "Viral Chileno #10",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 10.",
+    "id": 850,
+    "titulo": "El 'anda a laar' de la entrevista policial",
+    "descripcion_corta": "Un delincuente manda a lavar ropa a los reporteros tras ser detenido.",
     "año": 2016,
     "categoria": "viral"
   },
   {
-    "id": 881,
-    "titulo": "Viral Chileno #11",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 11.",
-    "año": 2017,
-    "categoria": "viral"
-  },
-  {
-    "id": 882,
-    "titulo": "Viral Chileno #12",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 12.",
-    "año": 2018,
-    "categoria": "viral"
-  },
-  {
-    "id": 883,
-    "titulo": "Viral Chileno #13",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 13.",
-    "año": 2019,
-    "categoria": "viral"
-  },
-  {
-    "id": 884,
-    "titulo": "Viral Chileno #14",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 14.",
-    "año": 2020,
-    "categoria": "viral"
-  },
-  {
-    "id": 885,
-    "titulo": "Viral Chileno #15",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 15.",
-    "año": 2021,
-    "categoria": "viral"
-  },
-  {
-    "id": 886,
-    "titulo": "Viral Chileno #16",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 16.",
-    "año": 2022,
-    "categoria": "viral"
-  },
-  {
-    "id": 887,
-    "titulo": "Viral Chileno #17",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 17.",
-    "año": 2023,
-    "categoria": "viral"
-  },
-  {
-    "id": 888,
-    "titulo": "Viral Chileno #18",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 18.",
-    "año": 2006,
-    "categoria": "viral"
-  },
-  {
-    "id": 889,
-    "titulo": "Viral Chileno #19",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 19.",
-    "año": 2007,
-    "categoria": "viral"
-  },
-  {
-    "id": 890,
-    "titulo": "Viral Chileno #20",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 20.",
+    "id": 851,
+    "titulo": "El 'tengo las tetas operadas' de Luli",
+    "descripcion_corta": "Nicole Moreno desglosa sus cirugías en vivo y en directo con su tono característico.",
     "año": 2008,
     "categoria": "viral"
   },
   {
-    "id": 891,
-    "titulo": "Viral Chileno #21",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 21.",
+    "id": 852,
+    "titulo": "El caballero de las empanadas Farkas",
+    "descripcion_corta": "Un hombre alega ser compañero de Farkas y exige comida gratis en un despacho.",
     "año": 2009,
     "categoria": "viral"
   },
   {
-    "id": 892,
-    "titulo": "Viral Chileno #22",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 22.",
-    "año": 2010,
+    "id": 853,
+    "titulo": "Farkas regala billetes de 20 lucas en Viña",
+    "descripcion_corta": "El filántropo desata la locura regalando dinero en efectivo a la prensa y público.",
+    "año": 2009,
     "categoria": "viral"
   },
   {
-    "id": 893,
-    "titulo": "Viral Chileno #23",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 23.",
-    "año": 2011,
-    "categoria": "viral"
-  },
-  {
-    "id": 894,
-    "titulo": "Viral Chileno #24",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 24.",
-    "año": 2012,
-    "categoria": "viral"
-  },
-  {
-    "id": 895,
-    "titulo": "Viral Chileno #25",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 25.",
-    "año": 2013,
-    "categoria": "viral"
-  },
-  {
-    "id": 896,
-    "titulo": "Viral Chileno #26",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 26.",
-    "año": 2014,
-    "categoria": "viral"
-  },
-  {
-    "id": 897,
-    "titulo": "Viral Chileno #27",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 27.",
-    "año": 2015,
-    "categoria": "viral"
-  },
-  {
-    "id": 898,
-    "titulo": "Viral Chileno #28",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 28.",
-    "año": 2016,
-    "categoria": "viral"
-  },
-  {
-    "id": 899,
-    "titulo": "Viral Chileno #29",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 29.",
+    "id": 854,
+    "titulo": "El 'curao no vale' en el matinal",
+    "descripcion_corta": "Un entrevistado ebrio en la playa entrega su particular visión del amor y la fidelidad.",
     "año": 2017,
     "categoria": "viral"
   },
   {
-    "id": 900,
-    "titulo": "Viral Chileno #30",
-    "descripcion_corta": "Detalles de este gracioso video viral nacional número 30.",
+    "id": 855,
+    "titulo": "El viral de 'Ataca Sergio, ataca'",
+    "descripcion_corta": "Un deudor le pide a su perro que ataque al receptor, pero el can no hace nada.",
+    "año": 2016,
+    "categoria": "viral"
+  },
+  {
+    "id": 856,
+    "titulo": "El 'víctima' de Chilevisión Noticias",
+    "descripcion_corta": "Una vecina alega ser una 'víctima' de las circunstancias gritándolo de forma graciosa.",
+    "año": 2015,
+    "categoria": "viral"
+  },
+  {
+    "id": 857,
+    "titulo": "El Compadre Moncho es declarado monumento vivo",
+    "descripcion_corta": "El querido actor Adriano Castillo recibe un cómico reconocimiento popular por su ubicuidad en Santiago.",
+    "año": 2013,
+    "categoria": "viral"
+  },
+  {
+    "id": 858,
+    "titulo": "El tatuaje del palo de Pinilla",
+    "descripcion_corta": "Mauricio Pinilla se tatúa el tiro al travesaño del mundial de Brasil con la frase 'a un centímetro de la gloria'.",
+    "año": 2014,
+    "categoria": "viral"
+  },
+  {
+    "id": 859,
+    "titulo": "El viral de 'me paseé a la farándula'",
+    "descripcion_corta": "Felipe Avello relata sus mejores troleos telefónicos a la televisión.",
     "año": 2018,
+    "categoria": "viral"
+  },
+  {
+    "id": 860,
+    "titulo": "El regreso de Marcelo Salas a la U",
+    "descripcion_corta": "El 'Matador' vuelve al club de sus amores desatando la locura en el Estadio Nacional.",
+    "año": 2005,
     "categoria": "viral"
   }
 ];

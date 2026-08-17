@@ -479,6 +479,9 @@ function renderTimeline() {
     if (i < totalCards) {
       const cardData = activeTimeline[i];
       const cardEl = createCardElement(cardData, true);
+      cardEl.addEventListener('click', () => {
+        showCardInspection(cardData);
+      });
       timelineWrapper.appendChild(cardEl);
     }
   }
@@ -528,6 +531,9 @@ function createCardElement(cardData, isRevealed) {
         <span class="card-back-header">${catConfig.icon} ${catConfig.name}</span>
         <div class="card-year-reveal">${formatCardValue(cardData)}</div>
         <div class="card-back-title">${cardData.titulo}</div>
+        ${(cardData.categoria === 'rock_pop' || cardData.categoria === 'latino' || cardData.categoria === 'clasicos') ? `
+          <a href="https://music.youtube.com/search?q=${encodeURIComponent(cardData.titulo)}" target="_blank" class="card-play-btn" onclick="event.stopPropagation()" title="Escuchar en YouTube Music">▶️</a>
+        ` : ''}
       </div>
     </div>
   `;
@@ -633,6 +639,32 @@ function showCardInspection(card) {
   inspectCardBadge.style.color = catConfig.color;
   inspectCardBadge.style.borderColor = catConfig.color;
   inspectCardDesc.textContent = card.descripcion_corta;
+  
+  // Agregar link a YouTube Music si es una canción
+  const extraContainer = document.getElementById('inspect-card-extra');
+  if (extraContainer) {
+    extraContainer.innerHTML = '';
+    if (card.categoria === 'rock_pop' || card.categoria === 'latino' || card.categoria === 'clasicos') {
+      const link = document.createElement('a');
+      link.href = `https://music.youtube.com/search?q=${encodeURIComponent(card.titulo)}`;
+      link.target = '_blank';
+      link.className = 'btn-primary';
+      link.style.display = 'inline-flex';
+      link.style.alignItems = 'center';
+      link.style.gap = '0.5rem';
+      link.style.textDecoration = 'none';
+      link.style.justifyContent = 'center';
+      link.style.width = 'auto';
+      link.style.padding = '0.6rem 1.2rem';
+      link.style.fontSize = '0.95rem';
+      link.style.background = '#e11d48';
+      link.style.borderColor = '#be123c';
+      link.style.color = '#fff';
+      link.style.boxShadow = '0 0 10px rgba(225, 29, 72, 0.4)';
+      link.innerHTML = '🎵 Escuchar en YT Music';
+      extraContainer.appendChild(link);
+    }
+  }
   
   inspectOverlay.classList.add('active');
 }
