@@ -471,8 +471,9 @@ function renderActiveCard() {
       controlPanel.style.display = 'flex';
       controlPanel.style.flexDirection = 'column';
       controlPanel.style.alignItems = 'center';
-      controlPanel.style.gap = '1rem';
+      controlPanel.style.gap = '0.75rem';
       controlPanel.style.animation = 'fadeIn 0.3s ease-out';
+      controlPanel.style.width = '100%';
       
       const infoText = document.createElement('p');
       infoText.className = 'text-muted';
@@ -482,29 +483,31 @@ function renderActiveCard() {
       infoText.style.margin = '0';
       infoText.innerHTML = `Posicionada en la ranura nº ${gameState.tentativeIndex + 1}.<br>¿Estás seguro de colocarla aquí?`;
       
+      const confirmRow = document.createElement('div');
+      confirmRow.className = 'confirm-row';
+      
       const btnConfirm = document.createElement('button');
       btnConfirm.className = 'btn-primary';
-      btnConfirm.style.marginTop = '0.5rem';
-      btnConfirm.style.width = '280px';
       btnConfirm.style.boxShadow = '0 0 20px var(--gold-glow)';
-      btnConfirm.innerHTML = '🔮 Revelar y Voltear';
+      btnConfirm.innerHTML = '🔮 Voltear';
       btnConfirm.addEventListener('click', () => {
         confirmPlacement();
       });
       
       const btnReturn = document.createElement('button');
       btnReturn.className = 'mode-btn';
-      btnReturn.style.width = '280px';
-      btnReturn.innerHTML = '↩️ Devolver a la Mano';
+      btnReturn.innerHTML = '↩️ Devolver';
       btnReturn.addEventListener('click', () => {
         gameState.tentativeIndex = null;
         renderTimeline();
         renderActiveCard();
       });
       
+      confirmRow.appendChild(btnReturn);
+      confirmRow.appendChild(btnConfirm);
+      
       controlPanel.appendChild(infoText);
-      controlPanel.appendChild(btnConfirm);
-      controlPanel.appendChild(btnReturn);
+      controlPanel.appendChild(confirmRow);
       
       activeCardContainer.appendChild(controlPanel);
     }
