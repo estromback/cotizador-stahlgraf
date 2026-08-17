@@ -532,7 +532,7 @@ function createCardElement(cardData, isRevealed) {
         <div class="card-year-reveal">${formatCardValue(cardData)}</div>
         <div class="card-back-title">${cardData.titulo}</div>
         ${(cardData.categoria === 'rock_pop' || cardData.categoria === 'latino' || cardData.categoria === 'clasicos') ? `
-          <a href="https://music.youtube.com/search?q=${encodeURIComponent(cardData.titulo)}" target="_blank" class="card-play-btn" onclick="event.stopPropagation()" title="Escuchar en YouTube Music">▶️</a>
+          <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(cardData.titulo)}" target="_blank" class="card-play-btn" onclick="event.stopPropagation()" title="Escuchar en YouTube">▶️</a>
         ` : ''}
       </div>
     </div>
@@ -640,13 +640,13 @@ function showCardInspection(card) {
   inspectCardBadge.style.borderColor = catConfig.color;
   inspectCardDesc.textContent = card.descripcion_corta;
   
-  // Agregar link a YouTube Music si es una canción
+  // Agregar link a YouTube si es una canción
   const extraContainer = document.getElementById('inspect-card-extra');
   if (extraContainer) {
     extraContainer.innerHTML = '';
     if (card.categoria === 'rock_pop' || card.categoria === 'latino' || card.categoria === 'clasicos') {
       const link = document.createElement('a');
-      link.href = `https://music.youtube.com/search?q=${encodeURIComponent(card.titulo)}`;
+      link.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(card.titulo)}`;
       link.target = '_blank';
       link.className = 'btn-primary';
       link.style.display = 'inline-flex';
@@ -661,7 +661,7 @@ function showCardInspection(card) {
       link.style.borderColor = '#be123c';
       link.style.color = '#fff';
       link.style.boxShadow = '0 0 10px rgba(225, 29, 72, 0.4)';
-      link.innerHTML = '🎵 Escuchar en YT Music';
+      link.innerHTML = '🎵 Escuchar en YouTube';
       extraContainer.appendChild(link);
     }
   }
