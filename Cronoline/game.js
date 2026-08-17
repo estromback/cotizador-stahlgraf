@@ -7,6 +7,7 @@
 
 // --- ESTADO DEL JUEGO ---
 let gameState = {
+  version: 'historia',       // 'historia' | 'canciones' | 'peliculas' | 'farandula' | 'edificios' | 'guerras'
   mode: 'solitario',         // 'solitario' o 'multiplayer'
   deck: [],                 // Mazo de cartas filtrado y barajado
   placedCards: [],          // Cartas colocadas correctamente en el timeline (ordenadas)
@@ -28,6 +29,7 @@ let gameState = {
 };
 
 // --- ELEMENTOS DEL DOM ---
+const versionScreen = document.getElementById('version-screen');
 const setupScreen = document.getElementById('setup-screen');
 const gameScreen = document.getElementById('game-screen');
 const timelineWrapper = document.getElementById('timeline-wrapper');
@@ -38,6 +40,12 @@ const scoreValue = document.getElementById('score-value');
 const scoreLabel = document.getElementById('score-label');
 const activePlayerTag = document.getElementById('game-active-player');
 
+const setupTitle = document.getElementById('setup-title');
+const setupSubtitle = document.getElementById('setup-subtitle');
+const categoriesGridContainer = document.getElementById('categories-grid-container');
+const difficultySetupGroup = document.getElementById('difficulty-setup-group');
+const categoriesSetupGroup = document.getElementById('categories-setup-group');
+
 // Botones y Selectores
 const btnModeSolitario = document.getElementById('btn-mode-solitario');
 const btnModeMultiplayer = document.getElementById('btn-mode-multiplayer');
@@ -47,6 +55,7 @@ const btnStartGame = document.getElementById('btn-start-game');
 const btnExitGame = document.getElementById('btn-exit-game');
 const btnTimelineShared = document.getElementById('btn-timeline-shared');
 const btnTimelineIndividual = document.getElementById('btn-timeline-individual');
+const btnBackToVersions = document.getElementById('btn-back-to-versions');
 
 // Modales y Overlays
 const flashFeedback = document.getElementById('flash-feedback');
@@ -72,7 +81,74 @@ const inspectCardBadge = document.getElementById('inspect-card-badge');
 const inspectCardDesc = document.getElementById('inspect-card-desc');
 const btnCloseInspect = document.getElementById('btn-close-inspect');
 
-// --- EVENT LISTENERS DE CONFIGURACIÓN ---
+// --- EVENT LISTENERS Y LÓGICA DE SELECCIÓN DE VERSIÓN ---
+
+// Selección de Versión
+document.querySelectorAll('.version-select-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const version = btn.dataset.version;
+    selectVersion(version);
+  });
+});
+
+function selectVersion(version) {
+  gameState.version = version;
+  const versionMeta = GAME_VERSIONS[version];
+  
+  if (!versionMeta) return;
+  
+  // Actualizar Títulos del Setup
+  setupTitle.textContent = versionMeta.title;
+  setupSubtitle.textContent = versionMeta.subtitle;
+  
+  // Controlar visibilidad del selector de dificultad
+  if (versionMeta.hasDifficulty) {
+    difficultySetupGroup.classList.remove('hidden');
+  } else {
+    difficultySetupGroup.classList.add('hidden');
+  }
+  
+  // Generar Categorías Dinámicamente
+  categoriesGridContainer.innerHTML = '';
+  const categories = versionMeta.categories;
+  const catKeys = Object.keys(categories);
+  
+  if (catKeys.length > 0) {
+    categoriesSetupGroup.classList.remove('hidden');
+    catKeys.forEach(catKey => {
+      const cat = categories[catKey];
+      
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.id = `cat-${catKey}-cb`;
+      cb.className = 'category-checkbox';
+      cb.dataset.category = catKey;
+      cb.checked = true;
+      
+      const label = document.createElement('label');
+      label.htmlFor = `cat-${catKey}-cb`;
+      label.className = `category-label cat-${catKey}`;
+      label.style.setProperty('--color-accent', cat.color);
+      label.style.setProperty('--glow-accent', cat.glow);
+      label.innerHTML = `<span>${cat.icon}</span> ${cat.name}`;
+      
+      categoriesGridContainer.appendChild(cb);
+      categoriesGridContainer.appendChild(label);
+    });
+  } else {
+    categoriesSetupGroup.classList.add('hidden');
+  }
+  
+  // Ir al setup
+  versionScreen.classList.add('hidden');
+  setupScreen.classList.remove('hidden');
+}
+
+// Botón de Volver al Selector de Versión
+btnBackToVersions.addEventListener('click', () => {
+  setupScreen.classList.add('hidden');
+  versionScreen.classList.remove('hidden');
+});
 
 // Cambiar de modo a Solitario
 btnModeSolitario.addEventListener('click', () => {
@@ -214,8 +290,6 @@ btnContinueError.addEventListener('click', () => {
   }
 });
 
-// Botón de iniciar juego
-
 btnRestartGame.addEventListener('click', () => {
   gameoverOverlay.classList.remove('active');
   returnToMenu();
@@ -237,32 +311,45 @@ inspectOverlay.addEventListener('click', (e) => {
 /**
  * Inicia el estado de una nueva partida
  */
+function formatCardValue(cardData) {
+  if (cardData.valor_display) {
+    return cardData.valor_display;
+  }
+  return cardData.año < 0 ? `${Math.abs(cardData.año)} A.C.` : cardData.año;
+}
+
+/**
+ * Inicia el estado de una nueva partida
+ */
 function startNewGame() {
   gameState.tentativeIndex = null;
   // 1. Obtener categorías seleccionadas
   const selectedCategories = [];
-  if (document.getElementById('cat-chile-cb').checked) selectedCategories.push('chile');
-  if (document.getElementById('cat-universal-cb').checked) selectedCategories.push('universal');
-  if (document.getElementById('cat-ciencia-cb').checked) selectedCategories.push('ciencia');
-  if (document.getElementById('cat-arte-cb').checked) selectedCategories.push('arte');
+  const checkboxes = categoriesGridContainer.querySelectorAll('.category-checkbox');
+  checkboxes.forEach(cb => {
+    if (cb.checked) {
+      selectedCategories.push(cb.dataset.category);
+    }
+  });
   
   if (selectedCategories.length === 0) {
     alert('Por favor, selecciona al menos una categoría para jugar.');
     return false;
   }
   
-  // 2. Cargar mejor puntuación de Solitario
-  gameState.bestScore = parseInt(localStorage.getItem('cronoline_best_score')) || 0;
+  // 2. Cargar mejor puntuación de Solitario por versión
+  gameState.bestScore = parseInt(localStorage.getItem(`cronoline_best_score_${gameState.version}`)) || 0;
   
-  // 3. Filtrar y barajar el mazo
-  let filteredCards = INITIAL_CARDS.filter(card => selectedCategories.includes(card.categoria));
+  // 3. Filtrar y barajar el mazo usando la versión activa
+  const versionMeta = GAME_VERSIONS[gameState.version || 'historia'];
+  let filteredCards = versionMeta.cards.filter(card => selectedCategories.includes(card.categoria));
   
-  if (gameState.difficulty !== 'todas') {
+  if (versionMeta.hasDifficulty && gameState.difficulty !== 'todas') {
     filteredCards = filteredCards.filter(card => card.dificultad === gameState.difficulty);
   }
   
   if (filteredCards.length < 5) {
-    alert('No hay suficientes cartas seleccionadas para iniciar una partida adecuada con la dificultad elegida.');
+    alert('No hay suficientes cartas seleccionadas para iniciar una partida adecuada.');
     return false;
   }
   
@@ -439,7 +526,7 @@ function createCardElement(cardData, isRevealed) {
       <!-- CARA TRASERA (Año revelado) -->
       <div class="card-face card-back">
         <span class="card-back-header">${catConfig.icon} ${catConfig.name}</span>
-        <div class="card-year-reveal">${cardData.año}</div>
+        <div class="card-year-reveal">${formatCardValue(cardData)}</div>
         <div class="card-back-title">${cardData.titulo}</div>
       </div>
     </div>
@@ -903,11 +990,11 @@ function endGame(isVictory, winnerOverride = null) {
     const item = document.createElement('div');
     item.className = 'gameover-summary-item';
     
-    // Formatear año AC/DC
-    const yearDisplay = card.año < 0 ? `${Math.abs(card.año)} A.C.` : card.año;
+    // Formatear valor (año, metros, fecha)
+    const valueDisplay = formatCardValue(card);
     
     item.innerHTML = `
-      <span class="year">${yearDisplay}</span>
+      <span class="year">${valueDisplay}</span>
       <span class="title">${card.titulo}</span>
     `;
     gameoverSummaryList.appendChild(item);

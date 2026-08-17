@@ -15,12 +15,73 @@
 </head>
 <body>
 
-  <!-- PANTALLA DE INICIO / SETUP -->
-  <section id="setup-screen" class="screen">
-    <div class="setup-card">
+  <!-- PANTALLA DE SELECCIÓN DE VERSIÓN -->
+  <section id="version-screen" class="screen">
+    <div class="setup-card" style="max-width: 600px;">
       <div class="brand-container">
         <h1 class="brand-title">Cronoline</h1>
-        <p class="brand-subtitle">Línea de Tiempo Histórica</p>
+        <p class="brand-slogan">"El único juego donde el orden de los factores SÍ altera el producto"</p>
+        <p class="brand-subtitle">Elige la Versión del Juego</p>
+      </div>
+
+      <div class="version-grid">
+        <button type="button" class="version-select-btn" data-version="historia" style="--color-accent: #fbbf24; --glow-accent: rgba(251, 191, 36, 0.3)">
+          <span class="version-icon">⏳</span>
+          <span class="version-title">Historia</span>
+          <span class="version-desc">Ordena eventos históricos mundiales y de Chile</span>
+        </button>
+
+        <button type="button" class="version-select-btn" data-version="canciones" style="--color-accent: #ec4899; --glow-accent: rgba(236, 72, 153, 0.3)">
+          <span class="version-icon">🎸</span>
+          <span class="version-title">Canciones</span>
+          <span class="version-desc">Ordena hits populares por año de lanzamiento</span>
+        </button>
+
+        <button type="button" class="version-select-btn" data-version="peliculas" style="--color-accent: #14b8a6; --glow-accent: rgba(20, 184, 166, 0.3)">
+          <span class="version-icon">🎥</span>
+          <span class="version-title">Películas</span>
+          <span class="version-desc">Ordena grandes clásicos por año de estreno</span>
+        </button>
+
+        <button type="button" class="version-select-btn" data-version="farandula" style="--color-accent: #eab308; --glow-accent: rgba(234, 179, 8, 0.3)">
+          <span class="version-icon">📺</span>
+          <span class="version-title">Farándula Chilena</span>
+          <span class="version-desc">Momentos icónicos y virales de nuestra cultura pop</span>
+        </button>
+
+        <button type="button" class="version-select-btn" data-version="edificios" style="--color-accent: #6366f1; --glow-accent: rgba(99, 102, 241, 0.3)">
+          <span class="version-icon">🏙️</span>
+          <span class="version-title">Edificios Icónicos</span>
+          <span class="version-desc">Ordena grandes construcciones por su altura</span>
+        </button>
+
+        <button type="button" class="version-select-btn" data-version="guerras" style="--color-accent: #fb7185; --glow-accent: rgba(251, 113, 133, 0.3)">
+          <span class="version-icon">🪖</span>
+          <span class="version-title">Guerras Mundiales</span>
+          <span class="version-desc">Hitos y batallas de la 1ª y 2ª Guerra Mundial</span>
+        </button>
+
+        <button type="button" class="version-select-btn" data-version="montanas" style="--color-accent: #06b6d4; --glow-accent: rgba(6, 182, 212, 0.3)">
+          <span class="version-icon">🏔️</span>
+          <span class="version-title">Montañas y Cerros</span>
+          <span class="version-desc">Ordena cumbres de Chile y el mundo por altura</span>
+        </button>
+
+        <button type="button" class="version-select-btn" data-version="tecnologia" style="--color-accent: #a855f7; --glow-accent: rgba(168, 85, 247, 0.3)">
+          <span class="version-icon">💻</span>
+          <span class="version-title">Tecnología Moderna</span>
+          <span class="version-desc">Consolas, videojuegos, apps e Internet</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PANTALLA DE INICIO / SETUP -->
+  <section id="setup-screen" class="screen hidden">
+    <div class="setup-card">
+      <div class="brand-container">
+        <h1 class="brand-title" id="setup-title">Cronoline</h1>
+        <p class="brand-subtitle" id="setup-subtitle">Línea de Tiempo Histórica</p>
       </div>
 
       <!-- Selección de Modo de Juego -->
@@ -33,7 +94,7 @@
       </div>
 
       <!-- Selección de Dificultad -->
-      <div class="setup-group">
+      <div class="setup-group" id="difficulty-setup-group">
         <label>Nivel de Dificultad</label>
         <div class="mode-selector" id="diff-selector">
           <button type="button" class="mode-btn diff-btn active" data-diff="todas">Todas</button>
@@ -105,32 +166,19 @@
       </div>
 
       <!-- Categorías de Cartas -->
-      <div class="setup-group">
-        <label>Categorías del Mazo</label>
-        <div class="categories-grid">
-          <input type="checkbox" id="cat-chile-cb" class="category-checkbox" checked>
-          <label for="cat-chile-cb" class="category-label cat-chile" style="--color-accent: #e11d48; --glow-accent: rgba(225, 29, 72, 0.4)">
-            <span>🇨🇱</span> Historia de Chile
-          </label>
-
-          <input type="checkbox" id="cat-universal-cb" class="category-checkbox" checked>
-          <label for="cat-universal-cb" class="category-label cat-universal" style="--color-accent: #2563eb; --glow-accent: rgba(37, 99, 235, 0.4)">
-            <span>🌍</span> Historia Universal
-          </label>
-
-          <input type="checkbox" id="cat-ciencia-cb" class="category-checkbox" checked>
-          <label for="cat-ciencia-cb" class="category-label cat-ciencia" style="--color-accent: #059669; --glow-accent: rgba(5, 150, 105, 0.4)">
-            <span>💡</span> Ciencia y Tecnología
-          </label>
-
-          <input type="checkbox" id="cat-arte-cb" class="category-checkbox" checked>
-          <label for="cat-arte-cb" class="category-label cat-arte" style="--color-accent: #7c3aed; --glow-accent: rgba(124, 58, 237, 0.4)">
-            <span>🎨</span> Arte y Literatura
-          </label>
+      <div class="setup-group" id="categories-setup-group">
+        <label id="categories-label">Categorías del Mazo</label>
+        <div class="categories-grid" id="categories-grid-container">
+          <!-- Se generará dinámicamente -->
         </div>
       </div>
 
       <button type="button" id="btn-start-game" class="btn-primary">Comenzar</button>
+      
+      <!-- Botón para Volver al Selector de Versión -->
+      <button type="button" id="btn-back-to-versions" class="mode-btn" style="margin-top: 1rem; width: 100%; border-color: rgba(255,255,255,0.08); font-size: 0.9rem; padding: 0.6rem;">
+        ↩️ Cambiar Versión
+      </button>
     </div>
   </section>
 

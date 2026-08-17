@@ -124,6 +124,17 @@ h1, h2, h3, .brand {
   letter-spacing: 3px;
 }
 
+.brand-slogan {
+  color: var(--text-white);
+  font-size: 1.05rem;
+  font-style: italic;
+  margin-top: -0.25rem;
+  margin-bottom: 1.25rem;
+  opacity: 0.9;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+  font-family: var(--font-title);
+}
+
 /* Controles de Configuración */
 .setup-group {
   margin-bottom: 1.5rem;
@@ -847,6 +858,146 @@ h1, h2, h3, .brand {
   --glow-accent: rgba(124, 58, 237, 0.4);
 }
 
+/* Selección de Versión */
+.version-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.version-select-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  color: var(--text-white);
+  padding: 1.25rem 1rem;
+  border-radius: 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all var(--transition-speed) ease;
+  user-select: none;
+}
+
+.version-select-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--color-accent, var(--gold));
+  box-shadow: 0 0 20px var(--glow-accent, var(--gold-glow));
+  transform: translateY(-3px);
+}
+
+.version-select-btn:active {
+  transform: translateY(0);
+}
+
+.version-icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  filter: drop-shadow(0 0 8px var(--glow-accent, var(--gold-glow)));
+}
+
+.version-title {
+  font-family: var(--font-title);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-accent, var(--gold));
+  margin-bottom: 0.35rem;
+}
+
+.version-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Categorías Adicionales */
+.cat-rock_pop {
+  --color-accent: #ec4899;
+  --glow-accent: rgba(236, 72, 153, 0.4);
+}
+
+.cat-latino {
+  --color-accent: #f97316;
+  --glow-accent: rgba(249, 115, 22, 0.4);
+}
+
+.cat-clasicos {
+  --color-accent: #3b82f6;
+  --glow-accent: rgba(59, 130, 246, 0.4);
+}
+
+.cat-clasico {
+  --color-accent: #14b8a6;
+  --glow-accent: rgba(20, 184, 166, 0.4);
+}
+
+.cat-moderno {
+  --color-accent: #a855f7;
+  --glow-accent: rgba(168, 85, 247, 0.4);
+}
+
+.cat-chileno {
+  --color-accent: #ef4444;
+  --glow-accent: rgba(239, 68, 68, 0.4);
+}
+
+.cat-viral {
+  --color-accent: #10b981;
+  --glow-accent: rgba(16, 185, 129, 0.4);
+}
+
+.cat-tv {
+  --color-accent: #eab308;
+  --glow-accent: rgba(234, 179, 8, 0.4);
+}
+
+.cat-escandalo {
+  --color-accent: #ef4444;
+  --glow-accent: rgba(239, 68, 68, 0.4);
+}
+
+.cat-historico {
+  --color-accent: #b45309;
+  --glow-accent: rgba(180, 83, 9, 0.4);
+}
+
+.cat-ww1 {
+  --color-accent: #78716c;
+  --glow-accent: rgba(120, 113, 108, 0.4);
+}
+
+.cat-ww2 {
+  --color-accent: #fb7185;
+  --glow-accent: rgba(251, 113, 133, 0.4);
+}
+
+.cat-montana_chile {
+  --color-accent: #06b6d4;
+  --glow-accent: rgba(6, 182, 212, 0.4);
+}
+
+.cat-montana_mundo {
+  --color-accent: #0ea5e9;
+  --glow-accent: rgba(14, 165, 233, 0.4);
+}
+
+.cat-tech_hardware {
+  --color-accent: #a855f7;
+  --glow-accent: rgba(168, 85, 247, 0.4);
+}
+
+.cat-tech_videojuegos {
+  --color-accent: #ec4899;
+  --glow-accent: rgba(236, 72, 153, 0.4);
+}
+
+.cat-tech_apps {
+  --color-accent: #10b981;
+  --glow-accent: rgba(16, 185, 129, 0.4);
+}
+
 /* Responsividad general */
 @media (max-width: 768px) {
   .brand-title {
@@ -859,6 +1010,11 @@ h1, h2, h3, .brand {
   
   .categories-grid {
     grid-template-columns: 1fr;
+  }
+
+  .version-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
   
   .card {
