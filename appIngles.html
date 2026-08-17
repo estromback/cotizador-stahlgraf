@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English 4° Básico - Unit 2: The City, Transportation & Occupations</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel CDN for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #f8fafc;
+    }
+    h1, h2, h3, h4, .font-fun {
+      font-family: 'Fredoka', cursive;
+    }
+    .card-hover {
+      transition: all 0.2s ease-in-out;
+    }
+    .card-hover:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #0ea5e9;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const playSound = (type) => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'correct') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+          osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+          osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.3);
+        } else if (type === 'wrong') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, ctx.currentTime); // A3
+          osc.frequency.exponentialRampToValueAtTime(146.83, ctx.currentTime + 0.2); // D3
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.3);
+        } else if (type === 'win') {
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((freq, idx) => {
+            const oscWin = ctx.createOscillator();
+            const gainWin = ctx.createGain();
+            oscWin.connect(gainWin);
+            gainWin.connect(ctx.destination);
+            oscWin.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.12);
+            gainWin.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.12);
+            gainWin.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.12 + 0.2);
+            oscWin.start(ctx.currentTime + idx * 0.12);
+            oscWin.stop(ctx.currentTime + idx * 0.12 + 0.2);
+          });
+        }
+      } catch (e) {
+        // Fallback silently if audio fails
+      }
+    };
+
+    const MASTER_QUESTIONS_50 = [
+      // --- VERB TO BE (1-15) ---
+      {
+        question: "Complete the sentence with the correct Verb To Be:\n'Pablo _____ in the park.'",
+        options: ["is", "are", "am", "be"],
+        answer: 0,
+        explanation: "Use 'is' for singular third-person pronouns/names (He / Pablo is)."
+      },
+      {
+        question: "Complete the sentence:\n'They _____ at school.'",
+        options: ["are", "is", "am", "be"],
+        answer: 0,
+        explanation: "Use 'are' with plural subject pronouns like 'They'."
+      },
+      {
+        question: "Complete the sentence:\n'I _____ a good student.'",
+        options: ["am", "is", "are", "be"],
+        answer: 0,
+        explanation: "The first-person pronoun 'I' always pairs with 'am'."
+      },
+      {
+        question: "Complete the sentence:\n'Billy and Maria _____ doctors.'",
+        options: ["are", "is", "am", "be"],
+        answer: 0,
+        explanation: "Billy and Maria is a plural subject (They), so we use 'are'."
+      },
+      {
+        question: "Complete the sentence:\n'Our teacher _____ great!'",
+        options: ["is", "are", "am", "were"],
+        answer: 0,
+        explanation: "'Our teacher' is singular (He/She), so we use 'is'."
+      },
+      {
+        question: "Complete the sentence:\n'You _____ 26 years old.'",
+        options: ["are", "is", "am", "be"],
+        answer: 0,
+        explanation: "'You' always takes the verb form 'are' regardless of singular/plural."
+      },
+      {
+        question: "Complete the sentence:\n'Maria _____ at home.'",
+        options: ["is", "are", "am", "be"],
+        answer: 0,
+        explanation: "Maria is a singular feminine subject (She), so we use 'is'."
+      },
+      {
+        question: "Choose the correct negative form of:\n'She is my mother.'",
+        options: ["She is not my mother.", "She not is my mother.", "She am not my mother.", "She are not my mother."],
+        answer: 0,
+        explanation: "The negative form is constructed by adding 'not' directly after the verb to be: 'is not' / 'isn't'."
+      },
+      {
+        question: "Choose the correct negative form of:\n'Emma and Simon are happy.'",
+        options: ["Emma and Simon are not happy.", "Emma and Simon is not happy.", "Emma and Simon not are happy.", "Emma and Simon am not happy."],
+        answer: 0,
+        explanation: "For plural subjects using 'are', the negative is 'are not' / 'aren't'."
+      },
+      {
+        question: "Choose the correct negative form of:\n'The ruler is blue.'",
+        options: ["The ruler is not blue.", "The ruler not is blue.", "The ruler are not blue.", "The ruler don't blue."],
+        answer: 0,
+        explanation: "'The ruler' is singular (It), so negative is 'is not' / 'isn't'."
+      },
+      {
+        question: "Choose the correct negative form of:\n'Ben is hungry right now.'",
+        options: ["Ben is not hungry right now.", "Ben are not hungry right now.", "Ben not is hungry right now.", "Ben am not hungry right now."],
+        answer: 0,
+        explanation: "Ben (He) + is + not = 'Ben is not hungry right now.'"
+      },
+      {
+        question: "Change this sentence into a question:\n'She is a teacher.'",
+        options: ["Is she a teacher?", "She is a teacher?", "Are she a teacher?", "Am she a teacher?"],
+        answer: 0,
+        explanation: "To form questions, invert the Verb To Be to the front: 'Is she...?'"
+      },
+      {
+        question: "Change this sentence into a question:\n'Brian and Marcos are singers.'",
+        options: ["Are Brian and Marcos singers?", "Is Brian and Marcos singers?", "Am Brian and Marcos singers?", "Brian and Marcos are singers?"],
+        answer: 0,
+        explanation: "Plural subject -> Put 'Are' at the beginning of the sentence."
+      },
+      {
+        question: "Complete the question and answer:\n'_____ the car white? Yes, it _____.'",
+        options: ["Is / is", "Are / are", "Is / am", "Are / is"],
+        answer: 0,
+        explanation: "'The car' is singular -> 'Is the car white? Yes, it is.'"
+      },
+      {
+        question: "Complete the question and answer:\n'_____ you from Italy? Yes, I _____.'",
+        options: ["Are / am", "Is / am", "Are / is", "Am / am"],
+        answer: 0,
+        explanation: "'Are you from Italy?' -> 'Yes, I am.'"
+      },
+
+      // --- JOBS & OCCUPATIONS (16-30) ---
+      {
+        question: "Look at the description: 'He plans and draws buildings.' Who is he?",
+        options: ["Architect", "Pilot", "Secretary", "Firefighter"],
+        answer: 0,
+        explanation: "An Architect is trained to design, plan, and draw buildings."
+      },
+      {
+        question: "Look at the description: 'He flies a plane.' Who is he?",
+        options: ["Pilot", "Taxi driver", "Engineer", "Postman"],
+        answer: 0,
+        explanation: "A Pilot operates the flight controls of an aircraft."
+      },
+      {
+        question: "Look at the description: 'She writes emails and answers the phone.' Who is she?",
+        options: ["Secretary", "Doctor", "Flight attendant", "Vet"],
+        answer: 0,
+        explanation: "A Secretary handles administrative tasks like correspondence and phone calls."
+      },
+      {
+        question: "Look at the description: 'He saves people from fire.' Who is he?",
+        options: ["Firefighter", "Police officer", "Lawyer", "Actor"],
+        answer: 0,
+        explanation: "A Firefighter rescues people from fires and dangerous situations."
+      },
+      {
+        question: "Look at the description: 'She works on a plane, but she is NOT a pilot.' Who is she?",
+        options: ["Flight attendant", "Secretary", "Nurse", "Musician"],
+        answer: 0,
+        explanation: "A Flight attendant serves and assists passengers on board an airliner."
+      },
+      {
+        question: "Look at the description: 'He diagnoses and treats patients.' Who is he?",
+        options: ["Doctor", "Accountant", "Engineer", "Architect"],
+        answer: 0,
+        explanation: "A Doctor evaluates patients' medical conditions and prescribes treatment."
+      },
+      {
+        question: "Look at the description: 'She plays different musical instruments.' Who is she?",
+        options: ["Musician", "Actress", "Teacher", "Baker"],
+        answer: 0,
+        explanation: "A Musician creates or performs music using instruments or singing."
+      },
+      {
+        question: "Look at the description: 'He catches thieves and protects people.' Who is he?",
+        options: ["Police Officer", "Firefighter", "Postman", "Vet"],
+        answer: 0,
+        explanation: "A Police Officer enforces the law and keeps the public safe."
+      },
+      {
+        question: "Look at the description: 'He drives a taxi and transports people from one place to another.' Who is he?",
+        options: ["Taxi Driver", "Pilot", "Bus Driver", "Mechanic"],
+        answer: 0,
+        explanation: "A Taxi Driver operates a automobile for hire to transport passengers."
+      },
+      {
+        question: "Guess the job: 'The _____ works in a school.'",
+        options: ["Teacher", "Chef", "Farmer", "Baker"],
+        answer: 0,
+        explanation: "Teachers work in schools to educate students."
+      },
+      {
+        question: "Guess the job: 'The _____ works on a farm.'",
+        options: ["Farmer", "Doctor", "Postman", "Lawyer"],
+        answer: 0,
+        explanation: "A Farmer manages crops and livestock on agricultural land."
+      },
+      {
+        question: "Guess the job: 'The _____ works in a bakery.'",
+        options: ["Baker", "Secretary", "Surgeon", "Hairdresser"],
+        answer: 0,
+        explanation: "A Baker prepares bread, pastries, and baked goods."
+      },
+      {
+        question: "Guess the job: 'The _____ works in the hospital.'",
+        options: ["Nurse / Doctor", "Postman", "Teacher", "Actor"],
+        answer: 0,
+        explanation: "Medical professionals like Nurses and Doctors work in hospitals."
+      },
+      {
+        question: "Guess the job: 'The _____ works in a restaurant cooking delicious meals.'",
+        options: ["Chef", "Pilot", "Architect", "Secretary"],
+        answer: 0,
+        explanation: "A Chef is a trained professional cook in a restaurant."
+      },
+      {
+        question: "Guess the job: 'The _____ treats sick animals.'",
+        options: ["Vet (Veterinarian)", "Actor", "Accountant", "Businessman"],
+        answer: 0,
+        explanation: "A Vet cares for the health and medical needs of animals."
+      },
+
+      // --- MEANS OF TRANSPORTATION (31-40) ---
+      {
+        question: "Identify the transport: 'A yellow vehicle that carries kids to school.'",
+        options: ["School bus", "Train", "Ferry", "Lorry"],
+        answer: 0,
+        explanation: "School buses are specialized buses used for transporting students."
+      },
+      {
+        question: "Identify the transport: 'A vehicle with two wheels and an engine.'",
+        options: ["Motorcycle", "Bicycle", "Tram", "Caravan"],
+        answer: 0,
+        explanation: "A Motorcycle is a motorized two-wheeled road vehicle."
+      },
+      {
+        question: "Identify the transport: 'An aircraft with large overhead rotating blades.'",
+        options: ["Helicopter", "Plane", "Rocket", "Glider"],
+        answer: 0,
+        explanation: "Helicopters get lift and thrust from horizontally revolving rotors."
+      },
+      {
+        question: "Identify the transport: 'A vehicle equipped to take sick or injured people to hospital.'",
+        options: ["Ambulance", "Fire engine", "Taxi", "Van"],
+        answer: 0,
+        explanation: "An Ambulance is an emergency vehicle transporting sick people."
+      },
+      {
+        question: "Identify the transport: 'A boat or ship for conveying passengers and goods across short water distances.'",
+        options: ["Ferry", "Plane", "Train", "Tram"],
+        answer: 0,
+        explanation: "A Ferry moves people and vehicles across lakes or narrow seas."
+      },
+      {
+        question: "Identify the transport: 'A powerful motor vehicle with large tires used on farms.'",
+        options: ["Tractor", "Lorry", "Scooter", "Snowmobile"],
+        answer: 0,
+        explanation: "Tractors provide high tractive effort at slow speeds for agricultural work."
+      },
+      {
+        question: "Identify the transport: 'A passenger vehicle powered by electricity that runs on tracks along streets.'",
+        options: ["Tram", "Train", "Bus", "Taxi"],
+        answer: 0,
+        explanation: "Trams (streetcars) run on rails along public urban streets."
+      },
+      {
+        question: "Identify the transport: 'A large vehicle designed for camping that can be towed or driven as a home.'",
+        options: ["Caravan", "Van", "Ship", "Truck"],
+        answer: 0,
+        explanation: "A Caravan (camper/RV) provides sleeping and living quarters during trips."
+      },
+      {
+        question: "Identify the transport: 'A large vehicle used for transporting heavy goods by road.'",
+        options: ["Lorry (Truck)", "Car", "Scooter", "Taxi"],
+        answer: 0,
+        explanation: "'Lorry' is the British term for a heavy cargo motor truck."
+      },
+      {
+        question: "Identify the transport: 'A vehicle designed to travel over snow and ice.'",
+        options: ["Snowmobile", "Boat", "Fire engine", "Bicycle"],
+        answer: 0,
+        explanation: "Snowmobiles use tracks and skis to drive over frozen terrain."
+      },
+
+      // --- PLACES IN THE CITY (41-50) ---
+      {
+        question: "Which place matches this action?\n'You can borrow a book from a...'",
+        options: ["Library", "Bookstore", "Bakery", "Museum"],
+        answer: 0,
+        explanation: "A Library allows people to borrow books for free, whereas a bookstore sells them."
+      },
+      {
+        question: "Which place matches this action?\n'You can keep or save your money in a...'",
+        options: ["Bank", "Supermarket", "Pharmacy", "Park"],
+        answer: 0,
+        explanation: "A Bank safely manages cash deposits and financial accounts."
+      },
+      {
+        question: "Which place matches this action?\n'You can watch a new film or movie at a...'",
+        options: ["Cinema / Movie theater", "Museum", "Hospital", "Stadium"],
+        answer: 0,
+        explanation: "Cinemas project motion pictures on big screens for audiences."
+      },
+      {
+        question: "Which place matches this action?\n'You can buy medicine and drugs when sick at a...'",
+        options: ["Pharmacy / Drugstore", "Gas station", "Bakery", "Hotel"],
+        answer: 0,
+        explanation: "Pharmacies dispense prescription drugs and health remedies."
+      },
+      {
+        question: "Which place matches this action?\n'You can look at famous paintings and historic artifacts at an...'",
+        options: ["Art gallery / Museum", "Amusement park", "Zoo", "Post office"],
+        answer: 0,
+        explanation: "Museums and Art galleries display historical, scientific, or artistic exhibits."
+      },
+      {
+        question: "Which place matches this action?\n'You can catch a train at a...'",
+        options: ["Train station", "Airport", "Bus stop", "Gas station"],
+        answer: 0,
+        explanation: "Train stations are railway facilities where trains regularly stop to pick up passengers."
+      },
+      {
+        question: "Which place matches this action?\n'You can see wild animals like lions and giraffes at a...'",
+        options: ["Zoo", "Park", "Playground", "Farm"],
+        answer: 0,
+        explanation: "A Zoo houses wild animals for conservation, education, and public viewing."
+      },
+      {
+        question: "Which place matches this action?\n'You can buy stamps and send mail at a...'",
+        options: ["Post office", "Police station", "Fire station", "Bank"],
+        answer: 0,
+        explanation: "The Post office handles domestic and international mail services and postal stamps."
+      },
+      {
+        question: "Which place matches this action?\n'You can go for a walk with your dog in a...'",
+        options: ["Park", "Supermarket", "Museum", "Hospital"],
+        answer: 0,
+        explanation: "Parks provide open green outdoor spaces for walking and recreation."
+      },
+      {
+        question: "Which place matches this action?\n'You can catch a flight on an airplane at an...'",
+        options: ["Airport", "Bus station", "Gas station", "Train station"],
+        answer: 0,
+        explanation: "Airports are facilities where airplanes take off and land to transport passengers globally."
+      }
+    ];
+
+    const shuffleArray = (array) => {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+
+    // Calculate Chilean scale grade (1.0 to 7.0, 60% threshold)
+    const calculateGrade = (score, total) => {
+      if (total === 0) return "1.0";
+      const percentage = score / total;
+      let grade;
+      if (percentage < 0.6) {
+        grade = 1.0 + (percentage / 0.6) * 3.0;
+      } else {
+        grade = 4.0 + ((percentage - 0.6) / 0.4) * 3.0;
+      }
+      return grade.toFixed(1);
+    };
+
+    function App() {
+      const [activeTab, setActiveTab] = useState('summary'); // 'summary', 'minigames', 'quiz'
+      const [summarySection, setSummarySection] = useState('tobe'); // 'tobe', 'jobs', 'transport', 'places'
+
+      // Minigames State
+      const [mgJobIdx, setMgJobIdx] = useState(0);
+      const [mgSelectedPlace, setMgSelectedPlace] = useState('');
+      const [mgFeedback, setMgFeedback] = useState(null);
+
+      // Quiz State
+      const [quizQuestions, setQuizQuestions] = useState([]);
+      const [quizStarted, setQuizStarted] = useState(false);
+      const [currentIdx, setCurrentIdx] = useState(0);
+      const [selectedOption, setSelectedOption] = useState(null);
+      const [userAnswers, setUserAnswers] = useState([]);
+      const [score, setScore] = useState(0);
+      const [quizCompleted, setQuizCompleted] = useState(false);
+
+      const startQuiz = () => {
+        const pool = shuffleArray(MASTER_QUESTIONS_50);
+        const formatted = pool.map((q) => {
+          const originalOpts = q.options.map((opt, i) => ({ text: opt, isCorrect: i === q.answer }));
+          const shuffledOpts = shuffleArray(originalOpts);
+          const newCorrectIdx = shuffledOpts.findIndex(o => o.isCorrect);
+          return {
+            question: q.question,
+            options: shuffledOpts.map(o => o.text),
+            answer: newCorrectIdx,
+            explanation: q.explanation
+          };
+        });
+
+        setQuizQuestions(formatted);
+        setCurrentIdx(0);
+        setSelectedOption(null);
+        setUserAnswers([]);
+        setScore(0);
+        setQuizCompleted(false);
+        setQuizStarted(true);
+      };
+
+      const handleOptionClick = (optIdx) => {
+        if (selectedOption !== null) return; // Prevent double click
+
+        setSelectedOption(optIdx);
+        const isCorrect = optIdx === quizQuestions[currentIdx].answer;
+
+        if (isCorrect) {
+          playSound('correct');
+          setScore(prev => prev + 1);
+        } else {
+          playSound('wrong');
+        }
+
+        const answerRecord = {
+          questionIdx: currentIdx,
+          userSelected: optIdx,
+          correctAnswer: quizQuestions[currentIdx].answer,
+          isCorrect
+        };
+        setUserAnswers(prev => [...prev, answerRecord]);
+
+        // Auto advance after short delay
+        setTimeout(() => {
+          if (currentIdx + 1 < quizQuestions.length) {
+            setCurrentIdx(prev => prev + 1);
+            setSelectedOption(null);
+          } else {
+            setQuizCompleted(true);
+            playSound('win');
+          }
+        }, 1100);
+      };
+
+      // Minigame matching data
+      const MINIGAME_JOBS = [
+        { job: "Doctor", correctPlace: "Hospital", hint: "Diagnoses patients and wears a white coat." },
+        { job: "Teacher", correctPlace: "School", hint: "Teaches children English and math." },
+        { job: "Baker", correctPlace: "Bakery", hint: "Bakes delicious bread and cakes." },
+        { job: "Pilot", correctPlace: "Airport", hint: "Flies planes across the sky." },
+        { job: "Police Officer", correctPlace: "Police Station", hint: "Catches thieves and keeps us safe." },
+        { job: "Firefighter", correctPlace: "Fire Station", hint: "Drives a red fire engine and saves people." }
+      ];
+
+      const checkMinigame = (place) => {
+        setMgSelectedPlace(place);
+        if (place === MINIGAME_JOBS[mgJobIdx].correctPlace) {
+          playSound('correct');
+          setMgFeedback({ type: 'correct', msg: `¡Correcto! The ${MINIGAME_JOBS[mgJobIdx].job} works in the ${place}.` });
+        } else {
+          playSound('wrong');
+          setMgFeedback({ type: 'wrong', msg: `Inténtalo de nuevo. The ${MINIGAME_JOBS[mgJobIdx].job} does not work in the ${place}.` });
+        }
+      };
+
+      const nextMinigame = () => {
+        setMgFeedback(null);
+        setMgSelectedPlace('');
+        setMgJobIdx((prev) => (prev + 1) % MINIGAME_JOBS.length);
+      };
+
+      return (
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          {/* Header Banner */}
+          <header className="bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 rounded-3xl p-6 md:p-8 text-white shadow-xl mb-6 relative overflow-hidden">
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/30">
+                  🏙️✈️
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-yellow-400 text-slate-900 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase">Colegio La Fuente</span>
+                    <span className="bg-white/20 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">4° Básico</span>
+                  </div>
+                  <h1 className="text-2xl md:text-3xl font-bold font-fun mt-1">Unit 2: The City & Occupations</h1>
+                  <p className="text-sky-100 text-xs md:text-sm">Verb "To Be", Jobs, Transportation & Places in Town</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20">
+                <i className="fa-solid fa-star text-yellow-300 text-lg"></i>
+                <span className="text-xs md:text-sm font-semibold">Teacher: Anyela Vega</span>
+              </div>
+            </div>
+          </header>
+
+          {/* Navigation Bar */}
+          <nav className="flex flex-wrap gap-2 mb-6 bg-white p-2 rounded-2xl shadow-sm border border-slate-200">
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`flex-1 min-w-[130px] py-3 px-4 rounded-xl font-fun font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'summary'
+                  ? 'bg-sky-500 text-white shadow-md shadow-sky-200'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <i className="fa-solid fa-book-open"></i> 1. Fichas de Repaso
+            </button>
+            <button
+              onClick={() => setActiveTab('minigames')}
+              className={`flex-1 min-w-[130px] py-3 px-4 rounded-xl font-fun font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'minigames'
+                  ? 'bg-sky-500 text-white shadow-md shadow-sky-200'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <i className="fa-solid fa-gamepad"></i> 2. Mini-Juego Practico
+            </button>
+            <button
+              onClick={() => setActiveTab('quiz')}
+              className={`flex-1 min-w-[130px] py-3 px-4 rounded-xl font-fun font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'quiz'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                  : 'text-purple-700 bg-purple-50 hover:bg-purple-100'
+              }`}
+            >
+              <i className="fa-solid fa-bolt"></i> 3. Súper Quiz (50 Qs)
+            </button>
+          </nav>
+
+          {/* TAB 1: SUMMARY / FICHAS DE REPASO */}
+          {activeTab === 'summary' && (
+            <div className="space-y-6">
+              {/* Sub-navigation for Summary */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSummarySection('tobe')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    summarySection === 'tobe' ? 'bg-amber-500 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-amber-50'
+                  }`}
+                >
+                  ✨ 1. Verb TO BE Rules
+                </button>
+                <button
+                  onClick={() => setSummarySection('jobs')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    summarySection === 'jobs' ? 'bg-indigo-500 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-indigo-50'
+                  }`}
+                >
+                  👩‍⚕️ 2. Jobs & Actions
+                </button>
+                <button
+                  onClick={() => setSummarySection('transport')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    summarySection === 'transport' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-emerald-50'
+                  }`}
+                >
+                  🚗 3. Means of Transport
+                </button>
+                <button
+                  onClick={() => setSummarySection('places')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    summarySection === 'places' ? 'bg-rose-500 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-rose-50'
+                  }`}
+                >
+                  🏥 4. Places in the City
+                </button>
+              </div>
+
+              {summarySection === 'tobe' && (
+                <div className="space-y-6">
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-amber-200">
+                    <h2 className="text-xl font-fun text-amber-800 mb-3 flex items-center gap-2">
+                      <i className="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+                      El Verbo "To Be" (Ser o Estar)
+                    </h2>
+                    <p className="text-xs md:text-sm text-slate-600 mb-4">
+                      El verbo <strong>TO BE</strong> se divide en tres formas en presente: <strong>AM</strong>, <strong>IS</strong> y <strong>ARE</strong>.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
+                        <span className="bg-amber-500 text-white font-bold px-3 py-1 rounded-xl text-xs">AM</span>
+                        <p className="text-xs text-slate-700 mt-2 font-semibold">Se usa EXCLUSIVAMENTE con el pronombre "I".</p>
+                        <div className="bg-white p-2.5 rounded-xl text-xs mt-2 text-slate-800 font-medium">
+                          • I <strong>am</strong> a good student.<br/>
+                          • I <strong>am</strong> at the cinema.
+                        </div>
+                      </div>
+
+                      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
+                        <span className="bg-amber-500 text-white font-bold px-3 py-1 rounded-xl text-xs">IS</span>
+                        <p className="text-xs text-slate-700 mt-2 font-semibold">Se usa para SINGULAR (He, She, It, nombres individuales).</p>
+                        <div className="bg-white p-2.5 rounded-xl text-xs mt-2 text-slate-800 font-medium">
+                          • Pablo <strong>is</strong> in the park.<br/>
+                          • The ruler <strong>is</strong> blue.<br/>
+                          • She <strong>is</strong> a teacher.
+                        </div>
+                      </div>
+
+                      <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
+                        <span className="bg-amber-500 text-white font-bold px-3 py-1 rounded-xl text-xs">ARE</span>
+                        <p className="text-xs text-slate-700 mt-2 font-semibold">Se usa para PLURAL (They, We, You, varias personas u objetos).</p>
+                        <div className="bg-white p-2.5 rounded-xl text-xs mt-2 text-slate-800 font-medium">
+                          • They <strong>are</strong> at school.<br/>
+                          • You <strong>are</strong> tall.<br/>
+                          • Billy and Maria <strong>are</strong> doctors.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Forms of To Be */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                      <h3 className="font-fun text-lg text-slate-800 mb-2 flex items-center gap-2">
+                        <i className="fa-solid fa-minus-circle text-red-500"></i>
+                        Forma Negativa (Negatives)
+                      </h3>
+                      <p className="text-xs text-slate-600 mb-3">
+                        Agrega <strong>NOT</strong> después del verbo to be (am not, is not / isn't, are not / aren't).
+                      </p>
+                      <div className="space-y-1.5 text-xs text-slate-800">
+                        <div className="bg-slate-50 p-2 rounded-xl">She is my mother ➔ <strong>She is not my mother.</strong></div>
+                        <div className="bg-slate-50 p-2 rounded-xl">Emma and Simon are happy ➔ <strong>Emma and Simon are not happy.</strong></div>
+                        <div className="bg-slate-50 p-2 rounded-xl">The books are heavy ➔ <strong>The books are not heavy.</strong></div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                      <h3 className="font-fun text-lg text-slate-800 mb-2 flex items-center gap-2">
+                        <i className="fa-solid fa-circle-question text-sky-500"></i>
+                        Forma Interrogativa (Questions)
+                      </h3>
+                      <p className="text-xs text-slate-600 mb-3">
+                        Mueve el verbo <strong>AM / IS / ARE</strong> al principio de la oración.
+                      </p>
+                      <div className="space-y-1.5 text-xs text-slate-800">
+                        <div className="bg-slate-50 p-2 rounded-xl">She is a teacher ➔ <strong>Is she a teacher?</strong></div>
+                        <div className="bg-slate-50 p-2 rounded-xl">Brian and Marcos are singers ➔ <strong>Are Brian and Marcos singers?</strong></div>
+                        <div className="bg-slate-50 p-2 rounded-xl">It is on the table ➔ <strong>Is it on the table?</strong></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {summarySection === 'jobs' && (
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-indigo-100">
+                  <h2 className="text-xl font-fun text-indigo-900 mb-4 flex items-center gap-2">
+                    <i className="fa-solid fa-user-doctor text-indigo-500"></i>
+                    Jobs & Occupations (Profesiones y lo que hacen)
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">📐 Architect</strong>
+                      <span className="text-slate-600">Plans and draws buildings.</span>
+                    </div>
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">✈️ Pilot</strong>
+                      <span className="text-slate-600">Flies a plane.</span>
+                    </div>
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">📞 Secretary</strong>
+                      <span className="text-slate-600">Writes emails & answers the phone.</span>
+                    </div>
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">👩‍🚒 Firefighter</strong>
+                      <span className="text-slate-600">Saves people from fire.</span>
+                    </div>
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">✈️ Flight Attendant</strong>
+                      <span className="text-slate-600">Works on a plane (assists passengers).</span>
+                    </div>
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">🩺 Doctor</strong>
+                      <span className="text-slate-600">Diagnoses and treats human patients.</span>
+                    </div>
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">🐶 Vet (Veterinarian)</strong>
+                      <span className="text-slate-600">Diagnoses and treats sick animals.</span>
+                    </div>
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">🎸 Musician</strong>
+                      <span className="text-slate-600">Plays different musical instruments.</span>
+                    </div>
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">👮 Police Officer</strong>
+                      <span className="text-slate-600">Catches thieves and protects people.</span>
+                    </div>
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">🚕 Taxi Driver</strong>
+                      <span className="text-slate-600">Drives a taxi & transports people.</span>
+                    </div>
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">🥖 Baker</strong>
+                      <span className="text-slate-600">Bakes bread and pastries in a bakery.</span>
+                    </div>
+                    <div className="bg-indigo-50/60 p-3.5 rounded-2xl border border-indigo-100">
+                      <strong className="text-indigo-900 text-sm font-fun block">🌾 Farmer</strong>
+                      <span className="text-slate-600">Works on a farm with animals/crops.</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {summarySection === 'transport' && (
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-emerald-100">
+                  <h2 className="text-xl font-fun text-emerald-900 mb-4 flex items-center gap-2">
+                    <i className="fa-solid fa-bus text-emerald-500"></i>
+                    Means of Transportation (Medios de Transporte)
+                  </h2>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-xs">
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">🚗</span>
+                      <strong className="text-slate-800">Car</strong>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">✈️</span>
+                      <strong className="text-slate-800">Plane</strong>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">🚆</span>
+                      <strong className="text-slate-800">Train</strong>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">🚌</span>
+                      <strong className="text-slate-800">Bus</strong>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">⚙️</span>
+                      <strong className="text-slate-800">Tram</strong>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">🚁</span>
+                      <strong className="text-slate-800">Helicopter</strong>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">🏍️</span>
+                      <strong className="text-slate-800">Motorcycle</strong>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">🚲</span>
+                      <strong className="text-slate-800">Bicycle</strong>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">🛵</span>
+                      <strong className="text-slate-800">Scooter</strong>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">🚐</span>
+                      <strong className="text-slate-800">Van</strong>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">🚢</span>
+                      <strong className="text-slate-800">Ship / Ferry</strong>
+                    </div>
+                    <div className="bg-emerald-50 p-3 rounded-2xl text-center">
+                      <span className="text-2xl block mb-1">🚑</span>
+                      <strong className="text-slate-800">Ambulance</strong>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {summarySection === 'places' && (
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-rose-100">
+                  <h2 className="text-xl font-fun text-rose-900 mb-4 flex items-center gap-2">
+                    <i className="fa-solid fa-city text-rose-500"></i>
+                    Places in Town & What You Do There
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div className="bg-rose-50/60 p-3.5 rounded-2xl border border-rose-100">
+                      <strong className="text-rose-900 font-bold block mb-0.5">📚 Library</strong>
+                      <span className="text-slate-600">You can borrow a book from a library.</span>
+                    </div>
+                    <div className="bg-rose-50/60 p-3.5 rounded-2xl border border-rose-100">
+                      <strong className="text-rose-900 font-bold block mb-0.5">🏦 Bank</strong>
+                      <span className="text-slate-600">You can keep/save your money in a bank.</span>
+                    </div>
+                    <div className="bg-rose-50/60 p-3.5 rounded-2xl border border-rose-100">
+                      <strong className="text-rose-900 font-bold block mb-0.5">🎨 Museum / Art Gallery</strong>
+                      <span className="text-slate-600">You can look at famous paintings and old objects.</span>
+                    </div>
+                    <div className="bg-rose-50/60 p-3.5 rounded-2xl border border-rose-100">
+                      <strong className="text-rose-900 font-bold block mb-0.5">🎬 Cinema / Movie Theater</strong>
+                      <span className="text-slate-600">You can watch a film / movie at a cinema.</span>
+                    </div>
+                    <div className="bg-rose-50/60 p-3.5 rounded-2xl border border-rose-100">
+                      <strong className="text-rose-900 font-bold block mb-0.5">💊 Pharmacy / Drugstore</strong>
+                      <span className="text-slate-600">You can buy medicine when you are sick.</span>
+                    </div>
+                    <div className="bg-rose-50/60 p-3.5 rounded-2xl border border-rose-100">
+                      <strong className="text-rose-900 font-bold block mb-0.5">✉️ Post Office</strong>
+                      <span className="text-slate-600">You can buy stamps and send letters.</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'minigames' && (
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+              <h2 className="text-2xl font-fun text-slate-800 mb-2 flex items-center gap-2">
+                <i className="fa-solid fa-puzzle-piece text-sky-500"></i>
+                Mini-Juego: ¿Dónde Trabaja Cada Profesión?
+              </h2>
+              <p className="text-xs md:text-sm text-slate-600 mb-6">
+                Lee la profesión y selecciona el lugar de la ciudad correcto donde trabaja.
+              </p>
+
+              <div className="max-w-xl mx-auto bg-slate-50 p-6 rounded-3xl border border-slate-200 text-center space-y-6">
+                <div>
+                  <span className="bg-sky-100 text-sky-800 font-bold px-3 py-1 rounded-xl text-xs uppercase tracking-wider">
+                    Profesión {mgJobIdx + 1} de {MINIGAME_JOBS.length}
+                  </span>
+                  <h3 className="text-3xl font-fun text-slate-900 mt-2">
+                    {MINIGAME_JOBS[mgJobIdx].job}
+                  </h3>
+                  <p className="text-xs text-slate-500 italic mt-1">
+                    💡 Pista: {MINIGAME_JOBS[mgJobIdx].hint}
+                  </p>
+                </div>
+
+                {/* Option Buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  {["Hospital", "School", "Bakery", "Airport", "Police Station", "Fire Station"].map((place) => (
+                    <button
+                      key={place}
+                      onClick={() => checkMinigame(place)}
+                      className={`p-3.5 rounded-2xl font-fun text-sm font-semibold border-2 transition-all ${
+                        mgSelectedPlace === place
+                          ? 'bg-sky-500 border-sky-600 text-white shadow-md'
+                          : 'bg-white border-slate-200 hover:border-sky-300 text-slate-700'
+                      }`}
+                    >
+                      {place}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Feedback Message */}
+                {mgFeedback && (
+                  <div className={`p-4 rounded-2xl font-bold text-xs md:text-sm ${
+                    mgFeedback.type === 'correct' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {mgFeedback.msg}
+                  </div>
+                )}
+
+                <button
+                  onClick={nextMinigame}
+                  className="px-6 py-2.5 bg-slate-800 text-white font-fun text-xs rounded-xl hover:bg-slate-900 transition-all"
+                >
+                  Siguiente Profesión ➔
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'quiz' && (
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-purple-100">
+              {!quizStarted ? (
+                /* Config / Start Screen */
+                <div className="text-center py-8 max-w-lg mx-auto space-y-6">
+                  <div className="w-20 h-20 bg-purple-100 text-purple-600 rounded-3xl flex items-center justify-center text-4xl mx-auto shadow-inner">
+                    ⚡
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-fun text-slate-800">Súper Quiz de 50 Preguntas</h2>
+                    <p className="text-xs md:text-sm text-slate-600 mt-2">
+                      Pon a prueba tus conocimientos sobre el Verbo To Be, Profesiones, Transportes y Lugares con las 50 preguntas de las guías.
+                    </p>
+                  </div>
+
+                  <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 text-left space-y-2 text-xs text-purple-900 font-semibold">
+                    <div className="flex items-center gap-2">
+                      <i className="fa-solid fa-check text-purple-600"></i> 50 Preguntas de las guías oficiales
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <i className="fa-solid fa-check text-purple-600"></i> Preguntas y alternativas aleatorias cada vez
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <i className="fa-solid fa-check text-purple-600"></i> Nota oficial chilena (Escala 1.0 a 7.0)
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={startQuiz}
+                    className="w-full py-4 bg-purple-600 hover:bg-purple-700 text-white font-fun text-lg rounded-2xl shadow-lg shadow-purple-200 transition-all transform hover:scale-[1.01]"
+                  >
+                    🚀 Comenzar Examen de 50 Preguntas
+                  </button>
+                </div>
+              ) : quizCompleted ? (
+                <div className="space-y-6 py-4">
+                  <div className="bg-gradient-to-br from-purple-600 to-indigo-700 text-white p-8 rounded-3xl text-center space-y-4 shadow-xl">
+                    <span className="text-5xl">🏆</span>
+                    <h2 className="text-3xl font-fun">¡Examen Completado!</h2>
+
+                    <div className="flex justify-center items-center gap-6 my-4">
+                      <div className="bg-white/20 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/30">
+                        <span className="text-xs uppercase tracking-wider block text-purple-200">Correctas</span>
+                        <span className="text-3xl font-extrabold">{score} / {quizQuestions.length}</span>
+                      </div>
+
+                      <div className="bg-white/20 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/30">
+                        <span className="text-xs uppercase tracking-wider block text-purple-200">Nota Estimada</span>
+                        <span className="text-3xl font-extrabold text-yellow-300">
+                          {calculateGrade(score, quizQuestions.length)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-purple-100 max-w-md mx-auto">
+                      {score / quizQuestions.length >= 0.8
+                        ? '¡Excelente trabajo! Has demostrado dominar muy bien la materia de la unidad.'
+                        : '¡Buen intento! Revisa el desglose detallado abajo para aprender de tus errores.'}
+                    </p>
+
+                    <button
+                      onClick={startQuiz}
+                      className="px-6 py-3 bg-white text-purple-700 font-fun font-bold rounded-2xl shadow-md hover:bg-purple-50 transition-all"
+                    >
+                      🔄 Reintentar Quiz con Preguntas Mezcladas
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-fun text-xl text-slate-800 flex items-center gap-2">
+                      <i className="fa-solid fa-list-check text-purple-600"></i>
+                      Revisión Detallada de Respuestas
+                    </h3>
+
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                      {userAnswers.map((ans, idx) => {
+                        const q = quizQuestions[ans.questionIdx];
+                        return (
+                          <div
+                            key={idx}
+                            className={`p-4 rounded-2xl border ${
+                              ans.isCorrect ? 'bg-emerald-50/70 border-emerald-200' : 'bg-red-50/70 border-red-200'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <span className="font-bold text-xs px-2 py-1 rounded-lg bg-white text-slate-700 shadow-sm">
+                                Pregunta {idx + 1}
+                              </span>
+                              <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
+                                ans.isCorrect ? 'bg-emerald-200 text-emerald-800' : 'bg-red-200 text-red-800'
+                              }`}>
+                                {ans.isCorrect ? 'Correcta ✓' : 'Incorrecta ✗'}
+                              </span>
+                            </div>
+
+                            <p className="font-semibold text-sm text-slate-800 mb-2 whitespace-pre-line">{q.question}</p>
+
+                            <div className="text-xs space-y-1 mb-2">
+                              <p className="text-slate-600">
+                                Tu respuesta: <strong className={ans.isCorrect ? 'text-emerald-700' : 'text-red-700'}>{q.options[ans.userSelected]}</strong>
+                              </p>
+                              {!ans.isCorrect && (
+                                <p className="text-emerald-700 font-medium">
+                                  Respuesta correcta: <strong>{q.options[q.answer]}</strong>
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="bg-white/70 p-2.5 rounded-xl text-xs text-slate-600 italic">
+                              💡 Tip: {q.explanation}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Progress Header */}
+                  <div className="flex items-center justify-between text-xs md:text-sm font-semibold text-slate-600">
+                    <span>Pregunta {currentIdx + 1} de {quizQuestions.length}</span>
+                    <span className="text-purple-600 font-bold">Puntos: {score}</span>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-purple-600 transition-all duration-300"
+                      style={{ width: `${((currentIdx + 1) / quizQuestions.length) * 100}%` }}
+                    ></div>
+                  </div>
+
+                  {/* Question Card */}
+                  <div className="bg-purple-50/60 p-6 rounded-2xl border border-purple-100">
+                    <h3 className="font-fun text-lg md:text-xl text-slate-800 whitespace-pre-line leading-relaxed">
+                      {quizQuestions[currentIdx].question}
+                    </h3>
+                  </div>
+
+                  {/* Multiple Choice Options */}
+                  <div className="grid grid-cols-1 gap-3">
+                    {quizQuestions[currentIdx].options.map((optText, optIdx) => {
+                      let btnStyle = "bg-white border-slate-200 hover:border-purple-300 text-slate-700";
+
+                      if (selectedOption !== null) {
+                        if (optIdx === quizQuestions[currentIdx].answer) {
+                          btnStyle = "bg-emerald-500 border-emerald-600 text-white font-bold shadow-md";
+                        } else if (optIdx === selectedOption) {
+                          btnStyle = "bg-red-500 border-red-600 text-white font-bold";
+                        } else {
+                          btnStyle = "bg-slate-50 border-slate-200 text-slate-400 opacity-60";
+                        }
+                      }
+
+                      return (
+                        <button
+                          key={optIdx}
+                          disabled={selectedOption !== null}
+                          onClick={() => handleOptionClick(optIdx)}
+                          className={`w-full p-4 rounded-2xl border-2 text-left text-sm md:text-base font-semibold transition-all flex items-center justify-between ${btnStyle}`}
+                        >
+                          <span>{optText}</span>
+                          {selectedOption !== null && optIdx === quizQuestions[currentIdx].answer && (
+                            <i className="fa-solid fa-circle-check text-xl"></i>
+                          )}
+                          {selectedOption !== null && optIdx === selectedOption && optIdx !== quizQuestions[currentIdx].answer && (
+                            <i className="fa-solid fa-circle-xmark text-xl"></i>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Footer */}
+          <footer className="mt-12 text-center text-xs text-slate-500 space-y-1">
+            <p><strong>English Study App - Colegio La Fuente (4° Básico)</strong></p>
+            <p>Unit 2: The City: Means of Transportation and Occupations</p>
+          </footer>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
