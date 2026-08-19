@@ -723,6 +723,22 @@ h1, h2, h3, .brand {
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Barra de desplazamiento para overlays scrolleables */
+.overlay-card::-webkit-scrollbar {
+  width: 6px;
+}
+.overlay-card::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+.overlay-card::-webkit-scrollbar-thumb {
+  background: rgba(251, 191, 36, 0.3);
+  border-radius: 10px;
+}
+.overlay-card::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+
 .overlay.active .overlay-card {
   transform: scale(1);
 }

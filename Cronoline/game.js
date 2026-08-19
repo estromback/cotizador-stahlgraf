@@ -81,6 +81,13 @@ const inspectCardBadge = document.getElementById('inspect-card-badge');
 const inspectCardDesc = document.getElementById('inspect-card-desc');
 const btnCloseInspect = document.getElementById('btn-close-inspect');
 
+// Modal de Instrucciones
+const instructionsOverlay = document.getElementById('instructions-overlay');
+const btnOpenInstructionsVersions = document.getElementById('btn-open-instructions-versions');
+const btnOpenInstructionsSetup = document.getElementById('btn-open-instructions-setup');
+const btnOpenInstructionsGame = document.getElementById('btn-open-instructions-game');
+const btnCloseInstructions = document.getElementById('btn-close-instructions');
+
 // --- EVENT LISTENERS Y LÓGICA DE SELECCIÓN DE VERSIÓN ---
 
 // Selección de Versión
@@ -303,6 +310,29 @@ btnCloseInspect.addEventListener('click', () => {
 inspectOverlay.addEventListener('click', (e) => {
   if (e.target === inspectOverlay) {
     inspectOverlay.classList.remove('active');
+  }
+});
+
+// Listeners para el modal de instrucciones
+btnOpenInstructionsVersions.addEventListener('click', () => {
+  instructionsOverlay.classList.add('active');
+});
+
+btnOpenInstructionsSetup.addEventListener('click', () => {
+  instructionsOverlay.classList.add('active');
+});
+
+btnOpenInstructionsGame.addEventListener('click', () => {
+  instructionsOverlay.classList.add('active');
+});
+
+btnCloseInstructions.addEventListener('click', () => {
+  instructionsOverlay.classList.remove('active');
+});
+
+instructionsOverlay.addEventListener('click', (e) => {
+  if (e.target === instructionsOverlay) {
+    instructionsOverlay.classList.remove('active');
   }
 });
 

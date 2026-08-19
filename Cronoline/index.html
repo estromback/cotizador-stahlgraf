@@ -73,6 +73,11 @@
           <span class="version-desc">Consolas, videojuegos, apps e Internet</span>
         </button>
       </div>
+
+      <!-- Botón Cómo Jugar -->
+      <button type="button" id="btn-open-instructions-versions" class="mode-btn" style="margin-top: 1.5rem; width: 100%; border-color: rgba(251, 191, 36, 0.3); color: var(--gold);">
+        ❓ ¿Cómo Jugar?
+      </button>
     </div>
   </section>
 
@@ -175,17 +180,25 @@
 
       <button type="button" id="btn-start-game" class="btn-primary">Comenzar</button>
       
-      <!-- Botón para Volver al Selector de Versión -->
-      <button type="button" id="btn-back-to-versions" class="mode-btn" style="margin-top: 1rem; width: 100%; border-color: rgba(255,255,255,0.08); font-size: 0.9rem; padding: 0.6rem;">
-        ↩️ Cambiar Versión
-      </button>
+      <!-- Botones del Setup -->
+      <div style="display: flex; gap: 0.75rem; margin-top: 1rem; width: 100%;">
+        <button type="button" id="btn-back-to-versions" class="mode-btn" style="flex: 1; border-color: rgba(255,255,255,0.08); font-size: 0.9rem; padding: 0.6rem; margin-top: 0;">
+          ↩️ Cambiar Versión
+        </button>
+        <button type="button" id="btn-open-instructions-setup" class="mode-btn" style="flex: 1; border-color: rgba(251, 191, 36, 0.2); color: var(--gold); font-size: 0.9rem; padding: 0.6rem; margin-top: 0;">
+          ❓ ¿Cómo Jugar?
+        </button>
+      </div>
     </div>
   </section>
 
   <!-- INTERFAZ PRINCIPAL DE JUEGO -->
   <main id="game-screen" class="game-container hidden">
-    <!-- Botón para volver al Menú Principal -->
-    <button type="button" id="btn-exit-game" class="btn-floating">Salir al Menú</button>
+    <!-- Botones Flotantes -->
+    <div style="position: absolute; top: 1rem; right: 1rem; display: flex; gap: 0.5rem; z-index: 50;">
+      <button type="button" id="btn-open-instructions-game" class="btn-floating" style="position: static;">❓ Ayuda</button>
+      <button type="button" id="btn-exit-game" class="btn-floating" style="position: static;">Salir al Menú</button>
+    </div>
 
     <!-- Cabecera / Info del Juego -->
     <header class="game-header">
@@ -266,6 +279,55 @@
       <p class="overlay-desc" id="inspect-card-desc" style="text-align: center; font-size: 1.1rem; line-height: 1.6; color: var(--text-white); margin-bottom: 2rem;">Descripción detallada...</p>
       <div id="inspect-card-extra" style="margin-bottom: 1.5rem; display: flex; justify-content: center; width: 100%;"></div>
       <button type="button" id="btn-close-inspect" class="btn-primary" style="margin-top: 0;">Volver al Juego</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE INSTRUCCIONES (Cómo Jugar) -->
+  <div id="instructions-overlay" class="overlay">
+    <div class="overlay-card" style="max-width: 550px; text-align: left; overflow-y: auto; max-height: 85vh;">
+      <h2 class="overlay-title" style="color: var(--gold); text-shadow: 0 0 10px var(--gold-glow); font-size: 1.8rem; margin-bottom: 1rem; text-align: center;">¿Cómo Jugar Cronoline?</h2>
+      
+      <div style="font-size: 0.95rem; line-height: 1.6; color: var(--text-white); display: flex; flex-direction: column; gap: 1.25rem;">
+        <p><strong>Cronoline</strong> es un juego de ordenar elementos. El objetivo es colocar tus cartas en el orden cronológico o de magnitud correcto (de menor a mayor).</p>
+        
+        <div>
+          <h3 style="color: var(--gold); font-size: 1.1rem; margin-bottom: 0.25rem; font-family: var(--font-sans);">🎮 Modos de Juego</h3>
+          <ul style="margin-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; list-style-type: disc;">
+            <li><strong>Modo Solitario:</strong> Tu meta es armar la mayor racha (aciertos seguidos) posible. Si cometes un error, tu racha se reinicia a 0.</li>
+            <li><strong>Modo Multijugador:</strong> Juega con amigos pasando el dispositivo (Pass & Play). Puedes configurar el número de vidas (de 1 a ilimitadas).
+              <ul style="margin-left: 1.25rem; margin-top: 0.25rem; display: flex; flex-direction: column; gap: 0.25rem; list-style-type: circle;">
+                <li><em>Línea Compartida:</em> Todos los jugadores van colocando cartas en la misma línea de tiempo común.</li>
+                <li><em>Líneas Individuales:</em> Cada jugador tiene su propia línea y coloca sus propias cartas.</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 style="color: var(--gold); font-size: 1.1rem; margin-bottom: 0.25rem; font-family: var(--font-sans);">🎯 Condiciones de Victoria (Multijugador)</h3>
+          <ul style="margin-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; list-style-type: disc;">
+            <li><strong>Supervivencia:</strong> El último jugador con vidas en pie gana la partida.</li>
+            <li><strong>Carrera:</strong> El primer jugador en colocar exitosamente el número de cartas objetivo (5, 10, 15 o 20) gana inmediatamente.</li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 style="color: var(--gold); font-size: 1.1rem; margin-bottom: 0.25rem; font-family: var(--font-sans);">⚡ Cómo jugar tu turno</h3>
+          <ol style="margin-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; list-style-type: decimal;">
+            <li>Observa tu carta activa en la sección <strong>"Tu Carta a Colocar"</strong>.</li>
+            <li>Busca los botones con el símbolo <strong>"+"</strong> entre las cartas ya ordenadas en la mesa (Línea de Tiempo).</li>
+            <li>Haz clic en el <strong>"+"</strong> donde creas que encaja la carta (ej: después de un evento del 2000 y antes de uno del 2010).</li>
+            <li>La carta se moverá tentativamente allí. Haz clic en <strong>"🔮 Voltear"</strong> para confirmar o <strong>"↩️ Devolver"</strong> si cambias de opinión.</li>
+            <li>Si el orden es correcto, la carta se revela y se queda en la línea. Si te equivocas, la carta se descarta, ves el año real y pierdes una vida o tu racha.</li>
+          </ol>
+        </div>
+        
+        <p style="font-style: italic; font-size: 0.85rem; color: var(--text-muted); text-align: center; margin-top: 0.5rem;">
+          💡 Nota: En versiones como "Edificios Icónicos" o "Montañas y Cerros", ordenarás por altura (en metros) de menor a mayor en lugar de por año.
+        </p>
+      </div>
+
+      <button type="button" id="btn-close-instructions" class="btn-primary" style="margin-top: 1.5rem; width: 100%;">¡Entendido!</button>
     </div>
   </div>
 
