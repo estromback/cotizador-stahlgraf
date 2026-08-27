@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mac el Microbio Desconocido - Guía Interactiva</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #f0f9ff; /* Light blue background */
+    }
+    h1, h2, h3, h4, .font-fun {
+      font-family: 'Baloo 2', cursive;
+    }
+    .card-bounce {
+      transition: all 0.2s ease-in-out;
+    }
+    .card-bounce:hover {
+      transform: translateY(-4px);
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #e0f2fe;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #38bdf8;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // --- Sound Helper ---
+    const playSound = (type) => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'correct') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+          osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+          osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.3);
+        } else if (type === 'wrong') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, ctx.currentTime); // A3
+          osc.frequency.exponentialRampToValueAtTime(146.83, ctx.currentTime + 0.2); // D3
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.3);
+        } else if (type === 'win') {
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((freq, idx) => {
+            const oscWin = ctx.createOscillator();
+            const gainWin = ctx.createGain();
+            oscWin.connect(gainWin);
+            gainWin.connect(ctx.destination);
+            oscWin.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.12);
+            gainWin.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.12);
+            gainWin.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.12 + 0.2);
+            oscWin.start(ctx.currentTime + idx * 0.12);
+            oscWin.stop(ctx.currentTime + idx * 0.12 + 0.2);
+          });
+        }
+      } catch (e) {
+        // Audio fallback ignore
+      }
+    };
+
+    // --- Quiz Questions ---
+    const QUIZ_QUESTIONS = [
+      // Selección Múltiple
+      {
+        question: "Según el texto, ¿dónde vivían los microbios?",
+        options: ["A orillas del lago.", "A orillas del mar.", "Cerca de un océano.", "En una alcantarilla."],
+        answer: 0,
+        explanation: "La historia dice que vivían a orillas de un apacible lago, cerca de un sauce llorón."
+      },
+      {
+        question: "Según el libro, ¿por qué los microbios se parecen a los conejos y a los chinos?",
+        options: ["Porque mueren muy jóvenes.", "Porque son parecidos físicamente y mueren muy jóvenes.", "Porque nacen y nacen cada día y se mueren cuando están muy viejos.", "Porque son parecidos físicamente y mueren muy viejos."],
+        answer: 2,
+        explanation: "Se compara su rápida y abundante reproducción con la de los conejos y los chinos."
+      },
+      {
+        question: "¿Por qué razón se realiza la asamblea al inicio de la historia?",
+        options: ["Para celebrar un nacimiento.", "Porque el patriarca estaba muy viejo y temía morir.", "Porque Mac lo ordenó.", "Para celebrar la muerte de un miembro de la comunidad."],
+        answer: 1,
+        explanation: "El Patriarca, sabiendo que estaba cerca de la muerte, reúne a la comunidad para dar su último consejo."
+      },
+      {
+        question: "Mac, es el representante de la:",
+        options: ["Responsabilidad.", "Fuerza.", "Madurez.", "Irresponsabilidad."],
+        answer: 1,
+        explanation: "Mac representa la juventud y la fuerza, en contraposición al Patriarca que representa la sabiduría."
+      },
+      {
+        question: "La brigada de asalto se trasladó en:",
+        options: ["Las plumas de un sombrero.", "Un morral.", "Un avión.", "Las plumas de un pájaro."],
+        answer: 3,
+        explanation: "Mac y sus 10 ayudantes se escondieron en las plumas de un pájaro de colores."
+      },
+      {
+        question: "La brigada de asalto está conformada por:",
+        options: ["Mac y diez ayudantes.", "Loc y un ayudante.", "Mac y el patriarca.", "El doctor que atendió a María Angélica."],
+        answer: 0,
+        explanation: "La brigada estaba formada por 11 microbios en total: el líder Mac y 10 ayudantes seleccionados."
+      },
+      {
+        question: "¿Quién es el eterno enemigo de los microbios?",
+        options: ["Los animales.", "El sol.", "El clima.", "El hombre."],
+        answer: 3,
+        explanation: "El Patriarca advirtió que el hombre es su enemigo y posee armas (laboratorios) para destruirlos."
+      },
+      {
+        question: "El jefe de los microbios al principio de la historia es:",
+        options: ["El patriarca.", "Loc.", "El microbio gris.", "Mac."],
+        answer: 0,
+        explanation: "El Patriarca era el líder sabio y anciano de la comunidad al inicio del relato."
+      },
+      {
+        question: "¿Quién es Loc?",
+        options: ["Mac y el patriarca.", "Una creación para defender al hombre.", "Un ser creado para defender a Mac.", "El representante de Mac."],
+        answer: 1,
+        explanation: "Loc fue creado por los científicos en el laboratorio a partir de los ayudantes de Mac, diseñado para defender al humano."
+      },
+      {
+        question: "María Angélica se contagió la fiebre reidora porque:",
+        options: ["Sus manos se contaminaron.", "Su padre mató al pajarito.", "Se acercó las plumas a la nariz.", "Puso plumas sobre su cama."],
+        answer: 2,
+        explanation: "Al recibir las plumas de regalo, María Angélica las acercó a su rostro y respiró los microbios por la nariz."
+      },
+      {
+        question: "¿Qué proponía el Patriarca antes de morir?",
+        options: ["Atacar a las bestias salvajes.", "Atacar al hombre con la fiebre reidora.", "Seguir siendo microbios desconocidos.", "Viajar a la ciudad."],
+        answer: 2,
+        explanation: "El Patriarca aconsejaba mantenerse en el anonimato para que el hombre no los descubriera y los destruyera."
+      },
+      {
+        question: "¿Cuál fue el consejo del Microbio Gris sobre el ataque?",
+        options: ["Que fueran todos juntos a atacar al hombre.", "Que formaran una 'brigada de asalto' pequeña para probar primero.", "Que no atacaran a nadie y se quedaran en el lago.", "Que atacaran a los doctores de inmediato."],
+        answer: 1,
+        explanation: "El Microbio Gris, usando la sabiduría, sugirió no arriesgar a todo el pueblo enviando solo a un pequeño grupo de asalto."
+      },
+      {
+        question: "¿Qué síntomas NO era parte de la Fiebre Reidora?",
+        options: ["Corazón latiendo con fuerza.", "Manchas rojas en todo el cuerpo.", "Violentos escalofríos y fiebre.", "Alucinaciones y ataques de risa."],
+        answer: 1,
+        explanation: "La fiebre reidora causaba latidos fuertes, tiritones, escalofríos, fiebre, delirios (visiones) y risa incontrolable, pero no manchas rojas."
+      },
+      {
+        question: "¿Cómo descubrieron los médicos a los microbios?",
+        options: ["Mirando la garganta de la niña.", "Tomándole la temperatura.", "Extrayendo sangre de la niña y analizándola en el laboratorio.", "Revisando las plumas del pájaro."],
+        answer: 2,
+        explanation: "Los doctores extrajeron sangre de María Angélica y al observarla en el microscopio descubrieron a los ayudantes de Mac."
+      },
+      {
+        question: "¿Por qué los médicos inyectaron microbios a un conejo blanco?",
+        options: ["Para curar al conejo de un resfriado.", "Para saber con exactitud cómo actuaban los microbios y el daño que causaban.", "Para que el conejo se riera con ellos.", "Para ver si los microbios se convertían en conejos."],
+        answer: 1,
+        explanation: "Usaron al conejo blanco para observar la progresión de la enfermedad y los síntomas, como parte de su experimento."
+      },
+      {
+        question: "¿Cómo desaparece finalmente la fiebre reidora de la tierra?",
+        options: ["Los médicos crearon una lluvia de antídoto.", "Mac ordenó a todos los microbios retirarse a las montañas.", "Los microbios atacaron al sauce llorón, este cayó al lago y todos los microbios se ahogaron.", "El sol secó a todos los microbios."],
+        answer: 2,
+        explanation: "Los microbios jóvenes, furiosos por la derrota, atacaron al sauce, el cual por los delirios se lanzó al lago, ahogando a los microbios de tierra."
+      },
+      {
+        question: "¿Cómo es físicamente un microbio según el cuento?",
+        options: ["Son blancos y muy grandes.", "Son negros y de cola larga.", "Tienen forma de cuadrado rojo.", "Son invisibles y de color verde."],
+        answer: 1,
+        explanation: "En el libro se les describe como seres muy pequeños, negros y con una cola larga."
+      },
+      {
+        question: "¿Por qué Mac decide abandonar el cuerpo de la niña al final?",
+        options: ["Porque ya la había curado.", "Porque se aburrió de estar allí.", "Porque sabía que Loc era más fuerte y lo mataría si no escapaba.", "Porque quería ir a atacar al doctor."],
+        answer: 2,
+        explanation: "Mac vio que su ayudante fue destruido fácilmente por Loc, por lo que huyó para salvar su vida."
+      },
+      {
+        question: "¿Quién asume como jefe de los microbios tras la partida de Mac?",
+        options: ["El Patriarca.", "El Microbio Gris.", "Loc.", "Uno de los diez ayudantes."],
+        answer: 1,
+        explanation: "Mientras Mac iba a la guerra con su brigada, el Microbio Gris (que representaba la prudencia) quedó a cargo de la comunidad."
+      },
+      {
+        question: "¿Dónde se realiza la asamblea extraordinaria de los microbios?",
+        options: ["En el laboratorio de la clínica.", "A orillas de un lago, a pasos de un sauce.", "En la habitación de María Angélica.", "Dentro de una pluma de pájaro."],
+        answer: 1,
+        explanation: "La historia comienza con la gran asamblea cerca del sauce llorón, a orillas del lago."
+      },
+
+      // Verdadero y Falso
+      {
+        question: "Verdadero o Falso: Mac es un microbio joven y líder que hace caso omiso a su patriarca ya fallecido.",
+        options: ["Verdadero", "Falso"],
+        answer: 0,
+        explanation: "Mac contradijo el consejo de prudencia del Patriarca y decidió atacar al hombre en busca de gloria."
+      },
+      {
+        question: "Verdadero o Falso: El patriarca planteaba la forma de salir y dejar el tranquilo lago para llegar al hombre y causarle mal.",
+        options: ["Verdadero", "Falso"],
+        answer: 1,
+        explanation: "Falso. El Patriarca planteaba exactamente lo contrario: mantenerse escondidos y desconocidos para sobrevivir."
+      },
+      {
+        question: "Verdadero o Falso: Loc, junto a diez ayudantes inicia su viaje en las plumas de un ave y llegan donde María Angélica.",
+        options: ["Verdadero", "Falso"],
+        answer: 1,
+        explanation: "Falso. Fue Mac quien inició el viaje con los diez ayudantes, no Loc."
+      },
+      {
+        question: "Verdadero o Falso: María Angélica era la esposa de un cazador que vivía a la orilla de un lago.",
+        options: ["Verdadero", "Falso"],
+        answer: 1,
+        explanation: "Falso. María Angélica era una niña, hija de un hombre que vivía cerca de la ciudad."
+      },
+      {
+        question: "Verdadero o Falso: Mac es el único microbio que logra salir con vida del cuerpo de la niña y vuelve triste y derrotado.",
+        options: ["Verdadero", "Falso"],
+        answer: 0,
+        explanation: "Mac fue el único sobreviviente de la brigada de asalto, pues Loc destruyó a los demás que quedaban en el cuerpo."
+      },
+      {
+        question: "Verdadero o Falso: Al marcharse Mac, asume como Jefe el Microbio Gris.",
+        options: ["Verdadero", "Falso"],
+        answer: 0,
+        explanation: "El Microbio Gris quedó a cargo de la tribu mientras Mac realizaba el asalto."
+      },
+      {
+        question: "Verdadero o Falso: Mac vivía en una playa cerca del pueblo.",
+        options: ["Verdadero", "Falso"],
+        answer: 1,
+        explanation: "Falso. La colonia de microbios vivía a orillas de un apacible lago."
+      },
+      {
+        question: "Verdadero o Falso: Antes de salir Mac en busca del hombre es apoyado por su pueblo.",
+        options: ["Verdadero", "Falso"],
+        answer: 0,
+        explanation: "Los microbios jóvenes lo apoyaron fervientemente y aceptaron su liderazgo y plan."
+      },
+      {
+        question: "Verdadero o Falso: El Microbio Gris propone crear una brigada de asalto.",
+        options: ["Verdadero", "Falso"],
+        answer: 0,
+        explanation: "Para proteger al resto de la comunidad, el Microbio Gris usó la astucia para sugerir que solo fuera un grupo pequeño primero."
+      },
+      {
+        question: "Verdadero o Falso: El Patriarca era el microbio más joven, talentoso y soñador de todos.",
+        options: ["Verdadero", "Falso"],
+        answer: 1,
+        explanation: "Falso. El Patriarca era el más anciano y sabio de todos los microbios."
+      },
+      {
+        question: "Verdadero o Falso: La muñeca de María Angélica se llamaba Lulú.",
+        options: ["Verdadero", "Falso"],
+        answer: 0,
+        explanation: "Lulú era la muñeca de la niña y aparecía en sus visiones delirantes."
+      },
+      {
+        question: "Verdadero o Falso: Loc era un microbio físicamente igual a Mac, pero más débil.",
+        options: ["Verdadero", "Falso"],
+        answer: 1,
+        explanation: "Falso. Loc era físicamente parecido pero mucho más fuerte y con una cola afilada como espada."
+      },
+      {
+        question: "Verdadero o Falso: Los microbios de la historia eran microbios de agua.",
+        options: ["Verdadero", "Falso"],
+        answer: 1,
+        explanation: "Falso. Eran microbios de tierra; por esa razón, cuando cayeron al lago junto con el sauce, se ahogaron."
+      },
+      {
+        question: "Verdadero o Falso: Las visiones del conejo incluyeron una montaña con cara de asno.",
+        options: ["Verdadero", "Falso"],
+        answer: 0,
+        explanation: "Entre las alucinaciones que sufrió el conejo por la fiebre reidora estaba la montaña con cara de asno y hierba que bailaba."
+      },
+      {
+        question: "Verdadero o Falso: Mac quería atacar al hombre para que su pueblo viviera en paz por siempre.",
+        options: ["Verdadero", "Falso"],
+        answer: 1,
+        explanation: "Falso. Mac quería atacar al hombre por ambición, para ser famosos, temidos y dejar de ser 'desconocidos'."
+      }
+    ];
+
+    const shuffleArray = (array) => {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+
+    const calculateGrade = (score, total) => {
+      if (total === 0) return "1.0";
+      const percentage = score / total;
+      let grade;
+      if (percentage < 0.6) {
+        grade = 1.0 + (percentage / 0.6) * 3.0;
+      } else {
+        grade = 4.0 + ((percentage - 0.6) / 0.4) * 3.0;
+      }
+      return grade.toFixed(1);
+    };
+
+    function App() {
+      const [activeTab, setActiveTab] = useState('summary'); 
+      const [quizStarted, setQuizStarted] = useState(false);
+      const [currentQuestions, setCurrentQuestions] = useState([]);
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [userAnswers, setUserAnswers] = useState([]);
+      const [selectedOption, setSelectedOption] = useState(null);
+      const [quizCompleted, setQuizCompleted] = useState(false);
+      const [score, setScore] = useState(0);
+
+      const startNewQuiz = (qCount = 35) => {
+        let pool = shuffleArray(QUIZ_QUESTIONS);
+        let selected = pool.slice(0, Math.min(qCount, pool.length));
+        
+        const formatted = selected.map((q) => {
+          const isTrueFalse = q.options.length === 2 && q.options.includes("Verdadero");
+          
+          if (isTrueFalse) {
+            // Keep V/F in order
+            return { ...q };
+          } else {
+            // Shuffle multiple choice
+            const originalOptions = q.options.map((opt, i) => ({ text: opt, isCorrect: i === q.answer }));
+            const shuffledOpts = shuffleArray(originalOptions);
+            const newCorrectIdx = shuffledOpts.findIndex(o => o.isCorrect);
+            return {
+              question: q.question,
+              options: shuffledOpts.map(o => o.text),
+              answer: newCorrectIdx,
+              explanation: q.explanation
+            };
+          }
+        });
+
+        setCurrentQuestions(formatted);
+        setCurrentIndex(0);
+        setUserAnswers([]);
+        setSelectedOption(null);
+        setQuizCompleted(false);
+        setScore(0);
+        setQuizStarted(true);
+      };
+
+      const handleOptionSelect = (optionIdx) => {
+        if (selectedOption !== null) return; 
+
+        setSelectedOption(optionIdx);
+        const isCorrect = optionIdx === currentQuestions[currentIndex].answer;
+        if (isCorrect) {
+          playSound('correct');
+          setScore(prev => prev + 1);
+        } else {
+          playSound('wrong');
+        }
+
+        const newAnswers = [...userAnswers, {
+          questionIdx: currentIndex,
+          selected: optionIdx,
+          correct: currentQuestions[currentIndex].answer,
+          isCorrect
+        }];
+        setUserAnswers(newAnswers);
+
+        setTimeout(() => {
+          if (currentIndex + 1 < currentQuestions.length) {
+            setCurrentIndex(prev => prev + 1);
+            setSelectedOption(null);
+          } else {
+            setQuizCompleted(true);
+            playSound('win');
+          }
+        }, 1300);
+      };
+
+      return (
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          {/* Header */}
+          <header className="bg-gradient-to-r from-sky-500 to-indigo-600 rounded-3xl p-8 text-white shadow-xl mb-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 bg-white text-4xl flex items-center justify-center rounded-full shadow-lg text-sky-500">
+                🦠
+              </div>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold font-fun">Mac el microbio desconocido</h1>
+                <p className="text-sky-100 mt-2 font-medium">Guía de Estudio Interactiva • 4° Básico</p>
+              </div>
+            </div>
+          </header>
+
+          {/* Nav */}
+          <nav className="flex flex-wrap gap-3 mb-8">
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`flex-1 min-w-[150px] py-3 px-4 rounded-xl font-fun font-bold text-lg transition-all ${
+                activeTab === 'summary' ? 'bg-sky-500 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-sky-50'
+              }`}
+            >
+              📖 Resumen y Personajes
+            </button>
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`flex-1 min-w-[150px] py-3 px-4 rounded-xl font-fun font-bold text-lg transition-all ${
+                activeTab === 'details' ? 'bg-indigo-500 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-indigo-50'
+              }`}
+            >
+              🔍 Ambientes y Fiebre
+            </button>
+            <button
+              onClick={() => setActiveTab('quiz')}
+              className={`flex-1 min-w-[150px] py-3 px-4 rounded-xl font-fun font-bold text-lg transition-all ${
+                activeTab === 'quiz' ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-amber-50'
+              }`}
+            >
+              ⚡ Súper Quiz
+            </button>
+          </nav>
+
+          {/* TAB 1: SUMMARY */}
+          {activeTab === 'summary' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                <h2 className="text-2xl font-fun text-sky-700 mb-4 border-b-2 border-sky-100 pb-2">De qué trata la historia</h2>
+                <p className="text-slate-700 leading-relaxed">
+                  Esta es la historia de una colonia de microbios que vive a orillas de un lago tranquilo junto a un sauce llorón.
+                  El líder anciano, el <strong>Patriarca</strong>, antes de morir aconseja a su pueblo mantenerse escondidos del humano para sobrevivir.
+                  Sin embargo, un microbio joven, impulsivo y fuerte llamado <strong>Mac</strong>, decide desobedecer y liderar un ataque para volverse famoso y derrotar al hombre.
+                  Con su <strong>"Brigada de Asalto"</strong> (él y 10 ayudantes) entran al cuerpo de una niña, provocándole la terrible <strong>Fiebre Reidora</strong>.
+                </p>
+              </div>
+
+              <h2 className="text-2xl font-fun text-indigo-700 mt-8 mb-4">Personajes Principales</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-sky-500 card-bounce">
+                  <h3 className="font-fun text-xl text-sky-800 font-bold mb-2">🦠 Mac</h3>
+                  <p className="text-sm text-slate-600">
+                    Es un microbio joven, líder de la fuerza. Es ambicioso, busca la fama y rechaza ser un "microbio desconocido". Lidera el ataque contra el humano.
+                  </p>
+                </div>
+                
+                <div className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-slate-400 card-bounce">
+                  <h3 className="font-fun text-xl text-slate-700 font-bold mb-2">👴 El Patriarca</h3>
+                  <p className="text-sm text-slate-600">
+                    El jefe anciano de los microbios. Representa la sabiduría, la prudencia y la madurez. Quería mantener la paz y que nadie los descubriera.
+                  </p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-emerald-500 card-bounce">
+                  <h3 className="font-fun text-xl text-emerald-800 font-bold mb-2">🛡️ Loc</h3>
+                  <p className="text-sm text-slate-600">
+                    Microbio bueno creado en el laboratorio por los médicos a partir de los ayudantes de Mac. Es casi igual a él, pero tiene una <strong>cola filuda</strong> y quiere salvar al hombre.
+                  </p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-amber-500 card-bounce">
+                  <h3 className="font-fun text-xl text-amber-800 font-bold mb-2">🧠 El Microbio Gris</h3>
+                  <p className="text-sm text-slate-600">
+                    Un microbio anciano y astuto. Para evitar que todo el pueblo muera, propone usar la inteligencia y enviar solo una "brigada de asalto" al principio. Queda al mando cuando Mac se va.
+                  </p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-pink-400 card-bounce">
+                  <h3 className="font-fun text-xl text-pink-700 font-bold mb-2">👧 María Angélica</h3>
+                  <p className="text-sm text-slate-600">
+                    Dulce niña que se enferma al acercar a su nariz las plumas del pájaro donde venían escondidos los microbios. Sufre delirios por la enfermedad.
+                  </p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-purple-400 card-bounce">
+                  <h3 className="font-fun text-xl text-purple-700 font-bold mb-2">🐇 El Conejo Blanco</h3>
+                  <p className="text-sm text-slate-600">
+                    Animalito de la clínica que los doctores inyectaron con microbios para estudiar cómo avanzaba la enfermedad y sus síntomas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: DETAILS */}
+          {activeTab === 'details' && (
+            <div className="space-y-8">
+              {/* Ambientes */}
+              <section>
+                <h2 className="text-2xl font-fun text-sky-700 mb-4 border-b-2 border-sky-100 pb-2">Ambientes: ¿Dónde ocurre la historia?</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 className="font-bold text-sky-800 mb-2">1. El Lago</h3>
+                    <p className="text-sm text-slate-600">
+                      Lugar hermoso y apacible. Sus aguas son quietas y transparentes. En su orilla, cerca de un sauce llorón, habitaba la inmensa colonia de negros microbios.
+                    </p>
+                  </div>
+                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 className="font-bold text-pink-800 mb-2">2. Casa de María Angélica</h3>
+                    <p className="text-sm text-slate-600">
+                      Ubicada cerca de la ciudad. El relato ocurre en su dormitorio donde juega junto a la ventana. A los pies de la cuna de su muñeca Lulú había un sombrerito con plumas de colores (traídas por su padre).
+                    </p>
+                  </div>
+                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 className="font-bold text-emerald-800 mb-2">3. La Clínica</h3>
+                    <p className="text-sm text-slate-600">
+                      Una habitación blanca con gran ventana. En ella está el <strong>laboratorio</strong>, lleno de microscopios, placas y frascos con líquidos. Allí los doctores crean el antídoto (Loc) y está el conejo.
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Fiebre Reidora */}
+              <section className="bg-amber-50 p-6 rounded-3xl border border-amber-200">
+                <h2 className="text-2xl font-fun text-amber-800 mb-4">La "Fiebre Reidora"</h2>
+                
+                <div className="mb-6">
+                  <h3 className="font-bold text-slate-800 mb-2">¿Cómo atacaban los microbios?</h3>
+                  <p className="text-sm text-slate-700">
+                    La <em>Brigada de Asalto</em> (Mac y 10 ayudantes) viajaron en las plumas de un ave. Cuando la niña olió las plumas, entraron por su nariz, descendieron por su garganta, viajaron por su sangre y llegaron a atacar su corazón.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="font-bold text-slate-800 mb-2">Síntomas Físicos:</h3>
+                    <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1">
+                      <li>El corazón latía con mucha fuerza.</li>
+                      <li>Violentos escalofríos y manos que tiritaban.</li>
+                      <li>Cansancio y mucha debilidad.</li>
+                      <li>Fiebre altísima que causa delirios.</li>
+                      <li>Ataques de risa espeluznante e incontrolable.</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-slate-800 mb-2">Visiones y Alucinaciones:</h3>
+                    <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1">
+                      <li>Una rana que canta en el sombrero de Lulú (su muñeca).</li>
+                      <li>Un elefante que cambia su cola por la trompa de un mono.</li>
+                      <li>Lulú montada en una jirafa.</li>
+                      <li>Un enanito columpiándose en la luna.</li>
+                      <li><strong>Visiones del conejo:</strong> Una montaña con cara de asno y hierba que bailaba sola.</li>
+                    </ul>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* TAB 3: QUIZ */}
+          {activeTab === 'quiz' && (
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-amber-200">
+              {!quizStarted ? (
+                <div className="text-center py-10 max-w-lg mx-auto">
+                  <div className="text-6xl mb-4">🎯</div>
+                  <h2 className="text-3xl font-fun text-slate-800 mb-4">Súper Quiz de Mac</h2>
+                  <p className="text-slate-600 mb-8">
+                    Demuestra todo lo que sabes del libro respondiendo preguntas de Selección Múltiple y Verdadero/Falso tal como en tu prueba del colegio.
+                  </p>
+                  <button
+                    onClick={() => startNewQuiz(30)}
+                    className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white font-fun text-xl rounded-2xl shadow-lg shadow-amber-200 transition-all transform hover:scale-105"
+                  >
+                    ¡Comenzar Quiz! (30 Preguntas)
+                  </button>
+                </div>
+              ) : quizCompleted ? (
+                <div className="py-6">
+                  <div className="bg-gradient-to-br from-amber-500 to-orange-500 text-white p-8 rounded-3xl text-center shadow-xl mb-8">
+                    <div className="text-6xl mb-4">🏆</div>
+                    <h2 className="text-4xl font-fun mb-2">¡Prueba Finalizada!</h2>
+                    
+                    <div className="flex justify-center gap-6 my-6">
+                      <div className="bg-white/20 px-6 py-3 rounded-2xl">
+                        <span className="block text-sm uppercase font-bold text-amber-100">Aciertos</span>
+                        <span className="text-3xl font-bold">{score} / {currentQuestions.length}</span>
+                      </div>
+                      <div className="bg-white/20 px-6 py-3 rounded-2xl">
+                        <span className="block text-sm uppercase font-bold text-amber-100">Nota Estimada</span>
+                        <span className="text-3xl font-bold text-yellow-300">{calculateGrade(score, currentQuestions.length)}</span>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => startNewQuiz(30)}
+                      className="px-6 py-3 bg-white text-amber-600 font-bold rounded-xl hover:bg-amber-50 transition-all"
+                    >
+                      Volver a Jugar
+                    </button>
+                  </div>
+
+                  <h3 className="font-fun text-2xl text-slate-800 mb-4">Revisión de tus respuestas:</h3>
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                    {userAnswers.map((ans, idx) => {
+                      const q = currentQuestions[ans.questionIdx];
+                      return (
+                        <div key={idx} className={`p-4 rounded-2xl border ${ans.isCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+                          <div className="flex items-start justify-between mb-2">
+                            <span className="font-bold text-xs bg-white px-2 py-1 rounded text-slate-600 shadow-sm">Pregunta {idx + 1}</span>
+                            <span className={`text-xs font-bold px-2 py-1 rounded ${ans.isCorrect ? 'bg-emerald-200 text-emerald-800' : 'bg-red-200 text-red-800'}`}>
+                              {ans.isCorrect ? 'Correcta ✓' : 'Incorrecta ✗'}
+                            </span>
+                          </div>
+                          <p className="font-bold text-slate-800 mb-2">{q.question}</p>
+                          <div className="text-sm space-y-1 mb-2">
+                            <p className="text-slate-600">Tú respondiste: <strong className={ans.isCorrect ? 'text-emerald-700' : 'text-red-700'}>{q.options[ans.selected]}</strong></p>
+                            {!ans.isCorrect && (
+                              <p className="text-emerald-700 font-bold">La correcta era: {q.options[q.answer]}</p>
+                            )}
+                          </div>
+                          <div className="bg-white/60 p-2 rounded text-xs text-slate-600 italic">
+                            💡 {q.explanation}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6 max-w-2xl mx-auto">
+                  <div className="flex items-center justify-between text-sm font-bold text-slate-500">
+                    <span>Pregunta {currentIndex + 1} de {currentQuestions.length}</span>
+                    <span className="text-amber-500">Puntos: {score}</span>
+                  </div>
+
+                  <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-500 transition-all duration-300" style={{ width: `${((currentIndex + 1) / currentQuestions.length) * 100}%` }}></div>
+                  </div>
+
+                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                    <h3 className="font-fun text-xl text-slate-800 leading-snug">
+                      {currentQuestions[currentIndex].question}
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {currentQuestions[currentIndex].options.map((optText, optIdx) => {
+                      let btnClass = "bg-white border-2 border-slate-200 text-slate-700 hover:border-amber-300";
+                      
+                      if (selectedOption !== null) {
+                        if (optIdx === currentQuestions[currentIndex].answer) {
+                          btnClass = "bg-emerald-500 border-emerald-600 text-white font-bold";
+                        } else if (optIdx === selectedOption) {
+                          btnClass = "bg-red-500 border-red-600 text-white font-bold";
+                        } else {
+                          btnClass = "bg-slate-50 border-slate-200 text-slate-400 opacity-50";
+                        }
+                      }
+
+                      return (
+                        <button
+                          key={optIdx}
+                          disabled={selectedOption !== null}
+                          onClick={() => handleOptionSelect(optIdx)}
+                          className={`w-full p-4 rounded-xl text-left text-sm md:text-base font-semibold transition-all flex items-center justify-between ${btnClass}`}
+                        >
+                          <span>{optText}</span>
+                          {selectedOption !== null && optIdx === currentQuestions[currentIndex].answer && <i className="fa-solid fa-check-circle text-xl"></i>}
+                          {selectedOption !== null && optIdx === selectedOption && optIdx !== currentQuestions[currentIndex].answer && <i className="fa-solid fa-times-circle text-xl"></i>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
