@@ -404,11 +404,23 @@ function calculateQuote() {
     generalServicesRows.forEach(row => {
         const name = row.querySelector('.gs-name').value;
         const desc = row.querySelector('.gs-desc').value;
-        const price = parseFloat(row.querySelector('.gs-price').value) || 0;
+        
+        const qtyEl = row.querySelector('.gs-qty');
+        const qty = (qtyEl && qtyEl.value !== '') ? (parseFloat(qtyEl.value) || 0) : 1;
+        
+        const priceUnitEl = row.querySelector('.gs-price-unit');
+        const priceUnit = (priceUnitEl && priceUnitEl.value !== '') ? (parseFloat(priceUnitEl.value) || 0) : 0;
+        
+        const price = Math.round(qty * priceUnit * 100) / 100;
+        
+        const priceInput = row.querySelector('.gs-price');
+        if (priceInput) {
+            priceInput.value = price;
+        }
         
         if(name) {
             genServicesCost += price;
-            genServicesData.push({name, desc, price});
+            genServicesData.push({name, desc, qty, priceUnit, price});
         }
     });
 
@@ -525,8 +537,8 @@ function calculateQuote() {
         tr.innerHTML = `
             <td>${gs.name}</td>
             <td>${gs.desc || '-'}</td>
-            <td class="text-right">1</td>
-            <td class="text-right">${formatter.format(gs.price)}</td>
+            <td class="text-right">${gs.qty !== undefined ? gs.qty : 1}</td>
+            <td class="text-right">${formatter.format(gs.priceUnit !== undefined ? gs.priceUnit : gs.price)}</td>
             <td class="text-right"><strong>${formatter.format(gs.price)}</strong></td>
         `;
         tbody.appendChild(tr);
@@ -973,6 +985,10 @@ window.addGeneralService = function(data = null) {
     div.style.marginBottom = '15px';
     div.style.background = 'rgba(0,0,0,0.1)';
 
+    const qtyVal = data ? (data.qty !== undefined ? data.qty : 1) : 1;
+    const priceUnitVal = data ? (data.priceUnit !== undefined ? data.priceUnit : (data.price || '')) : '';
+    const priceVal = data ? (data.price || '') : '';
+
     div.innerHTML = `
         <button type="button" class="btn btn-secondary btn-sm" style="position: absolute; top: 10px; right: 10px; padding: 2px 8px; background: #e74c3c; border-color: #e74c3c; color: white;" onclick="this.parentElement.remove(); calculateQuote();">X</button>
         <div class="input-group">
@@ -984,8 +1000,16 @@ window.addGeneralService = function(data = null) {
             <input type="text" class="gs-desc" placeholder="Ej. Sellado de grietas y limpieza" value="${data ? (data.desc || '') : ''}">
         </div>
         <div class="input-group">
+            <label>Cantidad</label>
+            <input type="number" class="gs-qty" placeholder="Ej. 1" value="${qtyVal}" min="0" step="any" required>
+        </div>
+        <div class="input-group">
+            <label>Precio Unitario ($)</label>
+            <input type="number" class="gs-price-unit" placeholder="Ej. 85000" value="${priceUnitVal}" min="0" required>
+        </div>
+        <div class="input-group">
             <label>Precio Total ($)</label>
-            <input type="number" class="gs-price" placeholder="Ej. 85000" value="${data ? data.price : ''}" min="0" required>
+            <input type="number" class="gs-price" placeholder="Total calculado" value="${priceVal}" min="0" readonly style="background-color: rgba(255,255,255,0.05); color: #ccc; cursor: not-allowed;" required>
         </div>
     `;
 
@@ -1245,8 +1269,15 @@ async function saveQuote(silent = false) {
     document.querySelectorAll('.general-service-row').forEach(row => {
         const name = row.querySelector('.gs-name').value;
         const desc = row.querySelector('.gs-desc').value;
+        
+        const qtyEl = row.querySelector('.gs-qty');
+        const qty = (qtyEl && qtyEl.value !== '') ? (parseFloat(qtyEl.value) || 0) : 1;
+        
+        const priceUnitEl = row.querySelector('.gs-price-unit');
+        const priceUnit = (priceUnitEl && priceUnitEl.value !== '') ? (parseFloat(priceUnitEl.value) || 0) : 0;
+        
         const price = parseFloat(row.querySelector('.gs-price').value) || 0;
-        if(name) genServices.push({name, desc, price});
+        if(name) genServices.push({name, desc, qty, priceUnit, price});
     });
     quoteData.generalServices = genServices;
     
