@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mundo Americano: Mayas, Aztecas e Incas</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #f0fdf4; font-family: 'Nunito', sans-serif; }
+    .btn-bounce { transition: transform 0.2s; }
+    .btn-bounce:hover { transform: scale(1.05); }
+    .btn-bounce:active { transform: scale(0.95); }
+    .card-zoom { transition: transform 0.3s, box-shadow 0.3s; }
+    .card-zoom:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #059669; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // --- AUDIO SYSTEM ---
+    const playSound = (type) => {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      if (type === 'correct') {
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+        oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.5);
+      } else if (type === 'incorrect') {
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+        oscillator.frequency.linearRampToValueAtTime(150, audioCtx.currentTime + 0.3);
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.3);
+      } else if (type === 'win') {
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); 
+        oscillator.frequency.setValueAtTime(554.37, audioCtx.currentTime + 0.15); 
+        oscillator.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.3); 
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime + 0.45); 
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.8);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.8);
+      }
+    };
+
+    // --- DATA ---
+    const studyData = {
+      aztecas: {
+        title: "El Imperio Azteca",
+        color: "bg-red-500",
+        icon: "fa-sun",
+        sections: [
+          { title: "Ubicación y Origen", content: "Vivieron entre los siglos XIII y XVI en el Valle de México. Originalmente eran una tribu nómada llamada 'pueblo mexica'. Venían de un lugar llamado Aztlán ('Tierra Blanca').", icon: "fa-map-location-dot" },
+          { title: "La Gran Tenochtitlán", content: "Los dioses les dieron una señal: debían construir su ciudad donde vieran a un águila parada en un cactus (nopal) cerca del lago Texcoco. Drenaron el pantano y construyeron la gran Tenochtitlán.", icon: "fa-city" },
+          { title: "Organización Política", content: "El Imperio llegó a tener entre 5 y 6 millones de personas. Eran gobernados por un consejo dirigido por el Huey Tlatoani (alto rey), quien era tratado como un dios.", icon: "fa-crown" },
+          { title: "Religión y Dioses", content: "Eran politeístas. Adoraban a muchos dioses construyendo pirámides. Su dios principal era Huitzilopochtli (dios del sol y la guerra). Hacían sacrificios humanos y animales para mantener felices a los dioses.", icon: "fa-om" },
+          { title: "Cultura e Idioma", content: "Hablaban el idioma Náhuatl. Su escritura usaba símbolos y dibujos. ¡Hoy en día usamos muchas palabras de origen náhuatl! Como: chile, coyote, chocolate y aguacate.", icon: "fa-language" },
+          { title: "Alimentación y Agricultura", content: "Eran excelentes agricultores. Cultivaban maíz, papas, cacahuetes. Cazaban ciervos e iguanas. ¡Usaban los granos de cacao como dinero! y preparaban una bebida de chocolate picante.", icon: "fa-seedling" },
+          { title: "El Fin del Imperio", content: "Gobernaron hasta 1521, cuando llegó el español Hernán Cortés. Aunque al principio intercambiaron regalos, Cortés terminó conquistando y destruyendo el imperio.", icon: "fa-hourglass-end" }
+        ],
+        curiousFact: "¡El Cacao valía tanto que los aztecas lo usaban como billetes! Se creía que era un regalo de los dioses."
+      },
+      mayas: {
+        title: "La Civilización Maya",
+        color: "bg-green-600",
+        icon: "fa-leaf",
+        sections: [
+          { title: "Ubicación y Períodos", content: "Habitaron en Mesoamérica (sur de México, Guatemala, Belice, Honduras y El Salvador). Se dividen en dos grandes períodos: Clásico (200-900 d.C. gran desarrollo) y Posclásico (901-1500 d.C.).", icon: "fa-map" },
+          { title: "Organización Política y Social", content: "Se organizaron en Ciudades-Estado independientes. El gobierno estaba a cargo del 'ajaw' (señor sagrado). Tenían una sociedad jerárquica con nobles, sacerdotes, campesinos y esclavos.", icon: "fa-sitemap" },
+          { title: "Agricultura y Comercio", content: "Su principal sistema agrícola fue la 'Tala y Roza' (cortar y quemar la selva para sembrar). Cultivaban en terrenos llamados Milpas. Su comercio funcionaba mediante el trueque (intercambio).", icon: "fa-tractor" },
+          { title: "Escritura y Religión", content: "Eran politeístas (dioses de la naturaleza). Crearon un sistema de escritura complejo usando símbolos llamados 'Glifos', que escribían en libros de corteza llamados 'códices'.", icon: "fa-pen-nib" },
+          { title: "El Gran Legado: Matemática", content: "Desarrollaron el sistema vigesimal (basado en 20). ¡Fueron de los primeros en usar el número CERO! (dibujado como una concha). El punto valía 1 y la raya valía 5.", icon: "fa-calculator" },
+          { title: "Astronomía y Ciudades", content: "Eran expertos astrónomos. Construyeron observatorios para ver el Sol, la Luna y planificar la agricultura. Sus ciudades más famosas (hoy patrimonio de la humanidad) son Chichén Itzá y Palenque.", icon: "fa-star" }
+        ],
+        curiousFact: "Los mayas eran tan buenos matemáticos que su calendario era más preciso que el que usaban los europeos en esa misma época."
+      },
+      incas: {
+        title: "El Imperio Inca",
+        color: "bg-orange-500",
+        icon: "fa-mountain-sun",
+        sections: [
+          { title: "Origen y Ubicación", content: "Se ubicaron en la Cordillera de los Andes, abarcando partes de Colombia, Ecuador, Perú, Bolivia, Chile y Argentina. Su imperio se llamaba 'Tahuantinsuyo' (las cuatro regiones).", icon: "fa-location-dot" },
+          { title: "La Gran Capital: Cuzco", content: "La capital de su inmenso imperio era la ciudad sagrada de Cuzco. Para los Incas, Cuzco significaba 'el ombligo del mundo'.", icon: "fa-monument" },
+          { title: "Organización Política (El Rey)", content: "La máxima autoridad era el 'Sapa Inca'. Era considerado el hijo del dios Sol (Inti) en la Tierra, por lo tanto, era tratado como un dios.", icon: "fa-user-tie" },
+          { title: "Sociedad: Realeza y Plebeyos", content: "La sociedad se dividía en dos grandes grupos: La realeza (el Sapa Inca, su familia y nobles) y los plebeyos (el pueblo trabajador y agricultores, organizados en comunidades llamadas Ayllus).", icon: "fa-users" },
+          { title: "Vida y Vestimenta", content: "El Sapa Inca usaba ropas lujosísimas, adornadas con oro, plata y plumas de aves exóticas. El pueblo trabajaba la tierra, construía caminos y pagaba tributos mediante el trabajo (Mita).", icon: "fa-shirt" }
+        ],
+        curiousFact: "El Imperio Inca estaba conectado por una red de caminos gigante llamada 'Qhapaq Ñan'. Los mensajes los llevaban corredores veloces llamados 'Chasquis'."
+      }
+    };
+
+    const quizBank = [
+      // AZTECAS
+      { q: "¿En qué zona se desarrolló la civilización Azteca?", options: ["Valle de México", "Cordillera de los Andes", "Selva Amazónica", "Norteamérica"], correct: 0, explanation: "Los aztecas se establecieron en el Valle de México, cerca del lago Texcoco." },
+      { q: "¿Cuál era el nombre original de la tierra natal de los aztecas?", options: ["Aztlán", "Cuzco", "Tikal", "Palenque"], correct: 0, explanation: "Venían de Aztlán, que significa 'Tierra Blanca'." },
+      { q: "¿Qué señal divina buscaron los aztecas para construir su capital?", options: ["Un águila sobre un cactus", "Un cóndor volando", "Un jaguar en un árbol", "Una serpiente en el río"], correct: 0, explanation: "Vieron a un águila parada en un nopal (cactus), señal para fundar Tenochtitlán." },
+      { q: "¿Cómo se llamaba la capital del Imperio Azteca?", options: ["Tenochtitlán", "Cuzco", "Chichén Itzá", "Machu Picchu"], correct: 0, explanation: "Construyeron Tenochtitlán drenando las tierras pantanosas del lago Texcoco." },
+      { q: "¿Qué nombre recibía el rey o máximo gobernante azteca?", options: ["Huey Tlatoani", "Sapa Inca", "Ajaw", "Faraón"], correct: 0, explanation: "El Huey Tlatoani era el líder general y tratado como un dios." },
+      { q: "¿Quién era Huitzilopochtli en la cultura azteca?", options: ["El dios del Sol y la guerra", "El dios de la lluvia", "El conquistador español", "El emperador"], correct: 0, explanation: "Huitzilopochtli era su dios principal, al cual le hacían sacrificios." },
+      { q: "¿Por qué los aztecas hacían sacrificios humanos y de animales?", options: ["Para mantener felices a los dioses", "Para castigar a los criminales", "Para divertirse", "Para alimentarse"], correct: 0, explanation: "Creían que la sangre y los sacrificios mantenían felices a los dioses." },
+      { q: "¿Qué idioma hablaban los aztecas?", options: ["Náhuatl", "Quechua", "Maya", "Mapudungun"], correct: 0, explanation: "Hablaban Náhuatl, idioma del cual provienen palabras como chocolate y aguacate." },
+      { q: "¿Qué producto era tan valioso para los aztecas que lo usaban como dinero?", options: ["El cacao", "El oro", "El maíz", "Las plumas"], correct: 0, explanation: "Los granos de cacao eran considerados un regalo de los dioses y usados como moneda." },
+      { q: "¿Quién lideraba la flota española que provocó el fin del Imperio Azteca en 1521?", options: ["Hernán Cortés", "Francisco Pizarro", "Cristóbal Colón", "Pedro de Valdivia"], correct: 0, explanation: "Hernán Cortés llegó en 1519 y conquistó el imperio azteca." },
+      
+      // MAYAS
+      { q: "¿En qué región cultural habitaron los Mayas?", options: ["Mesoamérica", "Región Andina", "América del Norte", "Caribe"], correct: 0, explanation: "Habitaron Mesoamérica, que abarca el sur de México, Guatemala, Belice, Honduras y El Salvador." },
+      { q: "¿Cómo se llamaba el máximo gobernante de una ciudad-Estado maya?", options: ["Ajaw (Señor sagrado)", "Huey Tlatoani", "Sapa Inca", "Emperador"], correct: 0, explanation: "El Ajaw dirigía las ciudades en nombre de los dioses." },
+      { q: "¿Qué técnica agrícola era la más común entre los mayas?", options: ["Tala y Roza", "Terrazas de cultivo", "Chinampas", "Hidroponía"], correct: 0, explanation: "Cortaban y quemaban la vegetación para sembrar en las milpas, técnica llamada Tala y Roza." },
+      { q: "¿Cómo realizaban sus intercambios comerciales los mayas?", options: ["Mediante el trueque", "Usando monedas de oro", "Con tarjetas", "Solo con semillas de maíz"], correct: 0, explanation: "Usaban el trueque para intercambiar productos entre distintas zonas." },
+      { q: "¿Cómo se llamaban los símbolos que usaban los mayas para escribir?", options: ["Glifos", "Letras", "Jeroglíficos egipcios", "Runas"], correct: 0, explanation: "Los mayas escribían usando símbolos llamados glifos, pintados en códices." },
+      { q: "En la matemática maya, ¿qué representaba el símbolo de la concha (o caracol)?", options: ["El número cero", "El número diez", "El número cien", "El infinito"], correct: 0, explanation: "Fueron una de las primeras civilizaciones en utilizar el cero, representado por una concha." },
+      { q: "El sistema numérico maya era 'vigesimal', esto significa que su base matemática era el número:", options: ["Veinte", "Diez", "Cinco", "Cien"], correct: 0, explanation: "Su sistema se basaba en el número 20 (vigesimal)." },
+      { q: "En los números mayas, ¿qué valor tiene un punto y qué valor tiene una raya?", options: ["Punto=1, Raya=5", "Punto=5, Raya=1", "Punto=10, Raya=20", "Punto=0, Raya=10"], correct: 0, explanation: "El punto vale 1 y la raya vale 5." },
+      { q: "¿Para qué construyeron observatorios astronómicos los mayas?", options: ["Para calcular fechas importantes y la agricultura", "Para observar a sus enemigos", "Para enviar mensajes a los dioses", "Para guardar sus tesoros"], correct: 0, explanation: "Los usaban para ver el movimiento de los astros y saber cuándo sembrar." },
+      { q: "Nombra dos grandes e importantes ciudades mayas:", options: ["Chichén Itzá y Palenque", "Cuzco y Machu Picchu", "Tenochtitlán y Tula", "Aztlán y Texcoco"], correct: 0, explanation: "Chichén Itzá y Palenque son ciudades mayas declaradas Patrimonio de la Humanidad." },
+
+      // INCAS
+      { q: "¿Dónde se ubicó geográficamente el Imperio Inca?", options: ["En la Cordillera de los Andes", "En Mesoamérica", "En las llanuras de Norteamérica", "En el Caribe"], correct: 0, explanation: "Se ubicaron a lo largo de la gran Cordillera de los Andes." },
+      { q: "¿Cómo llamaban los incas a su imperio?", options: ["Tahuantinsuyo", "Tenochtitlán", "Mesoamérica", "Aztlán"], correct: 0, explanation: "Le llamaban Tahuantinsuyo, que significa 'las cuatro regiones'." },
+      { q: "¿Cuál era la ciudad capital del Imperio Inca?", options: ["Cuzco", "Machu Picchu", "Chichén Itzá", "Tikal"], correct: 0, explanation: "La capital era Cuzco, el centro del poder imperial." },
+      { q: "¿Qué significaba la palabra 'Cuzco' para los incas?", options: ["El ombligo del mundo", "La montaña sagrada", "La ciudad de oro", "El hogar del Sol"], correct: 0, explanation: "Para los incas, Cuzco era el centro de todo, el 'ombligo del mundo'." },
+      { q: "¿Quién era la autoridad máxima del Imperio Inca?", options: ["El Sapa Inca", "El Huey Tlatoani", "El Ajaw", "El Presidente"], correct: 0, explanation: "El Sapa Inca era el gobernante máximo y absoluto." },
+      { q: "El Sapa Inca era considerado en la Tierra como el hijo del dios...", options: ["Sol (Inti)", "Lluvia (Tláloc)", "Guerra (Huitzilopochtli)", "Viento"], correct: 0, explanation: "Era considerado el hijo del dios Sol (Inti)." },
+      { q: "¿Cuáles eran los dos grandes grupos sociales en la vida del Imperio Inca?", options: ["La realeza y los plebeyos", "Los nobles y los comerciantes", "Los guerreros y los esclavos", "Los sacerdotes y los artesanos"], correct: 0, explanation: "La sociedad se dividía principalmente en la Realeza y los Plebeyos." },
+      { q: "¿Cómo vestía el Sapa Inca?", options: ["Con telas lujosas, oro y plumas", "Con pieles de animales sencillas", "Con armadura de hierro", "Igual que los plebeyos"], correct: 0, explanation: "Usaba vestimentas muy lujosas, con metales preciosos y plumas." },
+      
+      // MIXTOS Y DE DETALLE
+      { q: "¿Qué civilización habitó en la zona que hoy corresponde a Chile (zona norte y central)?", options: ["Los Incas", "Los Aztecas", "Los Mayas", "Los Toltecas"], correct: 0, explanation: "El Tahuantinsuyo (Imperio Inca) abarcó hasta el centro de Chile." },
+      { q: "La palabra 'chocolate' que usamos hoy, proviene del idioma:", options: ["Náhuatl (Aztecas)", "Quechua (Incas)", "Maya", "Mapudungun"], correct: 0, explanation: "Es una palabra de origen Náhuatl, idioma de los aztecas." },
+      { q: "El 'Ayllu' era la comunidad básica de trabajadores en la civilización:", options: ["Inca", "Azteca", "Maya", "Olmeca"], correct: 0, explanation: "En el imperio Inca, los plebeyos se organizaban en comunidades llamadas Ayllus." },
+      { q: "¿Qué civilizaciones se ubicaron en la región conocida como Mesoamérica?", options: ["Mayas y Aztecas", "Incas y Aztecas", "Incas y Mayas", "Solo los Incas"], correct: 0, explanation: "Mesoamérica comprende el centro/sur de México y Centroamérica, hogar de Mayas y Aztecas." },
+      { q: "Construyeron su ciudad sobre las aguas de un lago porque vieron la señal de un águila en un cactus. Hablamos de:", options: ["Los Aztecas", "Los Incas", "Los Mayas", "Los Olmecas"], correct: 0, explanation: "Ese es el origen mítico de Tenochtitlán, capital azteca." },
+      { q: "Tuvieron dos grandes períodos históricos: el Clásico y el Posclásico. ¿De quién hablamos?", options: ["Los Mayas", "Los Incas", "Los Aztecas", "Los Mapuches"], correct: 0, explanation: "Los mayas se dividen temporalmente en el período Clásico y Posclásico." },
+      { q: "En su cultura, las matemáticas incluían un símbolo con forma de concha para el número cero. Son:", options: ["Los Mayas", "Los Romanos", "Los Aztecas", "Los Incas"], correct: 0, explanation: "Los mayas aportaron el concepto del cero en su sistema numérico vigesimal." }
+    ];
+
+    // --- HELPER FUNC ---
+    const shuffleArray = (array) => {
+      let arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+
+    // --- MAIN APP COMPONENT ---
+    const App = () => {
+      const [view, setView] = React.useState('menu'); // menu, study, quiz, results
+      const [studyTopic, setStudyTopic] = React.useState(null);
+      
+      // Quiz State
+      const [questions, setQuestions] = React.useState([]);
+      const [currentQIndex, setCurrentQIndex] = React.useState(0);
+      const [userAnswers, setUserAnswers] = React.useState([]);
+      const [score, setScore] = React.useState(0);
+      const [showFeedback, setShowFeedback] = React.useState(false);
+      const [selectedOption, setSelectedOption] = React.useState(null);
+
+      // Actions
+      const startStudy = (topic) => {
+        setStudyTopic(topic);
+        setView('study');
+        window.scrollTo(0,0);
+      };
+
+      const startQuiz = () => {
+        // Shuffle questions and options
+        const shuffledQuestions = shuffleArray(quizBank).slice(0, 30); // Use 30 for the exam
+        const preparedQuestions = shuffledQuestions.map(q => {
+          const options = q.options.map((opt, index) => ({ text: opt, isCorrect: index === q.correct }));
+          const shuffledOptions = shuffleArray(options);
+          return {
+            ...q,
+            options: shuffledOptions,
+            correctAnswerText: q.options[q.correct]
+          };
+        });
+
+        setQuestions(preparedQuestions);
+        setCurrentQIndex(0);
+        setUserAnswers([]);
+        setScore(0);
+        setShowFeedback(false);
+        setSelectedOption(null);
+        setView('quiz');
+      };
+
+      const handleAnswer = (optionIndex) => {
+        if (showFeedback) return; // Prevent double click
+        
+        setSelectedOption(optionIndex);
+        setShowFeedback(true);
+        
+        const q = questions[currentQIndex];
+        const isCorrect = q.options[optionIndex].isCorrect;
+        
+        if (isCorrect) {
+          playSound('correct');
+          setScore(s => s + 1);
+        } else {
+          playSound('incorrect');
+        }
+
+        const newUserAnswers = [...userAnswers, {
+          question: q.q,
+          selectedText: q.options[optionIndex].text,
+          isCorrect: isCorrect,
+          correctText: q.correctAnswerText,
+          explanation: q.explanation
+        }];
+        setUserAnswers(newUserAnswers);
+
+        setTimeout(() => {
+          if (currentQIndex + 1 < questions.length) {
+            setCurrentQIndex(currentQIndex + 1);
+            setShowFeedback(false);
+            setSelectedOption(null);
+          } else {
+            playSound('win');
+            setView('results');
+          }
+        }, 1500);
+      };
+
+      // Calculate Chilean Grade (1.0 to 7.0) based on 60% requirement
+      const calculateGrade = () => {
+        const max = questions.length;
+        const req = max * 0.6;
+        let finalGrade = 1.0;
+        
+        if (score < req) {
+          finalGrade = 1 + (score * 3) / req;
+        } else {
+          finalGrade = 4 + ((score - req) * 3) / (max - req);
+        }
+        return finalGrade.toFixed(1);
+      };
+
+      // --- RENDERS ---
+      
+      const renderMenu = () => (
+        <div className="max-w-4xl mx-auto p-6 text-center animate-[fadeIn_0.5s_ease-out]">
+          <div className="bg-white rounded-3xl p-8 shadow-xl border-4 border-emerald-500 mb-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mr-16 -mt-16 text-emerald-100 opacity-50">
+              <i className="fa-solid fa-earth-americas text-9xl"></i>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-emerald-800 mb-4 relative z-10">
+              Mundo Americano
+            </h1>
+            <p className="text-lg text-emerald-600 font-semibold mb-6">
+              ¡Prepárate para la prueba de la Unidad N°2!
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+              <button onClick={() => startStudy('aztecas')} className="bg-red-500 hover:bg-red-600 text-white rounded-2xl p-6 shadow-lg btn-bounce flex flex-col items-center">
+                <i className="fa-solid fa-sun text-4xl mb-3"></i>
+                <span className="text-xl font-bold">Repaso Azteca</span>
+              </button>
+              <button onClick={() => startStudy('mayas')} className="bg-green-600 hover:bg-green-700 text-white rounded-2xl p-6 shadow-lg btn-bounce flex flex-col items-center">
+                <i className="fa-solid fa-leaf text-4xl mb-3"></i>
+                <span className="text-xl font-bold">Repaso Maya</span>
+              </button>
+              <button onClick={() => startStudy('incas')} className="bg-orange-500 hover:bg-orange-600 text-white rounded-2xl p-6 shadow-lg btn-bounce flex flex-col items-center">
+                <i className="fa-solid fa-mountain-sun text-4xl mb-3"></i>
+                <span className="text-xl font-bold">Repaso Inca</span>
+              </button>
+            </div>
+          </div>
+
+          <button onClick={startQuiz} className="w-full md:w-2/3 mx-auto bg-purple-600 hover:bg-purple-700 text-white rounded-full py-5 px-8 shadow-2xl btn-bounce flex items-center justify-center space-x-4 text-2xl font-bold ring-4 ring-purple-300">
+            <i className="fa-solid fa-bolt text-yellow-300"></i>
+            <span>¡Hacer el Súper Quiz!</span>
+          </button>
+        </div>
+      );
+
+      const renderStudy = () => {
+        const data = studyData[studyTopic];
+        return (
+          <div className="max-w-4xl mx-auto p-4 md:p-6 animate-[fadeIn_0.5s_ease-out]">
+            <button onClick={() => setView('menu')} className="mb-4 text-slate-500 hover:text-slate-800 font-bold flex items-center">
+              <i className="fa-solid fa-arrow-left mr-2"></i> Volver al Menú
+            </button>
+            
+            <div className={`${data.color} rounded-t-3xl p-6 text-white text-center shadow-lg`}>
+              <i className={`fa-solid ${data.icon} text-5xl mb-2 opacity-90`}></i>
+              <h2 className="text-3xl font-extrabold">{data.title}</h2>
+            </div>
+            
+            <div className="bg-white p-6 rounded-b-3xl shadow-lg border-2 border-t-0 border-slate-100">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {data.sections.map((sec, idx) => (
+                  <div key={idx} className="bg-slate-50 rounded-2xl p-5 border-l-4 card-zoom" style={{borderColor: data.color.replace('bg-', '')}}>
+                    <h3 className="text-lg font-bold text-slate-700 mb-2 flex items-center">
+                      <i className={`fa-solid ${sec.icon} mr-2 text-slate-400`}></i> {sec.title}
+                    </h3>
+                    <p className="text-slate-600 text-sm md:text-base leading-relaxed">{sec.content}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-8 bg-amber-100 border-l-4 border-amber-500 p-5 rounded-r-xl flex items-start shadow-inner">
+                <i className="fa-solid fa-lightbulb text-amber-500 text-2xl mr-4 mt-1"></i>
+                <div>
+                  <h4 className="font-bold text-amber-800">¿Sabías que...?</h4>
+                  <p className="text-amber-700 mt-1">{data.curiousFact}</p>
+                </div>
+              </div>
+
+              <div className="mt-8 text-center">
+                 <button onClick={startQuiz} className="bg-purple-600 hover:bg-purple-700 text-white rounded-full py-4 px-8 shadow-xl btn-bounce font-bold text-lg">
+                    ¡Probar mis conocimientos! <i className="fa-solid fa-arrow-right ml-2"></i>
+                 </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderQuiz = () => {
+        const q = questions[currentQIndex];
+        const progress = ((currentQIndex) / questions.length) * 100;
+
+        return (
+          <div className="max-w-3xl mx-auto p-4 md:p-6 animate-[fadeIn_0.3s_ease-out]">
+            {/* Header & Progress */}
+            <div className="flex justify-between items-center mb-4">
+              <span className="font-bold text-slate-500">Pregunta {currentQIndex + 1} de {questions.length}</span>
+              <button onClick={() => setView('menu')} className="text-slate-400 hover:text-red-500">
+                <i className="fa-solid fa-times text-xl"></i>
+              </button>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-3 mb-8">
+              <div className="bg-purple-500 h-3 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+            </div>
+
+            {/* Question Card */}
+            <div className="bg-white rounded-3xl p-6 md:p-10 shadow-xl border-b-8 border-purple-200 mb-6 text-center">
+              <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-8 leading-tight">
+                {q.q}
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {q.options.map((opt, idx) => {
+                  let btnClass = "bg-slate-100 hover:bg-slate-200 text-slate-700 border-2 border-slate-200";
+                  let icon = "";
+
+                  if (showFeedback) {
+                    if (opt.isCorrect) {
+                      btnClass = "bg-green-100 border-green-500 text-green-800";
+                      icon = <i className="fa-solid fa-check-circle text-green-500 ml-2"></i>;
+                    } else if (idx === selectedOption) {
+                      btnClass = "bg-red-100 border-red-500 text-red-800";
+                      icon = <i className="fa-solid fa-times-circle text-red-500 ml-2"></i>;
+                    } else {
+                      btnClass = "bg-slate-50 border-slate-100 text-slate-400 opacity-50";
+                    }
+                  }
+
+                  return (
+                    <button 
+                      key={idx}
+                      disabled={showFeedback}
+                      onClick={() => handleAnswer(idx)}
+                      className={`relative p-5 rounded-2xl font-bold text-lg transition-all duration-200 text-left flex items-center justify-between ${btnClass} ${!showFeedback && 'active:scale-95 hover:border-purple-300 hover:shadow-md'}`}
+                    >
+                      <span>{opt.text}</span>
+                      {icon}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const renderResults = () => {
+        const grade = calculateGrade();
+        const isApproved = parseFloat(grade) >= 4.0;
+        
+        return (
+          <div className="max-w-4xl mx-auto p-4 md:p-6 animate-[fadeIn_0.5s_ease-out]">
+            
+            <div className={`rounded-3xl p-8 text-center text-white shadow-2xl mb-8 relative overflow-hidden ${isApproved ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-orange-400 to-red-500'}`}>
+              <i className={`fa-solid ${isApproved ? 'fa-trophy' : 'fa-book-open'} text-6xl mb-4`}></i>
+              <h2 className="text-4xl font-extrabold mb-2">
+                {isApproved ? '¡Excelente Trabajo!' : '¡A seguir repasando!'}
+              </h2>
+              <p className="text-xl opacity-90 mb-6">Completaste el Súper Quiz de Civilizaciones</p>
+              
+              <div className="flex justify-center items-center space-x-8 bg-white/20 rounded-2xl p-6 backdrop-blur-sm max-w-md mx-auto">
+                <div>
+                  <p className="text-sm uppercase tracking-wider opacity-80">Puntaje</p>
+                  <p className="text-3xl font-bold">{score} / {questions.length}</p>
+                </div>
+                <div className="h-12 w-1 bg-white/30 rounded"></div>
+                <div>
+                  <p className="text-sm uppercase tracking-wider opacity-80">Nota</p>
+                  <p className="text-5xl font-black">{grade}</p>
+                </div>
+              </div>
+            </div>
+
+            <h3 className="text-2xl font-bold text-slate-700 mb-6 flex items-center">
+              <i className="fa-solid fa-magnifying-glass mr-2 text-purple-500"></i> Revisión de Respuestas
+            </h3>
+            
+            <div className="space-y-4">
+              {userAnswers.map((ans, idx) => (
+                <div key={idx} className={`p-5 rounded-2xl border-l-8 bg-white shadow-sm ${ans.isCorrect ? 'border-green-500' : 'border-red-500'}`}>
+                  <p className="font-bold text-slate-800 mb-3">{idx + 1}. {ans.question}</p>
+                  
+                  <div className="flex flex-col md:flex-row gap-4 mb-3 text-sm">
+                    <div className="flex-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <span className="text-slate-500 block mb-1">Tu respuesta:</span>
+                      <span className={`font-semibold ${ans.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                        {ans.isCorrect ? <i className="fa-solid fa-check mr-1"></i> : <i className="fa-solid fa-times mr-1"></i>}
+                        {ans.selectedText}
+                      </span>
+                    </div>
+                    
+                    {!ans.isCorrect && (
+                      <div className="flex-1 bg-green-50 p-3 rounded-lg border border-green-100">
+                        <span className="text-green-700 block mb-1">Respuesta correcta:</span>
+                        <span className="font-semibold text-green-800">{ans.correctText}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm flex items-start">
+                    <i className="fa-solid fa-circle-info mt-1 mr-2 opacity-70"></i>
+                    <p>{ans.explanation}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-10 text-center pb-10">
+              <button onClick={() => { window.scrollTo(0,0); setView('menu'); }} className="bg-slate-800 hover:bg-slate-900 text-white rounded-full py-4 px-8 shadow-xl btn-bounce font-bold text-lg">
+                <i className="fa-solid fa-home mr-2"></i> Volver al Inicio
+              </button>
+            </div>
+          </div>
+        );
+      };
+
+      return (
+        <div className="min-h-screen py-8">
+          <style>{`
+            @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+          `}</style>
+          {view === 'menu' && renderMenu()}
+          {view === 'study' && renderStudy()}
+          {view === 'quiz' && renderQuiz()}
+          {view === 'results' && renderResults()}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
