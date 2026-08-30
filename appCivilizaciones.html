@@ -115,50 +115,104 @@
       }
     };
 
-    const quizBank = [
-      // AZTECAS
-      { q: "¿En qué zona se desarrolló la civilización Azteca?", options: ["Valle de México", "Cordillera de los Andes", "Selva Amazónica", "Norteamérica"], correct: 0, explanation: "Los aztecas se establecieron en el Valle de México, cerca del lago Texcoco." },
-      { q: "¿Cuál era el nombre original de la tierra natal de los aztecas?", options: ["Aztlán", "Cuzco", "Tikal", "Palenque"], correct: 0, explanation: "Venían de Aztlán, que significa 'Tierra Blanca'." },
-      { q: "¿Qué señal divina buscaron los aztecas para construir su capital?", options: ["Un águila sobre un cactus", "Un cóndor volando", "Un jaguar en un árbol", "Una serpiente en el río"], correct: 0, explanation: "Vieron a un águila parada en un nopal (cactus), señal para fundar Tenochtitlán." },
-      { q: "¿Cómo se llamaba la capital del Imperio Azteca?", options: ["Tenochtitlán", "Cuzco", "Chichén Itzá", "Machu Picchu"], correct: 0, explanation: "Construyeron Tenochtitlán drenando las tierras pantanosas del lago Texcoco." },
-      { q: "¿Qué nombre recibía el rey o máximo gobernante azteca?", options: ["Huey Tlatoani", "Sapa Inca", "Ajaw", "Faraón"], correct: 0, explanation: "El Huey Tlatoani era el líder general y tratado como un dios." },
-      { q: "¿Quién era Huitzilopochtli en la cultura azteca?", options: ["El dios del Sol y la guerra", "El dios de la lluvia", "El conquistador español", "El emperador"], correct: 0, explanation: "Huitzilopochtli era su dios principal, al cual le hacían sacrificios." },
-      { q: "¿Por qué los aztecas hacían sacrificios humanos y de animales?", options: ["Para mantener felices a los dioses", "Para castigar a los criminales", "Para divertirse", "Para alimentarse"], correct: 0, explanation: "Creían que la sangre y los sacrificios mantenían felices a los dioses." },
-      { q: "¿Qué idioma hablaban los aztecas?", options: ["Náhuatl", "Quechua", "Maya", "Mapudungun"], correct: 0, explanation: "Hablaban Náhuatl, idioma del cual provienen palabras como chocolate y aguacate." },
-      { q: "¿Qué producto era tan valioso para los aztecas que lo usaban como dinero?", options: ["El cacao", "El oro", "El maíz", "Las plumas"], correct: 0, explanation: "Los granos de cacao eran considerados un regalo de los dioses y usados como moneda." },
-      { q: "¿Quién lideraba la flota española que provocó el fin del Imperio Azteca en 1521?", options: ["Hernán Cortés", "Francisco Pizarro", "Cristóbal Colón", "Pedro de Valdivia"], correct: 0, explanation: "Hernán Cortés llegó en 1519 y conquistó el imperio azteca." },
-      
-      // MAYAS
-      { q: "¿En qué región cultural habitaron los Mayas?", options: ["Mesoamérica", "Región Andina", "América del Norte", "Caribe"], correct: 0, explanation: "Habitaron Mesoamérica, que abarca el sur de México, Guatemala, Belice, Honduras y El Salvador." },
-      { q: "¿Cómo se llamaba el máximo gobernante de una ciudad-Estado maya?", options: ["Ajaw (Señor sagrado)", "Huey Tlatoani", "Sapa Inca", "Emperador"], correct: 0, explanation: "El Ajaw dirigía las ciudades en nombre de los dioses." },
-      { q: "¿Qué técnica agrícola era la más común entre los mayas?", options: ["Tala y Roza", "Terrazas de cultivo", "Chinampas", "Hidroponía"], correct: 0, explanation: "Cortaban y quemaban la vegetación para sembrar en las milpas, técnica llamada Tala y Roza." },
-      { q: "¿Cómo realizaban sus intercambios comerciales los mayas?", options: ["Mediante el trueque", "Usando monedas de oro", "Con tarjetas", "Solo con semillas de maíz"], correct: 0, explanation: "Usaban el trueque para intercambiar productos entre distintas zonas." },
-      { q: "¿Cómo se llamaban los símbolos que usaban los mayas para escribir?", options: ["Glifos", "Letras", "Jeroglíficos egipcios", "Runas"], correct: 0, explanation: "Los mayas escribían usando símbolos llamados glifos, pintados en códices." },
-      { q: "En la matemática maya, ¿qué representaba el símbolo de la concha (o caracol)?", options: ["El número cero", "El número diez", "El número cien", "El infinito"], correct: 0, explanation: "Fueron una de las primeras civilizaciones en utilizar el cero, representado por una concha." },
-      { q: "El sistema numérico maya era 'vigesimal', esto significa que su base matemática era el número:", options: ["Veinte", "Diez", "Cinco", "Cien"], correct: 0, explanation: "Su sistema se basaba en el número 20 (vigesimal)." },
-      { q: "En los números mayas, ¿qué valor tiene un punto y qué valor tiene una raya?", options: ["Punto=1, Raya=5", "Punto=5, Raya=1", "Punto=10, Raya=20", "Punto=0, Raya=10"], correct: 0, explanation: "El punto vale 1 y la raya vale 5." },
-      { q: "¿Para qué construyeron observatorios astronómicos los mayas?", options: ["Para calcular fechas importantes y la agricultura", "Para observar a sus enemigos", "Para enviar mensajes a los dioses", "Para guardar sus tesoros"], correct: 0, explanation: "Los usaban para ver el movimiento de los astros y saber cuándo sembrar." },
-      { q: "Nombra dos grandes e importantes ciudades mayas:", options: ["Chichén Itzá y Palenque", "Cuzco y Machu Picchu", "Tenochtitlán y Tula", "Aztlán y Texcoco"], correct: 0, explanation: "Chichén Itzá y Palenque son ciudades mayas declaradas Patrimonio de la Humanidad." },
-
-      // INCAS
-      { q: "¿Dónde se ubicó geográficamente el Imperio Inca?", options: ["En la Cordillera de los Andes", "En Mesoamérica", "En las llanuras de Norteamérica", "En el Caribe"], correct: 0, explanation: "Se ubicaron a lo largo de la gran Cordillera de los Andes." },
-      { q: "¿Cómo llamaban los incas a su imperio?", options: ["Tahuantinsuyo", "Tenochtitlán", "Mesoamérica", "Aztlán"], correct: 0, explanation: "Le llamaban Tahuantinsuyo, que significa 'las cuatro regiones'." },
-      { q: "¿Cuál era la ciudad capital del Imperio Inca?", options: ["Cuzco", "Machu Picchu", "Chichén Itzá", "Tikal"], correct: 0, explanation: "La capital era Cuzco, el centro del poder imperial." },
-      { q: "¿Qué significaba la palabra 'Cuzco' para los incas?", options: ["El ombligo del mundo", "La montaña sagrada", "La ciudad de oro", "El hogar del Sol"], correct: 0, explanation: "Para los incas, Cuzco era el centro de todo, el 'ombligo del mundo'." },
-      { q: "¿Quién era la autoridad máxima del Imperio Inca?", options: ["El Sapa Inca", "El Huey Tlatoani", "El Ajaw", "El Presidente"], correct: 0, explanation: "El Sapa Inca era el gobernante máximo y absoluto." },
-      { q: "El Sapa Inca era considerado en la Tierra como el hijo del dios...", options: ["Sol (Inti)", "Lluvia (Tláloc)", "Guerra (Huitzilopochtli)", "Viento"], correct: 0, explanation: "Era considerado el hijo del dios Sol (Inti)." },
-      { q: "¿Cuáles eran los dos grandes grupos sociales en la vida del Imperio Inca?", options: ["La realeza y los plebeyos", "Los nobles y los comerciantes", "Los guerreros y los esclavos", "Los sacerdotes y los artesanos"], correct: 0, explanation: "La sociedad se dividía principalmente en la Realeza y los Plebeyos." },
-      { q: "¿Cómo vestía el Sapa Inca?", options: ["Con telas lujosas, oro y plumas", "Con pieles de animales sencillas", "Con armadura de hierro", "Igual que los plebeyos"], correct: 0, explanation: "Usaba vestimentas muy lujosas, con metales preciosos y plumas." },
-      
-      // MIXTOS Y DE DETALLE
-      { q: "¿Qué civilización habitó en la zona que hoy corresponde a Chile (zona norte y central)?", options: ["Los Incas", "Los Aztecas", "Los Mayas", "Los Toltecas"], correct: 0, explanation: "El Tahuantinsuyo (Imperio Inca) abarcó hasta el centro de Chile." },
-      { q: "La palabra 'chocolate' que usamos hoy, proviene del idioma:", options: ["Náhuatl (Aztecas)", "Quechua (Incas)", "Maya", "Mapudungun"], correct: 0, explanation: "Es una palabra de origen Náhuatl, idioma de los aztecas." },
-      { q: "El 'Ayllu' era la comunidad básica de trabajadores en la civilización:", options: ["Inca", "Azteca", "Maya", "Olmeca"], correct: 0, explanation: "En el imperio Inca, los plebeyos se organizaban en comunidades llamadas Ayllus." },
-      { q: "¿Qué civilizaciones se ubicaron en la región conocida como Mesoamérica?", options: ["Mayas y Aztecas", "Incas y Aztecas", "Incas y Mayas", "Solo los Incas"], correct: 0, explanation: "Mesoamérica comprende el centro/sur de México y Centroamérica, hogar de Mayas y Aztecas." },
-      { q: "Construyeron su ciudad sobre las aguas de un lago porque vieron la señal de un águila en un cactus. Hablamos de:", options: ["Los Aztecas", "Los Incas", "Los Mayas", "Los Olmecas"], correct: 0, explanation: "Ese es el origen mítico de Tenochtitlán, capital azteca." },
-      { q: "Tuvieron dos grandes períodos históricos: el Clásico y el Posclásico. ¿De quién hablamos?", options: ["Los Mayas", "Los Incas", "Los Aztecas", "Los Mapuches"], correct: 0, explanation: "Los mayas se dividen temporalmente en el período Clásico y Posclásico." },
-      { q: "En su cultura, las matemáticas incluían un símbolo con forma de concha para el número cero. Son:", options: ["Los Mayas", "Los Romanos", "Los Aztecas", "Los Incas"], correct: 0, explanation: "Los mayas aportaron el concepto del cero en su sistema numérico vigesimal." }
-    ];
+    const quizBanks = {
+      aztecas: [
+        { q: "¿En qué zona se desarrolló la civilización Azteca?", options: ["Valle de México", "Cordillera de los Andes", "Selva Amazónica", "Norteamérica"], correct: 0, explanation: "Los aztecas se establecieron en el Valle de México, cerca del lago Texcoco." },
+        { q: "¿Cuál era el nombre original de la tierra natal de los aztecas?", options: ["Aztlán", "Cuzco", "Tikal", "Palenque"], correct: 0, explanation: "Venían de Aztlán, que significa 'Tierra Blanca'." },
+        { q: "¿Qué señal divina buscaron los aztecas para construir su capital?", options: ["Un águila sobre un cactus", "Un cóndor volando", "Un jaguar en un árbol", "Una serpiente en el río"], correct: 0, explanation: "Vieron a un águila parada en un nopal (cactus devorando una serpiente), señal para fundar Tenochtitlán." },
+        { q: "¿Cómo se llamaba la capital del Imperio Azteca?", options: ["Tenochtitlán", "Cuzco", "Chichén Itzá", "Machu Picchu"], correct: 0, explanation: "Construyeron Tenochtitlán drenando las tierras pantanosas del lago Texcoco." },
+        { q: "¿Qué nombre recibía el rey o máximo gobernante azteca?", options: ["Huey Tlatoani", "Sapa Inca", "Ajaw", "Faraón"], correct: 0, explanation: "El Huey Tlatoani era el líder general y tratado como un dios." },
+        { q: "¿Quién era Huitzilopochtli en la cultura azteca?", options: ["El dios del Sol y la guerra", "El dios de la lluvia", "El conquistador español", "El emperador"], correct: 0, explanation: "Huitzilopochtli era su dios principal, al cual le hacían sacrificios." },
+        { q: "¿Por qué los aztecas hacían sacrificios humanos y de animales?", options: ["Para mantener felices a los dioses", "Para castigar a los criminales", "Para divertirse", "Para alimentarse"], correct: 0, explanation: "Creían que la sangre y los sacrificios mantenían el sol brillando y felices a los dioses." },
+        { q: "¿Qué idioma hablaban los aztecas?", options: ["Náhuatl", "Quechua", "Maya", "Mapudungun"], correct: 0, explanation: "Hablaban Náhuatl, idioma del cual provienen palabras como chocolate y aguacate." },
+        { q: "¿Qué producto era tan valioso para los aztecas que lo usaban como dinero?", options: ["El cacao", "El oro", "El maíz", "Las plumas"], correct: 0, explanation: "Los granos de cacao eran considerados un regalo de los dioses y usados como moneda." },
+        { q: "¿Quién lideraba la flota española que provocó el fin del Imperio Azteca en 1521?", options: ["Hernán Cortés", "Francisco Pizarro", "Cristóbal Colón", "Pedro de Valdivia"], correct: 0, explanation: "Hernán Cortés llegó en 1519 y conquistó el imperio azteca en 1521." },
+        { q: "¿En qué lago se fundó la ciudad de Tenochtitlán?", options: ["Lago Texcoco", "Lago Titicaca", "Lago Llanquihue", "Lago Victoria"], correct: 0, explanation: "Fue fundada sobre islotes en el Lago Texcoco." },
+        { q: "¿Qué eran las chinampas?", options: ["Islas artificiales creadas para el cultivo", "Armas de guerra", "Templos sagrados", "Vestimentas reales"], correct: 0, explanation: "Las chinampas eran huertos flotantes donde cultivaban eficientemente." },
+        { q: "¿Cómo se llamaba el grupo social de la nobleza azteca?", options: ["Pipiltin", "Macehualtin", "Pochtecas", "Yanaconas"], correct: 0, explanation: "Los nobles, sacerdotes y altos jefes pertenecían al grupo Pipiltin." },
+        { q: "¿Cómo se le llamaba a la gente común o el pueblo en la sociedad azteca?", options: ["Macehualtin", "Pipiltin", "Tlatoani", "Mayas"], correct: 0, explanation: "El pueblo trabajador, campesinos y artesanos eran los Macehualtin." },
+        { q: "¿Quiénes eran los pochtecas en el Imperio Azteca?", options: ["Comerciantes que también servían como espías", "Los esclavos más pobres", "Los sacerdotes del sol", "Los reyes conquistados"], correct: 0, explanation: "Los pochtecas eran comerciantes muy respetados que viajaban informando al Tlatoani." },
+        { q: "¿Cómo se llamaba la escuela reservada para los hijos de los nobles aztecas?", options: ["Calmécac", "Telpochcalli", "Yachaywasi", "Acllahuasi"], correct: 0, explanation: "En el Calmécac se formaban los futuros sacerdotes y gobernantes." },
+        { q: "¿Cómo se llamaba la escuela para los jóvenes del pueblo (Macehualtin)?", options: ["Telpochcalli", "Calmécac", "Colegio Azteca", "Universidad"], correct: 0, explanation: "En el Telpochcalli aprendían oficios, uso de armas y servicio público." },
+        { q: "¿Quién era Tláloc en la religión azteca?", options: ["El dios de la lluvia y la fertilidad", "El dios de la guerra", "El dios de la muerte", "El dios del sol"], correct: 0, explanation: "Tláloc era muy venerado para que enviara buenas lluvias para los cultivos." },
+        { q: "¿Qué dios era conocido como 'La Serpiente Emplumada'?", options: ["Quetzalcóatl", "Huitzilopochtli", "Tláloc", "Moctezuma"], correct: 0, explanation: "Quetzalcóatl era el dios de la vida, la luz y la sabiduría." },
+        { q: "¿Cómo se llamaba el gran y famoso mercado de los aztecas?", options: ["Tianguis de Tlatelolco", "Feria de Cuzco", "Mercado Central", "Mall Azteca"], correct: 0, explanation: "El gran mercado (Tianguis) de Tlatelolco asombró a los españoles por su tamaño." },
+        { q: "¿Cómo se llamaba el juego de pelota que practicaban los aztecas?", options: ["Tlachtli", "Fútbol", "Pok-ta-pok", "Palín"], correct: 0, explanation: "El Tlachtli era un juego ritual donde debían pasar una pelota de caucho por un aro." },
+        { q: "¿Cuál era el principal alimento que cultivaban los aztecas?", options: ["El maíz", "El trigo", "El arroz", "La uva"], correct: 0, explanation: "El maíz era la base de su dieta, junto con el frijol y el chile." },
+        { q: "¿Qué material de vidrio volcánico usaban los aztecas para hacer sus armas?", options: ["Obsidiana", "Hierro", "Acero", "Bronce"], correct: 0, explanation: "Al no usar metales duros para armas, usaban la obsidiana, muy filosa." },
+        { q: "¿Qué mujer nativa sirvió como traductora e intérprete clave para Hernán Cortés?", options: ["La Malinche (Doña Marina)", "La Coya", "Pocahontas", "Guacolda"], correct: 0, explanation: "La Malinche sabía náhuatl y maya, ayudando enormemente a la conquista." },
+        { q: "¿Qué debían pagar los pueblos conquistados al Imperio Azteca?", options: ["Tributos (bienes y productos)", "Oro solamente", "Monedas de plata", "Esclavos europeos"], correct: 0, explanation: "El imperio se enriquecía cobrando tributos a las tribus dominadas." },
+        { q: "Al creer en muchos dioses, decimos que la religión azteca era:", options: ["Politeísta", "Monoteísta", "Atea", "Cristiana"], correct: 0, explanation: "Politeísta significa adorar a muchos dioses distintos." },
+        { q: "¿Qué usaban los aztecas para registrar su historia y tributos?", options: ["Códices hechos de papel de corteza", "Libros impresos", "Quipus de lana", "Tablillas de arcilla"], correct: 0, explanation: "Los códices eran libros plegables pintados con dibujos y glifos." },
+        { q: "¿Cómo se llamaba la bebida picante y amarga que hacían con cacao?", options: ["Xocolatl", "Café", "Mate", "Tequila"], correct: 0, explanation: "El Xocolatl (chocolate) se bebía amargo y con chile, reservado para los nobles." },
+        { q: "¿Quién era el emperador (Tlatoani) cuando llegaron los españoles?", options: ["Moctezuma II", "Cuauhtémoc", "Atahualpa", "Pachacútec"], correct: 0, explanation: "Moctezuma II recibió a Cortés creyendo que podría ser un dios." },
+        { q: "¿Cómo se llamaban los barrios o clanes familiares en Tenochtitlán?", options: ["Calpullis", "Ayllus", "Condominios", "Comunas"], correct: 0, explanation: "La ciudad se dividía en Calpullis, unidades sociales, económicas y religiosas." }
+      ],
+      mayas: [
+        { q: "¿En qué región cultural habitaron los Mayas?", options: ["Mesoamérica", "Región Andina", "América del Norte", "Caribe"], correct: 0, explanation: "Habitaron Mesoamérica, abarcando el sur de México y Centroamérica." },
+        { q: "¿Cómo se llamaba el máximo gobernante de una ciudad-Estado maya?", options: ["Halach Uinic (o Ajaw)", "Huey Tlatoani", "Sapa Inca", "Emperador"], correct: 0, explanation: "El Halach Uinic ('Hombre verdadero') era el señor de la ciudad." },
+        { q: "¿Qué técnica agrícola era la más común entre los mayas en la selva?", options: ["Tala y Roza", "Terrazas de cultivo", "Chinampas", "Hidroponía"], correct: 0, explanation: "Cortaban y quemaban la vegetación para sembrar en las milpas." },
+        { q: "¿Cómo realizaban sus intercambios comerciales los mayas?", options: ["Mediante el trueque", "Usando monedas de oro", "Con billetes", "Solo con semillas de maíz"], correct: 0, explanation: "Usaban el trueque para intercambiar productos entre ciudades." },
+        { q: "¿Cómo se llamaban los símbolos que usaban los mayas para escribir?", options: ["Glifos", "Letras", "Jeroglíficos egipcios", "Runas"], correct: 0, explanation: "Escribían usando símbolos llamados glifos, pintados o tallados en piedra." },
+        { q: "En la matemática maya, ¿qué representaba el símbolo de la concha (o caracol)?", options: ["El número cero", "El número diez", "El número cien", "El infinito"], correct: 0, explanation: "Fueron de las primeras civilizaciones en utilizar el cero." },
+        { q: "El sistema numérico maya era 'vigesimal', esto significa que su base matemática era el número:", options: ["Veinte", "Diez", "Cinco", "Cien"], correct: 0, explanation: "Su sistema se basaba en el número 20." },
+        { q: "En los números mayas, ¿qué valor tiene un punto y qué valor tiene una raya?", options: ["Punto=1, Raya=5", "Punto=5, Raya=1", "Punto=10, Raya=20", "Punto=0, Raya=10"], correct: 0, explanation: "El punto vale 1 y la raya vale 5." },
+        { q: "¿Para qué construyeron observatorios astronómicos los mayas?", options: ["Para calcular fechas importantes y la agricultura", "Para observar a sus enemigos", "Para enviar mensajes a los dioses", "Para guardar sus tesoros"], correct: 0, explanation: "Los usaban para ver el movimiento de los astros y elaborar calendarios." },
+        { q: "Nombra dos grandes e importantes ciudades mayas:", options: ["Chichén Itzá y Palenque", "Cuzco y Machu Picchu", "Tenochtitlán y Tula", "Aztlán y Texcoco"], correct: 0, explanation: "Chichén Itzá y Palenque son maravillas del mundo maya." },
+        { q: "¿En qué península vivieron principalmente los Mayas?", options: ["Península de Yucatán", "Península Ibérica", "Península Itálica", "Península de Florida"], correct: 0, explanation: "La mayor parte del mundo maya se centró en la península de Yucatán." },
+        { q: "¿En qué período histórico los mayas alcanzaron su mayor esplendor?", options: ["Período Clásico", "Período Posclásico", "Período Colonial", "Edad Media"], correct: 0, explanation: "Durante el período Clásico construyeron sus ciudades más grandes." },
+        { q: "¿Cómo se llamaba el sacerdote principal maya?", options: ["Ahuacán", "Curaca", "Tlatoani", "Papa"], correct: 0, explanation: "El Ahuacán o 'Señor Serpiente' era el líder espiritual supremo." },
+        { q: "¿Cómo se llamaban los pozos sagrados de agua dulce donde hacían sacrificios?", options: ["Cenotes", "Lagos", "Ríos subterráneos", "Acueductos"], correct: 0, explanation: "Los cenotes eran la principal fuente de agua y lugares sagrados." },
+        { q: "¿Cuál es el nombre del libro sagrado que narra la creación del mundo maya?", options: ["Popol Vuh", "La Biblia", "Los Códices", "El Corán"], correct: 0, explanation: "El Popol Vuh es el libro del consejo o libro sagrado maya k'iche'." },
+        { q: "¿Quién era el dios creador principal en la mitología maya?", options: ["Hunab Ku", "Chaac", "Tláloc", "Inti"], correct: 0, explanation: "Hunab Ku era el padre de todos los dioses y centro de la galaxia." },
+        { q: "¿Quién era el dios maya de la lluvia?", options: ["Chaac", "Kukulcán", "Huitzilopochtli", "Pachamama"], correct: 0, explanation: "Chaac era representado con una nariz larga y trompa." },
+        { q: "¿Qué forma geométrica tenían los principales templos mayas?", options: ["Pirámides escalonadas", "Cúpulas redondas", "Torres altas", "Cuadrados planos"], correct: 0, explanation: "Construían grandes pirámides escalonadas de piedra." },
+        { q: "¿Cómo se llamaba el juego de pelota sagrado de los mayas?", options: ["Pok-ta-pok", "Tlachtli", "Chueca", "Fútbol"], correct: 0, explanation: "Se jugaba golpeando la pelota con las caderas, codos y rodillas." },
+        { q: "El calendario maya de 365 días usado para la agricultura se llamaba:", options: ["Haab", "Tzolkin", "Gregoriano", "Lunar"], correct: 0, explanation: "El Haab tenía 18 meses de 20 días y un mes de 5 días de mala suerte." },
+        { q: "El calendario sagrado maya usado por los sacerdotes duraba:", options: ["260 días (Tzolkin)", "365 días", "100 días", "30 días"], correct: 0, explanation: "El Tzolkin regía la vida religiosa y las ceremonias." },
+        { q: "¿Qué ciudad maya es famosa y se encuentra en el actual país de Guatemala?", options: ["Tikal", "Tenochtitlán", "Cuzco", "Teotihuacán"], correct: 0, explanation: "Tikal fue una de las ciudades más poderosas del período clásico." },
+        { q: "¿Qué piedra semipreciosa de color verde valoraban más que el oro?", options: ["El Jade", "El Diamante", "El Rubí", "La Esmeralda"], correct: 0, explanation: "El jade era símbolo de vida y fertilidad, usado para máscaras funerarias." },
+        { q: "¿Cómo se organizaban políticamente los mayas?", options: ["En Ciudades-Estado independientes", "En un solo gran imperio unido", "En tribus nómadas", "En una república democrática"], correct: 0, explanation: "Cada ciudad tenía su propio gobernante y leyes, a veces peleaban entre ellas." },
+        { q: "¿Cómo le llamaban los mayas al terreno donde cultivaban?", options: ["Milpa", "Chinampa", "Terraza", "Ayllu"], correct: 0, explanation: "La milpa era el campo de cultivo, principalmente de maíz." },
+        { q: "¿Quién era el dios maya del sol?", options: ["Kinich Ahau", "Inti", "Tonatiuh", "Ra"], correct: 0, explanation: "Kinich Ahau era el dios del sol, a menudo representado con bizquera." },
+        { q: "¿Cómo se llamaban los grandes comerciantes mayas que hacían el trueque?", options: ["Ppolom", "Pochtecas", "Curacas", "Plebeyos"], correct: 0, explanation: "Los ppolom organizaban caravanas para comerciar productos por toda Mesoamérica." },
+        { q: "¿Qué ciencia desarrollaron los mayas para estudiar los astros?", options: ["La Astronomía", "La Biología", "La Química", "La Medicina"], correct: 0, explanation: "Fueron expertos astrónomos, prediciendo eclipses con exactitud." },
+        { q: "¿Cómo se llamaban los caminos blancos de piedra que conectaban sus ciudades?", options: ["Sacbés", "Qhapaq Ñan", "Carreteras", "Acueductos"], correct: 0, explanation: "Los sacbés (caminos blancos) eran rutas sagradas y comerciales." },
+        { q: "Según la mitología maya (Popol Vuh), el hombre actual fue creado de:", options: ["El maíz", "El barro", "La madera", "La piedra"], correct: 0, explanation: "Los dioses lograron crear al hombre perfecto usando masa de maíz." }
+      ],
+      incas: [
+        { q: "¿Dónde se ubicó geográficamente el Imperio Inca?", options: ["En la Cordillera de los Andes", "En Mesoamérica", "En las llanuras de Norteamérica", "En el Caribe"], correct: 0, explanation: "Se ubicaron a lo largo de la gran Cordillera de los Andes." },
+        { q: "¿Cómo llamaban los incas a su imperio?", options: ["Tahuantinsuyo", "Tenochtitlán", "Mesoamérica", "Aztlán"], correct: 0, explanation: "Le llamaban Tahuantinsuyo, que significa 'las cuatro regiones'." },
+        { q: "¿Cuál era la ciudad capital del Imperio Inca?", options: ["Cuzco", "Machu Picchu", "Chichén Itzá", "Tikal"], correct: 0, explanation: "La capital era Cuzco, el centro del poder imperial." },
+        { q: "¿Qué significaba la palabra 'Cuzco' para los incas?", options: ["El ombligo del mundo", "La montaña sagrada", "La ciudad de oro", "El hogar del Sol"], correct: 0, explanation: "Para los incas, Cuzco era el centro de todo." },
+        { q: "¿Quién era la autoridad máxima del Imperio Inca?", options: ["El Sapa Inca", "El Huey Tlatoani", "El Ajaw", "El Presidente"], correct: 0, explanation: "El Sapa Inca era el gobernante máximo y absoluto." },
+        { q: "El Sapa Inca era considerado en la Tierra como el hijo del dios...", options: ["Sol (Inti)", "Lluvia (Tláloc)", "Guerra (Huitzilopochtli)", "Viento"], correct: 0, explanation: "Era considerado el hijo del dios Sol (Inti)." },
+        { q: "¿Cuáles eran los dos grandes grupos sociales en la vida del Imperio Inca?", options: ["La realeza y los plebeyos", "Los nobles y los comerciantes", "Los guerreros y los esclavos", "Los sacerdotes y los artesanos"], correct: 0, explanation: "La sociedad se dividía principalmente en la Realeza y el Pueblo (plebeyos)." },
+        { q: "¿Cómo se llamaban los veloces corredores que llevaban mensajes por el imperio?", options: ["Chasquis", "Quipus", "Pochtecas", "Curacas"], correct: 0, explanation: "Los chasquis corrían por relevos llevando mensajes y encomiendas." },
+        { q: "¿Qué idioma impusieron los incas en todo su imperio?", options: ["Quechua", "Náhuatl", "Mapudungun", "Aymara"], correct: 0, explanation: "El quechua fue el idioma oficial para unificar los territorios." },
+        { q: "¿Qué sistema de cuerdas y nudos usaban para contar y llevar registros?", options: ["Quipu", "Ábaco", "Códices", "Escritura cuneiforme"], correct: 0, explanation: "El quipu servía para llevar la contabilidad del imperio." },
+        { q: "¿Cómo se llamaba la extensa red de caminos incas?", options: ["Qhapaq Ñan (Camino del Inca)", "Sacbé", "Ruta de la Seda", "Vía Apia"], correct: 0, explanation: "Conectaba todo el imperio desde Colombia hasta Chile/Argentina." },
+        { q: "¿Cuál era la organización familiar o comunidad básica del pueblo inca?", options: ["Ayllu", "Calpulli", "Familia nuclear", "Tribu"], correct: 0, explanation: "El Ayllu era un grupo de familias unidas por parentesco que trabajaban juntas." },
+        { q: "¿Quién era el jefe o líder de cada Ayllu?", options: ["Curaca", "Sapa Inca", "Chasqui", "Sacerdote"], correct: 0, explanation: "El curaca organizaba el trabajo y resolvía conflictos en el Ayllu." },
+        { q: "¿Cómo se llamaba el trabajo obligatorio que los hombres hacían para el Estado?", options: ["Mita", "Trueque", "Salario", "Esclavitud"], correct: 0, explanation: "La mita era un sistema de turnos de trabajo en puentes, caminos y minas." },
+        { q: "¿Qué técnica usaron para poder cultivar en las empinadas montañas?", options: ["Terrazas de cultivo (Andenes)", "Chinampas", "Tala y Roza", "Invernaderos"], correct: 0, explanation: "Construyeron escalones gigantes de piedra para sembrar en los Andes." },
+        { q: "¿Quién era el dios creador del universo para los incas?", options: ["Viracocha", "Inti", "Hunab Ku", "Tláloc"], correct: 0, explanation: "Viracocha era el ser supremo creador de todo." },
+        { q: "¿Cómo se llama la diosa de la Tierra y la fertilidad, aún venerada hoy?", options: ["Pachamama", "Mama Quilla", "Coya", "Malinche"], correct: 0, explanation: "La Pachamama es la Madre Tierra que da el sustento." },
+        { q: "¿Qué famosa ciudadela inca oculta en las montañas fue redescubierta en 1911?", options: ["Machu Picchu", "Cuzco", "Tikal", "Tenochtitlán"], correct: 0, explanation: "Machu Picchu es una de las maravillas del mundo moderno." },
+        { q: "¿Qué animales fueron fundamentales para la carga y la lana en el imperio?", options: ["La llama y la alpaca", "El caballo y la vaca", "El perro y el gato", "El jaguar y el águila"], correct: 0, explanation: "La llama servía como animal de carga y la alpaca daba excelente lana." },
+        { q: "¿Qué es el 'chuño' inventado por los incas?", options: ["Papa deshidratada al sol y al frío", "Una bebida de cacao", "Un tipo de maíz", "Un arma de piedra"], correct: 0, explanation: "Deshidrataban la papa para que durara meses o años sin pudrirse." },
+        { q: "El Tahuantinsuyo estaba dividido en 4 grandes regiones llamadas:", options: ["Suyos", "Provincias", "Estados", "Ayllus"], correct: 0, explanation: "Las cuatro regiones eran los 4 'Suyos'." },
+        { q: "¿Qué suyo del imperio Inca abarcaba parte del territorio de Chile actual?", options: ["Collasuyo", "Chinchaysuyo", "Antisuyo", "Contisuyo"], correct: 0, explanation: "El Collasuyo era la región sur del imperio." },
+        { q: "¿Qué corona o símbolo de poder usaba el Sapa Inca en la cabeza?", options: ["Mascapaicha", "Sombrero de oro", "Corona de plumas", "Casco de plata"], correct: 0, explanation: "Era una borla de lana roja con hilos de oro que simbolizaba el poder absoluto." },
+        { q: "¿Cómo se llamaba la esposa principal del Sapa Inca (usualmente su hermana)?", options: ["La Coya", "La Malinche", "La Ñusta", "La Princesa"], correct: 0, explanation: "La Coya era la reina y esposa principal del Inca." },
+        { q: "¿Qué eran los 'Tambos' en el Imperio Inca?", options: ["Refugios o posadas a lo largo de los caminos", "Templos para sacrificios", "Escuelas de nobles", "Cárceles"], correct: 0, explanation: "Los tambos servían de descanso y abastecimiento para los chasquis y el ejército." },
+        { q: "¿Quién fue el conquistador español que capturó al emperador inca y tomó el imperio?", options: ["Francisco Pizarro", "Hernán Cortés", "Pedro de Valdivia", "Cristóbal Colón"], correct: 0, explanation: "Francisco Pizarro lideró la conquista del Imperio Inca en 1532." },
+        { q: "¿Quién fue el último emperador inca que gobernaba cuando llegaron los españoles?", options: ["Atahualpa", "Pachacútec", "Huáscar", "Manco Cápac"], correct: 0, explanation: "Atahualpa fue capturado en Cajamarca tras ganar la guerra a su hermano Huáscar." },
+        { q: "¿Cómo se llama la gran fiesta inca del sol que se celebra hasta el día de hoy?", options: ["Inti Raymi", "Fiesta de la Tirana", "Año Nuevo", "Día de Muertos"], correct: 0, explanation: "El Inti Raymi es la fiesta en agradecimiento al dios Sol por las cosechas." },
+        { q: "¿Cómo se caracterizaba la arquitectura monumental inca?", options: ["Piedras encajadas perfectamente sin usar cemento", "Uso de ladrillos de barro", "Casas de madera y hojas", "Uso de hierro y acero"], correct: 0, explanation: "Tallaban las piedras para que encajaran con precisión milimétrica sin amalgama." },
+        { q: "Verdadero o Falso: Los incas no tenían escritura formal con letras.", options: ["Verdadero", "Falso", "Tenían abecedario", "Solo números"], correct: 0, explanation: "Es verdadero, no tenían escritura alfabética, usaban el Quipu para registrar datos." }
+      ]
+    };
 
     // --- HELPER FUNC ---
     const shuffleArray = (array) => {
@@ -174,6 +228,7 @@
     const App = () => {
       const [view, setView] = React.useState('menu'); // menu, study, quiz, results
       const [studyTopic, setStudyTopic] = React.useState(null);
+      const [quizTopic, setQuizTopic] = React.useState(null);
       
       // Quiz State
       const [questions, setQuestions] = React.useState([]);
@@ -190,9 +245,11 @@
         window.scrollTo(0,0);
       };
 
-      const startQuiz = () => {
+      const startQuiz = (topic) => {
+        setQuizTopic(topic);
+        const bank = quizBanks[topic];
         // Shuffle questions and options
-        const shuffledQuestions = shuffleArray(quizBank).slice(0, 30); // Use 30 for the exam
+        const shuffledQuestions = shuffleArray(bank).slice(0, 30); // Use 30 for the exam
         const preparedQuestions = shuffledQuestions.map(q => {
           const options = q.options.map((opt, index) => ({ text: opt, isCorrect: index === q.correct }));
           const shuffledOptions = shuffleArray(options);
@@ -266,7 +323,7 @@
       // --- RENDERS ---
       
       const renderMenu = () => (
-        <div className="max-w-4xl mx-auto p-6 text-center animate-[fadeIn_0.5s_ease-out]">
+        <div className="max-w-5xl mx-auto p-6 text-center animate-[fadeIn_0.5s_ease-out]">
           <div className="bg-white rounded-3xl p-8 shadow-xl border-4 border-emerald-500 mb-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 -mr-16 -mt-16 text-emerald-100 opacity-50">
               <i className="fa-solid fa-earth-americas text-9xl"></i>
@@ -274,30 +331,60 @@
             <h1 className="text-4xl md:text-5xl font-extrabold text-emerald-800 mb-4 relative z-10">
               Mundo Americano
             </h1>
-            <p className="text-lg text-emerald-600 font-semibold mb-6">
-              ¡Prepárate para la prueba de la Unidad N°2!
+            <p className="text-lg text-emerald-600 font-semibold mb-6 relative z-10">
+              ¡Prepárate para la prueba! Selecciona una civilización para repasar su materia o ponte a prueba con su Súper Quiz de 30 preguntas.
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-              <button onClick={() => startStudy('aztecas')} className="bg-red-500 hover:bg-red-600 text-white rounded-2xl p-6 shadow-lg btn-bounce flex flex-col items-center">
-                <i className="fa-solid fa-sun text-4xl mb-3"></i>
-                <span className="text-xl font-bold">Repaso Azteca</span>
-              </button>
-              <button onClick={() => startStudy('mayas')} className="bg-green-600 hover:bg-green-700 text-white rounded-2xl p-6 shadow-lg btn-bounce flex flex-col items-center">
-                <i className="fa-solid fa-leaf text-4xl mb-3"></i>
-                <span className="text-xl font-bold">Repaso Maya</span>
-              </button>
-              <button onClick={() => startStudy('incas')} className="bg-orange-500 hover:bg-orange-600 text-white rounded-2xl p-6 shadow-lg btn-bounce flex flex-col items-center">
-                <i className="fa-solid fa-mountain-sun text-4xl mb-3"></i>
-                <span className="text-xl font-bold">Repaso Inca</span>
-              </button>
+              {/* Aztecas */}
+              <div className="bg-red-50 rounded-2xl p-6 shadow-md border-2 border-red-200 flex flex-col items-center">
+                <div className="w-16 h-16 bg-red-500 text-white rounded-full flex items-center justify-center text-3xl mb-4 shadow-lg">
+                  <i className="fa-solid fa-sun"></i>
+                </div>
+                <h3 className="text-2xl font-bold text-red-800 mb-4">Aztecas</h3>
+                <div className="space-y-3 w-full">
+                  <button onClick={() => startStudy('aztecas')} className="w-full bg-white border-2 border-red-500 text-red-600 hover:bg-red-50 rounded-xl py-3 font-bold btn-bounce">
+                    <i className="fa-solid fa-book-open mr-2"></i> Repasar Materia
+                  </button>
+                  <button onClick={() => startQuiz('aztecas')} className="w-full bg-red-500 hover:bg-red-600 text-white rounded-xl py-3 font-bold shadow-md btn-bounce">
+                    <i className="fa-solid fa-bolt text-yellow-300 mr-2"></i> Quiz 30 Preguntas
+                  </button>
+                </div>
+              </div>
+
+              {/* Mayas */}
+              <div className="bg-green-50 rounded-2xl p-6 shadow-md border-2 border-green-200 flex flex-col items-center">
+                <div className="w-16 h-16 bg-green-600 text-white rounded-full flex items-center justify-center text-3xl mb-4 shadow-lg">
+                  <i className="fa-solid fa-leaf"></i>
+                </div>
+                <h3 className="text-2xl font-bold text-green-800 mb-4">Mayas</h3>
+                <div className="space-y-3 w-full">
+                  <button onClick={() => startStudy('mayas')} className="w-full bg-white border-2 border-green-600 text-green-700 hover:bg-green-50 rounded-xl py-3 font-bold btn-bounce">
+                    <i className="fa-solid fa-book-open mr-2"></i> Repasar Materia
+                  </button>
+                  <button onClick={() => startQuiz('mayas')} className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl py-3 font-bold shadow-md btn-bounce">
+                    <i className="fa-solid fa-bolt text-yellow-300 mr-2"></i> Quiz 30 Preguntas
+                  </button>
+                </div>
+              </div>
+
+              {/* Incas */}
+              <div className="bg-orange-50 rounded-2xl p-6 shadow-md border-2 border-orange-200 flex flex-col items-center">
+                <div className="w-16 h-16 bg-orange-500 text-white rounded-full flex items-center justify-center text-3xl mb-4 shadow-lg">
+                  <i className="fa-solid fa-mountain-sun"></i>
+                </div>
+                <h3 className="text-2xl font-bold text-orange-800 mb-4">Incas</h3>
+                <div className="space-y-3 w-full">
+                  <button onClick={() => startStudy('incas')} className="w-full bg-white border-2 border-orange-500 text-orange-600 hover:bg-orange-50 rounded-xl py-3 font-bold btn-bounce">
+                    <i className="fa-solid fa-book-open mr-2"></i> Repasar Materia
+                  </button>
+                  <button onClick={() => startQuiz('incas')} className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-xl py-3 font-bold shadow-md btn-bounce">
+                    <i className="fa-solid fa-bolt text-yellow-300 mr-2"></i> Quiz 30 Preguntas
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-
-          <button onClick={startQuiz} className="w-full md:w-2/3 mx-auto bg-purple-600 hover:bg-purple-700 text-white rounded-full py-5 px-8 shadow-2xl btn-bounce flex items-center justify-center space-x-4 text-2xl font-bold ring-4 ring-purple-300">
-            <i className="fa-solid fa-bolt text-yellow-300"></i>
-            <span>¡Hacer el Súper Quiz!</span>
-          </button>
         </div>
       );
 
@@ -335,8 +422,8 @@
               </div>
 
               <div className="mt-8 text-center">
-                 <button onClick={startQuiz} className="bg-purple-600 hover:bg-purple-700 text-white rounded-full py-4 px-8 shadow-xl btn-bounce font-bold text-lg">
-                    ¡Probar mis conocimientos! <i className="fa-solid fa-arrow-right ml-2"></i>
+                 <button onClick={() => startQuiz(studyTopic)} className={`text-white rounded-full py-4 px-8 shadow-xl btn-bounce font-bold text-lg ${data.color}`}>
+                    ¡Hacer Súper Quiz de {data.title}! <i className="fa-solid fa-arrow-right ml-2"></i>
                  </button>
               </div>
             </div>
@@ -414,7 +501,7 @@
               <h2 className="text-4xl font-extrabold mb-2">
                 {isApproved ? '¡Excelente Trabajo!' : '¡A seguir repasando!'}
               </h2>
-              <p className="text-xl opacity-90 mb-6">Completaste el Súper Quiz de Civilizaciones</p>
+              <p className="text-xl opacity-90 mb-6">Completaste el Súper Quiz ({quizTopic ? quizTopic.toUpperCase() : ''})</p>
               
               <div className="flex justify-center items-center space-x-8 bg-white/20 rounded-2xl p-6 backdrop-blur-sm max-w-md mx-auto">
                 <div>
