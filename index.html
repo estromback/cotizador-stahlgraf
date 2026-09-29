@@ -81,6 +81,83 @@
             left: -180px;
         }
 
+        /* --- CORNER PROMO RIBBON --- */
+        .corner-ribbon-wrapper {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 175px;
+            height: 175px;
+            overflow: hidden;
+            z-index: 150;
+            pointer-events: none;
+        }
+
+        .corner-ribbon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 250px;
+            padding: 8px 0;
+            background: linear-gradient(135deg, #e11d48 0%, #dc2626 50%, #991b1b 100%);
+            color: #ffffff;
+            font-family: var(--font-display);
+            text-align: center;
+            text-decoration: none;
+            line-height: 1.15;
+            position: absolute;
+            top: 36px;
+            right: -56px;
+            transform: rotate(45deg);
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.6), 0 2px 5px rgba(0, 0, 0, 0.4);
+            border-top: 1px dashed rgba(255, 255, 255, 0.45);
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+            pointer-events: auto;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: ribbon-pulse 3s infinite;
+        }
+
+        .corner-ribbon:hover {
+            background: linear-gradient(135deg, #f43f5e 0%, #ef4444 50%, #b91c1c 100%);
+            transform: rotate(45deg) scale(1.04);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.85);
+        }
+
+        .ribbon-icon {
+            font-size: 0.85rem;
+            line-height: 1;
+            margin-bottom: 2px;
+        }
+
+        .ribbon-text-main {
+            font-size: 0.74rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #ffffff;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        .ribbon-text-sub {
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: #fef08a;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        }
+
+        @keyframes ribbon-pulse {
+            0%, 100% {
+                box-shadow: 0 6px 20px rgba(220, 38, 38, 0.6), 0 2px 5px rgba(0, 0, 0, 0.4);
+            }
+            50% {
+                box-shadow: 0 8px 25px rgba(239, 68, 68, 0.9), 0 0 16px rgba(239, 68, 68, 0.6);
+            }
+        }
+
         /* --- CLEAN, DECLUTTERED NAVBAR --- */
         header {
             position: sticky;
@@ -99,6 +176,7 @@
             max-width: 1220px;
             margin: 0 auto;
             padding: 14px 24px;
+            padding-right: 75px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1319,6 +1397,30 @@
             .faq-grid {
                 grid-template-columns: 1fr;
             }
+            .corner-ribbon-wrapper {
+                width: 140px;
+                height: 140px;
+            }
+            .corner-ribbon {
+                top: 26px;
+                right: -48px;
+                width: 200px;
+                padding: 6px 0;
+            }
+            .ribbon-icon {
+                font-size: 0.72rem;
+                margin-bottom: 1px;
+            }
+            .ribbon-text-main {
+                font-size: 0.62rem;
+                letter-spacing: 0.4px;
+            }
+            .ribbon-text-sub {
+                font-size: 0.52rem;
+            }
+            .nav-container {
+                padding-right: 65px;
+            }
             nav {
                 display: none;
             }
@@ -1340,6 +1442,13 @@
         }
 
         @media (max-width: 640px) {
+            .nav-container {
+                padding-left: 14px;
+                padding-right: 58px;
+            }
+            .nav-actions .btn-quote-nav {
+                display: none;
+            }
             .hero-content h1 {
                 font-size: 2.25rem;
                 letter-spacing: -1px;
@@ -1388,6 +1497,15 @@
     </style>
 </head>
 <body>
+
+    <!-- CORNER PROMO RIBBON (Aprovecha precios de inicio de temporada) -->
+    <div class="corner-ribbon-wrapper">
+        <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="corner-ribbon" title="¡Aprovecha precios rebajados de inicio de temporada 2026-2027!">
+            <span class="ribbon-icon">🔥</span>
+            <span class="ribbon-text-main">Precios Rebajados</span>
+            <span class="ribbon-text-sub">Inicio de Temporada</span>
+        </a>
+    </div>
 
     <!-- Ambient Glow background spheres -->
     <div class="glow-sphere glow-1"></div>
@@ -2072,12 +2190,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                     </svg>
                 </div>
-                <span class="section-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); margin-bottom: 10px;">
-                    ⚡ COTIZADOR DIGITAL INMEDIATO
+                <span class="section-tag" style="background: rgba(239, 68, 68, 0.16); color: #f87171; border-color: rgba(239, 68, 68, 0.35); margin-bottom: 10px;">
+                    🔥 APROVECHA PRECIOS DE INICIO DE TEMPORADA
                 </span>
                 <h3>Solicitud de Cotización Online</h3>
                 <p>
-                    Ingresa los metros cuadrados y selecciona las plagas a tratar (avispas, arañas, hormigas, cucarachas o roedores). Recibirás una propuesta formal detallada al instante.
+                    Ingresa los metros cuadrados y plagas a tratar para acceder a nuestras <strong>tarifas promocionales de inicio de temporada</strong>. Recibirás una propuesta formal inmediata.
                 </p>
 
                 <div class="quote-perks-list">
