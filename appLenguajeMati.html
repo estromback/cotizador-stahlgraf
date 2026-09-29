@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aventura de Lenguaje 4° Básico - Matilda 🌟</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #3730a3;
+      --secondary: #06b6d4;
+      --accent: #ec4899;
+      --warm: #f59e0b;
+      --success: #10b981;
+      --danger: #ef4444;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding-bottom: 60px; line-height: 1.6; }
+
+    header {
+      background: linear-gradient(135deg, #4f46e5, #ec4899);
+      color: white;
+      text-align: center;
+      padding: 30px 16px 24px;
+      border-bottom-left-radius: 32px;
+      border-bottom-right-radius: 32px;
+      box-shadow: 0 10px 25px rgba(79, 70, 229, 0.25);
+    }
+    header h1 { font-family: 'Fredoka', cursive; font-size: 2.2rem; margin-bottom: 6px; }
+    header p { font-size: 1.15rem; opacity: 0.95; font-weight: 600; }
+    .hero-badge {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 6px 16px;
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 20px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 22px auto 14px;
+      max-width: 900px;
+      padding: 0 12px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      flex: 1 1 200px;
+      padding: 13px 18px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      border: none;
+      border-radius: 18px;
+      cursor: pointer;
+      background: #e2e8f0;
+      color: #475569;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .tab-btn:hover { background: #cbd5e1; }
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(79, 70, 229, 0.35);
+    }
+
+    .container { max-width: 920px; margin: 0 auto; padding: 0 16px; }
+    .content-section { display: none; }
+    .content-section.active { display: block; animation: fadeIn 0.3s ease; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 8px 4px 16px;
+      margin-bottom: 14px;
+      scrollbar-width: thin;
+    }
+    .chip {
+      background: white;
+      border: 2px solid #e2e8f0;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      color: var(--muted);
+    }
+    .chip.active, .chip:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .review-card {
+      background: var(--card-bg);
+      border-radius: 22px;
+      padding: 24px;
+      margin-bottom: 22px;
+      box-shadow: 0 5px 18px rgba(0,0,0,0.05);
+      border-left: 9px solid #cbd5e1;
+    }
+    .review-card.lirico { border-color: #ec4899; }
+    .review-card.elementos { border-color: #8b5cf6; }
+    .review-card.figuras { border-color: #f59e0b; }
+    .review-card.caligramas { border-color: #10b981; }
+    .review-card.ortografia { border-color: #06b6d4; }
+    .review-card.estrategias { border-color: #f97316; }
+
+    .card-title {
+      font-family: 'Fredoka', cursive;
+      font-size: 1.45rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.82rem;
+      font-weight: 800;
+      background: #e0e7ff;
+      color: var(--primary-dark);
+      margin-bottom: 12px;
+    }
+    .concept-box {
+      background: #f8fafc;
+      border: 2px dashed #cbd5e1;
+      border-radius: 14px;
+      padding: 16px;
+      margin-top: 14px;
+      font-size: 0.98rem;
+    }
+    .rule-pill {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      margin: 8px 0;
+      display: block;
+    }
+    .poem-sample {
+      background: #fff1f2;
+      border-left: 4px solid #f43f5e;
+      padding: 14px 18px;
+      border-radius: 10px;
+      margin: 12px 0;
+      font-style: italic;
+      line-height: 1.6;
+    }
+    .callout {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      margin: 10px 0;
+    }
+
+    .quiz-selector {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .mode-btn {
+      padding: 14px 22px;
+      border-radius: 16px;
+      border: 2px solid var(--primary);
+      background: white;
+      color: var(--primary);
+      font-weight: 800;
+      font-size: 1.05rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .mode-btn.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 6px 15px rgba(79, 70, 229, 0.3);
+    }
+
+    .quiz-card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 28px 24px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+    }
+    .progress-bar-container {
+      width: 100%;
+      height: 14px;
+      background: #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #06b6d4, #4f46e5);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .quiz-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      font-weight: 800;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .reading-snippet {
+      background: #f1f5f9;
+      border-radius: 16px;
+      padding: 16px 20px;
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      border-left: 5px solid var(--primary);
+    }
+    .reading-title {
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .question-text {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 20px;
+    }
+
+    .options-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .option-btn {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 16px 18px;
+      text-align: left;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #334155;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .option-btn:hover:not(:disabled) {
+      border-color: var(--primary);
+      background: #eef2ff;
+      transform: translateX(4px);
+    }
+    .opt-letter {
+      background: #e2e8f0;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #475569;
+    }
+    .option-btn.correct {
+      background: #dcfce7 !important;
+      border-color: #22c55e !important;
+      color: #15803d !important;
+    }
+    .option-btn.correct .opt-letter {
+      background: #22c55e;
+      color: white;
+    }
+    .option-btn.wrong {
+      background: #fee2e2 !important;
+      border-color: #ef4444 !important;
+      color: #b91c1c !important;
+    }
+    .option-btn.wrong .opt-letter {
+      background: #ef4444;
+      color: white;
+    }
+    .feedback-box {
+      margin-top: 20px;
+      padding: 16px 20px;
+      border-radius: 16px;
+      font-weight: 700;
+      font-size: 1rem;
+      display: none;
+    }
+    .feedback-box.correct {
+      display: block;
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+    .feedback-box.wrong {
+      display: block;
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+    .btn-next {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      border-radius: 16px;
+      cursor: pointer;
+      margin-top: 22px;
+      float: right;
+      display: none;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+    }
+    .btn-next:hover { background: var(--primary-dark); }
+
+    .results-card {
+      background: white;
+      border-radius: 26px;
+      padding: 36px 24px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      display: none;
+    }
+    .grade-badge {
+      display: inline-block;
+      width: 145px;
+      height: 145px;
+      line-height: 145px;
+      border-radius: 50%;
+      font-size: 3.6rem;
+      font-family: 'Fredoka', cursive;
+      font-weight: 700;
+      color: white;
+      margin: 18px auto;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+    }
+    .grade-blue { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+    .grade-red { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+
+    .summary-stats {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin: 24px 0;
+      flex-wrap: wrap;
+    }
+    .stat-pill {
+      background: #f1f5f9;
+      padding: 12px 20px;
+      border-radius: 16px;
+      font-weight: 800;
+      font-size: 1.05rem;
+    }
+
+    .wrong-review-container {
+      margin-top: 36px;
+      text-align: left;
+    }
+    .wrong-item {
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      border-radius: 18px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+    .wrong-item h4 { color: #9f1239; margin-bottom: 8px; font-size: 1.1rem; }
+    .wrong-answer { color: #dc2626; font-weight: 800; }
+    .right-answer { color: #16a34a; font-weight: 800; }
+
+    .btn-restart {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 15px 32px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      border-radius: 18px;
+      cursor: pointer;
+      margin-top: 25px;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    }
+    .btn-restart:hover { background: #059669; }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.8rem; }
+      .quiz-card { padding: 20px 16px; }
+      .option-btn { font-size: 0.96rem; padding: 14px; }
+      .grade-badge { width: 120px; height: 120px; line-height: 120px; font-size: 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Aventura del Lenguaje 4° Básico 📚</h1>
+    <p>¡Hola Matilda! Repasa todos tus contenidos y desafía tus conocimientos</p>
+    <div class="hero-badge">🇨🇱 Evaluación Escala Chilena 1.0 a 7.0 (60% Exigencia)</div>
+  </header>
+
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('repaso')">📖 1. Zona de Repaso Completo</button>
+    <button class="tab-btn" onclick="switchTab('quiz')">🎯 2. Sala de Quizzes</button>
+  </div>
+
+  <div class="container">
+    
+    <!-- PESTAÑA 1: REPASO COMPLETO -->
+    <div id="tab-repaso" class="content-section active">
+      
+      <div class="filter-bar">
+        <button class="chip active" onclick="filterReview('all')">🌟 Todo el Temario</button>
+        <button class="chip" onclick="filterReview('lirico')">🌸 Género Lírico</button>
+        <button class="chip" onclick="filterReview('elementos')">🎭 Hablante, Objeto y Motivo</button>
+        <button class="chip" onclick="filterReview('figuras')">✨ Figuras Retóricas</button>
+        <button class="chip" onclick="filterReview('caligramas')">🎨 Caligramas y Retahílas</button>
+        <button class="chip" onclick="filterReview('ortografia')">✍️ Ortografía y Reglas</button>
+        <button class="chip" onclick="filterReview('estrategias')">🔍 Comprensión Fundamentada</button>
+      </div>
+
+      <div class="review-card lirico">
+        <div class="card-title">🌸 1. El Género Lírico y sus Textos</div>
+        <span class="badge">Textos Literarios</span>
+        <p>Al género lírico pertenecen todas las obras escritas generalmente en verso en las que se expresan <strong>sentimientos, emociones íntimas y personales</strong>. De acuerdo a esto, tienen un carácter <em>subjetivo</em> porque muestran el mundo interior del hablante.</p>
+        <div class="concept-box">
+          <p><strong>¿Qué textos pertenecen al género lírico?</strong></p>
+          <div class="rule-pill">• <strong>Poemas:</strong> Composiciones en verso y estrofas para expresar belleza y sensaciones.</div>
+          <div class="rule-pill">• <strong>Odas:</strong> Poemas de alabanza o agradecimiento dedicados a enaltecer un objeto o persona (como <em>"Oda a la cebolla"</em> de Pablo Neruda).</div>
+          <div class="rule-pill">• <strong>Canciones:</strong> Textos líricos con ritmo y musicalidad muy marcada (como <em>"La bicicleta"</em> de Carlos Vives y Shakira).</div>
+          <div class="rule-pill">• <strong>Acrósticos y Caligramas:</strong> Textos líricos visuales y lúdicos.</div>
+          <div class="rule-pill">• <strong>Payas y Rondas Infantiles:</strong> Poesías cantadas tradicionales populares.</div>
+        </div>
+      </div>
+
+      <div class="review-card lirico">
+        <div class="card-title">📐 2. Estructura Externa del Poema y la Rima</div>
+        <span class="badge">Estructura del Poema</span>
+        <p>En el poema <em>"La maravilla de la mañana"</em> de María José Ferrada vimos su silueta única:</p>
+        <div class="concept-box">
+          <p>• <strong>Verso:</strong> Cada una de las líneas o renglones individuales del poema.</p>
+          <p>• <strong>Estrofa:</strong> Conjunto ordenado de versos que forman una unidad de sentido dentro del poema (separados por un espacio en blanco).</p>
+          <p>• <strong>La Rima:</strong> Es la coincidencia o repetición de fonemas o sonidos desde la última vocal acentuada de cada verso. Aporta musicalidad y ritmo.</p>
+          <div class="rule-pill">
+            <strong>Rima Consonante (perfecta):</strong> Coinciden todas las vocales y consonantes finales.<br>
+            <em>Ejemplo: camp<strong>ana</strong> / vent<strong>ana</strong> | rat<strong>ón</strong> / bot<strong>ón</strong>.</em>
+          </div>
+          <div class="rule-pill">
+            <strong>Rima Asonante (imperfecta):</strong> Solo coinciden las vocales finales; las consonantes cambian.<br>
+            <em>Ejemplo: b<strong>a</strong>rc<strong>o</strong> / c<strong>a</strong>mp<strong>o</strong> (coinciden a - o). En el poema: l<strong>u</strong>z / az<strong>u</strong>l coinciden en el sonido final en 'u'.</em>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card elementos">
+        <div class="card-title">🎭 3. Elementos Fundamentales del Poema</div>
+        <span class="badge">La Tríada Lírica Imprescindible</span>
+        <p>Matilda, nunca debes confundir al autor real de carne y hueso con la voz inventada dentro del poema:</p>
+        <div class="concept-box">
+          <div class="rule-pill">
+            <strong>1. Hablante Lírico 🗣️:</strong> Es la <em>voz ficticia</em> inventada por el poeta para transmitir las emociones dentro del poema. Puede ser un hijo agradecido, un barquero, un perrito o el otoño.<br>
+            <em>¡Ojo!: Gabriela Mistral es la poeta de carne y hueso; el hablante lírico puede ser un pastorcito o una niña tierna.</em>
+          </div>
+          <div class="rule-pill">
+            <strong>2. Objeto Lírico 🎁:</strong> Es la <em>persona, animal, elemento o cosa concreta</em> que despierta la inspiración del poeta (la madre, el mar, una bicicleta, un copihue, el sol).
+          </div>
+          <div class="rule-pill">
+            <strong>3. Motivo Lírico ❤️:</strong> Es el <em>sentimiento o emoción predominante</em> que guía el poema (el amor filial, la tristeza por la partida, la alegría de la mañana, la nostalgia, la gratitud).
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card figuras">
+        <div class="card-title">✨ 4. Lenguaje Literal, Figurado y Figuras Retóricas</div>
+        <span class="badge">Recursos Expresivos</span>
+        <div class="callout">
+          <strong>Lenguaje Literal:</strong> Expresa las cosas tal cual son en el diccionario (ej: <em>"Matilda tiene pelo castaño"</em>).<br>
+          <strong>Lenguaje Figurado:</strong> Usa las palabras con un sentido distinto al real o exacto para embellecer y emocionar (ej: <em>"Sus cabellos brillan como un diamante"</em>).
+        </div>
+        <div class="concept-box">
+          <p><strong>Las 4 Figuras Retóricas de tus Diapositivas:</strong></p>
+          <div class="rule-pill">
+            <strong>1. La Comparación 🪞:</strong> Establece semejanza entre dos ideas usando conectores como <em>"como"</em>, <em>"igual que"</em> o <em>"parece"</em>.<br>
+            <em>Ejemplo: "Hablas como un loro" (Literalmente: habla mucho) | "Se mueven sus caderas como un barco en las olas".</em>
+          </div>
+          <div class="rule-pill">
+            <strong>2. La Personificación 🦊:</strong> Atribuye a objetos inanimados, animales o a la naturaleza acciones propias de los humanos.<br>
+            <em>Ejemplo: "Las ramas del árbol bailan al compás del viento" | "El día se puso vestido negro" (Significa que se hizo de noche).</em>
+          </div>
+          <div class="rule-pill">
+            <strong>3. La Hipérbole 🚀:</strong> Realiza una expresión intencionadamente exagerada para poner énfasis en el mensaje.<br>
+            <em>Ejemplo: "He llenado un río con mis lágrimas" (Lloró muchísimo) | "Hace un siglo que no nos vemos" (Hace mucho tiempo).</em>
+          </div>
+          <div class="rule-pill">
+            <strong>4. La Onomatopeya 🔔:</strong> Representa de manera escrita sonidos de la naturaleza, animales o cosas.<br>
+            <em>Ejemplo: "Con un kikirikí despierto en las mañanas, seguido del tilín tilín de la campana" | "Los pollitos dicen pío pío".</em>
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card caligramas">
+        <div class="card-title">🎨 5. El Caligrama y la Retahíla</div>
+        <span class="badge">Juegos Poéticos</span>
+        <div class="concept-box">
+          <p><strong>El Caligrama 🖼️:</strong></p>
+          <p>Es un <strong>poema visual</strong>. Las palabras se escriben y disponen formando un dibujo o silueta que representa lo que dice el poema (un árbol, una flor, un pez o la bandera de Chile).<br>
+          <em>⭐ ¡En un caligrama el poema no solo se lee... también se ve!</em></p>
+        </div>
+        <div class="concept-box" style="margin-top:14px;">
+          <p><strong>La Retahíla 🔗:</strong></p>
+          <p>Es una serie de muchas cosas, palabras o frases que suceden en un orden determinado. Es un tipo de poema con ritmo que se transmite oralmente en juegos, rondas y canciones infantiles:</p>
+          <div class="poem-sample">
+            "Aserrín, aserrán,<br>
+            los maderos de San Juan,<br>
+            piden pan, no les dan,<br>
+            piden queso, les dan hueso."
+          </div>
+          <p>• Repiten palabras o frases encadenadas, tienen ritmo y son muy entretenidas y fáciles de memorizar.</p>
+        </div>
+      </div>
+
+      <div class="review-card ortografia">
+        <div class="card-title">✍️ 6. Ortografía: Reglas Oficiales de la Clase</div>
+        <span class="badge">Reglas de Oro</span>
+        <div class="concept-box">
+          <div class="rule-pill">
+            <strong>Tuvo vs. Tubo:</strong><br>
+            • <strong>Tuvo (con V):</strong> Del verbo <em>tener</em> en pasado (<em>"María tuvo un libro nuevo para su cumpleaños"</em>).<br>
+            • <strong>Tubo (con B):</strong> Sustantivo que indica cañería, conducto o pieza hueca cilíndrica (<em>"El tubo de PVC de la cocina"</em>).
+          </div>
+          <div class="rule-pill">
+            <strong>Hay, Ahí, ¡Ay!:</strong><br>
+            • <strong>Hay (con H y Y):</strong> Del verbo <em>haber</em>, indica existencia o cantidad (<em>"Hay tres manzanas en la mesa"</em>).<br>
+            • <strong>Ahí (con tilde en la I):</strong> Indica lugar o posición (<em>"El lápiz está ahí, junto al cuaderno"</em>).<br>
+            • <strong>¡Ay! (con signos de exclamación):</strong> Expresa dolor, sorpresa o susto (<em>"¡Ay!, me apreté el dedo"</em>).
+          </div>
+          <div class="rule-pill">
+            <strong>Uso de MB y NV:</strong><br>
+            • La letra <strong>M</strong> siempre va antes de la <strong>B</strong> (<em>también, hombre, sombra, cambio, noviembre, lámpara</em>).<br>
+            • La letra <strong>N</strong> siempre va antes de la <strong>V</strong> (<em>invierno, envase, envidia, investigación, invitación, inventario</em>).<br>
+            • Después de la letra <strong>D</strong> va siempre una <strong>V</strong> (<em>advertir, adverso, advertencia</em>).
+          </div>
+          <div class="rule-pill">
+            <strong>Terminación verbal -ABA:</strong><br>
+            • Los verbos en pasado terminados en <strong>-aba</strong> se escriben con <strong>B</strong> (<em>cantaba, jugaba, miraba, amaba, bailaba, compraba, llamaba, trabajaba</em>). También palabras que terminan en -aba como <em>calabaza</em>.
+          </div>
+          <div class="rule-pill">
+            <strong>Reglas de la H:</strong><br>
+            • Formas de los verbos: <em>haber, hacer, hablar, hallar y habitar</em> (<em>hay, hacían, habló, hallará, habitan</em>).<br>
+            • Palabras que comienzan con <em>hum-</em> (<em>húmedos, humedal, humanos</em>).<br>
+            • Palabras que inician con <em>-herb</em> y <em>-herm</em> (<em>herbívoro, herbicida, hermano, hermoso</em>; excepto <em>ermitaño</em>).<br>
+            • Palabras que empiezan con <em>hue-, hui-, hie-</em> (<em>hueco, hueso, huevo, huella, huerto, huésped, huir, huidizo, hierro, hiedra, hierba, hielo, hiena</em>).
+          </div>
+        </div>
+      </div>
+
+      <div class="review-card estrategias">
+        <div class="card-title">🔍 7. Comprensión Lectora: Respuestas Completas y Fundamentadas</div>
+        <span class="badge">Estrategia R.A.F.A.</span>
+        <p>En 4° básico, las respuestas deben ser oraciones completas y explicar el <strong>por qué</strong> usando datos exactos de la lectura:</p>
+        <div class="concept-box">
+          <div class="rule-pill">
+            <strong>1. Reutilizar la pregunta:</strong> Si te preguntan <em>"¿Por qué el hablante se siente feliz?"</em>, inicias: <em>"El hablante se siente feliz porque..."</em> (nunca responder con una palabra suelta).
+          </div>
+          <div class="rule-pill">
+            <strong>2. Fundamentar con evidencia textual:</strong> Agregas la cita o hecho del texto: <em>"...porque en la estrofa 3 dice que agradece por la vida, por su familia y por sus amigos."</em>
+          </div>
+          <div class="rule-pill">
+            <strong>3. Conectores causales clave:</strong> Usa conectores de causa como <em>"debido a que", "ya que", "puesto que" o "como se evidencia en el texto"</em>.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="tab-quiz" class="content-section">
+      
+      <div class="quiz-selector">
+        <button id="btn-mode-20" class="mode-btn active" onclick="setQuizMode(20)">⚡ Quiz Rápido (20 Preguntas)</button>
+        <button id="btn-mode-50" class="mode-btn" onclick="setQuizMode(50)">🏆 Súper Quiz Completo (50 Preguntas)</button>
+      </div>
+
+      <div id="quiz-screen" class="quiz-card">
+        <div class="progress-bar-container">
+          <div id="progress-bar" class="progress-bar-fill"></div>
+        </div>
+        
+        <div class="quiz-meta">
+          <span id="question-counter">Pregunta 1 de 20 • [Categoría]</span>
+          <span id="score-counter">Aciertos: 0</span>
+        </div>
+
+        <div id="reading-container" class="reading-snippet" style="display:none;"></div>
+
+        <div id="question-title" class="question-text">Cargando desafío...</div>
+
+        <div id="options-container" class="options-grid"></div>
+
+        <div id="feedback" class="feedback-box"></div>
+
+        <button id="btn-next" class="btn-next" onclick="nextQuestion()">Siguiente Pregunta ➜</button>
+        <div style="clear: both;"></div>
+      </div>
+
+      <div id="results-screen" class="results-card">
+        <h2 style="font-family: 'Fredoka', cursive; font-size: 2.2rem; color: #1e293b;">¡Desafío Finalizado con Éxito! 🎓</h2>
+        <p style="color: #64748b; margin-top: 6px; font-weight: 600;">Calificación obtenida según la escala oficial de Chile (1.0 a 7.0 con 60% de exigencia):</p>
+        
+        <div id="final-grade-badge" class="grade-badge grade-blue">7.0</div>
+        
+        <div class="summary-stats">
+          <div class="stat-pill">✅ Aciertos: <span id="correct-count">0</span> / <span id="total-count">20</span></div>
+          <div class="stat-pill">❌ Respuestas a Repasar: <span id="wrong-count">0</span></div>
+          <div class="stat-pill">📊 Porcentaje: <span id="percent-count">0%</span></div>
+        </div>
+
+        <div id="review-area" class="wrong-review-container"></div>
+
+        <button class="btn-restart" onclick="restartQuiz()">🔄 Volver a Practicar</button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    const masterQuestions = [
+      // 1. GÉNERO LÍRICO Y TIPOS DE TEXTOS
+      {
+        cat: "Género Lírico",
+        q: "¿Cuál es el propósito primordial de los textos que pertenecen al género lírico?",
+        opts: ["Entregar instrucciones paso a paso para fabricar un objeto", "Expresar sentimientos, emociones íntimas y personales", "Informar de manera objetiva sobre un suceso noticioso real", "Relatar una historia cronológica con personajes y diálogos"],
+        correct: 1,
+        exp: "El género lírico agrupa aquellas obras que expresan sentimientos y emociones íntimas con carácter subjetivo."
+      },
+      {
+        cat: "Género Lírico",
+        q: "¿Cuál de los siguientes grupos contiene SOLAMENTE textos pertenecientes al género lírico?",
+        opts: ["Poemas, canciones, odas, caligramas y acrósticos", "Fábulas, noticias, cartas al director y cuentos", "Recetas de cocina, biografías y novelas históricas", "Obras de teatro, leyendas y afiches publicitarios"],
+        correct: 0,
+        exp: "Los poemas, canciones, odas, caligramas y acrósticos pertenecen al género lírico."
+      },
+      {
+        cat: "Género Lírico",
+        q: "¿Por qué se afirma que las obras líricas tienen un 'carácter subjetivo'?",
+        opts: ["Porque carecen de emociones", "Porque muestran sentimientos y emociones personales del hablante", "Porque no llevan título ni autor", "Porque se escriben únicamente en prosa científica"],
+        correct: 1,
+        exp: "Es subjetivo porque refleja el mundo interior, la afectividad y la visión personal del hablante."
+      },
+      {
+        cat: "Género Lírico",
+        q: "La canción 'La bicicleta' (de Carlos Vives y Shakira) revisada en clases pertenece al género lírico porque:",
+        opts: ["Expresa emociones, vivencias personales y posee ritmo poético", "Es una noticia sobre ciclismo en Colombia", "Enseña a arreglar las cadenas de las bicicletas", "Es una receta de cocina típica"],
+        correct: 0,
+        exp: "Las canciones son textos líricos ya que transmiten sentimientos a través del ritmo y la musicalidad."
+      },
+
+      // 2. ESTRUCTURA DEL POEMA Y LA RIMA
+      {
+        cat: "Estructura del Poema",
+        q: "En un poema, ¿cómo se denomina a cada una de las líneas o renglones individuales?",
+        opts: ["Párrafo", "Verso", "Estrofa", "Capítulo"],
+        correct: 1,
+        exp: "Cada renglón o línea escrita de un poema se llama verso."
+      },
+      {
+        cat: "Estructura del Poema",
+        q: "¿Qué es una estrofa en un poema?",
+        opts: ["Un conjunto de versos que forman una unidad de sentido dentro del poema", "El título principal que va con mayúsculas", "El dibujo que decora la hoja", "El punto final de la lectura"],
+        correct: 0,
+        exp: "La estrofa es el bloque ordenado de versos separados por un espacio en blanco."
+      },
+      {
+        cat: "Estructura del Poema",
+        text: "Cada mañana, el sol despierta,\nilumina todo con su luz,\nlos pájaros cantan alegres\ny comienza un nuevo día azul.",
+        q: "En la primera estrofa del poema 'La maravilla de la mañana', ¿cuántos versos hay en total?",
+        opts: ["2 versos", "3 versos", "4 versos", "5 versos"],
+        correct: 2,
+        exp: "Al contar línea por línea observamos exactamente 4 versos."
+      },
+      {
+        cat: "Estructura del Poema",
+        text: "Cada mañana, el sol despierta,\nilumina todo con su luz,\nlos pájaros cantan alegres\ny comienza un nuevo día azul.",
+        q: "En los versos 2 y 4 de la estrofa anterior, ¿qué palabras riman por su sonido semejante?",
+        opts: ["Despierta y alegres", "Luz y azul", "Mañana y nuevo", "Sol e ilumina"],
+        correct: 1,
+        exp: "'Luz' y 'azul' riman porque sus sonidos finales coinciden en la terminación -uz."
+      },
+      {
+        cat: "Estructura del Poema",
+        q: "¿En qué consiste la rima consonante (o perfecta)?",
+        opts: ["En la coincidencia de vocales y consonantes desde la última vocal acentuada", "En que solo coinciden las vocales finales pero las consonantes son distintas", "En que ningún sonido coincide al final", "En contar cuántas sílabas tiene el verso"],
+        correct: 0,
+        exp: "La rima consonante exige coincidencia total de sonidos vocálicos y consonánticos a partir de la última vocal tónica."
+      },
+      {
+        cat: "Estructura del Poema",
+        q: "¿Cuál de los siguientes pares de palabras ejemplifica una rima ASONANTE?",
+        opts: ["Campana - Ventana", "Barco - Campo", "Ratón - Botón", "Canción - Corazón"],
+        correct: 1,
+        exp: "En 'barco' y 'campo' solo riman las vocales (a - o); las consonantes son diferentes."
+      },
+
+      {
+        cat: "Elementos del Poema",
+        q: "¿Quién es el HABLANTE LÍRICO?",
+        opts: ["El autor real de carne y hueso que firma el libro", "La voz ficticia creada por el poeta para expresar los sentimientos en el poema", "El profesor que lee el poema en voz alta", "El personaje antagonista de la historia"],
+        correct: 1,
+        exp: "El hablante lírico es un ser ficticio inventado por el poeta para expresar su sentir."
+      },
+      {
+        cat: "Elementos del Poema",
+        text: "Agradezco por esta mañana,\npor la vida y lo que me da,\npor mi familia y mis amigos\nque me acompañan cada día más.",
+        q: "¿Qué actitud o sentimiento caracteriza al hablante lírico en estos versos?",
+        opts: ["Enojo y frustración", "Gratitud y aprecio por la vida y sus seres queridos", "Miedo a la oscuridad", "Aburrimiento por tener que estudiar"],
+        correct: 1,
+        exp: "El hablante manifiesta un sentimiento explícito de agradecimiento y gratitud."
+      },
+      {
+        cat: "Elementos del Poema",
+        q: "¿Qué es el OBJETO LÍRICO de un poema?",
+        opts: ["El cuaderno donde se escribe", "La persona, animal, ser, elemento o cosa concreta que inspira el poema", "La cantidad de estrofas", "El lápiz grafito del estudiante"],
+        correct: 1,
+        exp: "El objeto lírico es la fuente o ser que inspira los sentimientos del poeta (la madre, el mar, una flor, etc.)."
+      },
+      {
+        cat: "Elementos del Poema",
+        text: "Mar bravío, tus olas blancas azotan la roca dura,\nen tu profundo silencio habitan peces de mil colores.",
+        q: "¿Cuál es el OBJETO LÍRICO de estos versos?",
+        opts: ["El mar y sus olas", "El cansancio del marinero", "La arena seca", "El barco pesquero"],
+        correct: 0,
+        exp: "El poema está directamente dirigido e inspirado en el mar."
+      },
+      {
+        cat: "Elementos del Poema",
+        q: "¿A qué corresponde el MOTIVO LÍRICO?",
+        opts: ["A la fecha en que se publicó la obra", "Al sentimiento, emoción o tema central predominante que transmite el poema", "Al tipo de rima empleado", "Al precio del libro en la librería"],
+        correct: 1,
+        exp: "El motivo lírico es la vivencia interior o emoción central (amor, tristeza, gratitud, admiración)."
+      },
+      {
+        cat: "Elementos del Poema",
+        text: "Madre mía, cuando sea grande,\n¡ay, qué mozo el que tendrás!\nTe levantaré en mis brazos,\ncomo el zonda al herbazal.",
+        q: "En los versos de Gabriela Mistral, ¿quién es el hablante y cuál es el objeto lírico?",
+        opts: ["Hablante: la madre / Objeto: el hijo", "Hablante: un hijo amoroso / Objeto: su madre", "Hablante: una profesora / Objeto: los alumnos", "Hablante: Gabriela Mistral / Objeto: el viento"],
+        correct: 1,
+        exp: "La voz que habla es la de un hijo agradecido (hablante) inspirada en su querida madre (objeto lírico)."
+      },
+
+      {
+        cat: "Figuras Retóricas",
+        q: "¿Cuál es la diferencia entre lenguaje literal y lenguaje figurado?",
+        opts: ["El literal usa las palabras en su sentido exacto del diccionario; el figurado les da un sentido poético y expresivo", "El literal solo se usa en matemáticas y el figurado en inglés", "El literal no tiene sentido y el figurado siempre es una mentira", "Son exactamente lo mismo sin ninguna diferencia"],
+        correct: 0,
+        exp: "El lenguaje literal es exacto y real; el figurado aporta expresividad y nuevos sentidos poéticos."
+      },
+      {
+        cat: "Figuras Retóricas",
+        text: "Hablas como un loro.",
+        q: "¿Qué figura retórica se encuentra presente y qué significa literalmente?",
+        opts: ["Personificación / Significa que a la persona le salieron plumas verdes", "Comparación / Significa que la persona habla muchísimo", "Hipérbole / Significa que la persona come semillas", "Onomatopeya / Significa que la persona canta ópera"],
+        correct: 1,
+        exp: "Es una comparación mediante el nexo 'como' que significa que la persona habla de forma incesante."
+      },
+      {
+        cat: "Figuras Retóricas",
+        text: "Se mueven sus caderas como un barco en las olas.",
+        q: "¿Qué figura retórica se emplea en este verso de la canción 'La bicicleta'?",
+        opts: ["Comparación", "Onomatopeya", "Hipérbole", "Acróstico"],
+        correct: 0,
+        exp: "Compara el movimiento de las caderas con un barco navegando mediante el nexo 'como'."
+      },
+      {
+        cat: "Figuras Retóricas",
+        q: "¿En qué consiste la PERSONIFICACIÓN?",
+        opts: ["En contar la biografía de un prócer histórico", "En atribuir a objetos inanimados, animales o a la naturaleza acciones propias de los humanos", "En exagerar una idea hasta lo imposible", "En imitar los ruidos de una máquina"],
+        correct: 1,
+        exp: "La personificación otorga cualidades o conductas humanas a seres no humanos o cosas inanimadas."
+      },
+      {
+        cat: "Figuras Retóricas",
+        text: "Las ramas del árbol bailan al compás del viento.",
+        q: "¿Qué figura retórica se utilizó en la oración anterior?",
+        opts: ["Comparación", "Personificación", "Onomatopeya", "Hipérbole"],
+        correct: 1,
+        exp: "Los árboles no bailan; atribuirles la acción humana de bailar es una personificación."
+      },
+      {
+        cat: "Figuras Retóricas",
+        text: "El día se puso vestido negro, y la luz desapareció.",
+        q: "¿Cuál es el significado literal de esta personificación revisada en tu clase?",
+        opts: ["Que una persona se vistió de fiesta", "Que se hizo de noche y oscureció", "Que ocurrió un eclipse solar", "Que se cortó la luz en la casa"],
+        correct: 1,
+        exp: "Literariamente significa que anocheció y se ocultó la luz solar."
+      },
+      {
+        cat: "Figuras Retóricas",
+        q: "¿Qué es la HIPÉRBOLE?",
+        opts: ["Una estrofa de dos versos", "Una expresión deliberadamente exagerada para dar énfasis e intensidad al mensaje", "Una palabra que no tiene vocales", "Un poema con forma de dibujo"],
+        correct: 1,
+        exp: "La hipérbole magnifica o exagera la realidad para transmitir hondura emotiva."
+      },
+      {
+        cat: "Figuras Retóricas",
+        text: "He llenado un río con mis lágrimas.",
+        q: "¿Qué figura retórica se presenta y cuál es su significado literal?",
+        opts: ["Hipérbole / Significa que la persona ha llorado muchísimo por algún motivo", "Comparación / Significa que la persona fue a nadar al río", "Onomatopeya / Significa que el río suena muy fuerte", "Personificación / Significa que el río está triste"],
+        correct: 0,
+        exp: "Llenar un río con lágrimas es una exageración desmedida (hipérbole) para decir que lloró mucho."
+      },
+      {
+        cat: "Figuras Retóricas",
+        text: "Hace un siglo que no nos vemos.",
+        q: "¿Qué figura retórica está presente en esta frase cotidiana?",
+        opts: ["Comparación", "Hipérbole", "Onomatopeya", "Caligrama"],
+        correct: 1,
+        exp: "Decir 'un siglo' (100 años) es una clara exageración de que hace mucho tiempo no se ven."
+      },
+      {
+        cat: "Figuras Retóricas",
+        q: "¿Qué figura retórica reproduce de manera escrita sonidos de la naturaleza, animales o cosas?",
+        opts: ["Personificación", "Comparación", "Onomatopeya", "Hipérbole"],
+        correct: 2,
+        exp: "La onomatopeya es la representación gráfica de sonidos acústicos reales."
+      },
+      {
+        cat: "Figuras Retóricas",
+        text: "Con un kikirikí despierto en las mañanas, seguido del tilín tilín de la campana.",
+        q: "¿Qué figuras retóricas identificas en la oración anterior?",
+        opts: ["Onomatopeyas", "Hipérboles", "Metáforas", "Caligramas"],
+        correct: 0,
+        exp: "'Kikirikí' (canto del gallo) y 'tilín tilín' (sonido de campana) son onomatopeyas sonoras."
+      },
+
+      {
+        cat: "Caligrama y Retahíla",
+        q: "¿Qué es un CALIGRAMA según la definición estudiada en clases?",
+        opts: ["Un poema visual cuyas palabras se escriben formando el dibujo de lo que dice el poema", "Un cuento largo dividido en varios tomos", "Una receta para cocinar galletas con dibujos", "Un diccionario de palabras en desuso"],
+        correct: 0,
+        exp: "El caligrama es un poema visual donde la disposición del texto forma una figura alusiva al tema."
+      },
+      {
+        cat: "Caligrama y Retahíla",
+        q: "La frase 'En un caligrama, el poema no solo se lee... ¡también se ve!' significa que:",
+        opts: ["Es necesario usar lentes de sol para leerlo", "Las palabras forman una imagen visual que complementa su significado poético", "Solo se puede mirar pero no contiene palabras legibles", "Se debe leer a oscuras"],
+        correct: 1,
+        exp: "Combina la lectura del texto con la imagen gráfica o dibujo que componen sus versos."
+      },
+      {
+        cat: "Caligrama y Retahíla",
+        q: "¿Qué es una RETAHÍLA?",
+        opts: ["Un tipo de letra cursiva para escribir cartas", "Una serie ordenada de muchas palabras, cosas o frases que suceden con ritmo y repetición", "Una regla para poner tildes en palabras esdrújulas", "Un examen de velocidad lectora"],
+        correct: 1,
+        exp: "Una retahíla es una serie poética rítmica de palabras encadenadas en orden determinado."
+      },
+      {
+        cat: "Caligrama y Retahíla",
+        text: "Aserrín, aserrán,\nlos maderos de San Juan,\npiden pan, no les dan,\npiden queso, les dan hueso.",
+        q: "El texto anterior es un ejemplo tradicional de:",
+        opts: ["Una noticia periodística", "Una retahíla o rima infantil", "Un informe científico", "Un afiche publicitario"],
+        correct: 1,
+        exp: "'Aserrín, aserrán' es una de las retahílas infantiles más populares y tradicionales."
+      },
+      {
+        cat: "Caligrama y Retahíla",
+        q: "¿Cuál de las siguientes es una característica propia de las retahílas?",
+        opts: ["Tienen ritmo, se transmiten oralmente y suelen incluir juegos o rondas", "Deben tener al menos 80 páginas", "Nunca pueden tener rima ni repeticiones", "Solo las escriben historiadores adultos"],
+        correct: 0,
+        exp: "Las retahílas tienen ritmo, repetición y se utilizan en juegos infantiles tradicionales."
+      },
+
+      {
+        cat: "Ortografía: Tuvo y Tubo",
+        q: "¿Cuál es la diferencia de significado entre las palabras 'TUVO' y 'TUBO'?",
+        opts: ["'Tuvo' (con V) es del verbo tener en pasado; 'tubo' (con B) es la cañería o pieza cilíndrica hueca", "'Tuvo' es un animal y 'tubo' es un alimento", "'Tuvo' es una cañería y 'tubo' es una acción", "No existe diferencia y da igual cómo se escriba"],
+        correct: 0,
+        exp: "Tuvo con V es conjugación pretérita de tener; tubo con B es el conducto o cañería cilíndrica."
+      },
+      {
+        cat: "Ortografía: Tuvo y Tubo",
+        q: "Completa la oración: 'María ______ un libro nuevo para su cumpleaños y el gásfiter reparó el ______ de agua.'",
+        opts: ["tubo / tuvo", "tuvo / tubo", "tubo / tubo", "tuvo / tuvo"],
+        correct: 1,
+        exp: "María tuvo (verbo tener, con V) y el tubo (cañería, con B)."
+      },
+      {
+        cat: "Ortografía: Tuvo y Tubo",
+        q: "¿En cuál de las siguientes oraciones la palabra está escrita INCORRECTAMENTE?",
+        opts: ["El equipo de fútbol tuvo un gran partido el sábado.", "El agua pasa por el tuvo hasta la casa.", "Usamos tubos de PVC para la instalación.", "Mi hermana tuvo una fiesta muy linda."],
+        correct: 1,
+        exp: "La cañería del agua debe escribirse con B ('tubo'), por lo que 'tuvo' es un error."
+      },
+      {
+        cat: "Ortografía: Hay, Ahí, ¡Ay!",
+        q: "¿Cómo se distingue el significado de las palabras 'HAY', 'AHÍ' y '¡AY!'?",
+        opts: ["'Hay' es del verbo haber (existencia); 'ahí' indica un lugar; '¡ay!' expresa dolor o sorpresa", "'Hay' es para saludar; 'ahí' es de comer; '¡ay!' es un número", "'Hay' es un lugar lejano; 'ahí' es dolor; '¡ay!' es tener cosas", "Todas significan exactamente lo mismo"],
+        correct: 0,
+        exp: "Hay (verbo haber), ahí (adverbio de lugar con tilde) y ¡ay! (interjección de dolor o sorpresa)."
+      },
+      {
+        cat: "Ortografía: Hay, Ahí, ¡Ay!",
+        q: "Completa adecuadamente: '¡______, me pegué en la rodilla! Deja los remedios ______ sobre la mesa, porque ya no ______ más vendas.'",
+        opts: ["¡Ay! / ahí / hay", "¡Hay! / ¡ay! / ahí", "¡Ahí! / hay / ay", "¡Ay! / hay / ahí"],
+        correct: 0,
+        exp: "¡Ay! (dolor), ahí (lugar sobre la mesa) y hay (del verbo haber, existencia de vendas)."
+      },
+      {
+        cat: "Ortografía: Hay, Ahí, ¡Ay!",
+        q: "¿Qué oración utiliza de manera 100% CORRECTA las palabras trabajadas?",
+        opts: ["¡Hay qué susto me diste!", "En esa caja hay muchos juguetes entretenidos; guárdala ahí.", "Ahí que dolor de muelas tengo.", "Hay te dejé tu estuche."],
+        correct: 1,
+        exp: "'Hay' expresa existencia y 'ahí' señala el lugar adecuado."
+      },
+
+      {
+        cat: "Ortografía Literal: Uso de la H",
+        q: "Se escriben con H todas las formas conjugadas de los verbos:",
+        opts: ["Cantar, jugar, saltar y correr", "Haber, hacer, hablar, hallar y habitar", "Vivir, escribir, sentir y bailar", "Ver, mirar, escuchar y soñar"],
+        correct: 1,
+        exp: "Los verbos haber, hacer, hablar, hallar y habitar (y todas sus formas) se escriben siempre con H."
+      },
+      {
+        cat: "Ortografía Literal: Uso de la H",
+        q: "¿Cuál es la regla para palabras que comienzan con la sílaba 'hum-'?",
+        opts: ["Se escriben siempre con H (ej: húmedos, humedal, humanos)", "Se escriben sin H", "Se escriben con V corta", "Solo llevan H si son verbos"],
+        correct: 0,
+        exp: "Se escriben con H las palabras que comienzan con hum- (humano, humedad, humo)."
+      },
+      {
+        cat: "Ortografía Literal: Uso de la H",
+        q: "Las palabras que empiezan con '-herb' y '-herm' se escriben con H (ej: herbívoro, hermano, hermoso). ¿Cuál es la única excepción?",
+        opts: ["Hermano", "Ermitaño", "Hierba", "Hormiga"],
+        correct: 1,
+        exp: "La palabra 'ermitaño' es la excepción a la regla de inicio herm-."
+      },
+      {
+        cat: "Ortografía Literal: Uso de la H",
+        q: "Las palabras que comienzan con los diptongos 'hue-', 'hui-' y 'hie-' se escriben con:",
+        opts: ["Letra H (ej: hueso, huevo, huir, hielo, hierba)", "Letra V", "Letra B", "Letra G"],
+        correct: 0,
+        exp: "Siempre se escriben con H inicial las palabras que comienzan con hue-, hui- y hie-."
+      },
+      {
+        cat: "Ortografía Literal: Uso de la H",
+        q: "¿Cuál de las siguientes palabras presenta un grave error en el uso de la H?",
+        opts: ["Huésped", "Huella", "Ielo", "Hiena"],
+        correct: 2,
+        exp: "Hielo debe escribirse obligatoriamente con H por comenzar con el diptongo hie-."
+      },
+      {
+        cat: "Ortografía Literal: MB y NV",
+        q: "¿Cuál es la regla ortográfica para el uso de MB y NV?",
+        opts: ["Siempre va M antes de B, y N antes de V", "Siempre va N antes de B", "Siempre va M antes de V", "Se puede escribir de cualquier manera"],
+        correct: 0,
+        exp: "La regla es estricta: antes de B se escribe M (mb) y antes de V se escribe N (nv)."
+      },
+      {
+        cat: "Ortografía Literal: MB y NV",
+        q: "¿Cuál de las siguientes opciones contiene palabras correctamente escritas con MB?",
+        opts: ["Tanbién y sonbra", "También, sombra, cambio y lámpara", "Inbierno y convite", "Nuebe y enbase"],
+        correct: 1,
+        exp: "También, sombra, cambio y lámpara cumplen perfectamente la regla de M antes de B."
+      },
+      {
+        cat: "Ortografía Literal: MB y NV",
+        q: "¿Cuál de las siguientes opciones contiene palabras correctamente escritas con NV?",
+        opts: ["Imvierno y envidia", "Invierno, envase, enviar e investigación", "Inbierno y enbío", "Enbidia y conbenio"],
+        correct: 1,
+        exp: "Invierno, envase, enviar e investigación cumplen con la regla de N antes de V."
+      },
+      {
+        cat: "Ortografía Literal: Uso de la V",
+        q: "De acuerdo con tus diapositivas, después de la letra 'D' irá siempre una:",
+        opts: ["Letra V (ej: advertir, adverso, advertencia)", "Letra B (ej: adbertir)", "Letra H", "Letra C"],
+        correct: 0,
+        exp: "Tras la consonante D se escribe obligatoriamente V (advertir, adverso)."
+      },
+      {
+        cat: "Ortografía Literal: Terminación -ABA",
+        q: "¿Cómo se escriben los verbos en pretérito (pasado) que terminan en -aba?",
+        opts: ["Siempre con V corta (cantava, jugava)", "Siempre con B (cantaba, jugaba, miraba, compraba)", "Con H intercalada", "Con W"],
+        correct: 1,
+        exp: "Los verbos en tiempo pasado terminados en -aba, -abas, -ábamos, -aban se escriben siempre con B."
+      },
+      {
+        cat: "Ortografía Literal: Terminación -ABA",
+        q: "¿Cuál es la forma correcta en pasado del verbo 'caminar' para la primera persona?",
+        opts: ["Caminaba", "Caminava", "Caminaha", "Caminaba o caminava"],
+        correct: 0,
+        exp: "Proviene de caminar (-ar), por lo que su pretérito imperfecto es 'caminaba' con B."
+      },
+
+      {
+        cat: "Comprensión Lectora",
+        text: "Cada mañana, el sol despierta, ilumina todo con su luz, los pájaros cantan alegres y comienza un nuevo día azul.",
+        q: "Si te preguntan: '¿Qué hacen los pájaros en la mañana?', ¿cuál es la mejor respuesta completa y fundamentada para 4° básico?",
+        opts: ["Cantan.", "Los pájaros cantan alegres al comenzar el nuevo día, según lo señala explícitamente el verso 3 del poema.", "Pájaros azules en los árboles.", "Cantan porque tienen hambre."],
+        correct: 1,
+        exp: "Reutiliza la pregunta en oración completa y cita la evidencia textual del verso 3."
+      },
+      {
+        cat: "Comprensión Lectora",
+        q: "¿Qué elemento fundamental distingue a una respuesta 'fundamentada' frente a una respuesta simple?",
+        opts: ["Llevar dibujos de colores", "Explicar el porqué utilizando hechos, citas o pistas directas del texto", "Estar escrita en una sola palabra", "Tener más de 50 renglones"],
+        correct: 1,
+        exp: "Fundamentar consiste en aportar razones y pruebas extraídas del propio texto."
+      },
+      {
+        cat: "Comprensión Lectora",
+        text: "Agradezco por esta mañana, por la vida y lo que me da, por mi familia y mis amigos que me acompañan cada día más.",
+        q: "Al fundamentar por qué el hablante siente gratitud, ¿cuál es la mejor justificación basada en el texto?",
+        opts: ["El hablante siente gratitud porque menciona expresamente que agradece por la vida, por su familia y por sus amigos que lo acompañan.", "Siente gratitud porque le regalaron una bicicleta nueva.", "No siente gratitud, siente mucha tristeza.", "Porque va a salir de vacaciones al extranjero."],
+        correct: 0,
+        exp: "Justifica de manera impecable apoyándose en las palabras literales de la estrofa 3."
+      }
+    ];
+
+    let currentQuizList = [];
+    let currentQuestionIndex = 0;
+    let currentScore = 0;
+    let wrongAnswersLog = [];
+    let isAnswered = false;
+    let currentModeCount = 20;
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+
+      if (tabId === 'repaso') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('tab-repaso').classList.add('active');
+      } else {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('tab-quiz').classList.add('active');
+      }
+    }
+
+    function filterReview(cat) {
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+
+      const cards = document.querySelectorAll('.review-card');
+      cards.forEach(card => {
+        if (cat === 'all' || card.classList.contains(cat)) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function setQuizMode(count) {
+      currentModeCount = count;
+      document.getElementById('btn-mode-20').classList.toggle('active', count === 20);
+      document.getElementById('btn-mode-50').classList.toggle('active', count === 50);
+
+      if (count === 50) {
+        currentQuizList = shuffle(masterQuestions);
+      } else {
+        currentQuizList = shuffle(masterQuestions).slice(0, 20);
+      }
+
+      currentQuestionIndex = 0;
+      currentScore = 0;
+      wrongAnswersLog = [];
+      isAnswered = false;
+
+      document.getElementById('results-screen').style.display = 'none';
+      document.getElementById('quiz-screen').style.display = 'block';
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      isAnswered = false;
+      const q = currentQuizList[currentQuestionIndex];
+
+      const pct = (currentQuestionIndex / currentQuizList.length) * 100;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      document.getElementById('question-counter').innerText = `Pregunta ${currentQuestionIndex + 1} de ${currentQuizList.length} • [${q.cat}]`;
+      document.getElementById('score-counter').innerText = `Aciertos: ${currentScore}`;
+
+      const readingBox = document.getElementById('reading-container');
+      if (q.text) {
+        readingBox.style.display = 'block';
+        readingBox.innerHTML = `<div class="reading-title">📖 Lectura de Referencia:</div><em>${q.text.replace(/\n/g, '<br>')}</em>`;
+      } else {
+        readingBox.style.display = 'none';
+      }
+
+      document.getElementById('question-title').innerText = q.q;
+
+      const optsContainer = document.getElementById('options-container');
+      optsContainer.innerHTML = '';
+
+      q.opts.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerHTML = `<span class="opt-letter">${String.fromCharCode(65 + idx)}</span> <span>${optText}</span>`;
+        btn.onclick = () => selectOption(idx);
+        optsContainer.appendChild(btn);
+      });
+
+      const fb = document.getElementById('feedback');
+      fb.style.display = 'none';
+      fb.className = 'feedback-box';
+      document.getElementById('btn-next').style.display = 'none';
+    }
+
+    function selectOption(idx) {
+      if (isAnswered) return;
+      isAnswered = true;
+
+      const q = currentQuizList[currentQuestionIndex];
+      const buttons = document.querySelectorAll('.option-btn');
+      const fb = document.getElementById('feedback');
+
+      buttons.forEach(b => b.disabled = true);
+
+      if (idx === q.correct) {
+        currentScore++;
+        buttons[idx].classList.add('correct');
+        fb.className = 'feedback-box correct';
+        fb.innerHTML = `¡Excelente, Matilda! 🌟 ${q.exp}`;
+      } else {
+        buttons[idx].classList.add('wrong');
+        buttons[q.correct].classList.add('correct');
+        fb.className = 'feedback-box wrong';
+        fb.innerHTML = `¡Buen intento! La respuesta correcta era: <strong>"${q.opts[q.correct]}"</strong>.<br><small style="font-weight:600;">${q.exp}</small>`;
+
+        wrongAnswersLog.push({
+          num: currentQuestionIndex + 1,
+          cat: q.cat,
+          q: q.q,
+          text: q.text || null,
+          userAns: q.opts[idx],
+          correctAns: q.opts[q.correct],
+          exp: q.exp
+        });
+      }
+
+      fb.style.display = 'block';
+      document.getElementById('btn-next').style.display = 'block';
+      document.getElementById('score-counter').innerText = `Aciertos: ${currentScore}`;
+    }
+
+    function nextQuestion() {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < currentQuizList.length) {
+        renderQuestion();
+      } else {
+        showResults();
+      }
+    }
+
+    function calcChileanGrade(score, maxScore, req = 0.6) {
+      const cut = maxScore * req;
+      let grade = 1.0;
+      if (score < cut) {
+        grade = 1.0 + 3.0 * (score / cut);
+      } else {
+        grade = 4.0 + 3.0 * ((score - cut) / (maxScore - cut));
+      }
+      return Math.round(grade * 10) / 10;
+    }
+
+    function showResults() {
+      document.getElementById('quiz-screen').style.display = 'none';
+      const resultsScreen = document.getElementById('results-screen');
+      resultsScreen.style.display = 'block';
+
+      const total = currentQuizList.length;
+      const finalGrade = calcChileanGrade(currentScore, total, 0.6);
+      const gradeBadge = document.getElementById('final-grade-badge');
+      gradeBadge.innerText = finalGrade.toFixed(1);
+
+      if (finalGrade >= 4.0) {
+        gradeBadge.className = 'grade-badge grade-blue';
+      } else {
+        gradeBadge.className = 'grade-badge grade-red';
+      }
+
+      document.getElementById('total-count').innerText = total;
+      document.getElementById('correct-count').innerText = currentScore;
+      document.getElementById('wrong-count').innerText = wrongAnswersLog.length;
+      document.getElementById('percent-count').innerText = Math.round((currentScore / total) * 100) + '%';
+
+      const reviewArea = document.getElementById('review-area');
+      reviewArea.innerHTML = '';
+
+      if (wrongAnswersLog.length === 0) {
+        reviewArea.innerHTML = `
+          <div style="text-align:center; padding:26px; background:#ecfdf5; border-radius:18px; border:2px solid #a7f3d0;">
+            <h3 style="color:#065f46; font-family:'Fredoka', cursive; font-size:1.6rem;">¡Puntaje Perfecto, Matilda! 🏆🎉</h3>
+            <p style="color:#047857; margin-top:8px; font-weight:700;">¡Demostraste un dominio sobresaliente en el género lírico, figuras retóricas, ortografía y comprensión lectora!</p>
+          </div>
+        `;
+      } else {
+        let html = `<h3 style="font-family:'Fredoka', cursive; color:#1e293b; margin-bottom:14px;">📝 Preguntas a Repasar con Explicación (${wrongAnswersLog.length}):</h3>`;
+        wrongAnswersLog.forEach(item => {
+          html += `
+            <div class="wrong-item">
+              <h4>Pregunta ${item.num} [${item.cat}]: ${item.q}</h4>
+              ${item.text ? `<p style="font-size:0.92rem; background:#fff; padding:8px 12px; border-radius:8px; margin:6px 0; color:#475569;"><em>Fragmento: "${item.text.replace(/\n/g, ' ')}"</em></p>` : ''}
+              <p>❌ Tu respuesta: <span class="wrong-answer">${item.userAns}</span></p>
+              <p>✅ Respuesta correcta: <span class="right-answer">${item.correctAns}</span></p>
+              <p style="font-size:0.93rem; color:#475569; margin-top:6px;">💡 <strong>Por qué:</strong> ${item.exp}</p>
+            </div>
+          `;
+        });
+        reviewArea.innerHTML = html;
+      }
+    }
+
+    function restartQuiz() {
+      setQuizMode(currentModeCount);
+    }
+
+    window.onload = function() {
+      setQuizMode(20);
+    };
+  </script>
+</body>
+</html>
