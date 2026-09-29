@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stahlgraf - Control de Plagas & Trazabilidad Inteligente</title>
+    <title>Stahlgraf | Control de Plagas, Insectos & Trazabilidad Inteligente</title>
+    <meta name="description" content="Control profesional de plagas e insectos en Los Ángeles y Región del Biobío. Temporada Primavera-Verano 2026-2027. Monitoreo digital en tiempo real y productos certificados SAG. Cotiza en línea en 2 minutos.">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
@@ -16,20 +17,23 @@
     <!-- Core Sync Utilities -->
     <script src="core-sync.js?v=v4.2.5r1"></script>
 
-
-    <!-- Custom CSS inside head for flexibility & control -->
     <style>
         :root {
             --bg-main: #060913;
-            --bg-card: rgba(17, 24, 39, 0.65);
-            --border-color: rgba(255, 255, 255, 0.06);
-            --primary: #2563eb; /* Azul Stahlgraf corporativo */
-            --primary-glow: rgba(37, 99, 235, 0.15);
-            --secondary: #1d4ed8; /* Azul Stahlgraf hover/secundario */
-            --accent: #10b981; /* Verde Esmeralda para control ecológico y estados */
-            --accent-glow: rgba(16, 185, 129, 0.2);
+            --bg-card: rgba(15, 23, 42, 0.76);
+            --bg-card-hover: rgba(26, 36, 56, 0.88);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-glow: rgba(37, 99, 235, 0.3);
+            --secondary: #1d4ed8;
+            --accent: #10b981;
+            --accent-glow: rgba(16, 185, 129, 0.25);
+            --season-warm: #f59e0b;
+            --season-glow: rgba(245, 158, 11, 0.25);
             --text-main: #f3f4f6;
             --text-muted: #9ca3af;
+            --text-dim: #6b7280;
             --font-display: 'Outfit', sans-serif;
             --font-body: 'Inter', sans-serif;
         }
@@ -48,83 +52,83 @@
 
         body {
             background-color: var(--bg-main);
-            background-image: 
-                radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 24px 24px;
             color: var(--text-main);
             font-family: var(--font-body);
             line-height: 1.6;
         }
 
-        /* Ambient Glow backgrounds */
+        /* Ambient Glow Spheres */
         .glow-sphere {
             position: absolute;
             border-radius: 50%;
-            filter: blur(160px);
-            z-index: -1;
-            opacity: 0.08;
+            filter: blur(140px);
+            z-index: 1;
+            opacity: 0.10;
             pointer-events: none;
         }
         .glow-1 {
             width: 600px;
             height: 600px;
             background: var(--primary);
-            top: -200px;
+            top: 20%;
             right: -100px;
         }
         .glow-2 {
-            width: 700px;
-            height: 700px;
+            width: 650px;
+            height: 650px;
             background: var(--accent);
-            top: 35%;
-            left: -250px;
+            top: 55%;
+            left: -180px;
         }
 
-        /* Navbar */
+        /* --- CLEAN, DECLUTTERED NAVBAR --- */
         header {
-            position: fixed;
+            position: sticky;
             top: 0;
             left: 0;
             width: 100%;
             z-index: 100;
-            background: #ffffff;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+            background: rgba(6, 9, 19, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             transition: all 0.3s ease;
         }
 
         .nav-container {
-            max-width: 1200px;
+            max-width: 1220px;
             margin: 0 auto;
-            padding: 14px 20px;
+            padding: 14px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 20px;
         }
 
         .logo-container {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             text-decoration: none;
-            color: #0f172a;
+            color: #ffffff;
         }
 
         .logo-img {
             height: 40px;
+            width: auto;
             object-fit: contain;
         }
 
         .logo-text {
             font-family: var(--font-display);
-            font-size: 1.45rem;
-            font-weight: 700;
+            font-size: 1.5rem;
+            font-weight: 800;
             letter-spacing: -0.5px;
-            color: #0f172a;
+            color: #ffffff;
         }
 
         .logo-text span {
-            color: var(--primary);
+            color: var(--primary-light);
         }
 
         nav {
@@ -135,300 +139,771 @@
 
         nav a {
             text-decoration: none;
-            color: #475569;
+            color: #cbd5e1;
             font-weight: 500;
-            font-size: 0.92rem;
+            font-size: 0.95rem;
             transition: color 0.2s ease;
         }
 
         nav a:hover {
-            color: var(--primary);
+            color: #ffffff;
         }
 
+        nav a.highlight-nav {
+            color: #fbbf24;
+            font-weight: 600;
+        }
+
+        nav a.highlight-nav:hover {
+            color: #fef08a;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        /* Buttons */
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 8px;
             padding: 10px 22px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.92rem;
             cursor: pointer;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             text-decoration: none;
-        }
-
-        .btn-primary {
-            background-color: var(--primary);
-            color: #ffffff;
             border: none;
-            box-shadow: 0 4px 12px var(--primary-glow);
+            font-family: var(--font-body);
         }
 
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
-            background-color: var(--secondary);
+        .btn-quote-nav {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 9px 20px;
+            font-size: 0.9rem;
+        }
+
+        .btn-quote-nav:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55);
+            color: #ffffff;
+        }
+
+        .btn-cta-giant {
+            background: linear-gradient(135deg, #2563eb 0%, #10b981 100%);
+            color: #ffffff;
+            font-size: 1.15rem;
+            font-weight: 700;
+            padding: 18px 40px;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+        }
+
+        .btn-cta-giant::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(60deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+            transform: rotate(30deg);
+            animation: shine 4s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) rotate(30deg); }
+            30%, 100% { transform: translateX(100%) rotate(30deg); }
+        }
+
+        .btn-cta-giant:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 14px 40px rgba(16, 185, 129, 0.5);
+            color: #ffffff;
+        }
+
+        .btn-whatsapp-hero {
+            background: #25d366;
+            color: #072210;
+            font-weight: 700;
+            padding: 16px 30px;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(37, 211, 102, 0.3);
+            text-decoration: none;
+            transition: all 0.25s ease;
+            font-size: 1.05rem;
+        }
+
+        .btn-whatsapp-hero:hover {
+            background: #22c55e;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(37, 211, 102, 0.45);
+            color: #05160b;
+        }
+
+        .btn-secondary {
+            background: rgba(30, 41, 59, 0.85);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(51, 65, 85, 0.95);
+            color: #ffffff;
         }
 
         .btn-outline {
-            background: transparent;
-            color: #fff;
+            background: rgba(255, 255, 255, 0.04);
+            color: #f1f5f9;
             border: 1px solid rgba(255, 255, 255, 0.15);
         }
 
         .btn-outline:hover {
-            background: rgba(255, 255, 255, 0.06);
-            border-color: #fff;
-            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.35);
+            transform: translateY(-2px);
+            color: #ffffff;
         }
 
-        /* Mobile Menu Toggle */
         .mobile-menu-btn {
             display: none;
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             background: none;
             border: none;
-            color: #0f172a;
+            color: #ffffff;
             cursor: pointer;
             padding: 5px;
         }
 
-        /* Hero Section */
-        .hero {
-            padding: 180px 20px 100px 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-            min-height: 85vh;
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 50px;
-            align-items: center;
+        /* --- HERO WITH DIFFUSED PEST CONTROL BACKGROUND --- */
+        .hero-wrapper {
             position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            min-height: 82vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .hero-text h1 {
+        .hero-bg-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .hero-bg-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center 35%;
+            filter: blur(5px) brightness(0.28) saturate(0.9);
+            transform: scale(1.08);
+        }
+
+        .hero-bg-overlay {
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 50% 40%, rgba(6, 9, 19, 0.65) 0%, rgba(6, 9, 19, 0.92) 80%),
+                linear-gradient(180deg, rgba(6, 9, 19, 0.8) 0%, transparent 40%, rgba(6, 9, 19, 1) 100%);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 90px 24px 70px 24px;
+            text-align: center;
+        }
+
+        .season-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            color: #fbbf24;
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+        }
+
+        .season-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f59e0b;
+            box-shadow: 0 0 10px #f59e0b;
+            animation: pulse-dot 1.8s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(0.9); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.8; }
+        }
+
+        .hero-content h1 {
             font-family: var(--font-display);
             font-size: 3.8rem;
-            font-weight: 800;
-            line-height: 1.15;
+            font-weight: 900;
+            line-height: 1.12;
             letter-spacing: -1.5px;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
+            color: #ffffff;
         }
 
-        .hero-text h1 span {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+        .hero-content h1 .highlight-gradient {
+            background: linear-gradient(135deg, #60a5fa 0%, #10b981 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .hero-text p {
-            color: var(--text-muted);
-            font-size: 1.15rem;
-            margin-bottom: 35px;
-            max-width: 540px;
+        .hero-content p.hero-lead {
+            color: #d1d5db;
+            font-size: 1.2rem;
+            margin: 0 auto 32px auto;
+            max-width: 760px;
             line-height: 1.7;
+        }
+
+        .hero-content p.hero-lead strong {
+            color: #ffffff;
+        }
+
+        .hero-trust-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 14px;
+            margin-bottom: 40px;
+        }
+
+        .trust-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 7px 16px;
+            border-radius: 30px;
+            font-size: 0.86rem;
+            color: #e2e8f0;
+            font-weight: 500;
+            backdrop-filter: blur(8px);
+        }
+
+        .trust-item-icon {
+            color: #10b981;
+            font-weight: 700;
         }
 
         .hero-actions {
             display: flex;
-            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
         }
 
-        .hero-image-container {
+        .hero-guarantee-note {
+            font-size: 0.84rem;
+            color: var(--text-muted);
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        /* Stats strip under Hero */
+        .hero-stats-banner {
+            max-width: 1100px;
+            margin: 40px auto 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 22px 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-stat-box {
+            text-align: center;
+            padding: 4px 8px;
+        }
+
+        .hero-stat-box h3 {
+            font-family: var(--font-display);
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: #60a5fa;
+            margin-bottom: 2px;
+        }
+
+        .hero-stat-box p {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* --- SECTION COMMONS --- */
+        .section-container {
+            max-width: 1220px;
+            margin: 0 auto;
+            padding: 95px 24px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .section-tag {
+            display: inline-block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--primary-light);
+            margin-bottom: 10px;
+            background: rgba(37, 99, 235, 0.12);
+            padding: 4px 14px;
+            border-radius: 30px;
+            border: 1px solid rgba(37, 99, 235, 0.25);
+        }
+
+        .section-tag.tag-season {
+            color: #fbbf24;
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.35);
+        }
+
+        .section-header h2 {
+            font-family: var(--font-display);
+            font-size: 2.7rem;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+            margin-bottom: 14px;
+            color: #ffffff;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 680px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        /* --- SEASONAL INSECTS SECTION --- */
+        .season-section {
+            background: linear-gradient(180deg, #060913 0%, rgba(15, 23, 42, 0.8) 50%, #060913 100%);
+            border-top: 1px solid rgba(245, 158, 11, 0.18);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             position: relative;
         }
 
-        /* Mockup Dashboard */
-        .mockup-dashboard {
-            width: 100%;
-            max-width: 480px;
-            background: rgba(17, 24, 39, 0.65);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05);
-            backdrop-filter: blur(8px);
-            font-family: var(--font-body);
-        }
-        
-        .mockup-header {
-            display: flex;
-            justify-content: space-between;
+        .season-intro-box {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 18px;
+            padding: 30px;
+            margin-bottom: 45px;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 30px;
             align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            padding-bottom: 15px;
-            margin-bottom: 18px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
         }
 
-        .mockup-title {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
+        .season-intro-text h3 {
+            font-family: var(--font-display);
+            font-size: 1.55rem;
             font-weight: 700;
+            color: #fef08a;
+            margin-bottom: 12px;
+        }
+
+        .season-intro-text p {
+            color: #cbd5e1;
+            font-size: 0.98rem;
+            line-height: 1.65;
+            margin-bottom: 14px;
+        }
+
+        .season-perks-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .season-perk-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            color: #f1f5f9;
+        }
+
+        .season-perk-icon {
+            font-size: 1.2rem;
+            color: #fbbf24;
+        }
+
+        .insects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 24px;
+            margin-bottom: 45px;
+        }
+
+        .insect-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 26px;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .insect-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(245, 158, 11, 0.45);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4), 0 0 20px rgba(245, 158, 11, 0.15);
+            background: var(--bg-card-hover);
+        }
+
+        .insect-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .insect-icon-wrapper {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+        }
+
+        .insect-risk-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .risk-high {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .risk-season {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .insect-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .insect-desc {
+            color: #cbd5e1;
+            font-size: 0.92rem;
+            line-height: 1.6;
+            margin-bottom: 14px;
+        }
+
+        .insect-solution {
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 3px solid #f59e0b;
+            padding: 10px 12px;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.84rem;
+            color: #e2e8f0;
+            margin-bottom: 16px;
+        }
+
+        .insect-solution strong {
+            color: #fbbf24;
+        }
+
+        .insect-card-action {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .insect-card-link {
+            color: #60a5fa;
+            font-size: 0.86rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .insect-card-link:hover {
+            color: #93c5fd;
+            transform: translateX(4px);
+        }
+
+        .season-cta-banner {
+            background: linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            border-radius: 18px;
+            padding: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 25px;
+            flex-wrap: wrap;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+        }
+
+        .season-cta-text h3 {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .season-cta-text p {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+        }
+
+        /* --- FULL SERVICES SECTION --- */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 26px;
+        }
+
+        .service-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px 28px;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .service-card.featured-card {
+            border-color: rgba(37, 99, 235, 0.45);
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.85) 0%, rgba(17, 24, 39, 0.75) 100%);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.15);
+        }
+
+        .service-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--primary-light);
+            transform: translateY(-5px);
+            box-shadow: 0 16px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .service-badge {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+
+        .badge-hot {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .badge-cert {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+
+        .service-icon-svg {
+            width: 48px;
+            height: 48px;
+            color: var(--primary-light);
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .service-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 12px;
             color: #fff;
+        }
+
+        .service-card p {
+            color: var(--text-muted);
+            font-size: 0.94rem;
+            line-height: 1.65;
+            margin-bottom: 20px;
+        }
+
+        .service-features-list {
+            list-style: none;
+            margin-bottom: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .service-features-list li {
+            font-size: 0.85rem;
+            color: #cbd5e1;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .pulse-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--accent);
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 8px var(--accent);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-
-        .mockup-badge {
-            font-size: 0.72rem;
-            background: rgba(16, 185, 129, 0.1);
+        .service-features-list li::before {
+            content: '✓';
             color: var(--accent);
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: 600;
-            border: 1px solid rgba(16, 185, 129, 0.15);
-        }
-
-        .mockup-stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 18px;
-        }
-
-        .stat-box {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 10px;
-            padding: 12px;
-            text-align: left;
-        }
-
-        .stat-label {
-            font-size: 0.72rem;
-            color: var(--text-muted);
-        }
-
-        .stat-value {
-            font-size: 1.2rem;
-            font-family: var(--font-display);
             font-weight: 700;
-            color: #fff;
-            margin-top: 4px;
         }
 
-        .mockup-list {
+        .service-action {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        /* --- QR TRACEABILITY SECTION --- */
+        .traceability-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            border-radius: 24px;
+            padding: 50px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        .trace-steps {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 22px;
+            margin-top: 30px;
         }
 
-        .mockup-item {
+        .trace-step {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 14px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            border-radius: 8px;
-            font-size: 0.82rem;
-            transition: all 0.2s;
+            gap: 16px;
+            align-items: flex-start;
         }
 
-        .mockup-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.08);
-        }
-
-        .item-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .item-status {
-            width: 6px;
-            height: 6px;
+        .step-num {
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-        }
-
-        .status-ok { background-color: var(--accent); box-shadow: 0 0 6px var(--accent); }
-        .status-warning { background-color: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
-        .status-info { background-color: var(--primary); box-shadow: 0 0 6px var(--primary); }
-
-        .item-name {
-            font-weight: 500;
-            color: #fff;
-        }
-
-        .item-time {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .qr-scan-badge {
-            background: rgba(37, 99, 235, 0.15);
+            background: rgba(37, 99, 235, 0.2);
             color: #60a5fa;
-            font-size: 0.65rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 500;
-            margin-left: 5px;
-            display: inline-block;
-        }
-
-        /* Sections General */
-        .section-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 100px 20px;
-        }
-
-        .section-header {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-
-        .section-header h2 {
-            font-family: var(--font-display);
-            font-size: 2.6rem;
+            border: 1px solid rgba(37, 99, 235, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: 700;
-            letter-spacing: -0.5px;
-            margin-bottom: 15px;
+            font-size: 0.95rem;
+            flex-shrink: 0;
         }
 
-        .section-header p {
-            color: var(--text-muted);
+        .step-content h4 {
+            color: #ffffff;
             font-size: 1.05rem;
-            max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.6;
+            margin-bottom: 4px;
+            font-weight: 600;
         }
 
-        /* About Section (Nosotros) */
+        .step-content p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* --- ABOUT / WHY STAHLGRAF SECTION --- */
         .about-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
         }
 
         .about-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 16px;
-            padding: 35px;
+            padding: 32px 25px;
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
@@ -436,8 +911,8 @@
 
         .about-card:hover {
             transform: translateY(-4px);
-            border-color: rgba(37, 99, 235, 0.25);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+            border-color: rgba(37, 99, 235, 0.35);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
         }
 
         .about-card::before {
@@ -459,174 +934,390 @@
         .about-icon-svg {
             width: 44px;
             height: 44px;
-            color: var(--primary);
-            margin-bottom: 20px;
+            color: var(--primary-light);
+            margin-bottom: 18px;
             display: inline-block;
         }
 
         .about-card h3 {
             font-family: var(--font-display);
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-
-        .about-card p {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-
-        /* Services Section */
-        .services-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 25px;
-        }
-
-        .service-card {
-            background: rgba(255, 255, 255, 0.015);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 30px;
-            text-align: center;
-            transition: all 0.25s ease;
-        }
-
-        .service-card:hover {
-            background: rgba(255, 255, 255, 0.03);
-            border-color: var(--primary);
-            transform: scale(1.02);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        .service-icon-svg {
-            width: 48px;
-            height: 48px;
-            color: var(--primary);
-            margin-bottom: 15px;
-            display: inline-block;
-        }
-
-        .service-card h3 {
-            font-family: var(--font-display);
-            font-size: 1.2rem;
-            font-weight: 600;
+            font-size: 1.25rem;
+            font-weight: 700;
             margin-bottom: 10px;
             color: #fff;
         }
 
-        .service-card p {
+        .about-card p {
             color: var(--text-muted);
-            font-size: 0.9rem;
+            font-size: 0.92rem;
             line-height: 1.6;
         }
 
-        /* Contact Section */
+        /* --- FAQ SECTION --- */
+        .faq-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 1060px;
+            margin: 0 auto;
+        }
+
+        .faq-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 24px 22px;
+            transition: all 0.25s ease;
+        }
+
+        .faq-card:hover {
+            border-color: rgba(255, 255, 255, 0.18);
+            background: rgba(30, 41, 59, 0.7);
+        }
+
+        .faq-card h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .faq-card h4::before {
+            content: '❓';
+            font-size: 0.95rem;
+        }
+
+        .faq-card p {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.6;
+            padding-left: 26px;
+        }
+
+        /* --- CONTACT & QUOTE CONVERSION SECTION --- */
         .contact-layout {
             display: grid;
             grid-template-columns: 0.9fr 1.1fr;
-            gap: 50px;
+            gap: 45px;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 50px;
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
+            border-radius: 24px;
+            padding: 48px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+            align-items: stretch;
         }
 
         .contact-info h3 {
             font-family: var(--font-display);
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 15px;
+            font-size: 2.1rem;
+            font-weight: 800;
+            margin-bottom: 14px;
+            color: #ffffff;
         }
 
-        .contact-info p {
+        .contact-info p.contact-desc {
             color: var(--text-muted);
-            margin-bottom: 30px;
-            line-height: 1.6;
+            margin-bottom: 28px;
+            line-height: 1.65;
+            font-size: 1rem;
         }
 
         .contact-details {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 18px;
+            margin-bottom: 30px;
         }
 
         .contact-item {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 16px;
+            text-decoration: none;
+            color: inherit;
+            padding: 8px 10px;
+            border-radius: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .contact-item:hover {
+            background: rgba(255, 255, 255, 0.04);
         }
 
         .contact-item-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            background: rgba(37, 99, 235, 0.1);
-            color: var(--primary);
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            background: rgba(37, 99, 235, 0.15);
+            color: var(--primary-light);
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .contact-item-icon.icon-whatsapp {
+            background: rgba(37, 211, 102, 0.15);
+            color: #25d366;
         }
 
         .contact-icon-svg {
-            width: 20px;
-            height: 20px;
-            color: var(--primary);
+            width: 22px;
+            height: 22px;
         }
 
         .contact-item-text h4 {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            margin-bottom: 2px;
         }
 
         .contact-item-text p {
             margin: 0;
             color: #fff;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        .contact-item-text p.link-highlight {
+            color: #60a5fa;
+        }
+
+        .contact-item:hover .contact-item-text p.link-highlight {
+            color: #93c5fd;
+            text-decoration: underline;
+        }
+
+        /* Quote Mega Card */
+        .quote-mega-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 2px solid rgba(37, 99, 235, 0.35);
+            border-radius: 20px;
+            padding: 40px 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            justify-content: center;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quote-mega-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #2563eb, #10b981, #f59e0b);
+        }
+
+        .quote-icon-badge {
+            background: rgba(37, 99, 235, 0.15);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            border-radius: 50%;
+            width: 72px;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+            color: #60a5fa;
+        }
+
+        .quote-mega-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+
+        .quote-mega-card p {
+            color: #cbd5e1;
+            font-size: 0.96rem;
+            line-height: 1.65;
+            max-width: 440px;
+            margin-bottom: 24px;
+        }
+
+        .quote-perks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 28px;
+            text-align: left;
+        }
+
+        .quote-perk-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.88rem;
+            color: #e2e8f0;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .quote-perk-row span.check {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        /* Floating WhatsApp Button */
+        .floating-whatsapp {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 99;
+            background: #25d366;
+            color: #ffffff;
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(37, 211, 102, 0.45);
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .floating-whatsapp:hover {
+            transform: scale(1.1) translateY(-4px);
+            box-shadow: 0 12px 30px rgba(37, 211, 102, 0.6);
+            color: #ffffff;
+        }
+
+        .whatsapp-badge-notice {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #060913;
+        }
+
+        .whatsapp-tooltip {
+            position: absolute;
+            right: 74px;
+            background: #111827;
+            color: #f1f5f9;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.12);
+            pointer-events: none;
+            opacity: 0;
+            transform: translateX(10px);
+            transition: all 0.25s ease;
+        }
+
+        .floating-whatsapp:hover .whatsapp-tooltip {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* Mobile Bottom Sticky Bar */
+        .mobile-bottom-bar {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(11, 15, 25, 0.95);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 10px 16px;
+            z-index: 95;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+            justify-content: space-between;
+            gap: 10px;
         }
 
         /* Footer */
         footer {
             border-top: 1px solid var(--border-color);
-            padding: 40px 20px;
+            padding: 50px 20px 40px 20px;
             text-align: center;
             background: #04060d;
         }
 
-        footer p {
-            color: var(--text-muted);
-            font-size: 0.9rem;
+        .footer-content {
+            max-width: 1220px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
         }
 
-        /* Responsive Design */
+        .footer-links {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.88rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: #ffffff;
+        }
+
+        footer p {
+            color: var(--text-dim);
+            font-size: 0.86rem;
+        }
+
+        /* Responsive Breakpoints */
         @media (max-width: 900px) {
-            .hero {
+            .hero-content h1 {
+                font-size: 2.9rem;
+            }
+            .hero-stats-banner {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .traceability-layout {
                 grid-template-columns: 1fr;
-                text-align: center;
-                padding-top: 150px;
-                padding-bottom: 60px;
+                padding: 35px;
             }
-            .hero-text h1 {
-                font-size: 2.8rem;
-            }
-            .section-header h2 {
-                font-size: 2rem;
-            }
-            .hero-text p {
-                margin-left: auto;
-                margin-right: auto;
-            }
-            .hero-actions {
-                justify-content: center;
+            .season-intro-box {
+                grid-template-columns: 1fr;
             }
             .contact-layout {
                 grid-template-columns: 1fr;
-                padding: 30px;
-                gap: 40px;
+                padding: 30px 22px;
+                gap: 35px;
+            }
+            .faq-grid {
+                grid-template-columns: 1fr;
             }
             nav {
                 display: none;
@@ -634,240 +1325,715 @@
             .mobile-menu-btn {
                 display: block;
             }
-        }
-
-        @media (max-width: 600px) {
-            .about-grid, .services-grid {
-                grid-template-columns: 1fr !important;
+            .mobile-bottom-bar {
+                display: flex;
             }
-            .glow-sphere {
-                display: none !important;
+            .floating-whatsapp {
+                bottom: 75px;
+                right: 18px;
+                width: 54px;
+                height: 54px;
             }
-            .contact-layout {
-                padding: 24px 15px;
-            }
-            .contact-form {
-                padding: 20px 15px !important;
+            .whatsapp-tooltip {
+                display: none;
             }
         }
 
-        @media (max-width: 480px) {
-            .hero-text h1 {
-                font-size: 2.1rem;
+        @media (max-width: 640px) {
+            .hero-content h1 {
+                font-size: 2.25rem;
                 letter-spacing: -1px;
             }
+            .hero-content p.hero-lead {
+                font-size: 1.05rem;
+            }
+            .hero-stats-banner {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
             .section-header h2 {
-                font-size: 1.7rem;
+                font-size: 2rem;
+            }
+            .insects-grid {
+                grid-template-columns: 1fr;
+            }
+            .services-grid {
+                grid-template-columns: 1fr;
+            }
+            .about-grid {
+                grid-template-columns: 1fr;
             }
             .hero-actions {
                 flex-direction: column;
-                gap: 10px;
                 width: 100%;
             }
             .hero-actions .btn {
                 width: 100%;
             }
-            .nav-container {
-                padding: 12px 15px;
+            .glow-sphere {
+                display: none !important;
             }
-            .logo-text {
-                font-size: 1.3rem;
+            .season-cta-banner {
+                padding: 24px 18px;
+                text-align: center;
+                justify-content: center;
+            }
+            .season-cta-banner .btn {
+                width: 100%;
+            }
+            .quote-mega-card {
+                padding: 30px 18px;
             }
         }
     </style>
 </head>
 <body>
 
-    <!-- Glow background spheres -->
+    <!-- Ambient Glow background spheres -->
     <div class="glow-sphere glow-1"></div>
     <div class="glow-sphere glow-2"></div>
 
-    <!-- Header / Nav -->
+    <!-- CLEAN, UNCLUTTERED HEADER -->
     <header id="header">
         <div class="nav-container">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <a href="#" class="logo-container">
-                    <img src="logo.png" alt="Stahlgraf Logo" class="logo-img" onerror="this.style.display='none'">
-                    <div class="logo-text">Stahl<span>graf</span></div>
-                </a>
-                <span class="app-version-badge" style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 4px 8px; border-radius: 6px; font-weight: 600; border: 1px solid rgba(59, 130, 246, 0.3);"></span>
-            </div>
+            <a href="#inicio" class="logo-container">
+                <img src="logo.png" alt="Stahlgraf Logo" class="logo-img" onerror="this.style.display='none'">
+                <div class="logo-text">Stahl<span>graf</span></div>
+            </a>
+
+            <!-- Streamlined Desktop Navigation -->
             <nav id="nav-menu">
                 <a href="#inicio">Inicio</a>
-                <a href="#nosotros">Nosotros</a>
+                <a href="#temporada-insectos" class="highlight-nav">☀️ Temporada Insectos</a>
                 <a href="#servicios">Servicios</a>
+                <a href="#nosotros">Nosotros</a>
                 <a href="#contacto">Contacto</a>
-                <button id="btn-login" class="btn btn-primary" style="margin-left: 15px;"></button>
             </nav>
-            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+            <!-- Nav Action Buttons -->
+            <div class="nav-actions">
+                <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-quote-nav">
+                    ⚡ Cotizar Online
+                </a>
+                <button id="btn-login" class="btn btn-secondary" style="font-size: 0.85rem; padding: 8px 14px;"></button>
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-label="Abrir menú">☰</button>
+            </div>
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero" id="inicio">
-        <div class="hero-text">
-            <h1>Control de Plagas &<br><span>Trazabilidad Inteligente</span></h1>
-            <p>Monitoreo digital avanzado con tecnología de códigos QR para auditorías en tiempo real. Gestionamos tus instalaciones con un estándar profesional y ecológico.</p>
+    <!-- Mobile Dropdown Menu -->
+    <div id="mobile-dropdown" style="display: none; background: #0c1222; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 20px; flex-direction: column; gap: 15px; position: sticky; top: 68px; z-index: 99;">
+        <a href="#inicio" onclick="toggleMobileMenu()" style="color: #fff; text-decoration: none; font-weight: 600; padding: 6px 0;">🏠 Inicio</a>
+        <a href="#temporada-insectos" onclick="toggleMobileMenu()" style="color: #fbbf24; text-decoration: none; font-weight: 700; padding: 6px 0;">☀️ Temporada Primavera-Verano (Insectos)</a>
+        <a href="#servicios" onclick="toggleMobileMenu()" style="color: #cbd5e1; text-decoration: none; font-weight: 500; padding: 6px 0;">🛠️ Servicios</a>
+        <a href="#trazabilidad" onclick="toggleMobileMenu()" style="color: #cbd5e1; text-decoration: none; font-weight: 500; padding: 6px 0;">📱 Monitoreo QR</a>
+        <a href="#nosotros" onclick="toggleMobileMenu()" style="color: #cbd5e1; text-decoration: none; font-weight: 500; padding: 6px 0;">🛡️ Nosotros</a>
+        <a href="#contacto" onclick="toggleMobileMenu()" style="color: #cbd5e1; text-decoration: none; font-weight: 500; padding: 6px 0;">📞 Contacto</a>
+        <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" style="background: var(--primary); color: #fff; padding: 12px; border-radius: 8px; text-align: center; text-decoration: none; font-weight: 700; margin-top: 5px;">⚡ Formulario de Cotización Online</a>
+    </div>
+
+    <!-- HERO SECTION WITH DIFFUSED PEST CONTROL BACKGROUND (No live dashboard, clean and impactful) -->
+    <div class="hero-wrapper" id="inicio">
+        <!-- Diffused Background Image Layer -->
+        <div class="hero-bg-container">
+            <picture>
+                <source srcset="hero-bg.webp" type="image/webp">
+                <img src="hero-bg.jpg" alt="Control de plagas profesional en terreno" class="hero-bg-image">
+            </picture>
+            <div class="hero-bg-overlay"></div>
+        </div>
+
+        <!-- Centered Conversion Content -->
+        <div class="hero-content">
+            <!-- Seasonal Pill Badge -->
+            <div class="season-pill">
+                <span class="season-dot"></span>
+                <span>Temporada Primavera - Verano 2026-2027 • Control de Insectos</span>
+            </div>
+
+            <!-- Clear, impactful headline -->
+            <h1>
+                Control de Plagas &<br>
+                <span class="highlight-gradient">Trazabilidad Inteligente</span>
+            </h1>
+
+            <!-- Focused subtitle -->
+            <p class="hero-lead">
+                Con el inicio de la temporada de calor, protegemos tu hogar, parcela o empresa con tratamientos de choque y barrera residual contra <strong>insectos de temporada</strong> (avispas chaqueta amarilla, arañas de rincón, hormigas, cucarachas y zancudos), desratización y monitoreo digital en tiempo real en Los Ángeles y toda la Región del Biobío.
+            </p>
+
+            <!-- Trust Pills -->
+            <div class="hero-trust-bar">
+                <div class="trust-item">
+                    <span class="trust-item-icon">✓</span>
+                    <span>Productos Autorizados SAG</span>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-item-icon">🐾</span>
+                    <span>Seguro para Niños y Mascotas</span>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-item-icon">📍</span>
+                    <span>Los Ángeles & Región del Biobío</span>
+                </div>
+                <div class="trust-item">
+                    <span class="trust-item-icon">📱</span>
+                    <span>Monitoreo Digital en Tiempo Real</span>
+                </div>
+            </div>
+
+            <!-- Prominent High-Converting Call to Actions -->
             <div class="hero-actions">
-                <a href="#contacto" class="btn btn-primary">Cotizar Ahora</a>
-                <a href="#servicios" class="btn btn-outline">Nuestros Servicios</a>
+                <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-cta-giant">
+                    ⚡ Solicitar Cotización Online en 2 Minutos ➔
+                </a>
+                <a href="https://wa.me/56963187751?text=Hola%20Stahlgraf%2C%20quisiera%20cotizar%20el%20control%20de%20plagas%20para%20la%20temporada%20primavera-verano%202026-2027" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp-hero">
+                    <svg style="width: 22px; height: 22px; fill: currentColor;" viewBox="0 0 24 24">
+                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                    </svg>
+                    WhatsApp (+56 9 6318 7751)
+                </a>
+            </div>
+            
+            <div class="hero-guarantee-note">
+                <span>🛡️ Presupuesto formal sin costo ni compromiso • Respuesta técnica inmediata</span>
+            </div>
+
+            <!-- Integrated Trust Metrics Strip -->
+            <div class="hero-stats-banner">
+                <div class="hero-stat-box">
+                    <h3>+1,500</h3>
+                    <p>Estaciones Monitoreadas</p>
+                </div>
+                <div class="hero-stat-box">
+                    <h3>99.4%</h3>
+                    <p>Efectividad Sanitaria</p>
+                </div>
+                <div class="hero-stat-box">
+                    <h3>100%</h3>
+                    <p>Autorizados SAG & Seremi</p>
+                </div>
+                <div class="hero-stat-box">
+                    <h3>24-48h</h3>
+                    <p>Coordinación en Biobío</p>
+                </div>
             </div>
         </div>
-        <div class="hero-image-container">
-            <div class="mockup-dashboard">
-                <div class="mockup-header">
-                    <div class="mockup-title">
-                        <span class="pulse-dot"></span>
-                        Trazabilidad en Vivo
-                    </div>
-                    <span class="mockup-badge">SAG Certificado</span>
+    </div>
+
+    <!-- SECTION: TEMPORADA INSECTOS PRIMAVERA-VERANO 2026-2027 -->
+    <section class="season-section" id="temporada-insectos">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-tag tag-season">☀️ CAMPAÑA PRIMAVERA - VERANO 2026-2027</span>
+                <h2>Control Especializado de Insectos de Temporada</h2>
+                <p>
+                    El calor de la temporada activa los ciclos biológicos de insectos rastreros y voladores. Una intervención temprana y perimetral evita infestaciones masivas, picaduras peligrosas y daños sanitarios.
+                </p>
+            </div>
+
+            <!-- Seasonal Context Box -->
+            <div class="season-intro-box">
+                <div class="season-intro-text">
+                    <h3>¿Por qué fumigar al inicio de la temporada?</h3>
+                    <p>
+                        Con la llegada de la primavera y el verano, las reinas de avispas y colonias de hormigas inician su máxima reproducción, mientras que las arañas de rincón y cucarachas aumentan drásticamente su desplazamiento nocturno.
+                    </p>
+                    <p>
+                        Nuestro plan de temporada combina <strong>acción de derribo inmediato</strong> con <strong>barreras químicas microencapsuladas de hasta 90 días de residualidad</strong>, seguras para tu familia y mascotas.
+                    </p>
                 </div>
-                <div class="mockup-stats">
-                    <div class="stat-box">
-                        <div class="stat-label">Puntos de Control</div>
-                        <div class="stat-value">38 Estaciones</div>
+                <div class="season-perks-grid">
+                    <div class="season-perk-item">
+                        <span class="season-perk-icon">🛡️</span>
+                        <div><strong>Barrera Perimetral:</strong> Protege perímetros antes de que invadan el interior.</div>
                     </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Índice de Control</div>
-                        <div class="stat-value">98.2% Seguro</div>
+                    <div class="season-perk-item">
+                        <span class="season-perk-icon">🌿</span>
+                        <div><strong>Bajo Olor & Biodegradable:</strong> Sin químicos invasivos ni manchas.</div>
                     </div>
-                </div>
-                <div class="mockup-list">
-                    <div class="mockup-item">
-                        <div class="item-info">
-                            <span class="item-status status-ok"></span>
-                            <div>
-                                <div class="item-name">Estación CEB-04 <span class="qr-scan-badge">QR Escaneado</span></div>
-                                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Bodega de Insumos</div>
-                            </div>
-                        </div>
-                        <span class="item-time">10:42 AM</span>
+                    <div class="season-perk-item">
+                        <span class="season-perk-icon">🐾</span>
+                        <div><strong>Protocolo Pet-Friendly:</strong> Tiempos de reingreso rápidos y seguros.</div>
                     </div>
-                    <div class="mockup-item">
-                        <div class="item-info">
-                            <span class="item-status status-info"></span>
-                            <div>
-                                <div class="item-name">Estación CEB-12 <span class="qr-scan-badge">Cebo Repuesto</span></div>
-                                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Perímetro Exterior Norte</div>
-                            </div>
-                        </div>
-                        <span class="item-time">09:15 AM</span>
-                    </div>
-                    <div class="mockup-item">
-                        <div class="item-info">
-                            <span class="item-status status-ok"></span>
-                            <div>
-                                <div class="item-name">Estación CEB-08 <span class="qr-scan-badge">Inspección OK</span></div>
-                                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Acceso Principal Cocina</div>
-                            </div>
-                        </div>
-                        <span class="item-time">08:50 AM</span>
+                    <div class="season-perk-item">
+                        <span class="season-perk-icon">📋</span>
+                        <div><strong>Certificado Oficial:</strong> Válido para Seremi de Salud y SAG.</div>
                     </div>
                 </div>
-                
-                <div style="margin-top: 18px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem;">
-                    <span style="color: var(--text-muted);">Sincronizado con Hub en tiempo real</span>
-                    <a href="#contacto" style="color: #60a5fa; text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 4px;">
-                        Ver Demo →
-                    </a>
+            </div>
+
+            <!-- Insects Targets Grid -->
+            <div class="insects-grid">
+                <!-- 1. Avispas y Chaqueta Amarilla -->
+                <div class="insect-card">
+                    <div>
+                        <div class="insect-card-header">
+                            <div class="insect-icon-wrapper">🐝</div>
+                            <span class="insect-risk-badge risk-high">Riesgo Alto en Verano</span>
+                        </div>
+                        <h3>Avispas y Chaqueta Amarilla</h3>
+                        <p class="insect-desc">
+                            Construyen avisperos agresivos en aleros, entretechos, árboles y quinchos. Su picadura representa un grave peligro para niños, adultos y mascotas alérgicas.
+                        </p>
+                        <div class="insect-solution">
+                            <strong>Tratamiento Stahlgraf:</strong> Localización y neutralización segura de nidos, volteo inmediato y aplicación de barrera disuasoria para impedir su reinstalación.
+                        </div>
+                    </div>
+                    <div class="insect-card-action">
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">Hogares, parcelas y quinchos</span>
+                        <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="insect-card-link">Cotizar este control ➔</a>
+                    </div>
+                </div>
+
+                <!-- 2. Araña de Rincón -->
+                <div class="insect-card">
+                    <div>
+                        <div class="insect-card-header">
+                            <div class="insect-icon-wrapper">🕷️</div>
+                            <span class="insect-risk-badge risk-high">Peligro Sanitario Crítico</span>
+                        </div>
+                        <h3>Araña de Rincón (Loxosceles)</h3>
+                        <p class="insect-desc">
+                            En las noches cálidas salen activamente de sus escondites en busca de presas. Su mordedura provoca necrosis cutánea y cuadros viscerales graves.
+                        </p>
+                        <div class="insect-solution">
+                            <strong>Tratamiento Stahlgraf:</strong> Desinsectación profunda en guardapolvos, zócalos, closets, bodegas y entretechos con microencapsulados de volteo rápido y prolongado efecto residual.
+                        </div>
+                    </div>
+                    <div class="insect-card-action">
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">Tratamiento integral interior</span>
+                        <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="insect-card-link">Cotizar este control ➔</a>
+                    </div>
+                </div>
+
+                <!-- 3. Hormigas -->
+                <div class="insect-card">
+                    <div>
+                        <div class="insect-card-header">
+                            <div class="insect-icon-wrapper">🐜</div>
+                            <span class="insect-risk-badge risk-season">Invasión Masiva</span>
+                        </div>
+                        <h3>Hormigas (Carpinteras y de Jardín)</h3>
+                        <p class="insect-desc">
+                            Invaden masivamente cocinas, despensas y estructuras de madera. Los insecticidas comunes en aerosol solo dispersan las obreras sin destruir el hormiguero.
+                        </p>
+                        <div class="insect-solution">
+                            <strong>Tratamiento Stahlgraf:</strong> Aplicación de cebos en gel específicos de acción retardada. Las obreras transportan el producto a la reina erradicando la colonia de raíz.
+                        </div>
+                    </div>
+                    <div class="insect-card-action">
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">Control definitivo de colonia</span>
+                        <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="insect-card-link">Cotizar este control ➔</a>
+                    </div>
+                </div>
+
+                <!-- 4. Cucarachas -->
+                <div class="insect-card">
+                    <div>
+                        <div class="insect-card-header">
+                            <div class="insect-icon-wrapper">🪳</div>
+                            <span class="insect-risk-badge risk-season">Plaga de Humedad & Calor</span>
+                        </div>
+                        <h3>Cucarachas (Alemana y Americana)</h3>
+                        <p class="insect-desc">
+                            Proliferan rápidamente en cocinas, cañerías, motores de electrodomésticos y bodegas de alimentos, contaminando superficies y transmitiendo bacterias patógenas.
+                        </p>
+                        <div class="insect-solution">
+                            <strong>Tratamiento Stahlgraf:</strong> Aspersión focalizada y colocación de matriz de gel altamente palatable e inodoro en grietas y zonas calientes sin paralizar tu cocina.
+                        </div>
+                    </div>
+                    <div class="insect-card-action">
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">Casas, locales y restaurantes</span>
+                        <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="insect-card-link">Cotizar este control ➔</a>
+                    </div>
+                </div>
+
+                <!-- 5. Moscas y Zancudos -->
+                <div class="insect-card">
+                    <div>
+                        <div class="insect-card-header">
+                            <div class="insect-icon-wrapper">🦟</div>
+                            <span class="insect-risk-badge risk-season">Molestia en Exteriores</span>
+                        </div>
+                        <h3>Moscas, Zancudos y Mosquitos</h3>
+                        <p class="insect-desc">
+                            Arruinan reuniones familiares en terrazas, piscinas y jardines. Se reproducen en fuentes de agua estancada y vegetación con la subida del calor.
+                        </p>
+                        <div class="insect-solution">
+                            <strong>Tratamiento Stahlgraf:</strong> Nebulización ULV en frío para abatir insectos voladores adultos y aplicación perimetral para cortar el ciclo larvario en áreas verdes.
+                        </div>
+                    </div>
+                    <div class="insect-card-action">
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">Terrazas, quinchos y jardines</span>
+                        <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="insect-card-link">Cotizar este control ➔</a>
+                    </div>
+                </div>
+
+                <!-- 6. Pulgas y Garrapatas -->
+                <div class="insect-card">
+                    <div>
+                        <div class="insect-card-header">
+                            <div class="insect-icon-wrapper">🐕</div>
+                            <span class="insect-risk-badge risk-high">Salud de Mascotas</span>
+                        </div>
+                        <h3>Pulgas y Garrapatas de Temporada</h3>
+                        <p class="insect-desc">
+                            Eclosionan intensamente en patios, pastos y alfombras en época estival. Provocan dermatitis severa en mascotas y pueden transmitir patógenos a personas.
+                        </p>
+                        <div class="insect-solution">
+                            <strong>Tratamiento Stahlgraf:</strong> Fumigación combinada para interiores y exteriores con regulador de crecimiento (IGR) para eliminar huevos, larvas y adultos.
+                        </div>
+                    </div>
+                    <div class="insect-card-action">
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">Patios, alfombras y caniles</span>
+                        <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="insect-card-link">Cotizar este control ➔</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seasonal High-Impact CTA Banner -->
+            <div class="season-cta-banner">
+                <div class="season-cta-text">
+                    <h3>¿Detectaste actividad de insectos o quieres prevenir antes del calor?</h3>
+                    <p>Cotiza en 2 minutos sin compromiso. Te enviamos una propuesta formal de inmediato.</p>
+                </div>
+                <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-cta-giant" style="font-size: 1rem; padding: 14px 28px;">
+                    ⚡ Cotizar Control de Insectos Ahora ➔
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION: FULL SERVICES PORTFOLIO (PRESERVED & EXPANDED) -->
+    <section class="section-container" id="servicios">
+        <div class="section-header">
+            <span class="section-tag">PORTAFOLIO INTEGRAL</span>
+            <h2>Nuestros Servicios de Control y Gestión Sanitaria</h2>
+            <p>
+                Soluciones profesionales y científicas adaptadas a casas particulares, parcelas de agrado, condominios, locales comerciales y plantas agroindustriales.
+            </p>
+        </div>
+        
+        <div class="services-grid">
+            <!-- 1. Desinsectación (Seasonal Highlight) -->
+            <div class="service-card featured-card">
+                <div>
+                    <span class="service-badge badge-hot">☀️ Temporada Activa</span>
+                    <svg class="service-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.375 5.25h-6.75m6.75 0v3.75h-6.75v-3.75m6.75 0H19.5a2.25 2.25 0 0 1 2.25 2.25v11.25c0 1.24-1.01 2.25-2.25 2.25H4.5A2.25 2.25 0 0 1 2.25 19.5V9c0-1.24 1.01-2.25 2.25-2.25h4.125m3 4.5h3m-3 3h3m-3 3h3" />
+                    </svg>
+                    <h3>Fumigación y Control de Insectos</h3>
+                    <p>
+                        Tratamientos avanzados para insectos rastreros y voladores mediante aspersión microencapsulada y nebulización ULV focalizada con máxima residualidad y sin manchas.
+                    </p>
+                    <ul class="service-features-list">
+                        <li>Avispas, arañas de rincón, hormigas y cucarachas</li>
+                        <li>Tratamiento perimetral para quinchos y terrazas</li>
+                        <li>Productos autorizados por el SAG de baja toxicidad</li>
+                    </ul>
+                </div>
+                <div class="service-action">
+                    <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-outline" style="width: 100%;">Cotizar Desinsectación ➔</a>
+                </div>
+            </div>
+
+            <!-- 2. Desratización -->
+            <div class="service-card">
+                <div>
+                    <span class="service-badge badge-cert">SAG & Seremi</span>
+                    <svg class="service-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" />
+                        <circle cx="12" cy="12" r="5" stroke="currentColor" />
+                        <path stroke-linecap="round" d="M12 2v20M2 12h20" />
+                    </svg>
+                    <h3>Desratización Profesional con QR</h3>
+                    <p>
+                        Instalación de cebaderos de polipropileno de alta resistencia con anclaje al piso, llave de seguridad y cebos anticoagulantes de segunda generación resistentes a la humedad.
+                    </p>
+                    <ul class="service-features-list">
+                        <li>Etiquetado con código QR individual por estación</li>
+                        <li>Control de ratón doméstico, guarén y rata de tejado</li>
+                        <li>Seguro para niños y animales domésticos</li>
+                    </ul>
+                </div>
+                <div class="service-action">
+                    <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-outline" style="width: 100%;">Cotizar Desratización ➔</a>
+                </div>
+            </div>
+
+            <!-- 3. Sanitización Ambiental -->
+            <div class="service-card">
+                <div>
+                    <span class="service-badge badge-cert">Grado Clínico</span>
+                    <svg class="service-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.188-.904L9 9l.813 5.096L15 15l-5.188.904zm8.187-8.187L17 12l-1-4.283L11.5 7l4.5-.717L17 2l1 4.283L22.5 7l-4.5.717z" />
+                    </svg>
+                    <h3>Sanitización & Desinfección Ambiental</h3>
+                    <p>
+                        Nebulización en frío con desinfectantes de amplio espectro (amonios cuaternarios de 5ta generación) para abatir bacterias, hongos, virus y neutralizar malos olores.
+                    </p>
+                    <ul class="service-features-list">
+                        <li>Apto para oficinas, bodegas, restaurantes y viviendas</li>
+                        <li>Sin residuos corrosivos ni daño a equipos electrónicos</li>
+                        <li>Certificado de sanitización formal incluido</li>
+                    </ul>
+                </div>
+                <div class="service-action">
+                    <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-outline" style="width: 100%;">Cotizar Sanitización ➔</a>
+                </div>
+            </div>
+
+            <!-- 4. Control de Polillas -->
+            <div class="service-card">
+                <div>
+                    <svg class="service-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18M12 3c-1.205 0-2.4.29-3.483.847C5.467 5.437 3 8.754 3 12.5c0 3.746 2.467 7.063 5.517 8.653A7.5 7.5 0 0 0 12 21M12 3c1.205 0 2.4.29 3.483.847C18.533 5.437 21 8.754 21 12.5c0 3.746-2.467 7.063-5.517 8.653A7.5 7.5 0 0 1 12 21" />
+                    </svg>
+                    <h3>Control de Polillas y Plagas de Despensa</h3>
+                    <p>
+                        Planes específicos para polillas de ropa y de alimentos en bodegas, despensas y recintos de almacenamiento, mediante trampas de feromonas y tratamientos limpios.
+                    </p>
+                    <ul class="service-features-list">
+                        <li>Monitoreo no invasivo con trampas atrayentes</li>
+                        <li>Exclusión física y asesoría de almacenamiento</li>
+                        <li>Protección de textiles y granos almacenados</li>
+                    </ul>
+                </div>
+                <div class="service-action">
+                    <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-outline" style="width: 100%;">Cotizar este servicio ➔</a>
+                </div>
+            </div>
+
+            <!-- 5. MIP para Empresas & Agroindustria -->
+            <div class="service-card">
+                <div>
+                    <span class="service-badge badge-cert">Auditorías OK</span>
+                    <svg class="service-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                    </svg>
+                    <h3>Manejo Integrado de Plagas (MIP Empresas)</h3>
+                    <p>
+                        Planes normativos para industrias de alimentos, frigoríficos, packing, restaurantes y comercios. Incluye carpeta sanitaria física y digital para fiscalizaciones del Seremi y SAG.
+                    </p>
+                    <ul class="service-features-list">
+                        <li>Planos de cebaderos con georreferenciación</li>
+                        <li>Informes de tendencia y consumos por QR</li>
+                        <li>Fichas técnicas y certificados vigentes</li>
+                    </ul>
+                </div>
+                <div class="service-action">
+                    <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-outline" style="width: 100%;">Cotizar Plan Empresas ➔</a>
+                </div>
+            </div>
+
+            <!-- 6. Parcelas y Casas de Veraneo -->
+            <div class="service-card">
+                <div>
+                    <span class="service-badge badge-hot">Campos & Parcelas</span>
+                    <svg class="service-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                    </svg>
+                    <h3>Protección Perimetral para Parcelas</h3>
+                    <p>
+                        Blindaje completo para casas de campo, parcelas de agrado y cabañas turísticas. Control preventivo contra roedores de campo, avispas, arañas y zancudos en áreas extensas.
+                    </p>
+                    <ul class="service-features-list">
+                        <li>Anillos perimetrales de protección exterior</li>
+                        <li>Tratamiento de leñeras, galpones y quinchos</li>
+                        <li>Precios especiales por metraje de terreno</li>
+                    </ul>
+                </div>
+                <div class="service-action">
+                    <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-outline" style="width: 100%;">Cotizar Parcela ➔</a>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- About Section -->
+    <!-- SECTION: SMART TRACEABILITY & QR TECHNOLOGY -->
+    <section class="section-container" id="trazabilidad" style="padding-top: 20px;">
+        <div class="traceability-layout">
+            <div>
+                <span class="section-tag">VENTAJA TECNOLÓGICA</span>
+                <h2 style="font-family: var(--font-display); font-size: 2.3rem; font-weight: 800; margin-bottom: 16px; color: #fff;">
+                    Trazabilidad Digital Inteligente con Códigos QR
+                </h2>
+                <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.65;">
+                    En Stahlgraf dejamos atrás las planillas en papel propensas a pérdidas o errores. Cada cebadero y punto de control cuenta con una placa QR única georreferenciada.
+                </p>
+
+                <div class="trace-steps">
+                    <div class="trace-step">
+                        <div class="step-num">1</div>
+                        <div class="step-content">
+                            <h4>Escaneo en Terreno</h4>
+                            <p>El técnico escanea el código QR de cada estación, registrando fecha, hora, estado del cebo y fotografías del hallazgo.</p>
+                        </div>
+                    </div>
+                    <div class="trace-step">
+                        <div class="step-num">2</div>
+                        <div class="step-content">
+                            <h4>Sincronización en la Nube</h4>
+                            <p>Los datos se sincronizan al instante en el portal del cliente, permitiendo ver consumos históricos e índices de actividad.</p>
+                        </div>
+                    </div>
+                    <div class="trace-step">
+                        <div class="step-num">3</div>
+                        <div class="step-content">
+                            <h4>Certificado Inmediato</h4>
+                            <p>Al finalizar la visita se genera el informe técnico formal y el certificado sanitario directamente en tu correo electrónico.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-quote-nav" style="padding: 12px 24px;">
+                        Solicitar Demostración y Cotización ➔
+                    </a>
+                </div>
+            </div>
+
+            <!-- Visual Graphic for Traceability -->
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 22px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <span style="font-size: 0.82rem; color: #60a5fa; font-weight: 700; text-transform: uppercase;">Estación Monitoreada #CEB-14</span>
+                        <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 12px;">QR Verificado</span>
+                    </div>
+                    <p style="font-size: 0.88rem; color: #f1f5f9; margin-bottom: 8px;"><strong>Ubicación:</strong> Bodega Alimentos - Perímetro Norte</p>
+                    <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;"><strong>Última revisión:</strong> Cebo anticoagulante repuesto al 100%. Sin actividad detectada.</p>
+                    <div style="display: flex; gap: 8px; font-size: 0.75rem; color: #94a3b8;">
+                        <span>📍 GPS: -37.4697, -72.3538</span> • <span>⏱️ 10:42 AM</span>
+                    </div>
+                </div>
+
+                <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 16px; padding: 22px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <span style="font-size: 0.82rem; color: #fbbf24; font-weight: 700; text-transform: uppercase;">Barrera de Insectos #INS-03</span>
+                        <span style="font-size: 0.75rem; background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 2px 8px; border-radius: 12px;">Temporada Activa</span>
+                    </div>
+                    <p style="font-size: 0.88rem; color: #f1f5f9; margin-bottom: 8px;"><strong>Zona:</strong> Aleros, Quincho y Jardín Perimetral</p>
+                    <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;"><strong>Aplicación:</strong> Aspersión residual piretroide microencapsulada. Neutralización de nido de avispas.</p>
+                    <div style="display: flex; gap: 8px; font-size: 0.75rem; color: #94a3b8;">
+                        <span>🛡️ Residualidad: 90 días</span> • <span>🐾 Apto Mascotas</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SECTION: WHY CHOOSE STAHLGRAF -->
     <section class="section-container" id="nosotros">
         <div class="section-header">
-            <h2>¿Por qué elegir Stahlgraf?</h2>
-            <p>Ofrecemos mucho más que control de plagas convencional. Fusionamos la química sanitaria con tecnología de control digital.</p>
+            <span class="section-tag">EL ESTÁNDAR STAHLGRAF</span>
+            <h2>¿Por qué confiar en nosotros?</h2>
+            <p>Fusionamos la química sanitaria de alta precisión con tecnología digital para darte tranquilidad total.</p>
         </div>
         
         <div class="about-grid">
             <div class="about-card">
                 <svg class="about-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 14.25a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 .75.75v.75a.75.75 0 0 1-.75.75h-.75a.75.75 0 0 1-.75-.75v-.75ZM13.5 18a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 .75.75v.75a.75.75 0 0 1-.75.75h-.75a.75.75 0 0 1-.75-.75V18ZM17.25 13.5a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 .75.75v.75a.75.75 0 0 1-.75.75h-.75a.75.75 0 0 1-.75-.75v-.75ZM17.25 17.25a.75.75 0 0 1 .75-.75h.75a.75.75 0 0 1 .75.75v.75a.75.75 0 0 1-.75.75h-.75a.75.75 0 0 1-.75-.75v-.75Z" />
                 </svg>
-                <h3>Tecnología Avanzada</h3>
-                <p>Monitoreo georreferenciado con GPS y códigos QR en cada estación. Accede a estadísticas e informes históricos desde tu portal de cliente.</p>
+                <h3>Tecnología QR Avanzada</h3>
+                <p>Monitoreo georreferenciado con códigos QR en cada estación. Accede a estadísticas, fotos e informes históricos desde tu portal online.</p>
             </div>
+
             <div class="about-card">
                 <svg class="about-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
                 </svg>
-                <h3>Profesionalismo Certificado</h3>
-                <p>Nuestros técnicos están altamente capacitados en el manejo integrado de plagas, utilizando únicamente productos autorizados por el SAG y con sello biodegradable.</p>
+                <h3>Productos Autorizados SAG</h3>
+                <p>Nuestros técnicos aplican exclusivamente productos registrados ante el SAG y Seremi de Salud, biodegradables y de bajo impacto ambiental.</p>
             </div>
+
             <div class="about-card">
                 <svg class="about-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v5.25c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 0 1 3 18.375v-5.25ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125v-9.75ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v14.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                 </svg>
-                <h3>Transparencia de Datos</h3>
-                <p>Cuentas claras y reportes automáticos. Cada servicio, inspección de cebos y estado de cuenta es auditable de forma inmediata a través del Hub.</p>
+                <h3>Seguridad para Mascotas y Niños</h3>
+                <p>Priorizamos la salud de los tuyos. Te entregamos protocolos claros de reingreso y usamos cebos confinados en cajas herméticas con llave.</p>
+            </div>
+
+            <div class="about-card">
+                <svg class="about-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <h3>Respuesta Rápida y Local</h3>
+                <p>Base operativa en Los Ángeles con cobertura ágil en toda la Región del Biobío. Atendemos emergencias de temporada sin demoras.</p>
             </div>
         </div>
     </section>
 
-    <!-- Services Section -->
-    <section class="section-container" style="background: rgba(255,255,255,0.01); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);" id="servicios">
+    <!-- SECTION: FREQUENTLY ASKED QUESTIONS (FAQ) -->
+    <section class="section-container" id="faq" style="background: rgba(255,255,255,0.01); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
         <div class="section-header">
-            <h2>Nuestros Servicios de Control</h2>
-            <p>Tratamientos especializados con la máxima seguridad para tu familia, empleados y mascotas.</p>
+            <span class="section-tag">RESOLVEMOS TUS DUDAS</span>
+            <h2>Preguntas Frecuentes</h2>
+            <p>Conoce los detalles de seguridad, tiempos y certificaciones de nuestros servicios.</p>
         </div>
-        
-        <div class="services-grid">
-            <div class="service-card">
-                <svg class="service-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" />
-                    <circle cx="12" cy="12" r="5" stroke="currentColor" />
-                    <path stroke-linecap="round" d="M12 2v20M2 12h20" />
-                </svg>
-                <h3>Desratización</h3>
-                <p>Instalación de cebaderos de seguridad con anclaje, monitoreo continuo y reposición sistemática de cebos anticoagulantes.</p>
+
+        <div class="faq-grid">
+            <div class="faq-card">
+                <h4>¿Es seguro para mis mascotas y niños pequeños?</h4>
+                <p>Completamente. Empleamos productos piretroides de última generación autorizados por el SAG y cebos cerrados con llave. Solo requerimos un tiempo de ventilación y reingreso de 2 a 3 horas tras la aplicación.</p>
             </div>
-            <div class="service-card">
-                <svg class="service-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.375 5.25h-6.75m6.75 0v3.75h-6.75v-3.75m6.75 0H19.5a2.25 2.25 0 0 1 2.25 2.25v11.25c0 1.24-1.01 2.25-2.25 2.25H4.5A2.25 2.25 0 0 1 2.25 19.5V9c0-1.24 1.01-2.25 2.25-2.25h4.125m3 4.5h3m-3 3h3m-3 3h3" />
-                </svg>
-                <h3>Fumigación de Insectos</h3>
-                <p>Tratamientos para insectos rastreros y voladores mediante aspersión y nebulización ULV focalizada con alta residualidad.</p>
+            <div class="faq-card">
+                <h4>¿Por qué es clave fumigar al inicio de la primavera-verano?</h4>
+                <p>Porque las altas temperaturas aceleran la eclosión de huevos y la fundación de avisperos y hormigueros. Un tratamiento perimetral temprano evita tener que combatir infestaciones gigantescas en pleno verano.</p>
             </div>
-            <div class="service-card">
-                <svg class="service-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18M12 3c-1.205 0-2.4.29-3.483.847C5.467 5.437 3 8.754 3 12.5c0 3.746 2.467 7.063 5.517 8.653A7.5 7.5 0 0 0 12 21M12 3c1.205 0 2.4.29 3.483.847C18.533 5.437 21 8.754 21 12.5c0 3.746-2.467 7.063-5.517 8.653A7.5 7.5 0 0 1 12 21" />
-                </svg>
-                <h3>Control de Polillas</h3>
-                <p>Esquemas de barrera química en despensas, limpieza e instalación de trampas de feromonas específicas.</p>
+            <div class="faq-card">
+                <h4>¿Entregan certificado para la Seremi de Salud o SAG?</h4>
+                <p>Sí. Emitimos certificados sanitarios y de tratamiento fitosanitario oficiales con resolución sanitaria vigente, exigidos en fiscalizaciones de empresas, restaurantes, agroindustrias y arriendos.</p>
             </div>
-            <div class="service-card">
-                <svg class="service-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.188-.904L9 9l.813 5.096L15 15l-5.188.904zm8.187-8.187L17 12l-1-4.283L11.5 7l4.5-.717L17 2l1 4.283L22.5 7l-4.5.717z" />
-                </svg>
-                <h3>Sanitización Ambiental</h3>
-                <p>Nebulización de desinfectantes de amplio espectro para abatir carga microbiana, hongos, virus y neutralizar malos olores.</p>
+            <div class="faq-card">
+                <h4>¿Cuánto tiempo tarda en llegar la cotización online?</h4>
+                <p>El cálculo a través de nuestro formulario en línea es inmediato y genera una propuesta formal en tu correo electrónico. Además, nuestro equipo te puede contactar por WhatsApp para afinar detalles.</p>
             </div>
         </div>
     </section>
 
-    <!-- Contact Section -->
+    <!-- SECTION: CONTACT & HIGH-CONVERSION QUOTE HUB -->
     <section class="section-container" id="contacto">
         <div class="contact-layout">
+            <!-- Left Column: Contact Channels & Info -->
             <div class="contact-info">
-                <h3>Comunícate con nosotros</h3>
-                <p>¿Tienes alguna duda o necesitas una cotización para tu hogar o empresa? Completa el formulario o contáctanos por nuestros canales oficiales.</p>
+                <span class="section-tag" style="margin-bottom: 12px;">CANALES DE ATENCIÓN</span>
+                <h3>Comunícate con Nosotros</h3>
+                <p class="contact-desc">
+                    ¿Tienes dudas sobre una plaga específica o requieres una visita técnica urgente en Los Ángeles o la Región del Biobío? Estamos listos para asesorarte.
+                </p>
+
                 <div class="contact-details">
-                    <div class="contact-item">
+                    <!-- Direct Phone (+56 9 6318 7751) -->
+                    <a href="tel:+56963187751" class="contact-item">
                         <div class="contact-item-icon">
                             <svg class="contact-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.824-1.802-5.122-4.1-6.924-6.924l1.293-.97c.362-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
                             </svg>
                         </div>
                         <div class="contact-item-text">
-                            <h4>Teléfono de Contacto</h4>
-                            <p>+56 9 3418 0860</p>
+                            <h4>Teléfono de Contacto Directo</h4>
+                            <p class="link-highlight">+56 9 6318 7751</p>
                         </div>
-                    </div>
-                    <div class="contact-item">
+                    </a>
+
+                    <!-- WhatsApp Channel -->
+                    <a href="https://wa.me/56963187751?text=Hola%20Stahlgraf%2C%20quisiera%20cotizar%20el%20control%20de%20plagas%20para%20la%20temporada%20primavera-verano%202026-2027" target="_blank" rel="noopener noreferrer" class="contact-item">
+                        <div class="contact-item-icon icon-whatsapp">
+                            <svg class="contact-icon-svg" style="fill: currentColor;" viewBox="0 0 24 24">
+                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                            </svg>
+                        </div>
+                        <div class="contact-item-text">
+                            <h4>WhatsApp Oficial</h4>
+                            <p class="link-highlight">+56 9 6318 7751</p>
+                        </div>
+                    </a>
+
+                    <!-- Email -->
+                    <a href="mailto:controlplagas@stahlgraf.cl" class="contact-item">
                         <div class="contact-item-icon">
                             <svg class="contact-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
@@ -877,7 +2043,9 @@
                             <h4>Correo Electrónico</h4>
                             <p>controlplagas@stahlgraf.cl</p>
                         </div>
-                    </div>
+                    </a>
+
+                    <!-- Coverage Zone -->
                     <div class="contact-item">
                         <div class="contact-item-icon">
                             <svg class="contact-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -887,32 +2055,102 @@
                         </div>
                         <div class="contact-item-text">
                             <h4>Zona de Cobertura</h4>
-                            <p>Los Ángeles y Región del Biobío, Chile</p>
+                            <p>Los Ángeles y toda la Región del Biobío, Chile</p>
                         </div>
                     </div>
                 </div>
+
+                <div style="font-size: 0.85rem; color: var(--text-muted); background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 10px; border-left: 3px solid var(--primary);">
+                    ⏰ <strong>Horario de Atención:</strong> Lunes a Sábado de 08:00 a 20:00 hrs.
+                </div>
             </div>
             
-            <div class="contact-form" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 20px; min-height: 350px; background: rgba(255,255,255,0.015); border-radius: 12px; border: 1px solid rgba(255,255,255,0.03); padding: 30px;">
-                <div style="background: rgba(37,99,235,0.1); border-radius: 50%; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
-                    <svg style="width: 32px; height: 32px; color: var(--primary);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <!-- Right Column: High-Conversion Quote Mega Card -->
+            <div class="quote-mega-card">
+                <div class="quote-icon-badge">
+                    <svg style="width: 36px; height: 36px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                     </svg>
                 </div>
-                <h3 style="font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; color: #fff;">Solicitud de Cotización Online</h3>
-                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; max-width: 420px; margin-bottom: 10px;">
-                    Usa nuestro cotizador digital para ingresar las características de tu propiedad, identificar las plagas y recibir una propuesta formal de inmediato en tu correo.
+                <span class="section-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border-color: rgba(16, 185, 129, 0.3); margin-bottom: 10px;">
+                    ⚡ COTIZADOR DIGITAL INMEDIATO
+                </span>
+                <h3>Solicitud de Cotización Online</h3>
+                <p>
+                    Ingresa los metros cuadrados y selecciona las plagas a tratar (avispas, arañas, hormigas, cucarachas o roedores). Recibirás una propuesta formal detallada al instante.
                 </p>
-                <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; padding: 14px 32px; font-size: 0.95rem;">
-                    Cotizar Ahora en Línea →
+
+                <div class="quote-perks-list">
+                    <div class="quote-perk-row">
+                        <span class="check">✓</span>
+                        <span>Propuesta económica formal con desglose transparente</span>
+                    </div>
+                    <div class="quote-perk-row">
+                        <span class="check">✓</span>
+                        <span>Solo 2 minutos para completar desde tu móvil o PC</span>
+                    </div>
+                    <div class="quote-perk-row">
+                        <span class="check">✓</span>
+                        <span>Sin compromiso de contratación ni costos ocultos</span>
+                    </div>
+                </div>
+
+                <!-- HUGE HIGH-CONVERTING BUTTON -->
+                <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-cta-giant" style="width: 100%; max-width: 420px; font-size: 1.12rem; padding: 18px 24px;">
+                    📋 Abrir Formulario de Cotización Online ➔
                 </a>
+
+                <div style="margin-top: 15px; font-size: 0.8rem; color: var(--text-dim);">
+                    ¿Prefieres cotizar por chat? <a href="https://wa.me/56963187751?text=Hola%20Stahlgraf%2C%20quisiera%20cotizar%20por%20WhatsApp" style="color: #60a5fa; font-weight: 600; text-decoration: none;">Escríbenos al WhatsApp</a>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
+    <!-- FLOATING WHATSAPP BUTTON (High conversion lead generator) -->
+    <a href="https://wa.me/56963187751?text=Hola%20Stahlgraf%2C%20quisiera%20cotizar%20el%20control%20de%20plagas%20para%20la%20temporada%20primavera-verano%202026-2027" target="_blank" rel="noopener noreferrer" class="floating-whatsapp" aria-label="Contactar por WhatsApp">
+        <span class="whatsapp-badge-notice">1</span>
+        <span class="whatsapp-tooltip">💬 ¿Consultas sobre insectos? ¡Escríbenos!</span>
+        <svg style="width: 32px; height: 32px; fill: #ffffff;" viewBox="0 0 24 24">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+        </svg>
+    </a>
+
+    <!-- MOBILE STICKY BOTTOM ACTION BAR -->
+    <div class="mobile-bottom-bar">
+        <a href="tel:+56963187751" class="btn btn-secondary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem;">
+            📞 Llamar
+        </a>
+        <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" class="btn btn-quote-nav" style="flex: 1.5; padding: 10px 14px; font-size: 0.88rem; font-weight: 700;">
+            ⚡ Cotizar Online
+        </a>
+    </div>
+
+    <!-- FOOTER (Discreet version badge retained) -->
     <footer>
-        <p>&copy; 2026 Stahlgraf Limitada. Todos los derechos reservados. | Portal de Trazabilidad y Control de Plagas.</p>
+        <div class="footer-content">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="logo.png" alt="Stahlgraf Logo" style="height: 36px;" onerror="this.style.display='none'">
+                <span style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: #fff;">Stahlgraf Limitada</span>
+                <span class="app-version-badge" style="font-size: 0.7rem; color: #64748b; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;"></span>
+            </div>
+
+            <div class="footer-links">
+                <a href="#inicio">Inicio</a>
+                <a href="#temporada-insectos">Temporada Insectos</a>
+                <a href="#servicios">Servicios</a>
+                <a href="#trazabilidad">Trazabilidad QR</a>
+                <a href="#nosotros">Nosotros</a>
+                <a href="#faq">Preguntas Frecuentes</a>
+                <a href="#contacto">Contacto</a>
+                <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1">Cotizador Digital</a>
+            </div>
+
+            <p>
+                &copy; 2026-2027 Stahlgraf Limitada. Todos los derechos reservados.<br>
+                Control de Plagas, Desinfección y Trazabilidad Digital Inteligente | Región del Biobío, Chile.
+            </p>
+        </div>
     </footer>
 
     <!-- Firebase Auth / Login script integration -->
@@ -943,13 +2181,11 @@
         if (auth && loginBtn) {
             auth.onAuthStateChanged(user => {
                 if (user) {
-                    // Update button if already logged in
                     loginBtn.innerText = '💻 Ir al Panel';
                     loginBtn.onclick = () => {
                         window.location.href = 'hub.html';
                     };
                 } else {
-                    // Update button if logged out
                     loginBtn.innerText = '🔐 Acceso';
                     loginBtn.onclick = () => {
                         const provider = new firebase.auth.GoogleAuthProvider();
@@ -967,23 +2203,14 @@
             loginBtn.disabled = true;
         }
 
-        // Toggle mobile navigation menu (simplified)
+        // Toggle mobile navigation dropdown
         function toggleMobileMenu() {
-            const nav = document.getElementById('nav-menu');
-            if (nav.style.display === 'flex') {
-                nav.style.display = 'none';
+            const dropdown = document.getElementById('mobile-dropdown');
+            if (!dropdown) return;
+            if (dropdown.style.display === 'flex') {
+                dropdown.style.display = 'none';
             } else {
-                nav.style.display = 'flex';
-                nav.style.flexDirection = 'column';
-                nav.style.position = 'absolute';
-                nav.style.top = '100%';
-                nav.style.left = '0';
-                nav.style.width = '100%';
-                nav.style.background = '#ffffff';
-                nav.style.padding = '20px';
-                nav.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
-                nav.style.boxShadow = '0 10px 15px rgba(0,0,0,0.05)';
-                nav.style.gap = '15px';
+                dropdown.style.display = 'flex';
             }
         }
     </script>
