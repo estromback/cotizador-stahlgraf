@@ -801,6 +801,7 @@ function initOrUpdateMap() {
             }
 
             // Draw markers
+            let targetHighlightMarker = null;
             mapStations.forEach(s => {
                 const avgColor = getColorForAvg(s.analytics.avg);
                 const numStr = String(s.num).padStart(2, '0');
@@ -829,8 +830,6 @@ function initOrUpdateMap() {
                     }
                 });
 
-
-
                 const popupContent = `
                     <div style="color: #333; font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.4; padding: 5px;">
                         <h4 style="margin: 0 0 5px 0; font-size: 1rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; cursor: pointer;" onclick="window.selectStationFromMap('${numStr}')" title="Toca para registrar inspección">
@@ -851,6 +850,10 @@ function initOrUpdateMap() {
                 
                 marker.bindPopup(popupContent);
                 marker.addTo(leafletMarkerGroup);
+
+                if (window.highlightStationNum && s.num === window.highlightStationNum) {
+                    targetHighlightMarker = marker;
+                }
             });
 
             // Auto-fit map viewport to bounds
@@ -866,6 +869,13 @@ function initOrUpdateMap() {
                 const centerCoords = lastKnownGPS ? [lastKnownGPS.lat, lastKnownGPS.lng] : [-37.4612, -72.3514];
                 leafletMap.setView(centerCoords, 17);
             }
+
+            if (targetHighlightMarker) {
+                setTimeout(() => {
+                    targetHighlightMarker.openPopup();
+                }, 400);
+            }
+            window.highlightStationNum = null;
         }
     }, 100);
 }
@@ -1473,13 +1483,79 @@ function saveInspection() {
     const badge = document.getElementById('station-locked-badge');
     if (badge) badge.style.display = 'none';
 
+    // Determine client before resetting form
+    const stationNum = parseInt(station.replace('ESTACION-', ''), 10);
+    let targetClientId = '';
+    let targetClientName = '';
+    if (!isNaN(stationNum)) {
+        const asg = (globalAppData.stationAssignments || []).find(item => {
+            const start = parseInt(item.start, 10);
+            const end = parseInt(item.end, 10);
+            return stationNum >= start && stationNum <= end;
+        });
+        if (asg) {
+            targetClientName = asg.clientName || '';
+            if (asg.clientId) {
+                targetClientId = asg.clientId;
+            } else if (asg.clientName) {
+                const c = (globalAppData.clients || []).find(client => client.name === asg.clientName);
+                if (c) targetClientId = c.id;
+            }
+        } else {
+            targetClientName = getClientNameForStation(stationNum) || '';
+            if (targetClientName) {
+                const c = (globalAppData.clients || []).find(client => client.name === targetClientName);
+                if (c) targetClientId = c.id;
+            }
+        }
+    }
+
     // Show premium visual feedback
     alert(`✅ ¡Inspección de ${station} registrada con éxito de forma local!`);
     
     // Clear inputs (except station if locked)
     resetInspectionForm();
-    renderMonitoreo();
+    
+    // Ensure any open modal is closed
+    const detailsModal = document.getElementById('station-details-modal');
+    if (detailsModal) detailsModal.style.display = 'none';
+    const scannerModal = document.getElementById('scanner-modal');
+    if (scannerModal) scannerModal.style.display = 'none';
+    const reassignModal = document.getElementById('reassign-modal');
+    if (reassignModal) reassignModal.style.display = 'none';
+
+    // Set filter to client if found
+    const filterClientIdSelect = document.getElementById('filter-client-id');
+    if (filterClientIdSelect) {
+        if (targetClientId) {
+            filterClientIdSelect.value = targetClientId;
+        } else if (targetClientName) {
+            const matchingOpt = Array.from(filterClientIdSelect.options).find(o => o.textContent.trim().toLowerCase() === targetClientName.trim().toLowerCase());
+            if (matchingOpt) {
+                filterClientIdSelect.value = matchingOpt.value;
+            }
+        }
+    }
+    
+    // Flag station to highlight on the map
+    if (!isNaN(stationNum)) {
+        window.highlightStationNum = stationNum;
+    }
+
+    // Switch to Monitoreo & Mapa panel automatically
+    switchToTab('panel-monitoreo');
     updateStationClientInfo();
+
+    // Smoothly scroll to the map section
+    setTimeout(() => {
+        const mapSection = document.getElementById('monitoreo-map-section') || document.getElementById('monitoreo-map');
+        if (mapSection) {
+            mapSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        if (leafletMap) {
+            leafletMap.invalidateSize();
+        }
+    }, 250);
 
     // Auto-sync after saving if online and logged in
     if (navigator.onLine && currentUser) {
