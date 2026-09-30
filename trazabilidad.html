@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Stahlgraf - Trazabilidad QR</title>
     
     <!-- Google Fonts -->
@@ -14,7 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.2.5r1"></script>
+    <script src="core-sync.js?v=v4.2.6"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
@@ -779,6 +782,11 @@
                         <!-- Injected dynamically -->
                     </div>
 
+                    <!-- Tarjeta destacada de Próxima Estación Libre -->
+                    <div id="next-station-banner" style="margin-bottom: 14px;">
+                        <!-- Injected dynamically -->
+                    </div>
+
                     <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 600;">
                         Huecos libres entre rangos ya asignados:
                     </div>
@@ -960,6 +968,6 @@
         </div>
     </div>
 
-    <script src="trazabilidad.js?v=v4.2.5r1"></script>
+    <script src="trazabilidad.js?v=v4.2.6"></script>
 </body>
 </html>

@@ -2590,6 +2590,7 @@ function getStationAvailability() {
 // Action: Render Available Ranges and Mini-Occupation Strip
 function renderAvailableRanges() {
     const metricsBar = document.getElementById('availability-metrics-bar');
+    const nextBanner = document.getElementById('next-station-banner');
     const container = document.getElementById('available-ranges-container');
     const stripContainer = document.getElementById('visual-occupation-container');
     if (!container) return;
@@ -2613,8 +2614,32 @@ function renderAvailableRanges() {
             </div>
         `;
     }
+
+    // 2. Render Prominent Next Station Banner
+    if (nextBanner) {
+        if (availability.totalAssigned > 0) {
+            nextBanner.innerHTML = `
+                <div class="available-gap-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 10px; padding: 12px 14px;">
+                    <div>
+                        <div style="font-weight: 700; color: #60a5fa; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <span>🚀 Próxima Estación Libre:</span>
+                            <span style="color: #fff; background: rgba(59, 130, 246, 0.25); padding: 2px 8px; border-radius: 6px; font-weight: 700;">#${availability.nextFree} en adelante</span>
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 3px;">
+                            Libre para iniciar nuevos lotes continuos sin colisiones
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="useNextAvailableStation(${availability.nextFree})" title="Comenzar desde la estación #${availability.nextFree}" style="padding: 6px 12px; font-size: 0.8rem; background: #3b82f6; color: #fff; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600; white-space: nowrap;">
+                        ⚡ Iniciar en #${availability.nextFree}
+                    </button>
+                </div>
+            `;
+        } else {
+            nextBanner.innerHTML = '';
+        }
+    }
     
-    // 2. Render Available Gaps List
+    // 3. Render Available Gaps List
     if (availability.totalAssigned === 0) {
         container.innerHTML = `
             <div style="padding: 14px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; margin-bottom: 10px;">
@@ -2653,28 +2678,7 @@ function renderAvailableRanges() {
         `).join('');
     }
     
-    // Add Next Available item at the end of the container
-    if (availability.totalAssigned > 0) {
-        const nextElem = document.createElement('div');
-        nextElem.className = 'available-gap-item';
-        nextElem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; padding: 10px 12px; margin-top: 8px;';
-        nextElem.innerHTML = `
-            <div>
-                <div style="font-weight: 600; color: #60a5fa; font-size: 0.92rem;">
-                    🚀 Estación #${availability.nextFree} en adelante
-                </div>
-                <div style="font-size: 0.76rem; color: var(--text-muted);">
-                    Libre para nuevos lotes sin límite superior
-                </div>
-            </div>
-            <button type="button" class="btn btn-secondary" onclick="useNextAvailableStation(${availability.nextFree})" title="Comenzar desde la estación #${availability.nextFree}" style="padding: 5px 10px; font-size: 0.78rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;">
-                ⚡ Iniciar en #${availability.nextFree}
-            </button>
-        `;
-        container.appendChild(nextElem);
-    }
-    
-    // 3. Render Visual Occupation Strip
+    // 4. Render Visual Occupation Strip
     if (stripContainer && availability.stripBlocks.length > 0) {
         const stripHtml = availability.stripBlocks.map(block => {
             if (block.type === 'free') {
@@ -2696,7 +2700,7 @@ function renderAvailableRanges() {
         
         stripContainer.innerHTML = `
             <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
-                <span>🗺️ <strong>Línea de Ocupación</strong> (Estaciones 1 al ${availability.maxGlobal}):</span>
+                <span>🗺️ <strong>Línea de Ocupación Visual</strong> (Estaciones 1 al ${availability.maxGlobal}):</span>
                 <span style="font-size: 0.72rem; color: var(--text-muted);">🟢 Libre | 🔵 Asignado</span>
             </div>
             <div class="visual-station-strip" style="display: flex; gap: 5px; overflow-x: auto; padding: 4px 0 6px 0; scrollbar-width: thin;">
@@ -2721,7 +2725,7 @@ function updateClientCurrentRangesHint() {
     const clientOption = select.options[select.selectedIndex];
     const clientName = clientOption ? clientOption.textContent : '';
     
-    if (!clientId && !clientName) {
+    if (!clientId) {
         hintDiv.style.display = 'none';
         return;
     }
