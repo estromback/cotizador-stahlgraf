@@ -361,7 +361,7 @@
                 <div class="app-desc">Registra un trabajo realizado en terreno de forma rápida para un cliente.</div>
             </a>
 
-            <a href="#" id="btn-quick-inspect" class="app-card" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(20, 184, 166, 0.15) 100%); border: 1px solid rgba(20, 184, 166, 0.3);">
+            <a href="javascript:void(0)" id="btn-quick-inspect" onclick="openInspectionRoundModal(event)" class="app-card" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(20, 184, 166, 0.15) 100%); border: 1px solid rgba(20, 184, 166, 0.3);">
                 <div class="app-icon" style="color: #22d3ee;">🗺️</div>
                 <div class="app-title" style="color: #67e8f9;">Iniciar Ronda de Inspección</div>
                 <div class="app-desc">Selecciona un cliente para abrir su mapa satelital y registrar la ruta de cebaderos.</div>
@@ -864,6 +864,29 @@
         </div>
     </div>
 
-    <script src="hub.js"></script>
+    <script>
+        function openInspectionRoundModal(e) {
+            if (e) {
+                if (typeof e.preventDefault === 'function') e.preventDefault();
+                if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            }
+            if (typeof window.openInspectionRoundModal === 'function' && window.openInspectionRoundModal !== openInspectionRoundModal) {
+                return window.openInspectionRoundModal(e);
+            }
+            if (typeof activeClientSelectionTarget !== 'undefined') {
+                activeClientSelectionTarget = 'inspection-round';
+            }
+            const modal = document.getElementById('clients-modal');
+            const modalHeader = document.querySelector('#clients-modal .modal-header h2');
+            if (modalHeader) modalHeader.innerText = '🗺️ Iniciar Ronda: Seleccionar Cliente';
+            if (modal) {
+                modal.classList.add('active');
+            }
+            if (typeof renderClientsSelect === 'function') {
+                renderClientsSelect();
+            }
+        }
+    </script>
+    <script src="hub.js?v=v4.3.2"></script>
 </body>
 </html>

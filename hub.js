@@ -25,6 +25,24 @@ let isUserConfigLoaded = false;
 let activeClientSelectionTarget = 'crm';
 let quickServiceFetchedPrice = 0;
 
+// Global helper to open inspection round modal
+window.openInspectionRoundModal = function(e) {
+    if (e) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
+    activeClientSelectionTarget = 'inspection-round';
+    const modalHeader = document.querySelector('#clients-modal .modal-header h2');
+    if (modalHeader) modalHeader.innerText = '🗺️ Iniciar Ronda: Seleccionar Cliente';
+    const modal = document.getElementById('clients-modal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+    if (typeof renderClientsSelect === 'function') {
+        renderClientsSelect();
+    }
+};
+
 // Client portal map variables
 let clientPortalMap = null;
 let clientPortalMarkerGroup = null;
@@ -317,12 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (document.getElementById('btn-quick-inspect')) {
         document.getElementById('btn-quick-inspect').addEventListener('click', (e) => {
-            e.preventDefault();
-            activeClientSelectionTarget = 'inspection-round';
-            const modalHeader = document.querySelector('#clients-modal .modal-header h2');
-            if (modalHeader) modalHeader.innerText = '🗺️ Iniciar Ronda: Seleccionar Cliente';
-            document.getElementById('clients-modal').classList.add('active');
-            renderClientsSelect();
+            window.openInspectionRoundModal(e);
         });
     }
     if (document.getElementById('btn-close-clients')) {
@@ -1545,14 +1558,25 @@ function renderClientsSelect(filter = '') {
     if (!listEl) return;
     listEl.innerHTML = '';
     
-    if (clientsList.length === 0) {
-        listEl.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No hay clientes guardados. Guárdalos desde la Configuración del Cotizador o el Informador.</p>';
-        return;
+    // Robust fallback: if clientsList is empty in memory, try to populate from localStorage or appData
+    if (!clientsList || clientsList.length === 0) {
+        if (appData && appData.clients && appData.clients.length > 0) {
+            clientsList = appData.clients;
+        } else {
+            try {
+                const saved = localStorage.getItem('stahlgraf_data_v4');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.clients && parsed.clients.length > 0) {
+                        clientsList = parsed.clients;
+                    }
+                }
+            } catch(e) {}
+        }
     }
     
-    const term = filter.toLowerCase();
-    const filtered = clientsList.filter(c => c.name.toLowerCase().includes(term) || (c.address && c.address.toLowerCase().includes(term)));
-    
+    const term = (filter || '').toLowerCase();
+
     // Helper to calculate stations assigned to client
     const getClientStationsCount = (c) => {
         let count = 0;
@@ -1586,8 +1610,15 @@ function renderClientsSelect(filter = '') {
         listEl.appendChild(generalMapDiv);
     }
 
+    if (!clientsList || clientsList.length === 0) {
+        listEl.innerHTML += '<p style="color: #666; font-size: 0.95rem; padding: 10px 0;">No hay clientes guardados. Guárdalos desde la Configuración del Cotizador o el Informador.</p>';
+        return;
+    }
+
+    const filtered = clientsList.filter(c => (c.name || '').toLowerCase().includes(term) || (c.address && c.address.toLowerCase().includes(term)));
+
     if (filtered.length === 0) {
-        listEl.innerHTML += '<p style="color: #666; font-size: 0.95rem;">No se encontraron clientes.</p>';
+        listEl.innerHTML += '<p style="color: #666; font-size: 0.95rem; padding: 10px 0;">No se encontraron clientes.</p>';
         return;
     }
     
