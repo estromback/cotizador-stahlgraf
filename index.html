@@ -77,7 +77,7 @@
                 "@type": "Offer",
                 "itemOffered": {
                   "@type": "Service",
-                  "name": "Desratización y Trazabilidad Digital QR"
+                  "name": "Desratización y Trazabilidad Georreferenciada"
                 }
               },
               {
@@ -627,6 +627,223 @@
             margin-top: 10px;
         }
 
+        /* --- MICRO-CALCULADORA DE COTIZACIÓN RÁPIDA --- */
+        .micro-calc-card {
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            border-radius: 20px;
+            padding: 28px 24px;
+            margin: 35px auto 25px auto;
+            max-width: 860px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5), 0 0 25px rgba(37, 99, 235, 0.15);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            text-align: left;
+            position: relative;
+            z-index: 5;
+        }
+
+        .micro-calc-header {
+            text-align: center;
+            margin-bottom: 22px;
+        }
+
+        .micro-calc-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #60a5fa;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+
+        .micro-calc-header h3 {
+            font-family: var(--font-display);
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+        }
+
+        .micro-calc-header p {
+            font-size: 0.92rem;
+            color: var(--text-muted);
+        }
+
+        .micro-calc-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .calc-step-group {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+
+        .calc-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #93c5fd;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .calc-btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 8px;
+        }
+
+        .calc-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            padding: 10px 8px;
+            border-radius: 10px;
+            font-family: var(--font-body);
+            font-size: 0.84rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            user-select: none;
+        }
+
+        .calc-btn:hover {
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .calc-btn.active {
+            background: rgba(37, 99, 235, 0.3);
+            border-color: #3b82f6;
+            color: #ffffff;
+            font-weight: 700;
+            box-shadow: 0 0 14px rgba(59, 130, 246, 0.35);
+        }
+
+        .micro-calc-result-box {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            border-radius: 16px;
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            flex-wrap: wrap;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .calc-price-area {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .calc-price-label {
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: #10b981;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .calc-price-val {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .calc-price-note {
+            font-size: 0.74rem;
+            color: #94a3b8;
+        }
+
+        .calc-action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-whatsapp-calc {
+            background: #25d366;
+            color: #05160b;
+            font-weight: 700;
+            padding: 12px 18px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-whatsapp-calc:hover {
+            background: #22c55e;
+            color: #020b05;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.45);
+        }
+
+        .btn-secondary-calc {
+            background: rgba(255, 255, 255, 0.05);
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 12px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 0.86rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary-calc:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+        }
+
+        @media (max-width: 768px) {
+            .micro-calc-card {
+                padding: 18px 14px;
+            }
+            .micro-calc-result-box {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            .calc-action-buttons {
+                flex-direction: column;
+            }
+            .btn-whatsapp-calc, .btn-secondary-calc {
+                width: 100%;
+                justify-content: center;
+            }
+            .calc-btn-group {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
         /* Stats strip under Hero */
         .hero-stats-banner {
             max-width: 1100px;
@@ -1023,7 +1240,7 @@
             border-top: 1px solid rgba(255, 255, 255, 0.06);
         }
 
-        /* --- QR TRACEABILITY SECTION --- */
+        /* --- TRACEABILITY & GEOLOCATION SECTION --- */
         .traceability-layout {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1651,7 +1868,7 @@
         <a href="#inicio" onclick="toggleMobileMenu()" style="color: #fff; text-decoration: none; font-weight: 600; padding: 6px 0;">🏠 Inicio</a>
         <a href="#temporada-insectos" onclick="toggleMobileMenu()" style="color: #fbbf24; text-decoration: none; font-weight: 700; padding: 6px 0;">☀️ Temporada Primavera-Verano (Insectos)</a>
         <a href="#servicios" onclick="toggleMobileMenu()" style="color: #cbd5e1; text-decoration: none; font-weight: 500; padding: 6px 0;">🛠️ Servicios</a>
-        <a href="#trazabilidad" onclick="toggleMobileMenu()" style="color: #cbd5e1; text-decoration: none; font-weight: 500; padding: 6px 0;">📱 Monitoreo QR</a>
+        <a href="#trazabilidad" onclick="toggleMobileMenu()" style="color: #cbd5e1; text-decoration: none; font-weight: 500; padding: 6px 0;">📱 Monitoreo Digital</a>
         <a href="#nosotros" onclick="toggleMobileMenu()" style="color: #cbd5e1; text-decoration: none; font-weight: 500; padding: 6px 0;">🛡️ Nosotros</a>
         <a href="#contacto" onclick="toggleMobileMenu()" style="color: #cbd5e1; text-decoration: none; font-weight: 500; padding: 6px 0;">📞 Contacto</a>
         <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" style="background: var(--primary); color: #fff; padding: 12px; border-radius: 8px; text-align: center; text-decoration: none; font-weight: 700; margin-top: 5px;">⚡ Formulario de Cotización Online</a>
@@ -1722,6 +1939,67 @@
             
             <div class="hero-guarantee-note">
                 <span>🛡️ Presupuesto formal sin costo ni compromiso • Respuesta técnica inmediata</span>
+            </div>
+
+            <!-- MICRO-CALCULADORA DE COTIZACIÓN RÁPIDA -->
+            <div class="micro-calc-card" id="calculadora-rapida">
+                <div class="micro-calc-header">
+                    <span class="micro-calc-tag">⚡ ESTIMADOR INSTANTÁNEO EN 3 PASOS</span>
+                    <h3>Calcula el valor aproximado de tu servicio</h3>
+                    <p>Selecciona tu tipo de inmueble, tamaño y plaga a tratar para estimar tu presupuesto en segundos.</p>
+                </div>
+
+                <div class="micro-calc-grid">
+                    <!-- Paso 1: Tipo de Inmueble -->
+                    <div class="calc-step-group">
+                        <label class="calc-label">1. Tipo de Inmueble</label>
+                        <div class="calc-btn-group" id="calc-property-group">
+                            <button type="button" class="calc-btn active" data-factor="1.0">🏡 Casa / Depto</button>
+                            <button type="button" class="calc-btn" data-factor="1.15">🏪 Local Comercial</button>
+                            <button type="button" class="calc-btn" data-factor="1.3">🌳 Parcela / Fundo</button>
+                            <button type="button" class="calc-btn" data-factor="1.25">🏭 Bodega / Empresa</button>
+                        </div>
+                    </div>
+
+                    <!-- Paso 2: Superficie Estimada -->
+                    <div class="calc-step-group">
+                        <label class="calc-label">2. Superficie Estimada</label>
+                        <div class="calc-btn-group" id="calc-size-group">
+                            <button type="button" class="calc-btn" data-min="40000" data-max="50000">Hasta 70 m²</button>
+                            <button type="button" class="calc-btn active" data-min="50000" data-max="65000">70 a 140 m²</button>
+                            <button type="button" class="calc-btn" data-min="70000" data-max="90000">140 a 250 m²</button>
+                            <button type="button" class="calc-btn" data-min="95000" data-max="130000">Más de 250 m²</button>
+                        </div>
+                    </div>
+
+                    <!-- Paso 3: Plaga a Tratar -->
+                    <div class="calc-step-group">
+                        <label class="calc-label">3. Plaga Principal a Tratar</label>
+                        <div class="calc-btn-group" id="calc-pest-group">
+                            <button type="button" class="calc-btn active" data-addon="0">🕷️ Arañas / Insectos</button>
+                            <button type="button" class="calc-btn" data-addon="10000">🐝 Avispas / Voladores</button>
+                            <button type="button" class="calc-btn" data-addon="15000">🐀 Roedores (Cebaderos)</button>
+                            <button type="button" class="calc-btn" data-addon="25000">🛡️ Tratamiento Integral</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resultado Estimado Dinámico -->
+                <div class="micro-calc-result-box">
+                    <div class="calc-price-area">
+                        <span class="calc-price-label">Rango Estimado Sugerido:</span>
+                        <div class="calc-price-val" id="calc-price-display">$50.000 - $65.000 CLP</div>
+                        <span class="calc-price-note">✓ Con productos SAG/Seremi, aplicación profesional y garantía por escrito</span>
+                    </div>
+                    <div class="calc-action-buttons">
+                        <a href="https://wa.me/56963187751" id="calc-whatsapp-btn" target="_blank" rel="noopener noreferrer" class="btn btn-whatsapp-calc">
+                            💬 Cotizar por WhatsApp ➔
+                        </a>
+                        <a href="contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1" id="calc-formal-btn" class="btn btn-secondary-calc">
+                            📋 Formulario Formal
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <!-- Integrated Trust Metrics Strip -->
@@ -1972,12 +2250,12 @@
                         <circle cx="12" cy="12" r="5" stroke="currentColor" />
                         <path stroke-linecap="round" d="M12 2v20M2 12h20" />
                     </svg>
-                    <h3>Desratización Profesional con QR</h3>
+                    <h3>Desratización Profesional y Monitoreo</h3>
                     <p>
                         Instalación de cebaderos de polipropileno de alta resistencia con anclaje al piso, llave de seguridad y cebos anticoagulantes de segunda generación resistentes a la humedad.
                     </p>
                     <ul class="service-features-list">
-                        <li>Etiquetado con código QR individual por estación</li>
+                        <li>Mapeo y registro georreferenciado por estación</li>
                         <li>Control de ratón doméstico, guarén y rata de tejado</li>
                         <li>Seguro para niños y animales domésticos</li>
                     </ul>
@@ -2043,7 +2321,7 @@
                     </p>
                     <ul class="service-features-list">
                         <li>Planos de cebaderos con georreferenciación</li>
-                        <li>Informes de tendencia y consumos por QR</li>
+                        <li>Informes de tendencia y consumos por estación</li>
                         <li>Fichas técnicas y certificados vigentes</li>
                     </ul>
                 </div>
@@ -2076,31 +2354,31 @@
         </div>
     </section>
 
-    <!-- SECTION: SMART TRACEABILITY & QR TECHNOLOGY -->
+    <!-- SECTION: SMART TRACEABILITY & GEOLOCATION -->
     <section class="section-container" id="trazabilidad" style="padding-top: 20px;">
         <div class="traceability-layout">
             <div>
                 <span class="section-tag">VENTAJA TECNOLÓGICA</span>
                 <h2 style="font-family: var(--font-display); font-size: 2.3rem; font-weight: 800; margin-bottom: 16px; color: #fff;">
-                    Trazabilidad Digital Inteligente con Códigos QR
+                    Trazabilidad Digital y Monitoreo Georreferenciado
                 </h2>
                 <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.65;">
-                    En Stahlgraf dejamos atrás las planillas en papel propensas a pérdidas o errores. Cada cebadero y punto de control cuenta con una placa QR única georreferenciada.
+                    En Stahlgraf dejamos atrás las planillas en papel propensas a pérdidas o errores. Cada cebadero y punto de control cuenta con registro digital individual georreferenciado en mapa satelital.
                 </p>
 
                 <div class="trace-steps">
                     <div class="trace-step">
                         <div class="step-num">1</div>
                         <div class="step-content">
-                            <h4>Escaneo en Terreno</h4>
-                            <p>El técnico escanea el código QR de cada estación, registrando fecha, hora, estado del cebo y fotografías del hallazgo.</p>
+                            <h4>Inspección Digital en Terreno</h4>
+                            <p>El técnico registra en tiempo real el estado y consumo de cada estación georreferenciada, con fecha, hora, dosificación y fotografías del hallazgo.</p>
                         </div>
                     </div>
                     <div class="trace-step">
                         <div class="step-num">2</div>
                         <div class="step-content">
                             <h4>Sincronización en la Nube</h4>
-                            <p>Los datos se sincronizan al instante en el portal del cliente, permitiendo ver consumos históricos e índices de actividad.</p>
+                            <p>Los datos se sincronizan al instante en el portal del cliente, permitiendo ver consumos históricos e índices de actividad en mapa interactivo.</p>
                         </div>
                     </div>
                     <div class="trace-step">
@@ -2124,7 +2402,7 @@
                 <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 22px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                         <span style="font-size: 0.82rem; color: #60a5fa; font-weight: 700; text-transform: uppercase;">Estación Monitoreada #CEB-14</span>
-                        <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 12px;">QR Verificado</span>
+                        <span style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 2px 8px; border-radius: 12px;">Georreferenciada</span>
                     </div>
                     <p style="font-size: 0.88rem; color: #f1f5f9; margin-bottom: 8px;"><strong>Ubicación:</strong> Bodega Alimentos - Perímetro Norte</p>
                     <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 12px;"><strong>Última revisión:</strong> Cebo anticoagulante repuesto al 100%. Sin actividad detectada.</p>
@@ -2161,8 +2439,8 @@
                 <svg class="about-icon-svg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
                 </svg>
-                <h3>Tecnología QR Avanzada</h3>
-                <p>Monitoreo georreferenciado con códigos QR en cada estación. Accede a estadísticas, fotos e informes históricos desde tu portal online.</p>
+                <h3>Monitoreo Georreferenciado</h3>
+                <p>Mapeo digital por estación con coordenadas GPS exactas. Accede a estadísticas de consumo, fotos e informes históricos desde tu portal online.</p>
             </div>
 
             <div class="about-card">
@@ -2364,7 +2642,7 @@
                 <a href="#inicio">Inicio</a>
                 <a href="#temporada-insectos">Temporada Insectos</a>
                 <a href="#servicios">Servicios</a>
-                <a href="#trazabilidad">Trazabilidad QR</a>
+                <a href="#trazabilidad">Trazabilidad Digital</a>
                 <a href="#nosotros">Nosotros</a>
                 <a href="#faq">Preguntas Frecuentes</a>
                 <a href="#contacto">Contacto</a>
@@ -2438,6 +2716,78 @@
                 dropdown.style.display = 'flex';
             }
         }
+
+        // --- MICRO-CALCULADORA INTERACTIVA DE PRECIOS ESTIMADOS ---
+        (function initMicroCalculator() {
+            let selectedTypeFactor = 1.0;
+            let selectedTypeName = "Casa / Depto";
+            let selectedBaseMin = 50000;
+            let selectedBaseMax = 65000;
+            let selectedSizeName = "70 a 140 m²";
+            let selectedPestAddon = 0;
+            let selectedPestName = "Arañas / Insectos";
+
+            const displayEl = document.getElementById('calc-price-display');
+            const waBtn = document.getElementById('calc-whatsapp-btn');
+            const formalBtn = document.getElementById('calc-formal-btn');
+
+            function updateCalculator() {
+                const minVal = Math.round((selectedBaseMin * selectedTypeFactor + selectedPestAddon) / 5000) * 5000;
+                const maxVal = Math.round((selectedBaseMax * selectedTypeFactor + selectedPestAddon) / 5000) * 5000;
+
+                const formattedMin = "$" + minVal.toLocaleString("es-CL");
+                const formattedMax = "$" + maxVal.toLocaleString("es-CL");
+
+                if (displayEl) {
+                    displayEl.textContent = `${formattedMin} - ${formattedMax} CLP`;
+                }
+
+                if (waBtn) {
+                    const message = `Hola Stahlgraf! Realicé el cálculo estimado en su sitio web:\n• Tipo: ${selectedTypeName}\n• Superficie: ${selectedSizeName}\n• Plaga a tratar: ${selectedPestName}\n• Rango estimado: ${formattedMin} - ${formattedMax} CLP\n¿Tienen disponibilidad técnica para agendar una visita?`;
+                    waBtn.href = `https://wa.me/56963187751?text=${encodeURIComponent(message)}`;
+                }
+
+                if (formalBtn) {
+                    const tipoParam = selectedTypeName.toLowerCase().includes('parcela') ? 'parcela' : (selectedTypeName.toLowerCase().includes('local') ? 'local' : 'casa');
+                    const m2Param = selectedSizeName.includes('70 a') ? '100' : (selectedSizeName.includes('Hasta') ? '60' : (selectedSizeName.includes('140') ? '180' : '260'));
+                    const plagaParam = selectedPestName.toLowerCase().includes('roedor') ? 'roedores' : (selectedPestName.toLowerCase().includes('avispa') ? 'avispa' : 'arañas');
+                    const estParam = encodeURIComponent(`${formattedMin} - ${formattedMax} CLP`);
+                    formalBtn.href = `contacto.html?uid=H0jALdt26yWnLYUy3RvcVaEA5Nr1&tipo=${tipoParam}&m2=${m2Param}&plaga=${plagaParam}&estimado=${estParam}`;
+                }
+            }
+
+            function bindGroup(groupId, onSelect) {
+                const group = document.getElementById(groupId);
+                if (!group) return;
+                const buttons = group.querySelectorAll('.calc-btn');
+                buttons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        buttons.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        onSelect(btn);
+                        updateCalculator();
+                    });
+                });
+            }
+
+            bindGroup('calc-property-group', btn => {
+                selectedTypeFactor = parseFloat(btn.getAttribute('data-factor')) || 1.0;
+                selectedTypeName = btn.textContent.trim();
+            });
+
+            bindGroup('calc-size-group', btn => {
+                selectedBaseMin = parseInt(btn.getAttribute('data-min')) || 50000;
+                selectedBaseMax = parseInt(btn.getAttribute('data-max')) || 65000;
+                selectedSizeName = btn.textContent.trim();
+            });
+
+            bindGroup('calc-pest-group', btn => {
+                selectedPestAddon = parseInt(btn.getAttribute('data-addon')) || 0;
+                selectedPestName = btn.textContent.trim();
+            });
+
+            updateCalculator();
+        })();
     </script>
 </body>
 </html>

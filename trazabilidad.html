@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Stahlgraf - Trazabilidad QR</title>
+    <title>Stahlgraf - Trazabilidad y Monitoreo</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,8 +21,6 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
-    <!-- html5-qrcode Camera Scanner Library -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <!-- html2pdf.js for client reports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
@@ -39,13 +37,7 @@
             padding: 20px 20px 60px;
         }
 
-        /* Overrides for html5-qrcode video layout */
-        #reader video {
-            object-fit: cover !important;
-            width: 100% !important;
-            height: 100% !important;
-            border-radius: 12px;
-        }
+
 
         /* Large Tappable Options for Safety Gloves */
         .radio-cards-grid {
@@ -431,11 +423,6 @@
 </head>
 <body>
 
-    <!-- In-App Browser Warning Banner -->
-    <div id="inapp-warning-banner" style="display: none; background: rgba(239, 68, 68, 0.2); border-bottom: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 12px; text-align: center; font-size: 0.85rem; font-weight: 500; line-height: 1.4; z-index: 1100; position: relative;">
-        ⚠️ Estás usando el navegador interno del lector QR. Para poder iniciar sesión y sincronizar sin perder tus datos locales, abre este enlace en tu navegador principal (Safari / Chrome).
-    </div>
-
     <!-- Header Navigation -->
     <nav class="navbar">
         <div class="nav-content">
@@ -470,7 +457,7 @@
         <!-- ========================================== -->
         <div id="panel-inspeccionar" class="tab-panel glass-panel" style="padding: 25px;">
             <h2 style="margin-top: 0; margin-bottom: 5px; font-size: 1.4rem;">Ficha de Inspección</h2>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Escanea un código QR o completa los campos manualmente.</p>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Selecciona la estación georreferenciada para registrar su estado y consumo de cebos.</p>
             
             <!-- Modo Instalación (Fijar Cliente) -->
             <div id="installation-mode-box" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 16px; border-radius: 12px; margin-bottom: 20px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);">
@@ -487,24 +474,16 @@
                     <select id="install-client-id" style="width: 100%; height: 42px;">
                         <!-- Dynamically populated -->
                     </select>
-                    <p style="font-size: 0.72rem; color: #3b82f6; margin: 6px 0 0 0; font-weight: 500;">💡 Al escanear o seleccionar un código QR "virgen", se le asignará este cliente de inmediato.</p>
+                    <p style="font-size: 0.72rem; color: #3b82f6; margin: 6px 0 0 0; font-weight: 500;">💡 Al seleccionar o registrar una nueva estación, se le asignará este cliente de inmediato.</p>
                 </div>
             </div>
             
             <form id="inspection-form" onsubmit="event.preventDefault();">
                 <div class="input-group" style="margin-bottom: 20px;">
-                    <label for="station-id">Número de Estación</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <div style="position: relative; flex: 1;">
-                            <select id="station-id" style="width: 100%; box-sizing: border-box; height: 50px;">
-                                <!-- Dynamically generated options (1-15) -->
-                            </select>
-                            <span id="station-locked-badge" style="display: none; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; font-weight: 600;">🔒 QR Bloqueado</span>
-                        </div>
-                        <button type="button" id="btn-scan-qr" class="btn btn-secondary" style="height: 50px; padding: 0 15px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap; margin-top: 0; border-radius: 10px;">
-                            📷 Escanear QR
-                        </button>
-                    </div>
+                    <label for="station-id">Número de Estación Georreferenciada</label>
+                    <select id="station-id" style="width: 100%; box-sizing: border-box; height: 50px; font-size: 1rem; font-weight: 600;">
+                        <!-- Dynamically generated options (1-15) -->
+                    </select>
                     <!-- Banner for client info linked to selected station -->
                     <div id="station-client-info" style="display: none; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.15); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.82rem; color: #fff;"></div>
                 </div>
@@ -766,15 +745,6 @@
                     </div>
                 </div>
 
-                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; border-radius: 12px;">
-                    <h3 style="margin-top: 0; font-size: 1.1rem; color: #fff; display: flex; align-items: center; gap: 8px;">
-                        🖨️ Generar Lote de Códigos QR
-                    </h3>
-                    <p style="font-size: 0.85rem; color: #ccc; margin: 8px 0 15px 0;">Accede a la herramienta integrada para generar y previsualizar una planilla imprimible de códigos QR adhesivos para tus cajas de cebado (ej. del 1 al 100).</p>
-                    <a href="generador-qr.html" class="btn btn-secondary" style="width: 100%; text-decoration: none; padding: 12px; font-size: 0.95rem; text-align: center; display: block; box-sizing: border-box;">
-                        🛠️ Abrir Generador de QRs
-                    </a>
-                </div>
 
                 <div style="background: rgba(239, 68, 68, 0.03); border: 1px solid rgba(239, 68, 68, 0.15); padding: 20px; border-radius: 12px; margin-top: 15px;">
                     <h3 style="margin-top: 0; font-size: 1.1rem; color: #f87171; display: flex; align-items: center; gap: 8px;">
@@ -907,20 +877,7 @@
 
     </main>
 
-    <!-- Modal de Escaneo QR -->
-    <div id="scanner-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); z-index: 2000; align-items: center; justify-content: center; flex-direction: column; padding: 20px; box-sizing: border-box; backdrop-filter: blur(10px);">
-        <div style="width: 100%; max-width: 450px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 25px; box-sizing: border-box; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
-            <h3 style="margin-top: 0; margin-bottom: 10px; color: #fff; font-size: 1.25rem;">Escanear Código QR</h3>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">Apunta tu cámara hacia el código QR de la estación de cebado.</p>
-            
-            <!-- Video scanner viewbox -->
-            <div id="reader" style="width: 100%; border-radius: 12px; overflow: hidden; background: #000; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);"></div>
-            
-            <button id="btn-close-scanner" class="btn btn-secondary" style="width: 100%; padding: 12px; font-size: 0.95rem; border-radius: 10px;">
-                Cancelar
-            </button>
-        </div>
-    </div>
+
 
     <!-- Modal de Reasignación de Estación -->
     <div id="reassign-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(8px);">

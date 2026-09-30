@@ -467,6 +467,38 @@
             });
         });
 
+        // Auto-fill from micro-calculator params if present
+        try {
+            const paramTipo = urlParams.get('tipo');
+            if (paramTipo) {
+                const radio = Array.from(document.querySelectorAll('input[name="property-type"]')).find(r => r.value.toLowerCase().includes(paramTipo.toLowerCase()));
+                if (radio) {
+                    radio.checked = true;
+                    radio.closest('.custom-option')?.classList.add('selected');
+                }
+            }
+            const paramM2 = urlParams.get('m2');
+            if (paramM2) {
+                const inputConst = document.getElementById('property-size-construction');
+                if (inputConst) inputConst.value = paramM2;
+            }
+            const paramPlaga = urlParams.get('plaga');
+            if (paramPlaga) {
+                const cb = Array.from(document.querySelectorAll('input[name="plagas"]')).find(c => c.value.toLowerCase().includes(paramPlaga.toLowerCase()));
+                if (cb) {
+                    cb.checked = true;
+                    cb.closest('.custom-option')?.classList.add('selected');
+                }
+            }
+            const paramEstimado = urlParams.get('estimado');
+            if (paramEstimado) {
+                const comm = document.getElementById('additional-comments');
+                if (comm) comm.value = `[Presupuesto estimado en calculadora web: ${decodeURIComponent(paramEstimado)}]\n`;
+            }
+        } catch(e) {
+            console.warn("Could not prefill parameters", e);
+        }
+
         // Form Submit Handler
         const form = document.getElementById('public-contact-form');
         if (form) {

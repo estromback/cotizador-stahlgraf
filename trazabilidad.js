@@ -6,7 +6,7 @@
     }
 })();
 
-// trazabilidad.js - Rodent Bait Station Offline QR Tracking System
+// trazabilidad.js - Rodent Bait Station Offline Georeferenced Tracking System
 
 const firebaseConfig = {
   apiKey: "AIzaSyDxz0JQhHBMCZi5kKb4Mtp2bFyZuJ5wfbA",
@@ -458,11 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inputImportJson.addEventListener('change', importJSON);
     }
 
-    // Camera QR Scanner bindings
-    const btnScanQr = document.getElementById('btn-scan-qr');
-    const btnCloseScanner = document.getElementById('btn-close-scanner');
-    if (btnScanQr) btnScanQr.addEventListener('click', openScanner);
-    if (btnCloseScanner) btnCloseScanner.addEventListener('click', closeScanner);
+
     
     // Station dropdown change event
     const stationIdSelect = document.getElementById('station-id');
@@ -1342,10 +1338,10 @@ function checkURLParameters() {
         }
         select.value = idParam;
         select.dispatchEvent(new Event('change'));
-        select.disabled = true; // Lock field for safety in field
-        if (badge) badge.style.display = 'inline-flex';
+        select.disabled = false;
+        if (badge) badge.style.display = 'none';
         
-        // Auto-switch to Registrar tab since a station QR code is locked for active inspection
+        // Auto-switch to Registrar tab
         switchToTab('panel-inspeccionar');
     }
 }
@@ -1397,9 +1393,8 @@ window.selectStationFromMap = function(stationNum) {
         select.value = idVal;
         select.dispatchEvent(new Event('change'));
         
-        // Unlock field in case it was locked by QR scan earlier
+        // Ensure field is unlocked
         select.disabled = false;
-        if (badge) badge.style.display = 'none';
         
         updateStationClientInfo();
         
@@ -1524,11 +1519,9 @@ function saveInspection() {
     inspections.push(newRecord);
     localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
     
-    // Unlock station selection and clear sessionStorage since this scanned QR inspection is completed
+    // Clear session storage and reset station selection
     sessionStorage.removeItem('last_scanned_station_id');
     if (select) select.disabled = false;
-    const badge = document.getElementById('station-locked-badge');
-    if (badge) badge.style.display = 'none';
 
     // Determine client before resetting form
     const stationNum = parseInt(station.replace('ESTACION-', ''), 10);
@@ -1623,7 +1616,7 @@ function resetInspectionForm() {
     // Reset cached GPS coordinates
     lastKnownGPS = null;
     
-    // Restablecer el selector de estación si no está bloqueado por QR activo
+    // Restablecer el selector de estación
     const select = document.getElementById('station-id');
     if (select && !select.disabled) {
         select.value = '';
@@ -2494,124 +2487,7 @@ function importJSON(event) {
     reader.readAsText(file);
 }
 
-// Camera Scanner helper logic using html5-qrcode
-let html5QrcodeScanner = null;
 
-function openScanner() {
-    // If the scanner element exists, show the modal
-    const modal = document.getElementById('scanner-modal');
-    if (!modal) return;
-    modal.style.display = 'flex';
-    
-    // Create new Html5Qrcode instance
-    try {
-        html5QrcodeScanner = new Html5Qrcode("reader");
-        const config = { 
-            fps: 15, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0 
-        };
-        
-        // Start scanning with environment/back camera
-        html5QrcodeScanner.start(
-            { facingMode: "environment" }, 
-            config, 
-            onScanSuccess, 
-            onScanFailure
-        ).catch(err => {
-            console.error("No se pudo iniciar la cámara: ", err);
-            alert("No se pudo iniciar la cámara. Por favor, asegúrate de otorgar permisos de cámara en tu navegador.");
-            closeScanner();
-        });
-    } catch (e) {
-        console.error("Error al inicializar html5-qrcode: ", e);
-        alert("Error al inicializar la cámara.");
-        closeScanner();
-    }
-}
-
-function onScanSuccess(decodedText, decodedResult) {
-    console.log(`Scan success: ${decodedText}`);
-    
-    try {
-        let stationId = null;
-        if (decodedText.startsWith("http")) {
-            const url = new URL(decodedText);
-            stationId = url.searchParams.get("id");
-            if (!stationId) {
-                stationId = url.searchParams.get("");
-            }
-            if (!stationId) {
-                for (const key of url.searchParams.keys()) {
-                    if (key.startsWith('ESTACION-')) {
-                        stationId = key;
-                        break;
-                    }
-                }
-            }
-        } else if (decodedText.startsWith("ESTACION-")) {
-            stationId = decodedText;
-        }
-        
-        if (stationId && stationId.startsWith("ESTACION-")) {
-            const select = document.getElementById('station-id');
-            if (select) {
-                // Ensure this station option exists
-                const exists = Array.from(select.options).some(opt => opt.value === stationId);
-                if (!exists) {
-                    const opt = document.createElement('option');
-                    opt.value = stationId;
-                    opt.textContent = `Estación #${stationId.replace('ESTACION-', '')}`;
-                    select.appendChild(opt);
-                }
-                select.value = stationId;
-                select.dispatchEvent(new Event('change'));
-                select.disabled = true; // Lock dropdown for technical inspection
-                
-                // Show badge
-                const badge = document.getElementById('station-locked-badge');
-                if (badge) badge.style.display = 'inline-flex';
-                
-                // Store in sessionStorage to persist
-                sessionStorage.setItem('last_scanned_station_id', stationId);
-                
-                // Vibrate if supported
-                if (navigator.vibrate) navigator.vibrate(100);
-                
-                closeScanner();
-                
-                // Open Registrar tab automatically to fill the locked station form
-                switchToTab('panel-inspeccionar');
-            }
-        } else {
-            alert(`⚠️ El código QR escaneado no es válido para una estación de cebado.\nContenido: "${decodedText}"`);
-        }
-    } catch (err) {
-        console.error("Error parsing scanned QR text: ", err);
-        alert("Error al procesar el código QR.");
-    }
-}
-
-function onScanFailure(error) {
-    // Failures are triggered continuously on frames without QRs. Keep silent.
-}
-
-function closeScanner() {
-    const modal = document.getElementById('scanner-modal');
-    if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
-        html5QrcodeScanner.stop().then(() => {
-            if (modal) modal.style.display = 'none';
-            html5QrcodeScanner = null;
-        }).catch(err => {
-            console.error("Error stopping camera: ", err);
-            if (modal) modal.style.display = 'none';
-            html5QrcodeScanner = null;
-        });
-    } else {
-        if (modal) modal.style.display = 'none';
-        html5QrcodeScanner = null;
-    }
-}
 
 // Helper: Get chronological timestamp from record for reliable sorting/filtering
 function getRecordTimestamp(record) {
