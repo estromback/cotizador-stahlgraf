@@ -821,7 +821,10 @@ function initOrUpdateMap() {
                 const numStr = String(s.num).padStart(2, '0');
                 
                 let iconHtml = '';
-                if (s.isInspectedInVisit) {
+                if (window.isGeneratingPdf) {
+                    // Modo limpio para informe PDF: círculos limpios con borde blanco, sin tickets ni halos de inspección
+                    iconHtml = `<div style="background-color: ${avgColor}; width: 22px; height: 22px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.55);">${numStr}</div>`;
+                } else if (s.isInspectedInVisit) {
                     iconHtml = `
                         <div style="position: relative; width: 28px; height: 28px; cursor: pointer;">
                             <div style="background-color: ${avgColor}; width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #10b981; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 11px; box-shadow: 0 0 10px rgba(16, 185, 129, 0.8), 0 2px 5px rgba(0,0,0,0.5);">${numStr}</div>
@@ -840,8 +843,8 @@ function initOrUpdateMap() {
                 const customIcon = L.divIcon({
                     className: 'custom-station-icon',
                     html: iconHtml,
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 14]
+                    iconSize: window.isGeneratingPdf ? [22, 22] : [28, 28],
+                    iconAnchor: window.isGeneratingPdf ? [11, 11] : [14, 14]
                 });
 
                 const marker = L.marker([s.coords.lat, s.coords.lng], {
@@ -4393,13 +4396,6 @@ function openReportConfigModal() {
         renderRecommendationsCheckboxes();
     }
     
-    // Sync alerts checkbox with page checkbox if present
-    const pageChkAlerts = document.getElementById('chk-include-alerts');
-    const modalChkAlerts = document.getElementById('modal-chk-include-alerts');
-    if (pageChkAlerts && modalChkAlerts) {
-        modalChkAlerts.checked = pageChkAlerts.checked;
-    }
-
     const modal = document.getElementById('report-config-modal');
     if (modal) {
         modal.style.display = 'flex';
@@ -4494,7 +4490,7 @@ async function executeGeneratePDFReport() {
     if (includeAlerts) {
         if (clientSummary.criticalCount > 0) {
             recommendationsHTML += `
-                <div style="margin-bottom: 14px; padding: 14px 16px; border-left: 5px solid #ef4444; background: #fef2f2; border-radius: 6px;">
+                <div class="rec-card" style="margin-bottom: 14px; padding: 14px 16px; border-left: 5px solid #ef4444; background: #fef2f2; border-radius: 6px; page-break-inside: avoid !important; break-inside: avoid !important;">
                     <h4 style="margin: 0 0 6px 0; color: #991b1b; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
                         <span>🚨</span> Diagnóstico de Alerta Crítica en el Predio
                     </h4>
@@ -4505,7 +4501,7 @@ async function executeGeneratePDFReport() {
             `;
         } else if (clientSummary.lastVisitAvgConsumption > 20 || clientSummary.avgConsumption > 20) {
             recommendationsHTML += `
-                <div style="margin-bottom: 14px; padding: 14px 16px; border-left: 5px solid #fbbf24; background: #fffbef; border-radius: 6px;">
+                <div class="rec-card" style="margin-bottom: 14px; padding: 14px 16px; border-left: 5px solid #fbbf24; background: #fffbef; border-radius: 6px; page-break-inside: avoid !important; break-inside: avoid !important;">
                     <h4 style="margin: 0 0 6px 0; color: #92400e; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
                         <span>⚠️</span> Diagnóstico de Actividad Moderada
                     </h4>
@@ -4516,7 +4512,7 @@ async function executeGeneratePDFReport() {
             `;
         } else {
             recommendationsHTML += `
-                <div style="margin-bottom: 14px; padding: 14px 16px; border-left: 5px solid #10b981; background: #ecfdf5; border-radius: 6px;">
+                <div class="rec-card" style="margin-bottom: 14px; padding: 14px 16px; border-left: 5px solid #10b981; background: #ecfdf5; border-radius: 6px; page-break-inside: avoid !important; break-inside: avoid !important;">
                     <h4 style="margin: 0 0 6px 0; color: #065f46; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
                         <span>✅</span> Diagnóstico del Predio: Bajo Control
                     </h4>
@@ -4531,7 +4527,7 @@ async function executeGeneratePDFReport() {
     // 1.2 Selected recommendations list
     if (selectedRecs.length > 0) {
         recommendationsHTML += `
-            <div style="margin-bottom: 14px; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+            <div class="rec-card" style="margin-bottom: 14px; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; page-break-inside: avoid !important; break-inside: avoid !important;">
                 <h4 style="margin: 0 0 8px 0; color: #1e3a8a; font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
                     <span>📋</span> Recomendaciones Técnicas y Medidas Preventivas Acordadas:
                 </h4>
@@ -4542,7 +4538,7 @@ async function executeGeneratePDFReport() {
         `;
     } else {
         recommendationsHTML += `
-            <div style="margin-bottom: 14px; padding: 12px 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; font-size: 0.8rem; color: #64748b; font-style: italic;">
+            <div class="rec-card" style="margin-bottom: 14px; padding: 12px 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; font-size: 0.8rem; color: #64748b; font-style: italic; page-break-inside: avoid !important; break-inside: avoid !important;">
                 ℹ️ No se seleccionaron recomendaciones preventivas adicionales para esta visita técnica.
             </div>
         `;
@@ -4551,7 +4547,7 @@ async function executeGeneratePDFReport() {
     // 1.3 Custom notes
     if (customNotes) {
         recommendationsHTML += `
-            <div style="margin-bottom: 10px; padding: 12px 16px; background: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px;">
+            <div class="rec-card" style="margin-bottom: 12px; padding: 12px 16px; background: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px; page-break-inside: avoid !important; break-inside: avoid !important;">
                 <h4 style="margin: 0 0 6px 0; color: #065f46; font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
                     <span>✍️</span> Observaciones Técnicas en Terreno:
                 </h4>
@@ -4592,7 +4588,7 @@ async function executeGeneratePDFReport() {
         const warningIcon = (isCritical && includeAlerts) ? ' <span style="color: #ef4444;">🚨</span>' : '';
         
         latestInspectionsHTML += `
-            <tr style="border-bottom: 1px solid #e2e8f0; font-size: 0.8rem;">
+            <tr style="border-bottom: 1px solid #e2e8f0; font-size: 0.8rem; page-break-inside: avoid; break-inside: avoid;">
                 <td style="padding: 10px 8px; font-weight: 700; color: #1e293b; text-align: left;">Estación #${String(num).padStart(2, '0')}${warningIcon}</td>
                 <td style="padding: 10px 8px; text-align: center;">${lastDate}</td>
                 <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: ${lastCons === '0%' ? '#10b981' : lastCons === '25-50%' ? '#fbbf24' : '#ef4444'};">${lastCons}</td>
@@ -4627,7 +4623,7 @@ async function executeGeneratePDFReport() {
         }
         
         historyHTML += `
-            <div style="margin-bottom: 15px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; page-break-inside: avoid;">
+            <div style="margin-bottom: 15px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; page-break-inside: avoid; break-inside: avoid;">
                 <h5 style="margin: 0 0 6px 0; font-size: 0.85rem; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; font-weight: 700;">
                     Estación #${String(num).padStart(2, '0')}
                 </h5>
@@ -4651,13 +4647,17 @@ async function executeGeneratePDFReport() {
     const originalMapNextSibling = originalMap ? originalMap.nextSibling : null;
     
     let mapSectionHTML = "";
+    let mapPageBreakHTML = "";
     if (includeMap) {
         mapSectionHTML = `
-            <div class="doc-section">
+            <div class="doc-section" style="page-break-inside: avoid; break-inside: avoid;">
                 <h2>2. Plano Satelital del Predio</h2>
                 <div id="pdf-map-placeholder" style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; height: 350px; background: #f8fafc; width: 100%;"></div>
             </div>
         `;
+        // Cuando se incluye el mapa, este completa la Página 1 junto con el Header e Información General.
+        // Se hace un salto de página limpio para que la Sección 3 (Recomendaciones y Notas) inicie fresca en la Página 2 sin cortarse.
+        mapPageBreakHTML = `<div style="page-break-before: always; break-before: always;"></div>`;
     }
 
     // 4. Create floating status toast notification
@@ -4683,6 +4683,13 @@ async function executeGeneratePDFReport() {
     `;
     statusToast.innerHTML = `<span>⚙️</span> Generando Informe de Trazabilidad... Por favor espera unos segundos.`;
     document.body.appendChild(statusToast);
+
+    // Switch map markers to clean PDF mode (white border, no tickets/halos)
+    window.isGeneratingPdf = true;
+    if (includeMap && originalMap) {
+        initOrUpdateMap();
+        await new Promise(r => setTimeout(r, 200));
+    }
 
     // 5. Create printable report wrapper at fixed top: 0, left: 0
     const pdfWrapper = document.createElement('div');
@@ -4722,7 +4729,7 @@ async function executeGeneratePDFReport() {
     
     reportContainer.innerHTML = `
         <!-- Header -->
-        <div class="doc-header" style="border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
+        <div class="doc-header" style="border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; page-break-inside: avoid; break-inside: avoid;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <img src="logo.png" alt="Stahlgraf Logo" style="max-height: 90px; width: auto; object-fit: contain;" onerror="this.style.display='none'">
                 <div style="text-align: right;">
@@ -4734,7 +4741,7 @@ async function executeGeneratePDFReport() {
         </div>
         
         <!-- Client Details card -->
-        <div class="doc-section">
+        <div class="doc-section" style="page-break-inside: avoid; break-inside: avoid;">
             <h2>1. Información del Cliente & Resumen</h2>
             <table class="doc-table-simple">
                 <tr>
@@ -4759,17 +4766,16 @@ async function executeGeneratePDFReport() {
         </div>
 
         ${mapSectionHTML}
+        ${mapPageBreakHTML}
         
         <!-- Recommendations block -->
-        <div class="doc-section">
+        <div class="doc-section" style="page-break-inside: avoid; break-inside: avoid;">
             <h2>3. Diagnóstico y Recomendaciones de Control</h2>
             ${recommendationsHTML}
         </div>
-        
-        <div style="page-break-before: always;"></div>
 
         <!-- Latest inspections details -->
-        <div class="doc-section">
+        <div class="doc-section" style="page-break-inside: avoid; break-inside: avoid;">
             <h2>4. Detalles de Última Inspección por Caja</h2>
             <table class="doc-table-simple" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
                 <thead>
@@ -4788,8 +4794,10 @@ async function executeGeneratePDFReport() {
             </table>
         </div>
         
+        <div style="page-break-before: always; break-before: always;"></div>
+
         <!-- Historical entries per box -->
-        <div class="doc-section">
+        <div class="doc-section" style="page-break-inside: avoid; break-inside: avoid;">
             <h2>5. Historial Cronológico por Estación</h2>
             <div>
                 ${historyHTML}
@@ -4812,7 +4820,7 @@ async function executeGeneratePDFReport() {
         }
     }
 
-    // Give Leaflet tiles and browser layout a short tick to render
+    // Give Leaflet tiles and browser layout time to render
     await new Promise(r => setTimeout(r, 450));
 
     try {
@@ -4828,7 +4836,10 @@ async function executeGeneratePDFReport() {
                 scrollY: 0
             },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'] }
+            pagebreak: { 
+                mode: ['css', 'legacy'],
+                avoid: ['.doc-section', '.rec-card', 'tr', '.no-break']
+            }
         };
         
         const worker = html2pdf().set(options).from(reportContainer);
@@ -4879,6 +4890,7 @@ async function executeGeneratePDFReport() {
         console.error("PDF generation failed:", err);
         alert("⚠️ Error al generar el PDF. Ocurrió un problema inesperado.");
     } finally {
+        window.isGeneratingPdf = false;
         // Restore Leaflet map to original DOM container if it was moved
         if (includeMap && originalMap && originalMapParent) {
             originalMap.style.width = '';
@@ -4891,6 +4903,8 @@ async function executeGeneratePDFReport() {
             if (typeof leafletMap !== 'undefined' && leafletMap) {
                 leafletMap.invalidateSize();
             }
+            // Restore interactive inspection markers (with tickets and status borders)
+            initOrUpdateMap();
         }
         if (pdfWrapper && pdfWrapper.parentNode) {
             pdfWrapper.parentNode.removeChild(pdfWrapper);

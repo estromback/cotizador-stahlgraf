@@ -294,6 +294,13 @@ h1, h2, h3, h4 {
 
 .doc-section {
     margin-bottom: 25px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.rec-card {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
 }
 
 .doc-section h2 {
