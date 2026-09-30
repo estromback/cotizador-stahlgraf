@@ -4536,12 +4536,6 @@ async function executeGeneratePDFReport() {
                 </ul>
             </div>
         `;
-    } else {
-        recommendationsHTML += `
-            <div class="rec-card" style="margin-bottom: 14px; padding: 12px 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; font-size: 0.8rem; color: #64748b; font-style: italic; page-break-inside: avoid !important; break-inside: avoid !important;">
-                ℹ️ No se seleccionaron recomendaciones preventivas adicionales para esta visita técnica.
-            </div>
-        `;
     }
 
     // 1.3 Custom notes
@@ -4769,14 +4763,16 @@ async function executeGeneratePDFReport() {
         ${mapPageBreakHTML}
         
         <!-- Recommendations block -->
+        ${recommendationsHTML ? `
         <div class="doc-section" style="page-break-inside: avoid; break-inside: avoid;">
             <h2>3. Diagnóstico y Recomendaciones de Control</h2>
             ${recommendationsHTML}
         </div>
+        ` : ''}
 
         <!-- Latest inspections details -->
         <div class="doc-section" style="page-break-inside: avoid; break-inside: avoid;">
-            <h2>4. Detalles de Última Inspección por Caja</h2>
+            <h2>4. Detalles de Última Inspección por Estación</h2>
             <table class="doc-table-simple" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
                 <thead>
                     <tr style="background: #1e3a8a; color: #ffffff; font-size: 0.85rem;">
