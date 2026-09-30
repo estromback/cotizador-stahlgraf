@@ -502,6 +502,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnSaveAssignment) {
         btnSaveAssignment.addEventListener('click', registerAssignment);
     }
+
+    const assignClientIdSelect = document.getElementById('assign-client-id');
+    if (assignClientIdSelect) {
+        assignClientIdSelect.addEventListener('change', updateClientCurrentRangesHint);
+    }
     
     // Client filter in Monitoreo
     const filterClientIdSelect = document.getElementById('filter-client-id');
@@ -1309,6 +1314,10 @@ function switchToTab(targetId) {
     }
     if (targetId === 'panel-inspeccionar') {
         requestGPSLock();
+    }
+    if (targetId === 'panel-asignaciones') {
+        renderAssignmentsList();
+        updateClientCurrentRangesHint();
     }
 }
 
@@ -2419,6 +2428,7 @@ function populateClientsDropdown() {
                 select.appendChild(opt);
             });
         }
+        updateClientCurrentRangesHint();
     }
     
     if (selectInstall) {
@@ -2476,6 +2486,444 @@ function populateClientsDropdown() {
     }
 }
 
+// Helper: Calculate stations availability, gaps between assigned ranges, and next free numbers
+function getStationAvailability() {
+    const assignments = globalAppData.stationAssignments || [];
+    
+    // Collect all occupied station numbers and map station -> { clientId, clientName }
+    const occupiedMap = new Map();
+    let maxAssigned = 0;
+    
+    assignments.forEach(asg => {
+        const s = parseInt(asg.start, 10);
+        const e = parseInt(asg.end, 10);
+        if (!isNaN(s) && !isNaN(e) && s > 0 && e >= s) {
+            for (let i = s; i <= e; i++) {
+                occupiedMap.set(i, {
+                    clientId: asg.clientId,
+                    clientName: asg.clientName
+                });
+            }
+            if (e > maxAssigned) maxAssigned = e;
+        }
+    });
+    
+    // Also consider max station from local inspections
+    let maxFromInspections = 0;
+    if (typeof inspections !== 'undefined' && Array.isArray(inspections)) {
+        inspections.forEach(item => {
+            const num = parseInt((item.station || '').replace('ESTACION-', ''), 10);
+            if (!isNaN(num) && num > maxFromInspections) maxFromInspections = num;
+        });
+    }
+    
+    const maxGlobal = Math.max(maxAssigned, maxFromInspections, maxAssigned > 0 ? maxAssigned : 15);
+    
+    // Identify available gaps between 1 and maxGlobal
+    const availableGaps = [];
+    const stripBlocks = [];
+    let currentBlock = null;
+    
+    for (let i = 1; i <= maxGlobal; i++) {
+        const occ = occupiedMap.get(i);
+        const isFree = !occ;
+        const blockType = isFree ? 'free' : 'assigned';
+        const clientName = occ ? occ.clientName : null;
+        const clientId = occ ? occ.clientId : null;
+        
+        if (!currentBlock) {
+            currentBlock = {
+                type: blockType,
+                start: i,
+                end: i,
+                count: 1,
+                clientName,
+                clientId
+            };
+        } else {
+            const sameGroup = (currentBlock.type === blockType) && 
+                (blockType === 'free' || (currentBlock.clientName === clientName && currentBlock.clientId === clientId));
+            
+            if (sameGroup) {
+                currentBlock.end = i;
+                currentBlock.count++;
+            } else {
+                stripBlocks.push(currentBlock);
+                if (currentBlock.type === 'free') {
+                    availableGaps.push({ ...currentBlock });
+                }
+                currentBlock = {
+                    type: blockType,
+                    start: i,
+                    end: i,
+                    count: 1,
+                    clientName,
+                    clientId
+                };
+            }
+        }
+    }
+    
+    if (currentBlock) {
+        stripBlocks.push(currentBlock);
+        if (currentBlock.type === 'free') {
+            availableGaps.push({ ...currentBlock });
+        }
+    }
+    
+    const totalAssigned = occupiedMap.size;
+    const totalGaps = availableGaps.reduce((acc, g) => acc + g.count, 0);
+    const nextFree = maxAssigned > 0 ? (maxAssigned + 1) : 1;
+    
+    return {
+        maxGlobal,
+        maxAssigned,
+        totalAssigned,
+        totalGaps,
+        availableGaps,
+        stripBlocks,
+        nextFree,
+        occupiedMap
+    };
+}
+
+// Action: Render Available Ranges and Mini-Occupation Strip
+function renderAvailableRanges() {
+    const metricsBar = document.getElementById('availability-metrics-bar');
+    const container = document.getElementById('available-ranges-container');
+    const stripContainer = document.getElementById('visual-occupation-container');
+    if (!container) return;
+    
+    const availability = getStationAvailability();
+    
+    // 1. Render Metrics Bar
+    if (metricsBar) {
+        metricsBar.innerHTML = `
+            <div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 6px 12px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px;">
+                <span style="color: #60a5fa; font-weight: 700; font-size: 0.95rem;">${availability.totalAssigned}</span>
+                <span style="color: var(--text-muted);">Asignadas</span>
+            </div>
+            <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 6px 12px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px;">
+                <span style="color: #34d399; font-weight: 700; font-size: 0.95rem;">${availability.totalGaps}</span>
+                <span style="color: var(--text-muted);">Libres en Huecos</span>
+            </div>
+            <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 6px 12px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px;">
+                <span style="color: #fbbf24; font-weight: 700; font-size: 0.95rem;">#${availability.nextFree}+</span>
+                <span style="color: var(--text-muted);">Siguiente Nueva</span>
+            </div>
+        `;
+    }
+    
+    // 2. Render Available Gaps List
+    if (availability.totalAssigned === 0) {
+        container.innerHTML = `
+            <div style="padding: 14px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; margin-bottom: 10px;">
+                <div style="font-weight: 600; color: #34d399; font-size: 0.92rem; margin-bottom: 4px;">
+                    🟢 Todas las estaciones disponibles
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">
+                    Aún no hay estaciones asignadas a clientes. Puedes comenzar asignando desde la estación #1.
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="useAvailableRange(1, 15)" style="padding: 6px 12px; font-size: 0.78rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; cursor: pointer;">
+                    ⚡ Asignar lote inicial (1 al 15)
+                </button>
+            </div>
+        `;
+    } else if (availability.availableGaps.length === 0) {
+        container.innerHTML = `
+            <div style="padding: 10px 14px; background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-muted); font-size: 0.82rem; margin-bottom: 8px; text-align: center;">
+                ✨ No hay huecos libres entre estaciones asignadas (todas consecutivas del 1 al ${availability.maxAssigned}).
+            </div>
+        `;
+    } else {
+        container.innerHTML = availability.availableGaps.map(gap => `
+            <div class="available-gap-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;">
+                <div>
+                    <div style="font-weight: 600; color: #34d399; font-size: 0.92rem;">
+                        🟢 Estaciones ${gap.start === gap.end ? '#' + gap.start : gap.start + ' al ' + gap.end}
+                    </div>
+                    <div style="font-size: 0.76rem; color: var(--text-muted);">
+                        ${gap.count === 1 ? '1 estación libre disponible en este hueco' : gap.count + ' estaciones libres disponibles en este hueco'}
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary" onclick="useAvailableRange(${gap.start}, ${gap.end})" title="Cargar este rango en el formulario" style="padding: 5px 10px; font-size: 0.78rem; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+                    ⚡ Usar Rango
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    // Add Next Available item at the end of the container
+    if (availability.totalAssigned > 0) {
+        const nextElem = document.createElement('div');
+        nextElem.className = 'available-gap-item';
+        nextElem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; padding: 10px 12px; margin-top: 8px;';
+        nextElem.innerHTML = `
+            <div>
+                <div style="font-weight: 600; color: #60a5fa; font-size: 0.92rem;">
+                    🚀 Estación #${availability.nextFree} en adelante
+                </div>
+                <div style="font-size: 0.76rem; color: var(--text-muted);">
+                    Libre para nuevos lotes sin límite superior
+                </div>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="useNextAvailableStation(${availability.nextFree})" title="Comenzar desde la estación #${availability.nextFree}" style="padding: 5px 10px; font-size: 0.78rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+                ⚡ Iniciar en #${availability.nextFree}
+            </button>
+        `;
+        container.appendChild(nextElem);
+    }
+    
+    // 3. Render Visual Occupation Strip
+    if (stripContainer && availability.stripBlocks.length > 0) {
+        const stripHtml = availability.stripBlocks.map(block => {
+            if (block.type === 'free') {
+                return `
+                    <div class="visual-strip-block" onclick="useAvailableRange(${block.start}, ${block.end})" title="Hueco Libre: Estaciones ${block.start} a ${block.end} (${block.count} est.) - Clic para usar" style="background: rgba(16, 185, 129, 0.22); border: 1px solid #10b981; color: #34d399; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; white-space: nowrap; cursor: pointer; font-weight: 600;">
+                        🟢 ${block.start === block.end ? '#' + block.start : block.start + '-' + block.end} (${block.count})
+                    </div>
+                `;
+            } else {
+                const safeName = block.clientName || 'Asignado';
+                const truncName = safeName.length > 12 ? safeName.substring(0, 10) + '..' : safeName;
+                return `
+                    <div class="visual-strip-block" title="Asignado a: ${safeName} (Estaciones ${block.start} a ${block.end}, total ${block.count} est.)" style="background: rgba(59, 130, 246, 0.22); border: 1px solid #3b82f6; color: #93c5fd; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; white-space: nowrap; cursor: default;">
+                        🔵 ${block.start === block.end ? '#' + block.start : block.start + '-' + block.end} (${truncName})
+                    </div>
+                `;
+            }
+        }).join('');
+        
+        stripContainer.innerHTML = `
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                <span>🗺️ <strong>Línea de Ocupación</strong> (Estaciones 1 al ${availability.maxGlobal}):</span>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">🟢 Libre | 🔵 Asignado</span>
+            </div>
+            <div class="visual-station-strip" style="display: flex; gap: 5px; overflow-x: auto; padding: 4px 0 6px 0; scrollbar-width: thin;">
+                ${stripHtml}
+                <div class="visual-strip-block" onclick="useNextAvailableStation(${availability.nextFree})" title="Nuevo Lote: Estación #${availability.nextFree} en adelante - Clic para iniciar" style="background: rgba(245, 158, 11, 0.15); border: 1px dashed #f59e0b; color: #fbbf24; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; white-space: nowrap; cursor: pointer; font-weight: 600;">
+                    🚀 #${availability.nextFree}+
+                </div>
+            </div>
+        `;
+    } else if (stripContainer) {
+        stripContainer.innerHTML = '';
+    }
+}
+
+// Helper: Show currently assigned ranges for the client selected in assign-client-id
+function updateClientCurrentRangesHint() {
+    const select = document.getElementById('assign-client-id');
+    const hintDiv = document.getElementById('assign-client-current-info');
+    if (!select || !hintDiv) return;
+    
+    const clientId = select.value;
+    const clientOption = select.options[select.selectedIndex];
+    const clientName = clientOption ? clientOption.textContent : '';
+    
+    if (!clientId && !clientName) {
+        hintDiv.style.display = 'none';
+        return;
+    }
+    
+    const assignments = (globalAppData.stationAssignments || []).filter(asg => 
+        (clientId && asg.clientId === clientId) || (!clientId && asg.clientName === clientName) || (asg.clientName === clientName)
+    );
+    
+    if (assignments.length === 0) {
+        hintDiv.style.display = 'block';
+        hintDiv.innerHTML = `
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 12px; font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                <span>ℹ️ <strong>${clientName}</strong> aún no tiene estaciones asignadas.</span>
+            </div>
+        `;
+        return;
+    }
+    
+    const sorted = assignments.map(a => ({
+        start: parseInt(a.start, 10),
+        end: parseInt(a.end, 10),
+        count: Math.max(0, parseInt(a.end, 10) - parseInt(a.start, 10) + 1)
+    })).filter(a => !isNaN(a.start) && !isNaN(a.end)).sort((a, b) => a.start - b.start);
+    
+    const totalEst = sorted.reduce((sum, r) => sum + r.count, 0);
+    const rangesStr = sorted.map(r => r.start === r.end ? `#${r.start}` : `${r.start} al ${r.end}`).join(', ');
+    
+    hintDiv.style.display = 'block';
+    hintDiv.innerHTML = `
+        <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; color: #93c5fd; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+            <div>
+                <strong>👤 ${clientName}</strong> tiene asignadas: 
+                <span style="font-weight: 600; color: #fff;">Estaciones ${rangesStr}</span>
+            </div>
+            <div style="background: rgba(59, 130, 246, 0.2); padding: 2px 8px; border-radius: 10px; font-weight: 700; color: #60a5fa; font-size: 0.78rem;">
+                Total: ${totalEst} est.
+            </div>
+        </div>
+    `;
+}
+
+// Action: Quick-populate inputs from available range
+function useAvailableRange(start, end) {
+    const startInput = document.getElementById('assign-start');
+    const endInput = document.getElementById('assign-end');
+    if (startInput && endInput) {
+        startInput.value = start;
+        endInput.value = end;
+        startInput.focus();
+        startInput.style.borderColor = '#10b981';
+        endInput.style.borderColor = '#10b981';
+        setTimeout(() => {
+            startInput.style.borderColor = '';
+            endInput.style.borderColor = '';
+        }, 1200);
+        
+        const formElem = document.getElementById('assignment-form');
+        if (formElem) {
+            formElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+}
+
+// Action: Quick-populate start input from next free station
+function useNextAvailableStation(nextNum) {
+    const startInput = document.getElementById('assign-start');
+    const endInput = document.getElementById('assign-end');
+    if (startInput && endInput) {
+        startInput.value = nextNum;
+        endInput.value = nextNum;
+        endInput.focus();
+        endInput.select();
+        startInput.style.borderColor = '#3b82f6';
+        endInput.style.borderColor = '#3b82f6';
+        setTimeout(() => {
+            startInput.style.borderColor = '';
+            endInput.style.borderColor = '';
+        }, 1200);
+        
+        const formElem = document.getElementById('assignment-form');
+        if (formElem) {
+            formElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+}
+
+// Action: Pre-select client and focus assignment form from grouped list
+function prepareAssignForClient(clientId, clientNameEscaped) {
+    const clientName = decodeURIComponent(clientNameEscaped);
+    const clientSelect = document.getElementById('assign-client-id');
+    if (clientSelect) {
+        if (clientId && Array.from(clientSelect.options).some(o => o.value === clientId)) {
+            clientSelect.value = clientId;
+        } else {
+            const opt = Array.from(clientSelect.options).find(o => o.textContent === clientName);
+            if (opt) clientSelect.value = opt.value;
+        }
+        updateClientCurrentRangesHint();
+    }
+    
+    // Auto-suggest first available gap or next free station
+    const availability = getStationAvailability();
+    const startInput = document.getElementById('assign-start');
+    const endInput = document.getElementById('assign-end');
+    if (startInput && endInput) {
+        if (availability.availableGaps.length > 0) {
+            startInput.value = availability.availableGaps[0].start;
+            endInput.value = availability.availableGaps[0].end;
+        } else {
+            startInput.value = availability.nextFree;
+            endInput.value = availability.nextFree;
+        }
+        startInput.focus();
+    }
+    
+    const formElem = document.getElementById('assignment-form');
+    if (formElem) {
+        formElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+// Action: Merge touching/contiguous ranges for a client
+function mergeClientContiguousRanges(clientId, clientNameEscaped) {
+    const clientName = decodeURIComponent(clientNameEscaped);
+    if (!globalAppData.stationAssignments) return;
+    
+    const clientAsgs = globalAppData.stationAssignments.filter(asg => 
+        (clientId && asg.clientId === clientId) || (!clientId && asg.clientName === clientName) || (asg.clientName === clientName)
+    );
+    
+    if (clientAsgs.length <= 1) return;
+    
+    const sorted = clientAsgs.map(a => ({
+        id: a.id,
+        clientId: a.clientId,
+        clientName: a.clientName,
+        start: parseInt(a.start, 10),
+        end: parseInt(a.end, 10)
+    })).filter(a => !isNaN(a.start) && !isNaN(a.end)).sort((a, b) => a.start - b.start);
+    
+    const merged = [];
+    sorted.forEach(curr => {
+        if (merged.length === 0) {
+            merged.push({ ...curr });
+        } else {
+            const prev = merged[merged.length - 1];
+            if (curr.start <= prev.end + 1) {
+                prev.end = Math.max(prev.end, curr.end);
+            } else {
+                merged.push({ ...curr });
+            }
+        }
+    });
+    
+    if (merged.length === clientAsgs.length) {
+        alert("No hay rangos continuos o superpuestos para unir en este cliente.");
+        return;
+    }
+    
+    const otherAssignments = globalAppData.stationAssignments.filter(asg => 
+        !((clientId && asg.clientId === clientId) || (!clientId && asg.clientName === clientName) || (asg.clientName === clientName))
+    );
+    
+    const newClientAsgs = merged.map((m, idx) => ({
+        id: 'asg_' + Date.now() + '_' + idx,
+        clientId: clientId || m.clientId,
+        clientName: clientName || m.clientName,
+        start: m.start,
+        end: m.end
+    }));
+    
+    globalAppData.stationAssignments = [...otherAssignments, ...newClientAsgs];
+    saveGlobalAppData();
+    
+    generateStationDropdown();
+    renderAssignmentsList();
+    renderMonitoreo();
+    updateStationClientInfo();
+    updateClientCurrentRangesHint();
+    
+    alert(`✅ Se unieron los rangos continuos de ${clientName} con éxito.`);
+}
+
+// Action: Delete all station assignments for a specific client
+function deleteAllAssignmentsForClient(clientId, clientNameEscaped) {
+    const clientName = decodeURIComponent(clientNameEscaped);
+    if (!confirm(`¿Estás seguro de que deseas eliminar TODAS las asignaciones de estaciones para "${clientName}"?`)) return;
+    
+    if (globalAppData.stationAssignments) {
+        globalAppData.stationAssignments = globalAppData.stationAssignments.filter(asg => 
+            !((clientId && asg.clientId === clientId) || (!clientId && asg.clientName === clientName) || (asg.clientName === clientName))
+        );
+        saveGlobalAppData();
+        
+        generateStationDropdown();
+        renderAssignmentsList();
+        renderMonitoreo();
+        updateStationClientInfo();
+        updateClientCurrentRangesHint();
+    }
+}
+
 // Action: Register new station range assignment
 function registerAssignment() {
     const clientSelect = document.getElementById('assign-client-id');
@@ -2510,13 +2958,85 @@ function registerAssignment() {
     });
     
     if (overlap) {
-        if (!confirm(`⚠️ El rango ${start} - ${end} se cruza con otra asignación:\nCliente: ${overlap.clientName} (Rango: ${overlap.start} - ${overlap.end})\n\n¿Deseas registrarla de todas formas?`)) {
+        const isSameClient = (overlap.clientId && overlap.clientId === clientId) || 
+                             (!overlap.clientId && overlap.clientName === clientName) ||
+                             (overlap.clientName === clientName);
+        
+        if (isSameClient) {
+            const mergedStart = Math.min(start, parseInt(overlap.start, 10));
+            const mergedEnd = Math.max(end, parseInt(overlap.end, 10));
+            const confirmMerge = confirm(
+                `ℹ️ El rango ${start} - ${end} se superpone con una asignación existente de ${overlap.clientName} (Rango: ${overlap.start} al ${overlap.end}).\n\n` +
+                `¿Deseas fusionar y ampliar ambos rangos automáticamente en uno solo (${mergedStart} al ${mergedEnd})?`
+            );
+            if (confirmMerge) {
+                overlap.start = mergedStart;
+                overlap.end = mergedEnd;
+                saveGlobalAppData();
+                
+                document.getElementById('assign-start').value = '';
+                document.getElementById('assign-end').value = '';
+                generateStationDropdown();
+                renderAssignmentsList();
+                renderMonitoreo();
+                updateStationClientInfo();
+                updateClientCurrentRangesHint();
+                
+                alert(`✅ Rango ampliado con éxito a ${mergedStart} - ${mergedEnd} para ${clientName}.`);
+                return;
+            } else {
+                return;
+            }
+        } else {
+            if (!confirm(
+                `⚠️ CONFLICTO DE ASIGNACIÓN:\n` +
+                `El rango ${start} - ${end} se cruza con estaciones ya asignadas a OTRO cliente:\n` +
+                `Cliente: ${overlap.clientName} (Rango: ${overlap.start} - ${overlap.end})\n\n` +
+                `¿Deseas registrarla de todas formas? (Puede generar inconsistencias de duplicidad)`
+            )) {
+                return;
+            }
+        }
+    }
+    
+    // Check if contiguous with an existing range of the same client
+    const contiguous = assignments.find(item => {
+        const isSame = (item.clientId && item.clientId === clientId) || 
+                       (!item.clientId && item.clientName === clientName) ||
+                       (item.clientName === clientName);
+        if (!isSame) return false;
+        const s = parseInt(item.start, 10);
+        const e = parseInt(item.end, 10);
+        return (start === e + 1 || end === s - 1);
+    });
+    
+    if (contiguous) {
+        const mergedStart = Math.min(start, parseInt(contiguous.start, 10));
+        const mergedEnd = Math.max(end, parseInt(contiguous.end, 10));
+        const confirmContiguous = confirm(
+            `ℹ️ El rango ${start} - ${end} es consecutivo con el rango existente de ${clientName} (${contiguous.start} - ${contiguous.end}).\n\n` +
+            `¿Deseas unir ambos rangos en uno solo continuo (${mergedStart} al ${mergedEnd})?`
+        );
+        if (confirmContiguous) {
+            contiguous.start = mergedStart;
+            contiguous.end = mergedEnd;
+            saveGlobalAppData();
+            
+            document.getElementById('assign-start').value = '';
+            document.getElementById('assign-end').value = '';
+            generateStationDropdown();
+            renderAssignmentsList();
+            renderMonitoreo();
+            updateStationClientInfo();
+            updateClientCurrentRangesHint();
+            
+            alert(`✅ Rango de estaciones unido exitosamente (${mergedStart} al ${mergedEnd}) para ${clientName}.`);
             return;
         }
     }
     
     const newAssignment = {
-        id: 'asg_' + Date.now(),
+        id: 'asg_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
         clientId,
         clientName,
         start,
@@ -2539,31 +3059,155 @@ function registerAssignment() {
     renderAssignmentsList();
     renderMonitoreo();
     updateStationClientInfo();
+    updateClientCurrentRangesHint();
     
     alert(`✅ Rango de estaciones ${start} a ${end} asignado con éxito a ${clientName}.`);
 }
 
-// Action: Render assignments list table
+// Action: Render assignments list table grouped by client
 function renderAssignmentsList() {
     const tbody = document.getElementById('assignments-list');
     if (!tbody) return;
     tbody.innerHTML = '';
     
+    // Refresh available ranges & client hint
+    renderAvailableRanges();
+    updateClientCurrentRangesHint();
+    
     const assignments = globalAppData.stationAssignments || [];
     if (assignments.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#888; padding:20px;">No hay rangos de estaciones asignados aún.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#888; padding:30px;">No hay rangos de estaciones asignados aún. Registra el primer rango arriba.</td></tr>`;
         return;
     }
     
+    const searchInput = document.getElementById('search-assignments');
+    const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    
+    // Group assignments by client
+    const clientMap = new Map();
+    
     assignments.forEach(asg => {
+        const start = parseInt(asg.start, 10);
+        const end = parseInt(asg.end, 10);
+        if (isNaN(start) || isNaN(end) || start <= 0) return;
+        
+        const client = (globalAppData.clients || []).find(c => c.id === asg.clientId || c.name === asg.clientName);
+        const clientId = asg.clientId || (client ? client.id : '');
+        const clientName = asg.clientName || (client ? client.name : 'Sin Nombre');
+        const groupKey = clientId || clientName;
+        
+        if (!clientMap.has(groupKey)) {
+            clientMap.set(groupKey, {
+                clientId: clientId,
+                clientName: clientName,
+                address: client ? client.address : '',
+                phone: client ? client.phone : '',
+                ranges: []
+            });
+        }
+        
+        clientMap.get(groupKey).ranges.push({
+            id: asg.id || ('asg_' + start + '_' + end),
+            start: start,
+            end: end,
+            count: Math.max(0, end - start + 1)
+        });
+    });
+    
+    const groups = Array.from(clientMap.values());
+    
+    // Sort ranges inside each client group
+    groups.forEach(g => {
+        g.ranges.sort((a, b) => a.start - b.start);
+        g.totalStations = g.ranges.reduce((acc, r) => acc + r.count, 0);
+    });
+    
+    // Filter by search query if present
+    let filteredGroups = groups;
+    if (query) {
+        filteredGroups = groups.filter(g => {
+            const matchesName = g.clientName.toLowerCase().includes(query);
+            const matchesAddr = g.address && g.address.toLowerCase().includes(query);
+            const queryNum = parseInt(query, 10);
+            const matchesNum = !isNaN(queryNum) && g.ranges.some(r => queryNum >= r.start && queryNum <= r.end);
+            const matchesRangeText = g.ranges.some(r => String(r.start).includes(query) || String(r.end).includes(query));
+            return matchesName || matchesAddr || matchesNum || matchesRangeText;
+        });
+    }
+    
+    // Sort clients alphabetically
+    filteredGroups.sort((a, b) => a.clientName.localeCompare(b.clientName));
+    
+    if (filteredGroups.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#888; padding:30px;">No se encontraron asignaciones que coincidan con la búsqueda.</td></tr>`;
+        return;
+    }
+    
+    filteredGroups.forEach(group => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${asg.clientName}</strong></td>
-            <td><span style="font-size:0.95rem; font-weight:600; color:var(--primary);">Estaciones ${asg.start} a ${asg.end}</span></td>
-            <td>
-                <button type="button" class="btn btn-secondary" onclick="deleteAssignment('${asg.id}')" style="padding: 6px 12px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.8rem; border-radius: 6px; cursor: pointer;">
-                    🗑️ Eliminar
+        tr.style.verticalAlign = 'top';
+        
+        // Detect contiguous ranges to offer merge button
+        let hasContiguous = false;
+        for (let i = 0; i < group.ranges.length - 1; i++) {
+            if (group.ranges[i].end + 1 >= group.ranges[i+1].start) {
+                hasContiguous = true;
+                break;
+            }
+        }
+        
+        // Badges for each range
+        const rangesHtml = group.ranges.map(r => `
+            <div class="range-badge" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 6px 10px; margin: 3px 4px 3px 0;">
+                <span style="font-weight: 600; color: #60a5fa; font-size: 0.9rem;">
+                    📍 ${r.start === r.end ? 'Estación #' + r.start : 'Estaciones ' + r.start + ' al ' + r.end}
+                </span>
+                <span style="background: rgba(255,255,255,0.08); color: #cbd5e1; font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: 600;">
+                    ${r.count} ${r.count === 1 ? 'est.' : 'est.'}
+                </span>
+                <button type="button" onclick="deleteAssignment('${r.id}')" title="Eliminar solo este rango" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; border-radius: 4px; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.75rem; padding: 0; line-height: 1;">
+                    ✕
                 </button>
+            </div>
+        `).join('');
+        
+        const mergeBtnHtml = hasContiguous ? `
+            <div style="margin-top: 6px;">
+                <button type="button" class="btn btn-secondary" onclick="mergeClientContiguousRanges('${group.clientId || ''}', '${encodeURIComponent(group.clientName)}')" style="padding: 4px 8px; font-size: 0.72rem; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                    🔗 Unir rangos continuos
+                </button>
+            </div>
+        ` : '';
+        
+        tr.innerHTML = `
+            <td style="padding: 14px 15px;">
+                <div style="font-weight: 700; color: #fff; font-size: 1rem; margin-bottom: 4px;">
+                    👤 ${group.clientName}
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; padding: 2px 8px; border-radius: 12px; font-weight: 600;">
+                        ${group.totalStations} ${group.totalStations === 1 ? 'estación' : 'estaciones'}
+                    </span>
+                    <span>•</span>
+                    <span>${group.ranges.length} ${group.ranges.length === 1 ? 'rango' : 'rangos'}</span>
+                    ${group.address ? `<span title="${group.address}">• 📍 ${group.address.length > 25 ? group.address.substring(0,25) + '...' : group.address}</span>` : ''}
+                </div>
+            </td>
+            <td style="padding: 14px 15px;">
+                <div style="display: flex; flex-wrap: wrap; align-items: center;">
+                    ${rangesHtml}
+                </div>
+                ${mergeBtnHtml}
+            </td>
+            <td style="padding: 14px 15px; text-align: right; white-space: nowrap;">
+                <div style="display: inline-flex; gap: 8px; align-items: center;">
+                    <button type="button" class="btn btn-secondary" onclick="prepareAssignForClient('${group.clientId || ''}', '${encodeURIComponent(group.clientName)}')" title="Agregar nuevo rango a este cliente" style="padding: 6px 10px; font-size: 0.8rem; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 500;">
+                        ➕ Asignar
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="deleteAllAssignmentsForClient('${group.clientId || ''}', '${encodeURIComponent(group.clientName)}')" title="Eliminar todas las estaciones de este cliente" style="padding: 6px 10px; font-size: 0.8rem; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 500;">
+                        🗑️ Todo
+                    </button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -2572,7 +3216,7 @@ function renderAssignmentsList() {
 
 // Action: Delete station range assignment
 function deleteAssignment(id) {
-    if (!confirm("¿Deseas eliminar esta asignación de rango de estaciones?")) return;
+    if (!confirm("¿Deseas eliminar este rango de estaciones?")) return;
     
     if (globalAppData.stationAssignments) {
         globalAppData.stationAssignments = globalAppData.stationAssignments.filter(item => item.id !== id);
@@ -2582,8 +3226,17 @@ function deleteAssignment(id) {
         renderAssignmentsList();
         renderMonitoreo();
         updateStationClientInfo();
+        updateClientCurrentRangesHint();
     }
 }
+
+// Attach helpers to global window for inline onclick handlers
+window.useAvailableRange = useAvailableRange;
+window.useNextAvailableStation = useNextAvailableStation;
+window.prepareAssignForClient = prepareAssignForClient;
+window.deleteAllAssignmentsForClient = deleteAllAssignmentsForClient;
+window.mergeClientContiguousRanges = mergeClientContiguousRanges;
+window.deleteAssignment = deleteAssignment;
 
 // Helper: Show/hide banner info linking selected station to its assigned client
 function updateStationClientInfo() {
