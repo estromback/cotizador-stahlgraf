@@ -427,7 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const btnGeneratePdf = document.getElementById('btn-generate-pdf-report');
     if (btnGeneratePdf) {
-        btnGeneratePdf.addEventListener('click', generatePDFReport);
+        btnGeneratePdf.addEventListener('click', openReportConfigModal);
     }
     
     const btnManualPosition = document.getElementById('btn-manual-position');
@@ -4186,8 +4186,236 @@ function executeTransfer() {
     alert(`✅ Los datos de la Estación #${String(sourceNum).padStart(2, '0')} se trasladaron con éxito a la Estación #${String(targetNum).padStart(2, '0')}.`);
 }
 
-// Generate PDF Monitoring Report for the selected client
-async function generatePDFReport() {
+// Catálogo de Recomendaciones Estándar de Manejo Integrado de Plagas (MIP)
+const AVAILABLE_RECOMMENDATIONS = [
+    {
+        category: "Higiene Ambiental y Manejo de Residuos",
+        icon: "🧹",
+        items: [
+            {
+                id: "rec_limpieza_escombros",
+                title: "Limpieza y retiro de basura o escombros",
+                desc: "Retirar acumulación de basura, maderas en desuso y escombros que sirvan como zonas de madriguera o refugio de plagas.",
+                isSuggested: true
+            },
+            {
+                id: "rec_desmalezado_perimetral",
+                title: "Desmalezado y despeje perimetral",
+                desc: "Podar malezas densas y ramas bajas en un radio mínimo de 1 a 2 metros alrededor de las estaciones y muros perimetrales.",
+                isSuggested: true
+            },
+            {
+                id: "rec_manejo_basureros",
+                title: "Manejo hermético de contenedores de basura",
+                desc: "Asegurar que los basureros y contenedores cuenten con tapas herméticas y permanezcan cerrados para evitar fuentes de alimento.",
+                isSuggested: true
+            },
+            {
+                id: "rec_aguas_estancadas",
+                title: "Eliminación de fuentes de agua estancada",
+                desc: "Eliminar recipientes abiertos, charcos o fugas en cañerías que sirvan como bebederos a los roedores.",
+                isSuggested: true
+            }
+        ]
+    },
+    {
+        category: "Hermeticidad Estructural y Exclusión (Pest Exclusion)",
+        icon: "🚪",
+        items: [
+            {
+                id: "rec_sellado_grietas",
+                title: "Sellado de grietas y orificios de ingreso",
+                desc: "Sellar hendiduras, grietas y aberturas superiores a 6 mm en muros exteriores, zócalos y pasos de cañerías/ductos.",
+                isSuggested: false
+            },
+            {
+                id: "rec_guardapolvos_puertas",
+                title: "Ajuste e instalación de guardapolvos en puertas",
+                desc: "Instalar o reparar burletes y guardapolvos de goma dura/aluminio en la base de puertas exteriores (holgura máxima 5 mm).",
+                isSuggested: false
+            },
+            {
+                id: "rec_mallas_ventilaciones",
+                title: "Protección de ductos y ventilaciones con mallas",
+                desc: "Instalar mallas metálicas galvanizadas (trama < 6 mm) en ventilaciones, ductos de desagüe y bajadas de agua.",
+                isSuggested: false
+            },
+            {
+                id: "rec_ramas_techos",
+                title: "Poda de ramas en contacto con techumbres",
+                desc: "Cortar ramas de árboles que toquen o queden a menos de 1 metro de techos y aleros, para evitar puentes aéreos de acceso.",
+                isSuggested: false
+            }
+        ]
+    },
+    {
+        category: "Almacenamiento y Protección de Alimentos",
+        icon: "📦",
+        items: [
+            {
+                id: "rec_palletizado_bodegas",
+                title: "Elevación y orden en bodegas (Palletizado)",
+                desc: "Almacenar mercaderías, sacos y alimentos sobre tarimas elevadas a mínimo 15 cm del suelo y a 50 cm de muros perimetrales.",
+                isSuggested: false
+            },
+            {
+                id: "rec_limpieza_derrames",
+                title: "Limpieza inmediata de derrames de alimentos",
+                desc: "Barrer y limpiar inmediatamente cualquier derrame de granos, semillas, harinas o restos orgánicos en bodegas o patios.",
+                isSuggested: false
+            },
+            {
+                id: "rec_comida_mascotas",
+                title: "Retiro nocturno de alimentos para animales",
+                desc: "Evitar dejar platos con alimento o agua para mascotas/animales expuestos en exteriores durante la noche.",
+                isSuggested: false
+            }
+        ]
+    },
+    {
+        category: "Sistema de Cebado y Medidas Operativas",
+        icon: "🎯",
+        items: [
+            {
+                id: "rec_acceso_despejado",
+                title: "Mantener acceso despejado a las estaciones",
+                desc: "No bloquear el acceso a las cajas cebaderas con pallets, herramientas ni maquinaria para permitir su correcta inspección.",
+                isSuggested: true
+            },
+            {
+                id: "rec_anclajes_seguridad",
+                title: "Inspección de anclajes y cerraduras",
+                desc: "Verificar periódicamente el anclaje físico al suelo/muro y el cierre de seguridad de las estaciones para evitar manipulaciones ajenas.",
+                isSuggested: true
+            },
+            {
+                id: "rec_aumento_frecuencia",
+                title: "Aumento de frecuencia de visitas en focos críticos",
+                desc: "Coordinar una visita de refuerzo y reposición intensiva de cebos en un plazo no mayor a 7 días en las estaciones con consumo crítico.",
+                isSuggested: false
+            },
+            {
+                id: "rec_rotacion_cebos",
+                title: "Rotación de formulaciones e ingredientes activos",
+                desc: "Evaluar alternar entre bloques parafinados y pastas frescas de alta palatabilidad para prevenir aversión o acostumbramiento.",
+                isSuggested: false
+            }
+        ]
+    }
+];
+
+// Render recommendations checkboxes inside the modal
+function renderRecommendationsCheckboxes() {
+    const container = document.getElementById('report-recommendations-list');
+    if (!container) return;
+    
+    let html = '';
+    AVAILABLE_RECOMMENDATIONS.forEach(cat => {
+        html += `
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px 12px;">
+                <div style="font-size: 0.82rem; font-weight: 700; color: #93c5fd; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    <span>${cat.icon}</span> <span>${cat.category}</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${cat.items.map(item => `
+                        <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 0.8rem; color: #e2e8f0; cursor: pointer; line-height: 1.35; padding: 2px 0;">
+                            <input type="checkbox" class="report-rec-checkbox" 
+                                   data-rec-id="${item.id}" 
+                                   data-rec-title="${item.title.replace(/"/g, '&quot;')}" 
+                                   data-rec-desc="${item.desc.replace(/"/g, '&quot;')}" 
+                                   ${item.isSuggested ? 'checked' : ''} 
+                                   style="margin-top: 2px; accent-color: var(--primary); width: 16px; height: 16px; flex-shrink: 0; cursor: pointer;">
+                            <div>
+                                <strong style="color: #fff;">${item.title}:</strong> 
+                                <span style="color: #94a3b8;">${item.desc}</span>
+                            </div>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    container.dataset.rendered = "true";
+}
+
+// Select all or suggested recommendations in the modal
+function selectAllRecommendations(state) {
+    const checkboxes = document.querySelectorAll('.report-rec-checkbox');
+    checkboxes.forEach(chk => {
+        if (state === true) {
+            const recId = chk.getAttribute('data-rec-id');
+            let isSuggested = false;
+            for (const cat of AVAILABLE_RECOMMENDATIONS) {
+                const found = cat.items.find(i => i.id === recId);
+                if (found) {
+                    isSuggested = !!found.isSuggested;
+                    break;
+                }
+            }
+            chk.checked = isSuggested;
+        } else {
+            chk.checked = false;
+        }
+    });
+}
+
+// Open Intermediate Report Configuration Modal
+function openReportConfigModal() {
+    const filterClientIdSelect = document.getElementById('filter-client-id');
+    const filterClientId = filterClientIdSelect ? filterClientIdSelect.value : '';
+    if (!filterClientId) {
+        alert("⚠️ Selecciona un cliente para configurar y generar el reporte.");
+        return;
+    }
+    
+    const clientObj = (globalAppData.clients || []).find(c => c.id === filterClientId);
+    const clientName = clientObj ? clientObj.name : 'Cliente';
+    
+    // Count client stations
+    const clientStations = [];
+    const maxStations = getMaxStationNumber();
+    for (let i = 1; i <= maxStations; i++) {
+        if (getClientIdForStation(i) === filterClientId || getClientNameForStation(i) === clientName) {
+            clientStations.push(i);
+        }
+    }
+    
+    const clientInfoEl = document.getElementById('report-modal-client-info');
+    if (clientInfoEl) {
+        clientInfoEl.innerHTML = `Cliente: <strong style="color: #fff;">${clientName}</strong> · <strong>${clientStations.length}</strong> estaciones asignadas`;
+    }
+    
+    // Populate recommendations checkboxes if not yet rendered
+    const recListContainer = document.getElementById('report-recommendations-list');
+    if (recListContainer && (!recListContainer.dataset.rendered || recListContainer.children.length === 0)) {
+        renderRecommendationsCheckboxes();
+    }
+    
+    // Sync alerts checkbox with page checkbox if present
+    const pageChkAlerts = document.getElementById('chk-include-alerts');
+    const modalChkAlerts = document.getElementById('modal-chk-include-alerts');
+    if (pageChkAlerts && modalChkAlerts) {
+        modalChkAlerts.checked = pageChkAlerts.checked;
+    }
+
+    const modal = document.getElementById('report-config-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+// Close Intermediate Report Configuration Modal
+function closeReportConfigModal() {
+    const modal = document.getElementById('report-config-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Execute PDF Monitoring Report generation with configured recommendations
+async function executeGeneratePDFReport() {
     if (typeof html2pdf === 'undefined') {
         alert("⚠️ La librería html2pdf.js no está cargada. Verifica tu conexión a internet.");
         return;
@@ -4212,58 +4440,122 @@ async function generatePDFReport() {
         alert("⚠️ No se encontraron datos para este cliente.");
         return;
     }
+
+    // Read selected recommendations from the modal checkboxes
+    const selectedRecs = [];
+    document.querySelectorAll('.report-rec-checkbox:checked').forEach(chk => {
+        selectedRecs.push({
+            title: chk.getAttribute('data-rec-title') || '',
+            desc: chk.getAttribute('data-rec-desc') || ''
+        });
+    });
+
+    // Read custom notes from modal
+    const customNotesEl = document.getElementById('report-custom-notes');
+    const customNotes = customNotesEl ? customNotesEl.value.trim() : '';
+
+    // Read modal checkbox options
+    const modalChkAlerts = document.getElementById('modal-chk-include-alerts');
+    const includeAlerts = modalChkAlerts ? modalChkAlerts.checked : true;
+
+    const modalChkMap = document.getElementById('modal-chk-include-map');
+    const includeMap = modalChkMap ? modalChkMap.checked : true;
+
+    // Close the config modal now
+    closeReportConfigModal();
     
-    // Show spinner or alert that report is generating
+    // Show spinner on main button and modal button
     const btn = document.getElementById('btn-generate-pdf-report');
-    const originalText = btn.innerText;
-    btn.disabled = true;
-    btn.innerText = 'Generando Reporte...';
-    
-    // Check if user selected to include alerts in report
-    const chkIncludeAlerts = document.getElementById('chk-include-alerts');
-    const includeAlerts = chkIncludeAlerts ? chkIncludeAlerts.checked : true;
+    const modalBtn = document.getElementById('btn-modal-download-pdf');
+    const originalText = btn ? btn.innerText : '📄 Descargar Reporte PDF';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Generando Reporte...';
+    }
+    if (modalBtn) {
+        modalBtn.disabled = true;
+    }
+
+    // Helper escape
+    const esc = (s) => {
+        if (!s) return '';
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    };
     
     // 1. Build recommendations block
     let recommendationsHTML = "";
-    if (includeAlerts && clientSummary.criticalCount > 0) {
-        recommendationsHTML = `
-            <div style="margin-top: 15px; padding: 15px; border-left: 5px solid #ef4444; background: #fef2f2; border-radius: 6px;">
-                <h4 style="margin: 0 0 6px 0; color: #991b1b; font-size: 0.95rem; font-weight: 700;">🚨 Recomendaciones de Acción Inmediata</h4>
-                <p style="margin: 0; font-size: 0.82rem; color: #7f1d1d; line-height: 1.45;">
-                    Se han identificado <strong>${clientSummary.criticalCount} estaciones en estado crítico</strong> (consumo promedio elevado superior al 50% o con incidentes recientes de consumo del 75%-100%). Se aconsejan las siguientes medidas de control de plagas:
-                </p>
-                <ul style="margin: 6px 0 0 0; padding-left: 20px; font-size: 0.8rem; color: #7f1d1d; line-height: 1.45;">
-                    <li><strong>Aumentar frecuencia</strong>: Acortar el ciclo de revisión a visitas semanales en las zonas de las estaciones afectadas.</li>
-                    <li><strong>Reforzar cebamiento</strong>: Colocar cebo fresco de alta palatabilidad en las estaciones críticas y reponer inmediatamente los consumos al 100%.</li>
-                    <li><strong>Barrera Sanitaria</strong>: Inspeccionar y sellar posibles puntos de acceso y grietas en estructuras aledañas.</li>
-                </ul>
-            </div>
-        `;
-    } else if (includeAlerts && (clientSummary.lastVisitAvgConsumption > 20 || clientSummary.avgConsumption > 20)) {
-        recommendationsHTML = `
-            <div style="margin-top: 15px; padding: 15px; border-left: 5px solid #fbbf24; background: #fffbef; border-radius: 6px;">
-                <h4 style="margin: 0 0 6px 0; color: #92400e; font-size: 0.95rem; font-weight: 700;">⚠️ Recomendaciones de Control Preventivo</h4>
-                <p style="margin: 0; font-size: 0.82rem; color: #78350f; line-height: 1.45;">
-                    Se detectó actividad moderada en el predio (consumo en última visita: <strong>${clientSummary.lastVisitAvgConsumption}%</strong> | promedio global: <strong>${clientSummary.avgConsumption}%</strong>). Se sugiere:
-                </p>
-                <ul style="margin: 6px 0 0 0; padding-left: 20px; font-size: 0.8rem; color: #78350f; line-height: 1.45;">
-                    <li><strong>Monitoreo Quincenal</strong>: Continuar con visitas quincenales regulares para supervisar los focos intermedios.</li>
-                    <li><strong>Higiene Ambiental</strong>: Limpiar maleza densa, apilar escombros y eliminar acumulación de agua en un radio de 2 metros de las estaciones.</li>
-                    <li><strong>Rotación de Ingredientes</strong>: Rotar el tipo de cebo químico para prevenir acostumbramiento o aversión.</li>
+
+    // 1.1 Diagnosis alert banner if selected
+    if (includeAlerts) {
+        if (clientSummary.criticalCount > 0) {
+            recommendationsHTML += `
+                <div style="margin-bottom: 14px; padding: 14px 16px; border-left: 5px solid #ef4444; background: #fef2f2; border-radius: 6px;">
+                    <h4 style="margin: 0 0 6px 0; color: #991b1b; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        <span>🚨</span> Diagnóstico de Alerta Crítica en el Predio
+                    </h4>
+                    <p style="margin: 0; font-size: 0.82rem; color: #7f1d1d; line-height: 1.45;">
+                        Se han identificado <strong>${clientSummary.criticalCount} estaciones en estado crítico</strong> (consumo promedio superior al 50% o incidentes de consumo de 75%-100% en visitas recientes). Se requiere priorizar las medidas correctivas inmediatas.
+                    </p>
+                </div>
+            `;
+        } else if (clientSummary.lastVisitAvgConsumption > 20 || clientSummary.avgConsumption > 20) {
+            recommendationsHTML += `
+                <div style="margin-bottom: 14px; padding: 14px 16px; border-left: 5px solid #fbbf24; background: #fffbef; border-radius: 6px;">
+                    <h4 style="margin: 0 0 6px 0; color: #92400e; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        <span>⚠️</span> Diagnóstico de Actividad Moderada
+                    </h4>
+                    <p style="margin: 0; font-size: 0.82rem; color: #78350f; line-height: 1.45;">
+                        Se detectó actividad moderada de roedores en el predio (consumo última visita: <strong>${clientSummary.lastVisitAvgConsumption}%</strong> | promedio global: <strong>${clientSummary.avgConsumption}%</strong>). Se aconseja mantener medidas de control preventivo continuo.
+                    </p>
+                </div>
+            `;
+        } else {
+            recommendationsHTML += `
+                <div style="margin-bottom: 14px; padding: 14px 16px; border-left: 5px solid #10b981; background: #ecfdf5; border-radius: 6px;">
+                    <h4 style="margin: 0 0 6px 0; color: #065f46; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        <span>✅</span> Diagnóstico del Predio: Bajo Control
+                    </h4>
+                    <p style="margin: 0; font-size: 0.82rem; color: #064e3b; line-height: 1.45;">
+                        El predio presenta niveles óptimos y controlados de cebado (consumo última visita: <strong>${clientSummary.lastVisitAvgConsumption}%</strong> | promedio global: <strong>${clientSummary.avgConsumption}%</strong>). Mantener las labores regulares de reposición y monitoreo.
+                    </p>
+                </div>
+            `;
+        }
+    }
+
+    // 1.2 Selected recommendations list
+    if (selectedRecs.length > 0) {
+        recommendationsHTML += `
+            <div style="margin-bottom: 14px; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                <h4 style="margin: 0 0 8px 0; color: #1e3a8a; font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                    <span>📋</span> Recomendaciones Técnicas y Medidas Preventivas Acordadas:
+                </h4>
+                <ul style="margin: 0; padding-left: 20px; font-size: 0.82rem; color: #334155; line-height: 1.5;">
+                    ${selectedRecs.map(r => `<li style="margin-bottom: 5px;"><strong>${esc(r.title)}:</strong> ${esc(r.desc)}</li>`).join('')}
                 </ul>
             </div>
         `;
     } else {
-        recommendationsHTML = `
-            <div style="margin-top: 15px; padding: 15px; border-left: 5px solid #10b981; background: #ecfdf5; border-radius: 6px;">
-                <h4 style="margin: 0 0 6px 0; color: #065f46; font-size: 0.95rem; font-weight: 700;">✅ Estado de Monitoreo: Bajo Control</h4>
-                <p style="margin: 0; font-size: 0.82rem; color: #064e3b; line-height: 1.45;">
-                    El predio presenta niveles muy bajos de actividad de roedores (consumo en última visita: <strong>${clientSummary.lastVisitAvgConsumption}%</strong> | promedio global: <strong>${clientSummary.avgConsumption}%</strong>). Se sugiere:
-                </p>
-                <ul style="margin: 6px 0 0 0; padding-left: 20px; font-size: 0.8rem; color: #064e3b; line-height: 1.45;">
-                    <li><strong>Mantenimiento Regular</strong>: Mantener el ciclo ordinario mensual de visitas técnicas para recambiar cebo deteriorado.</li>
-                    <li><strong>Inspección Física</strong>: Evaluar el estado de anclaje, tapas y llaves de las cajas de cebado para evitar manipulaciones ajenas.</li>
-                </ul>
+        recommendationsHTML += `
+            <div style="margin-bottom: 14px; padding: 12px 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; font-size: 0.8rem; color: #64748b; font-style: italic;">
+                ℹ️ No se seleccionaron recomendaciones preventivas adicionales para esta visita técnica.
+            </div>
+        `;
+    }
+
+    // 1.3 Custom notes
+    if (customNotes) {
+        recommendationsHTML += `
+            <div style="margin-bottom: 10px; padding: 12px 16px; background: #f0fdf4; border-left: 4px solid #10b981; border-radius: 6px;">
+                <h4 style="margin: 0 0 6px 0; color: #065f46; font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                    <span>✍️</span> Observaciones Técnicas en Terreno:
+                </h4>
+                <p style="margin: 0; font-size: 0.82rem; color: #1e293b; line-height: 1.45; white-space: pre-wrap;">${esc(customNotes)}</p>
             </div>
         `;
     }
@@ -4358,12 +4650,15 @@ async function generatePDFReport() {
     const originalMapParent = originalMap ? originalMap.parentNode : null;
     const originalMapNextSibling = originalMap ? originalMap.nextSibling : null;
     
-    let mapSectionHTML = `
-        <div class="doc-section">
-            <h2>2. Plano Satelital del Predio</h2>
-            <div id="pdf-map-placeholder" style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; height: 350px; background: #f8fafc; width: 100%;"></div>
-        </div>
-    `;
+    let mapSectionHTML = "";
+    if (includeMap) {
+        mapSectionHTML = `
+            <div class="doc-section">
+                <h2>2. Plano Satelital del Predio</h2>
+                <div id="pdf-map-placeholder" style="margin-bottom: 25px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; height: 350px; background: #f8fafc; width: 100%;"></div>
+            </div>
+        `;
+    }
 
     // 4. Create floating status toast notification
     const statusToast = document.createElement('div');
@@ -4505,9 +4800,9 @@ async function generatePDFReport() {
     pdfWrapper.appendChild(reportContainer);
     document.body.appendChild(pdfWrapper);
 
-    // Attach live Leaflet map element to the printable placeholder
+    // Attach live Leaflet map element to the printable placeholder if included
     const mapPlaceholder = reportContainer.querySelector('#pdf-map-placeholder');
-    if (mapPlaceholder && originalMap) {
+    if (includeMap && mapPlaceholder && originalMap) {
         mapPlaceholder.appendChild(originalMap);
         originalMap.style.width = '100%';
         originalMap.style.height = '350px';
@@ -4584,8 +4879,8 @@ async function generatePDFReport() {
         console.error("PDF generation failed:", err);
         alert("⚠️ Error al generar el PDF. Ocurrió un problema inesperado.");
     } finally {
-        // Restore Leaflet map to original DOM container
-        if (originalMap && originalMapParent) {
+        // Restore Leaflet map to original DOM container if it was moved
+        if (includeMap && originalMap && originalMapParent) {
             originalMap.style.width = '';
             originalMap.style.height = '';
             if (originalMapNextSibling) {
@@ -4603,9 +4898,19 @@ async function generatePDFReport() {
         if (statusToast && statusToast.parentNode) {
             statusToast.parentNode.removeChild(statusToast);
         }
-        btn.disabled = false;
-        btn.innerText = originalText;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+        if (modalBtn) {
+            modalBtn.disabled = false;
+        }
     }
+}
+
+// Fallback alias for generatePDFReport
+function generatePDFReport() {
+    openReportConfigModal();
 }
 
 // Expose deleteAssignment and other handlers globally
@@ -4618,3 +4923,8 @@ window.resetStationData = resetStationData;
 window.openTransferModal = openTransferModal;
 window.closeTransferModal = closeTransferModal;
 window.executeTransfer = executeTransfer;
+window.openReportConfigModal = openReportConfigModal;
+window.closeReportConfigModal = closeReportConfigModal;
+window.selectAllRecommendations = selectAllRecommendations;
+window.executeGeneratePDFReport = executeGeneratePDFReport;
+window.generatePDFReport = generatePDFReport;
