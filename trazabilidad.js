@@ -48,7 +48,20 @@ let inspections = [];
 let lastKnownGPS = null;
 let leafletMap = null;
 let leafletMarkerGroup = null;
+let userLocationLayerGroup = null;
 let activeTileLayer = null;
+
+// Real-Time Live GPS & Map Navigation State
+let liveLocationWatchId = null;
+let liveLocationMarker = null;
+let liveLocationAccuracyCircle = null;
+let currentUserCoords = null; // { lat, lng, accuracy, heading, timestamp }
+let hasCenteredUserInitially = false;
+
+// Fullscreen & Quick Map Inspection State
+let isMapFullscreen = false;
+let activeQuickStationKey = null;
+let quickSheetConsumption = '0%';
 
 let manualPlacementMode = {
     active: false,
@@ -599,9 +612,55 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnSaveTransfer) {
         btnSaveTransfer.addEventListener('click', executeTransfer);
     }
+
+    // Listen for ESC key to exit map fullscreen
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isMapFullscreen) {
+            window.toggleMapFullscreen();
+        }
+    });
+
+    // Auto-start live GPS tracking if opened with tab=monitoreo or clientId
+    const initParams = new URLSearchParams(window.location.search);
+    if (initParams.get('tab') === 'monitoreo' || initParams.get('tab') === 'mapa' || initParams.get('clientId')) {
+        setTimeout(() => {
+            if (typeof window.toggleLiveGPSTracking === 'function') {
+                window.toggleLiveGPSTracking(true);
+            }
+        }, 700);
+    }
 });
 
-// Request GPS lock asynchronously to cache user's current location and update UI status
+// ========================================================
+// GEOLOCATION, REAL-TIME GPS & SATELLITE MAP TOOLS
+// ========================================================
+
+// Haversine formula to calculate distance in meters between two coordinates
+function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+    if (lat1 === undefined || lat1 === null || lon1 === undefined || lon1 === null ||
+        lat2 === undefined || lat2 === null || lon2 === undefined || lon2 === null) {
+        return null;
+    }
+    const R = 6371e3; // Earth radius in meters
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return Math.round(R * c);
+}
+
+// Format meters into human-readable distance (e.g. 18 m or 1.4 km)
+function formatDistance(meters) {
+    if (meters === null || meters === undefined || isNaN(meters)) return '';
+    if (meters < 1000) return `${meters} m`;
+    return `${(meters / 1000).toFixed(1)} km`;
+}
+
+// Request one-shot GPS lock asynchronously (used by Installation Mode)
 function requestGPSLock() {
     if (!navigator.geolocation) {
         console.warn("Geolocation is not supported by this browser.");
@@ -619,6 +678,7 @@ function requestGPSLock() {
                 accuracy: position.coords.accuracy,
                 timestamp: Date.now()
             };
+            currentUserCoords = { ...lastKnownGPS };
             console.log("GPS Lock acquired successfully:", lastKnownGPS);
             
             if (position.coords.accuracy <= 20) {
@@ -638,20 +698,18 @@ function requestGPSLock() {
         {
             enableHighAccuracy: true,
             timeout: 10000,
-            maximumAge: 5000 // Force fresh reading if older than 5 seconds
+            maximumAge: 5000
         }
     );
 }
 
-// Helper to update GPS UI indicator in the form
+// Helper to update GPS UI indicator in the installation form
 function updateGPSUIStatus(state, message) {
     const dot = document.getElementById('gps-status-dot');
     const txt = document.getElementById('gps-status-text');
     if (!dot || !txt) return;
     
     txt.textContent = message;
-    
-    // Reset keyframe animation class if any
     dot.style.animation = 'none';
     
     if (state === 'searching') {
@@ -664,11 +722,557 @@ function updateGPSUIStatus(state, message) {
     } else if (state === 'warning') {
         dot.style.background = '#fbbf24';
         dot.style.boxShadow = '0 0 8px #fbbf24';
-    } else { // error or disabled
+    } else {
         dot.style.background = '#ef4444';
         dot.style.boxShadow = '0 0 8px #ef4444';
     }
 }
+
+// Toggle Real-Time GPS continuous tracking on the map
+window.toggleLiveGPSTracking = function(forceStart = null) {
+    if (!navigator.geolocation) {
+        alert("Tu dispositivo o navegador no soporta geolocalización.");
+        return;
+    }
+
+    const shouldStart = (forceStart !== null) ? forceStart : (liveLocationWatchId === null);
+
+    if (shouldStart) {
+        if (liveLocationWatchId !== null) return; // already active
+
+        updateLiveGPSUIStatus('searching');
+
+        liveLocationWatchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                currentUserCoords = {
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    accuracy: pos.coords.accuracy,
+                    heading: pos.coords.heading,
+                    timestamp: pos.timestamp
+                };
+                lastKnownGPS = { ...currentUserCoords };
+
+                updateLiveLocationOnMap(currentUserCoords);
+                updateLiveGPSUIStatus('active', currentUserCoords.accuracy);
+                updateDistancesOnOpenViews();
+
+                // On first valid fix, center the map if user hasn't moved away
+                if (!hasCenteredUserInitially && leafletMap && !manualPlacementMode.active) {
+                    hasCenteredUserInitially = true;
+                    leafletMap.setView([currentUserCoords.lat, currentUserCoords.lng], Math.max(leafletMap.getZoom(), 17));
+                }
+            },
+            (err) => {
+                console.warn("GPS tracking error:", err);
+                let msg = 'Señal GPS no disponible';
+                if (err.code === 1) msg = 'Permiso de ubicación denegado en tu navegador';
+                else if (err.code === 2) msg = 'Ubicación no disponible en este momento';
+                else if (err.code === 3) msg = 'Tiempo agotado buscando señal satelital';
+                updateLiveGPSUIStatus('error', null, msg);
+            },
+            {
+                enableHighAccuracy: true,
+                maximumAge: 3000,
+                timeout: 15000
+            }
+        );
+    } else {
+        // Stop tracking
+        if (liveLocationWatchId !== null) {
+            navigator.geolocation.clearWatch(liveLocationWatchId);
+            liveLocationWatchId = null;
+        }
+        if (userLocationLayerGroup) {
+            userLocationLayerGroup.clearLayers();
+            liveLocationMarker = null;
+            liveLocationAccuracyCircle = null;
+        }
+        updateLiveGPSUIStatus('inactive');
+    }
+};
+
+// Render or move technician's live location marker on the satellite map
+function updateLiveLocationOnMap(coords) {
+    if (!leafletMap) return;
+
+    if (!userLocationLayerGroup) {
+        userLocationLayerGroup = L.layerGroup().addTo(leafletMap);
+    }
+
+    const latLng = [coords.lat, coords.lng];
+    const accuracy = coords.accuracy || 15;
+
+    const userIcon = L.divIcon({
+        className: 'user-live-gps-divicon',
+        html: `
+            <div class="user-live-gps-marker">
+                <div class="user-live-gps-pulse"></div>
+                <div class="user-live-gps-core"></div>
+            </div>
+        `,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+    });
+
+    if (!liveLocationMarker) {
+        liveLocationMarker = L.marker(latLng, {
+            icon: userIcon,
+            zIndexOffset: 1200
+        }).addTo(userLocationLayerGroup);
+
+        liveLocationMarker.bindTooltip(`👤 <strong>Tú estás aquí</strong><br><span style="font-size:0.75rem; color:#94a3b8;">Precisión: ±${Math.round(accuracy)}m</span>`, {
+            direction: 'top',
+            offset: [0, -12],
+            className: 'premium-map-tooltip'
+        });
+    } else {
+        liveLocationMarker.setLatLng(latLng);
+        liveLocationMarker.setTooltipContent(`👤 <strong>Tú estás aquí</strong><br><span style="font-size:0.75rem; color:#94a3b8;">Precisión: ±${Math.round(accuracy)}m</span>`);
+    }
+
+    if (!liveLocationAccuracyCircle) {
+        liveLocationAccuracyCircle = L.circle(latLng, {
+            radius: accuracy,
+            color: '#3b82f6',
+            fillColor: '#3b82f6',
+            fillOpacity: 0.12,
+            weight: 1.5,
+            dashArray: '3, 4'
+        }).addTo(userLocationLayerGroup);
+    } else {
+        liveLocationAccuracyCircle.setLatLng(latLng);
+        liveLocationAccuracyCircle.setRadius(accuracy);
+    }
+
+    // Reveal center buttons
+    const btnCenter = document.getElementById('btn-center-user-gps');
+    if (btnCenter) btnCenter.style.display = 'inline-flex';
+    const btnFloatCenter = document.getElementById('btn-float-center-user');
+    if (btnFloatCenter) btnFloatCenter.style.display = 'flex';
+}
+
+// Update GPS UI buttons & indicators
+function updateLiveGPSUIStatus(state, accuracy = null, errMsg = null) {
+    const btnText = document.getElementById('live-gps-btn-text');
+    const btnIcon = document.getElementById('live-gps-icon');
+    const btnToggle = document.getElementById('btn-toggle-live-gps');
+    const btnFloat = document.getElementById('btn-float-gps');
+    const fsGpsStatus = document.getElementById('map-fs-gps-status');
+
+    if (state === 'searching') {
+        if (btnText) btnText.textContent = 'Buscando GPS...';
+        if (btnIcon) btnIcon.textContent = '⏳';
+        if (btnToggle) {
+            btnToggle.style.background = 'rgba(245, 158, 11, 0.2)';
+            btnToggle.style.borderColor = '#f59e0b';
+            btnToggle.style.color = '#fbbf24';
+        }
+        if (btnFloat) {
+            btnFloat.classList.remove('active');
+            btnFloat.textContent = '⏳';
+        }
+        if (fsGpsStatus) {
+            fsGpsStatus.textContent = '🛰️ Buscando...';
+            fsGpsStatus.style.background = 'rgba(245, 158, 11, 0.2)';
+            fsGpsStatus.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+            fsGpsStatus.style.color = '#fbbf24';
+        }
+    } else if (state === 'active') {
+        const accStr = accuracy ? `(±${Math.round(accuracy)}m)` : '';
+        if (btnText) btnText.textContent = `GPS Activo ${accStr}`;
+        if (btnIcon) btnIcon.textContent = '🛰️';
+        if (btnToggle) {
+            btnToggle.style.background = 'rgba(16, 185, 129, 0.2)';
+            btnToggle.style.borderColor = '#10b981';
+            btnToggle.style.color = '#34d399';
+        }
+        if (btnFloat) {
+            btnFloat.classList.add('active');
+            btnFloat.textContent = '🛰️';
+            btnFloat.title = `GPS Activo ${accStr}`;
+        }
+        if (fsGpsStatus) {
+            fsGpsStatus.textContent = `🛰️ GPS: ±${accuracy ? Math.round(accuracy) : '?'}m`;
+            fsGpsStatus.style.background = 'rgba(16, 185, 129, 0.2)';
+            fsGpsStatus.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            fsGpsStatus.style.color = '#34d399';
+        }
+    } else if (state === 'inactive') {
+        if (btnText) btnText.textContent = 'Activar GPS en Vivo';
+        if (btnIcon) btnIcon.textContent = '🛰️';
+        if (btnToggle) {
+            btnToggle.style.background = 'rgba(59, 130, 246, 0.15)';
+            btnToggle.style.borderColor = 'rgba(59, 130, 246, 0.35)';
+            btnToggle.style.color = '#93c5fd';
+        }
+        if (btnFloat) {
+            btnFloat.classList.remove('active');
+            btnFloat.textContent = '🛰️';
+            btnFloat.title = 'Activar GPS en Vivo';
+        }
+        if (fsGpsStatus) {
+            fsGpsStatus.textContent = '🛰️ GPS Inactivo';
+            fsGpsStatus.style.background = 'rgba(59, 130, 246, 0.2)';
+            fsGpsStatus.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+            fsGpsStatus.style.color = '#93c5fd';
+        }
+        const btnCenter = document.getElementById('btn-center-user-gps');
+        if (btnCenter) btnCenter.style.display = 'none';
+        const btnFloatCenter = document.getElementById('btn-float-center-user');
+        if (btnFloatCenter) btnFloatCenter.style.display = 'none';
+    } else if (state === 'error') {
+        if (btnText) btnText.textContent = 'GPS Error';
+        if (btnIcon) btnIcon.textContent = '⚠️';
+        if (btnToggle) {
+            btnToggle.style.background = 'rgba(239, 68, 68, 0.2)';
+            btnToggle.style.borderColor = '#ef4444';
+            btnToggle.style.color = '#f87171';
+        }
+        if (fsGpsStatus) {
+            fsGpsStatus.textContent = '⚠️ GPS Error';
+            fsGpsStatus.style.background = 'rgba(239, 68, 68, 0.2)';
+            fsGpsStatus.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            fsGpsStatus.style.color = '#f87171';
+        }
+        if (errMsg) alert(`⚠️ ${errMsg}`);
+    }
+}
+
+// Dynamically refresh distances on open quick sheets
+function updateDistancesOnOpenViews() {
+    if (!currentUserCoords) return;
+
+    if (activeQuickStationKey) {
+        const coords = getLatestStationCoords(activeQuickStationKey);
+        const distEl = document.getElementById('quick-sheet-distance');
+        if (distEl && coords) {
+            const dist = calculateDistanceMeters(currentUserCoords.lat, currentUserCoords.lng, coords.lat, coords.lng);
+            distEl.innerHTML = `🚶 A <strong>${formatDistance(dist)}</strong> de ti`;
+            distEl.style.display = 'inline-block';
+        }
+    }
+}
+
+// Center map on technician's real-time position
+window.centerOnUserLocation = function() {
+    if (!currentUserCoords) {
+        window.toggleLiveGPSTracking(true);
+        showMapToast("🛰️ Obteniendo tu señal GPS...");
+        return;
+    }
+    if (leafletMap) {
+        leafletMap.setView([currentUserCoords.lat, currentUserCoords.lng], Math.max(leafletMap.getZoom(), 18), { animate: true });
+        if (liveLocationMarker) {
+            liveLocationMarker.openTooltip();
+            setTimeout(() => { if (liveLocationMarker) liveLocationMarker.closeTooltip(); }, 2500);
+        }
+    }
+};
+
+// Center map on the next pending station in the inspection route (prefers closest station if GPS is active)
+window.centerOnNextPendingStation = function() {
+    const filterClientIdSelect = document.getElementById('filter-client-id');
+    const filterClientId = filterClientIdSelect ? filterClientIdSelect.value : '';
+    let filterClientName = '';
+    const clientObj = (globalAppData.clients || []).find(c => c.id === filterClientId);
+    if (clientObj) filterClientName = clientObj.name;
+
+    const activeDate = window.currentVisitDate || getTodayDateStr();
+    const maxStations = getMaxStationNumber();
+    
+    const pendingStations = [];
+    for (let i = 1; i <= maxStations; i++) {
+        const cName = getClientNameForStation(i);
+        if (!filterClientName || (cName && cName.trim().toLowerCase() === filterClientName.trim().toLowerCase())) {
+            const stationKey = `ESTACION-${String(i).padStart(2, '0')}`;
+            const visitRec = getStationVisitRecord(stationKey, activeDate);
+            if (!visitRec) {
+                const coords = getLatestStationCoords(stationKey);
+                if (coords && coords.lat && coords.lng) {
+                    let dist = null;
+                    if (currentUserCoords) {
+                        dist = calculateDistanceMeters(currentUserCoords.lat, currentUserCoords.lng, coords.lat, coords.lng);
+                    }
+                    pendingStations.push({ num: i, key: stationKey, coords, dist });
+                }
+            }
+        }
+    }
+
+    if (pendingStations.length === 0) {
+        showMapToast("🎉 ¡No quedan estaciones pendientes en esta visita!");
+        return;
+    }
+
+    // Sort by proximity if technician location is known
+    if (currentUserCoords) {
+        pendingStations.sort((a, b) => (a.dist ?? 999999) - (b.dist ?? 999999));
+    }
+
+    const target = pendingStations[0];
+    if (leafletMap) {
+        leafletMap.setView([target.coords.lat, target.coords.lng], Math.max(leafletMap.getZoom(), 18), { animate: true });
+        window.openQuickMapInspectSheet(target.key);
+        const distText = target.dist !== null ? ` (a ${formatDistance(target.dist)})` : '';
+        showMapToast(`🎯 Próxima: Estación #${String(target.num).padStart(2, '0')}${distText}`);
+    }
+};
+
+// Toggle Fullscreen Overlay for the Satellite Map
+window.toggleMapFullscreen = function() {
+    const wrapper = document.getElementById('monitoreo-map-wrapper');
+    if (!wrapper) return;
+
+    isMapFullscreen = !isMapFullscreen;
+    wrapper.classList.toggle('map-fullscreen-active', isMapFullscreen);
+    document.body.classList.toggle('map-fullscreen-open', isMapFullscreen);
+
+    const fsBtnText = document.getElementById('btn-fullscreen-text');
+    const fsBtnIcon = document.getElementById('btn-fullscreen-icon');
+    const fsFloatBtn = document.getElementById('btn-float-fs');
+
+    if (isMapFullscreen) {
+        if (fsBtnText) fsBtnText.textContent = 'Salir de Pantalla Completa';
+        if (fsBtnIcon) fsBtnIcon.textContent = '🗗';
+        if (fsFloatBtn) {
+            fsFloatBtn.textContent = '🗗';
+            fsFloatBtn.title = 'Salir de Pantalla Completa (ESC)';
+            fsFloatBtn.classList.add('active');
+        }
+        updateFullscreenTopBar();
+        // Auto-start live GPS tracking when entering inspection fullscreen if not already active
+        if (liveLocationWatchId === null) {
+            window.toggleLiveGPSTracking(true);
+        }
+    } else {
+        if (fsBtnText) fsBtnText.textContent = 'Pantalla Completa';
+        if (fsBtnIcon) fsBtnIcon.textContent = '⛶';
+        if (fsFloatBtn) {
+            fsFloatBtn.textContent = '⛶';
+            fsFloatBtn.title = 'Pantalla Completa';
+            fsFloatBtn.classList.remove('active');
+        }
+    }
+
+    // Force Leaflet container recalculation
+    if (leafletMap) {
+        leafletMap.invalidateSize();
+        setTimeout(() => {
+            if (leafletMap) leafletMap.invalidateSize();
+        }, 200);
+    }
+};
+
+// Update top info bar in fullscreen mode
+function updateFullscreenTopBar() {
+    const fsClientEl = document.getElementById('map-fs-client-name');
+    const fsProgEl = document.getElementById('map-fs-progress-text');
+    if (!fsClientEl || !fsProgEl) return;
+
+    const filterClientIdSelect = document.getElementById('filter-client-id');
+    const filterClientId = filterClientIdSelect ? filterClientIdSelect.value : '';
+    let clientName = 'Todos los Clientes';
+    if (filterClientId) {
+        const c = (globalAppData.clients || []).find(cl => cl.id === filterClientId);
+        if (c) clientName = c.name;
+    }
+    fsClientEl.textContent = `📍 ${clientName}`;
+
+    const activeDate = window.currentVisitDate || getTodayDateStr();
+    const maxStations = getMaxStationNumber();
+    let total = 0;
+    let reviewed = 0;
+
+    for (let i = 1; i <= maxStations; i++) {
+        const cName = getClientNameForStation(i);
+        if (!filterClientId || (cName && clientName && cName.trim().toLowerCase() === clientName.trim().toLowerCase())) {
+            total++;
+            const sKey = `ESTACION-${String(i).padStart(2, '0')}`;
+            if (getStationVisitRecord(sKey, activeDate)) {
+                reviewed++;
+            }
+        }
+    }
+
+    const pct = total > 0 ? Math.round((reviewed / total) * 100) : 0;
+    fsProgEl.textContent = `${reviewed} / ${total} inspeccionadas (${pct}%)`;
+}
+
+// Show temporary floating toast in the map
+function showMapToast(message) {
+    const toast = document.getElementById('map-floating-toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2800);
+}
+
+// ========================================================
+// QUICK IN-MAP INSPECTION BOTTOM SHEET
+// ========================================================
+
+window.openQuickMapInspectSheet = function(stationKey) {
+    activeQuickStationKey = stationKey;
+    const stationNum = parseInt(stationKey.replace('ESTACION-', ''), 10);
+    const numStr = String(stationNum).padStart(2, '0');
+    const clientName = getClientNameForStation(stationNum) || 'Sin Asignar';
+    const coords = getLatestStationCoords(stationKey);
+    const activeDate = window.currentVisitDate || getTodayDateStr();
+    const visitRec = getStationVisitRecord(stationKey, activeDate);
+
+    const titleEl = document.getElementById('quick-sheet-station-title');
+    const clientEl = document.getElementById('quick-sheet-client-name');
+    const statusBadge = document.getElementById('quick-sheet-status-badge');
+    const distEl = document.getElementById('quick-sheet-distance');
+
+    if (titleEl) titleEl.textContent = `Estación #${numStr}`;
+    if (clientEl) clientEl.textContent = `Cliente: ${clientName}`;
+
+    if (statusBadge) {
+        if (visitRec) {
+            statusBadge.className = 'visit-badge-inspected';
+            statusBadge.innerHTML = `✔️ Revisada (${visitRec.timeStr})`;
+        } else {
+            statusBadge.className = 'visit-badge-pending';
+            statusBadge.innerHTML = `⏳ Pendiente`;
+        }
+    }
+
+    if (distEl) {
+        if (currentUserCoords && coords) {
+            const dist = calculateDistanceMeters(currentUserCoords.lat, currentUserCoords.lng, coords.lat, coords.lng);
+            distEl.innerHTML = `🚶 A <strong>${formatDistance(dist)}</strong> de ti`;
+            distEl.style.display = 'inline-block';
+        } else {
+            distEl.style.display = 'none';
+        }
+    }
+
+    const defaultCons = visitRec ? (visitRec.consumption || '0%') : '0%';
+    window.setQuickConsumption(defaultCons);
+
+    // Reset maintenance chips (default Reposición de Cebo)
+    document.querySelectorAll('.quick-chip-btn[data-type="maint"]').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-val') === 'Reposición de Cebo') btn.classList.add('active');
+    });
+
+    // Reset evidence chips (default Ninguna)
+    document.querySelectorAll('.quick-chip-btn[data-type="evid"]').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-val') === 'Ninguna') btn.classList.add('active');
+    });
+
+    const sheet = document.getElementById('quick-map-inspect-sheet');
+    if (sheet) sheet.classList.add('active');
+};
+
+window.closeQuickMapInspectSheet = function() {
+    const sheet = document.getElementById('quick-map-inspect-sheet');
+    if (sheet) sheet.classList.remove('active');
+    activeQuickStationKey = null;
+};
+
+window.setQuickConsumption = function(val) {
+    quickSheetConsumption = val;
+    document.querySelectorAll('.quick-consumption-btn').forEach(btn => {
+        if (btn.getAttribute('data-val') === val) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+};
+
+window.toggleQuickChip = function(btn) {
+    const type = btn.getAttribute('data-type');
+    const val = btn.getAttribute('data-val');
+
+    if (type === 'evid') {
+        if (val === 'Ninguna') {
+            document.querySelectorAll('.quick-chip-btn[data-type="evid"]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        } else {
+            btn.classList.toggle('active');
+            const noneBtn = document.querySelector('.quick-chip-btn[data-type="evid"][data-val="Ninguna"]');
+            if (noneBtn) noneBtn.classList.remove('active');
+
+            const anyActive = Array.from(document.querySelectorAll('.quick-chip-btn[data-type="evid"]')).some(b => b.classList.contains('active'));
+            if (!anyActive && noneBtn) noneBtn.classList.add('active');
+        }
+    } else {
+        btn.classList.toggle('active');
+    }
+};
+
+window.saveQuickMapInspection = function() {
+    if (!activeQuickStationKey) return;
+
+    const stationKey = activeQuickStationKey;
+    const stationNum = parseInt(stationKey.replace('ESTACION-', ''), 10);
+    const numStr = String(stationNum).padStart(2, '0');
+
+    // Collect maintenance
+    const maintenance = [];
+    document.querySelectorAll('.quick-chip-btn[data-type="maint"].active').forEach(b => {
+        maintenance.push(b.getAttribute('data-val'));
+    });
+    if (maintenance.length === 0) maintenance.push('Ninguno');
+
+    // Collect evidence
+    const evidence = [];
+    document.querySelectorAll('.quick-chip-btn[data-type="evid"].active').forEach(b => {
+        evidence.push(b.getAttribute('data-val'));
+    });
+    if (evidence.length === 0) evidence.push('Ninguna');
+
+    // Keep existing coordinates or use real-time GPS
+    const existingCoords = getLatestStationCoords(stationKey);
+    let coordsToSave = existingCoords;
+    if (!coordsToSave && currentUserCoords) {
+        coordsToSave = { lat: currentUserCoords.lat, lng: currentUserCoords.lng };
+    }
+
+    const newRecord = {
+        id: 'ins_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        station: stationKey,
+        consumption: quickSheetConsumption || '0%',
+        maintenance: maintenance,
+        evidence: evidence,
+        notes: 'Inspección en terreno desde mapa satelital',
+        coords: coordsToSave,
+        timestamp: new Date().toLocaleString('es-CL'),
+        status: 'pendiente'
+    };
+
+    inspections.push(newRecord);
+    localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
+
+    window.closeQuickMapInspectSheet();
+    showMapToast(`✅ ¡Estación #${numStr} registrada con éxito!`);
+
+    // Redraw map and visit overview
+    initOrUpdateMap();
+    renderMonitoreo();
+
+    // Auto-sync if online and logged in
+    if (navigator.onLine && currentUser) {
+        syncWithCloud(true);
+    }
+};
+
+window.openFullInspectionFormFromSheet = function() {
+    if (!activeQuickStationKey) return;
+    const key = activeQuickStationKey;
+    if (isMapFullscreen) {
+        window.toggleMapFullscreen();
+    }
+    window.closeQuickMapInspectSheet();
+    quickInspectStation(key);
+};
 
 // Get the latest coordinates for a station from its inspections history
 function getLatestStationCoords(stationKey) {
@@ -782,7 +1386,7 @@ function initOrUpdateMap() {
     if (!leafletMap) {
         leafletMap = L.map('monitoreo-map', {
             zoomControl: true,
-            scrollWheelZoom: false
+            scrollWheelZoom: true
         });
         
         // Add Google Maps Hybrid (Satellite + Roads/Labels) tile layer
@@ -793,6 +1397,7 @@ function initOrUpdateMap() {
         }).addTo(leafletMap);
         
         leafletMarkerGroup = L.layerGroup().addTo(leafletMap);
+        userLocationLayerGroup = L.layerGroup().addTo(leafletMap);
     }
 
     // Force map to recalculate container size
@@ -800,7 +1405,7 @@ function initOrUpdateMap() {
         if (leafletMap) {
             leafletMap.invalidateSize();
             
-            // Clear old markers
+            // Clear old markers (technician live GPS marker in userLocationLayerGroup is preserved)
             leafletMarkerGroup.clearLayers();
 
             // Scale color logic
@@ -860,20 +1465,40 @@ function initOrUpdateMap() {
                     }
                 });
 
+                // Calculate real-time distance if user GPS is active
+                let distanceHtml = '';
+                if (currentUserCoords) {
+                    const distMeters = calculateDistanceMeters(currentUserCoords.lat, currentUserCoords.lng, s.coords.lat, s.coords.lng);
+                    if (distMeters !== null) {
+                        distanceHtml = `
+                            <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(37, 99, 235, 0.25); border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; font-weight: 600; color: #1d4ed8; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">
+                                <span>🚶 A <strong>${formatDistance(distMeters)}</strong> de ti</span>
+                            </div>
+                        `;
+                    }
+                }
+
                 const visitBadgeHtml = s.isInspectedInVisit
-                    ? `<div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 5px 8px; margin-bottom: 8px; font-weight: 700; color: #059669; font-size: 0.82rem; display: flex; align-items: center; gap: 5px;">
-                        <span>✔️ Inspeccionada en esta visita (${s.visitRec.timeStr})</span>
+                    ? `<div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 5px 8px; margin-bottom: 8px; font-weight: 700; color: #059669; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                        <span>✔️ Revisada (${s.visitRec.timeStr})</span>
+                        <button onclick="window.openQuickMapInspectSheet('${s.key}')" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #047857; border-radius: 4px; padding: 2px 7px; font-size: 0.72rem; cursor: pointer; font-weight: 600;">Re-inspeccionar</button>
                        </div>`
                     : `<div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 6px; padding: 5px 8px; margin-bottom: 8px; font-weight: 700; color: #d97706; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
                         <span>⏳ PENDIENTE EN ESTA VISITA</span>
-                        <button onclick="quickInspectStation('${s.key}')" style="background: #3b82f6; color: #fff; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.74rem; cursor: pointer; font-weight: 600;">⚡ Inspeccionar</button>
+                        <button onclick="window.openQuickMapInspectSheet('${s.key}')" style="background: #10b981; color: #fff; border: none; border-radius: 4px; padding: 4px 10px; font-size: 0.76rem; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);">⚡ Inspeccionar</button>
                        </div>`;
 
                 const popupContent = `
-                    <div style="color: #333; font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.4; padding: 5px;">
-                        <h4 style="margin: 0 0 5px 0; font-size: 1rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; cursor: pointer;" onclick="window.selectStationFromMap('${numStr}')" title="Toca para registrar inspección">
-                            📍 Estación #${numStr}
-                        </h4>
+                    <div style="color: #333; font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.4; padding: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+                            <h4 style="margin: 0; font-size: 1.05rem; color: #1e293b; cursor: pointer; font-weight: 700;" onclick="window.openQuickMapInspectSheet('${s.key}')" title="Toca para inspeccionar">
+                                📍 Estación #${numStr}
+                            </h4>
+                            <button onclick="window.openQuickMapInspectSheet('${s.key}')" style="background: #3b82f6; color: #fff; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.72rem; font-weight: 600; cursor: pointer;">
+                                ⚡ Abrir Ficha
+                            </button>
+                        </div>
+                        ${distanceHtml}
                         ${visitBadgeHtml}
                         <p style="margin: 4px 0;"><strong>Cliente:</strong> ${s.clientName}</p>
                         <p style="margin: 4px 0;"><strong>Último Consumo:</strong> ${s.analytics.lastVal}</p>
@@ -906,7 +1531,7 @@ function initOrUpdateMap() {
                 }
             } else {
                 // Default center view if no stations positioned yet
-                const centerCoords = lastKnownGPS ? [lastKnownGPS.lat, lastKnownGPS.lng] : [-37.4612, -72.3514];
+                const centerCoords = currentUserCoords ? [currentUserCoords.lat, currentUserCoords.lng] : (lastKnownGPS ? [lastKnownGPS.lat, lastKnownGPS.lng] : [-37.4612, -72.3514]);
                 leafletMap.setView(centerCoords, 17);
             }
 
@@ -916,6 +1541,7 @@ function initOrUpdateMap() {
                 }, 400);
             }
             window.highlightStationNum = null;
+            updateFullscreenTopBar();
         }
     }, 100);
 }
@@ -1039,7 +1665,7 @@ function enterManualPlacementMode(stationNum) {
     if (!leafletMap) {
         leafletMap = L.map('monitoreo-map', {
             zoomControl: true,
-            scrollWheelZoom: false
+            scrollWheelZoom: true
         });
         activeTileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
             attribution: 'Map data &copy; Google',
@@ -1047,6 +1673,7 @@ function enterManualPlacementMode(stationNum) {
             crossOrigin: true
         }).addTo(leafletMap);
         leafletMarkerGroup = L.layerGroup().addTo(leafletMap);
+        userLocationLayerGroup = L.layerGroup().addTo(leafletMap);
     }
     
     // Redraw map with placement state
@@ -1934,7 +2561,7 @@ function renderMonitoreo() {
             nextStationHtml = `
                 <div style="display: flex; align-items: center; gap: 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); padding: 5px 12px; border-radius: 8px;">
                     <span style="font-size: 0.8rem; color: #fbbf24; font-weight: 600;">🎯 Próxima en ruta: <strong>#${nextPendingStationNum}</strong></span>
-                    <button type="button" onclick="quickInspectStation('${nextKey}')" style="background: #f59e0b; color: #1e293b; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                    <button type="button" onclick="window.centerOnNextPendingStation()" style="background: #f59e0b; color: #1e293b; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
                         ⚡ Inspeccionar #${nextPendingStationNum}
                     </button>
                 </div>
