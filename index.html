@@ -15,7 +15,114 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.2.5r1"></script>
+    <script src="core-sync.js?v=v4.3.1"></script>
+
+    <!-- Schema.org SEO Structured Data (LocalBusiness & FAQ) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "PestControlService",
+          "@id": "https://stahlgraf.cl/#organization",
+          "name": "Stahlgraf Limitada",
+          "description": "Control profesional de plagas, insectos, desratización y trazabilidad inteligente en Los Ángeles y Región del Biobío. Monitoreo digital y productos certificados SAG.",
+          "url": "https://stahlgraf.cl/",
+          "telephone": "+56963187751",
+          "email": "controlplagas@stahlgraf.cl",
+          "priceRange": "$$",
+          "image": "https://stahlgraf.cl/logo.png",
+          "logo": "https://stahlgraf.cl/logo.png",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Los Ángeles",
+            "addressRegion": "Región del Biobío",
+            "addressCountry": "CL"
+          },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": -37.4697,
+            "longitude": -72.3537
+          },
+          "openingHoursSpecification": [
+            {
+              "@type": "OpeningHoursSpecification",
+              "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+              "opens": "08:00",
+              "closes": "20:00"
+            }
+          ],
+          "areaServed": [
+            {
+              "@type": "City",
+              "name": "Los Ángeles"
+            },
+            {
+              "@type": "AdministrativeArea",
+              "name": "Región del Biobío"
+            }
+          ],
+          "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Servicios Fitosanitarios y Control de Plagas",
+            "itemListElement": [
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "Control de Insectos y Fumigación de Temporada"
+                }
+              },
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "Desratización y Trazabilidad Digital QR"
+                }
+              },
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "Sanitización y Certificación Sanitaria Seremi / SAG"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://stahlgraf.cl/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "¿Por qué es clave fumigar al inicio de la primavera-verano?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Porque las altas temperaturas aceleran la eclosión de huevos y la fundación de avisperos y hormigueros. Un tratamiento perimetral temprano evita tener que combatir infestaciones gigantescas en pleno verano."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Entregan certificado para la Seremi de Salud o SAG?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Sí. Emitimos certificados sanitarios y de tratamiento fitosanitario oficiales con resolución sanitaria vigente, exigidos en fiscalizaciones de empresas, restaurantes, agroindustrias y arriendos."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "¿Cuánto tiempo tarda en llegar la cotización online?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "El cálculo a través de nuestro formulario en línea es inmediato y genera una propuesta formal en tu correo electrónico. Además, nuestro equipo te puede contactar por WhatsApp para afinar detalles."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
 
     <style>
         :root {

@@ -431,21 +431,11 @@
             console.error("Firebase failed to load: ", e);
         }
 
-        // Get UID from URL query string
+        // Get UID from URL query string or fallback to Stahlgraf master corporate UID
+        const DEFAULT_STAHLGRAF_UID = "H0jALdt26yWnLYUy3RvcVaEA5Nr1";
         const urlParams = new URLSearchParams(window.location.search);
-        const uid = urlParams.get('uid');
+        const uid = urlParams.get('uid') || DEFAULT_STAHLGRAF_UID;
         const formBodyWrapper = document.getElementById('form-body-wrapper');
-
-        // Check if UID is valid
-        if (!uid) {
-            formBodyWrapper.innerHTML = `
-                <div class="error-container">
-                    <div class="error-icon">⚠️</div>
-                    <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--danger); margin-bottom: 10px;">Enlace Inválido</h2>
-                    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Este formulario no se encuentra vinculado a ninguna cuenta activa de Stahlgraf. Por favor, solicite un enlace válido al proveedor de su servicio.</p>
-                </div>
-            `;
-        }
 
         // Add visual select styling to custom checkboxes and radios
         document.querySelectorAll('.custom-option').forEach(element => {
