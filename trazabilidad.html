@@ -433,13 +433,19 @@
             bottom: 0 !important;
             width: 100vw !important;
             height: 100vh !important;
+            min-height: 100vh !important;
             max-height: 100vh !important;
-            z-index: 2500 !important;
+            z-index: 999999 !important;
             border-radius: 0 !important;
             margin: 0 !important;
+            padding: 0 !important;
             border: none !important;
             box-shadow: none !important;
             background: #0f172a !important;
+        }
+        #monitoreo-map-wrapper.map-fullscreen-active #monitoreo-map {
+            width: 100% !important;
+            height: 100% !important;
         }
         body.map-fullscreen-open {
             overflow: hidden !important;
@@ -574,12 +580,17 @@
             z-index: 1002;
             box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.65);
             transform: translateY(115%);
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, visibility 0.2s;
             color: #fff;
-            pointer-events: auto;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
         }
         .quick-map-sheet.active {
             transform: translateY(0);
+            pointer-events: auto;
+            opacity: 1;
+            visibility: visible;
         }
         .quick-consumption-btn {
             background: rgba(255, 255, 255, 0.04);
@@ -906,7 +917,7 @@
                         <div id="monitoreo-map" style="height: 100%; width: 100%; z-index: 1;"></div>
 
                         <!-- Placeholder when no station has GPS -->
-                        <div id="monitoreo-map-placeholder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(5px); z-index: 5;">
+                        <div id="monitoreo-map-placeholder" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: none; pointer-events: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(5px); z-index: 5;">
                             <span style="font-size: 2.4rem; margin-bottom: 10px;">📍</span>
                             <p style="margin: 0; font-size: 1rem; color: #fff; font-weight: 600;">Sin datos de ubicación</p>
                             <p style="margin: 6px 0 0 0; font-size: 0.82rem; color: var(--text-muted); max-width: 340px; line-height: 1.4;">
@@ -1449,6 +1460,6 @@
         </div>
     </div>
 
-    <script src="trazabilidad.js?v=v4.4.0"></script>
+    <script src="trazabilidad.js?v=v4.4.1"></script>
 </body>
 </html>

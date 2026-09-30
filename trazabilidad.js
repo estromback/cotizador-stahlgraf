@@ -620,6 +620,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Listen for browser native fullscreen exit (e.g. user pressed ESC in browser native mode)
+    const onBrowserFullscreenChange = () => {
+        const isNative = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        if (!isNative && isMapFullscreen) {
+            window.toggleMapFullscreen();
+        }
+    };
+    document.addEventListener('fullscreenchange', onBrowserFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onBrowserFullscreenChange);
+
     // Auto-start live GPS tracking if opened with tab=monitoreo or clientId
     const initParams = new URLSearchParams(window.location.search);
     if (initParams.get('tab') === 'monitoreo' || initParams.get('tab') === 'mapa' || initParams.get('clientId')) {
@@ -1019,20 +1029,41 @@ window.centerOnNextPendingStation = function() {
     }
 };
 
+let mapWrapperOriginalParent = null;
+let mapWrapperNextSibling = null;
+
 // Toggle Fullscreen Overlay for the Satellite Map
 window.toggleMapFullscreen = function() {
     const wrapper = document.getElementById('monitoreo-map-wrapper');
     if (!wrapper) return;
 
+    // Capture current map center and zoom before any size/DOM changes
+    let currentCenter = null;
+    let currentZoom = 17;
+    if (leafletMap) {
+        try {
+            currentCenter = leafletMap.getCenter();
+            currentZoom = leafletMap.getZoom();
+        } catch (e) {}
+    }
+
     isMapFullscreen = !isMapFullscreen;
-    wrapper.classList.toggle('map-fullscreen-active', isMapFullscreen);
-    document.body.classList.toggle('map-fullscreen-open', isMapFullscreen);
 
     const fsBtnText = document.getElementById('btn-fullscreen-text');
     const fsBtnIcon = document.getElementById('btn-fullscreen-icon');
     const fsFloatBtn = document.getElementById('btn-float-fs');
 
     if (isMapFullscreen) {
+        // Remember original position in DOM
+        mapWrapperOriginalParent = wrapper.parentNode;
+        mapWrapperNextSibling = wrapper.nextSibling;
+
+        // Reparent directly to <body> so it is completely freed from transformed / filtered containing blocks
+        document.body.appendChild(wrapper);
+
+        wrapper.classList.add('map-fullscreen-active');
+        document.body.classList.add('map-fullscreen-open');
+
         if (fsBtnText) fsBtnText.textContent = 'Salir de Pantalla Completa';
         if (fsBtnIcon) fsBtnIcon.textContent = '🗗';
         if (fsFloatBtn) {
@@ -1041,11 +1072,42 @@ window.toggleMapFullscreen = function() {
             fsFloatBtn.classList.add('active');
         }
         updateFullscreenTopBar();
+        
         // Auto-start live GPS tracking when entering inspection fullscreen if not already active
         if (liveLocationWatchId === null) {
             window.toggleLiveGPSTracking(true);
         }
+
+        // Try native browser fullscreen on PC / Android if supported
+        try {
+            if (wrapper.requestFullscreen && !document.fullscreenElement) {
+                wrapper.requestFullscreen().catch(() => {});
+            } else if (wrapper.webkitRequestFullscreen && !document.webkitFullscreenElement) {
+                wrapper.webkitRequestFullscreen();
+            }
+        } catch (e) {}
     } else {
+        wrapper.classList.remove('map-fullscreen-active');
+        document.body.classList.remove('map-fullscreen-open');
+
+        // Exit native browser fullscreen if active
+        try {
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            } else if (document.webkitFullscreenElement) {
+                document.webkitExitFullscreen();
+            }
+        } catch (e) {}
+
+        // Return wrapper to its exact original place in DOM
+        if (mapWrapperOriginalParent) {
+            if (mapWrapperNextSibling) {
+                mapWrapperOriginalParent.insertBefore(wrapper, mapWrapperNextSibling);
+            } else {
+                mapWrapperOriginalParent.appendChild(wrapper);
+            }
+        }
+
         if (fsBtnText) fsBtnText.textContent = 'Pantalla Completa';
         if (fsBtnIcon) fsBtnIcon.textContent = '⛶';
         if (fsFloatBtn) {
@@ -1055,13 +1117,21 @@ window.toggleMapFullscreen = function() {
         }
     }
 
-    // Force Leaflet container recalculation
-    if (leafletMap) {
-        leafletMap.invalidateSize();
-        setTimeout(() => {
-            if (leafletMap) leafletMap.invalidateSize();
-        }, 200);
+    // Force Leaflet recalculation with center preservation
+    function applyMapRecalc() {
+        if (!leafletMap) return;
+        leafletMap.invalidateSize({ pan: false });
+        if (currentCenter && currentCenter.lat !== 0 && currentCenter.lng !== 0) {
+            leafletMap.setView(currentCenter, currentZoom, { animate: false });
+        } else if (currentUserCoords) {
+            leafletMap.setView([currentUserCoords.lat, currentUserCoords.lng], 18, { animate: false });
+        }
     }
+
+    applyMapRecalc();
+    setTimeout(applyMapRecalc, 50);
+    setTimeout(applyMapRecalc, 150);
+    setTimeout(applyMapRecalc, 300);
 };
 
 // Update top info bar in fullscreen mode
@@ -1355,6 +1425,7 @@ function initOrUpdateMap() {
                     </p>
                 `;
                 placeholder.style.display = 'flex';
+                placeholder.style.pointerEvents = 'auto';
             }
             if (mapElement) mapElement.style.opacity = '0';
             return;
@@ -1368,19 +1439,18 @@ function initOrUpdateMap() {
                     </p>
                 `;
                 placeholder.style.display = 'flex';
+                placeholder.style.pointerEvents = 'auto';
             }
             if (mapElement) mapElement.style.opacity = '0';
             return;
         }
     }
     
-    if (manualPlacementMode.active) {
-        if (placeholder) placeholder.style.display = 'none';
-        if (mapElement) mapElement.style.opacity = '1';
-    } else {
-        if (placeholder) placeholder.style.display = 'none';
-        if (mapElement) mapElement.style.opacity = '1';
+    if (placeholder) {
+        placeholder.style.display = 'none';
+        placeholder.style.pointerEvents = 'none';
     }
+    if (mapElement) mapElement.style.opacity = '1';
 
     // Initialize map if it doesn't exist
     if (!leafletMap) {
@@ -2048,6 +2118,9 @@ function checkURLParameters() {
 
 // Switch to a specific tab programmatically
 function switchToTab(targetId) {
+    if (isMapFullscreen && targetId !== 'panel-monitoreo') {
+        window.toggleMapFullscreen();
+    }
     document.querySelectorAll('.tab-trigger').forEach(t => {
         if (t.getAttribute('data-target') === targetId) {
             t.classList.add('active');
