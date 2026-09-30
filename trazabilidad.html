@@ -17,7 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.2.7"></script>
+    <script src="core-sync.js?v=v4.2.8"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
@@ -234,6 +234,75 @@
             0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
             70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Visit Progress Badges & Quick Action Controls */
+        .visit-badge-inspected {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.45);
+            color: #34d399;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .visit-badge-pending {
+            background: rgba(245, 158, 11, 0.18);
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            color: #fbbf24;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            animation: visit-pulse-amber 2.2s infinite;
+        }
+        @keyframes visit-pulse-amber {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            70% { box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+        .btn-visit-filter {
+            padding: 7px 14px;
+            font-size: 0.82rem;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.04);
+            color: #cbd5e1;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .btn-visit-filter:hover {
+            background: rgba(255,255,255,0.09);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+        .btn-visit-filter.active-all {
+            background: rgba(59, 130, 246, 0.25);
+            border-color: #3b82f6;
+            color: #93c5fd;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.35);
+        }
+        .btn-visit-filter.active-pending {
+            background: rgba(245, 158, 11, 0.25);
+            border-color: #f59e0b;
+            color: #fbbf24;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+        }
+        .btn-visit-filter.active-completed {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: #10b981;
+            color: #34d399;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
         }
 
         /* Table styles */
@@ -576,6 +645,11 @@
                     <h3 id="monitoreo-selected-client-name" style="margin: 0; font-size: 1.25rem; color: #fff; font-weight: 600;">Cliente: -</h3>
                 </div>
 
+                <!-- Panel de Control de Visita y Progreso en Terreno -->
+                <div id="monitoreo-visit-progress-container" style="margin-bottom: 22px;">
+                    <!-- Injected dynamically -->
+                </div>
+
                 <!-- Mapa Satelital de Estaciones -->
                 <div id="monitoreo-map-section" style="margin-bottom: 25px;">
                     <h3 style="font-size: 1.05rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
@@ -615,18 +689,22 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px;">
-                    <div class="stat-card" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 10px;">
-                        <h4 style="margin: 0; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Estaciones Revisadas</h4>
-                        <p id="stat-reviewed-count" style="margin: 5px 0 0 0; font-size: 1.6rem; font-weight: 700; color: #fff;">0 / 15</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                    <div class="stat-card" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); padding: 15px; border-radius: 10px;">
+                        <h4 style="margin: 0; color: #34d399; font-size: 0.8rem; text-transform: uppercase;">✔️ Revisadas en Visita</h4>
+                        <p id="stat-reviewed-count" style="margin: 5px 0 0 0; font-size: 1.6rem; font-weight: 700; color: #34d399;">0 / 0</p>
+                    </div>
+                    <div class="stat-card" id="stat-pending-visit-card" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); padding: 15px; border-radius: 10px;">
+                        <h4 style="margin: 0; color: #fbbf24; font-size: 0.8rem; text-transform: uppercase;">⏳ Faltan en Visita</h4>
+                        <p id="stat-visit-pending-count" style="margin: 5px 0 0 0; font-size: 1.6rem; font-weight: 700; color: #fbbf24;">0</p>
                     </div>
                     <div class="stat-card" id="stat-critical-card" style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.15); padding: 15px; border-radius: 10px;">
-                        <h4 style="margin: 0; color: #f87171; font-size: 0.8rem; text-transform: uppercase;">Focos de Alerta</h4>
+                        <h4 style="margin: 0; color: #f87171; font-size: 0.8rem; text-transform: uppercase;">🚨 Alertas Consumo</h4>
                         <p id="stat-critical-count" style="margin: 5px 0 0 0; font-size: 1.6rem; font-weight: 700; color: #f87171;">0</p>
                     </div>
-                    <div class="stat-card" style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.15); padding: 15px; border-radius: 10px;">
-                        <h4 style="margin: 0; color: #fbbf24; font-size: 0.8rem; text-transform: uppercase;">Por Sincronizar</h4>
-                        <p id="stat-pending-count" style="margin: 5px 0 0 0; font-size: 1.6rem; font-weight: 700; color: #fbbf24;">0</p>
+                    <div class="stat-card" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.15); padding: 15px; border-radius: 10px;">
+                        <h4 style="margin: 0; color: #60a5fa; font-size: 0.8rem; text-transform: uppercase;">☁️ Por Sincronizar</h4>
+                        <p id="stat-pending-count" style="margin: 5px 0 0 0; font-size: 1.6rem; font-weight: 700; color: #60a5fa;">0</p>
                     </div>
                 </div>
 
@@ -968,6 +1046,6 @@
         </div>
     </div>
 
-    <script src="trazabilidad.js?v=v4.2.7"></script>
+    <script src="trazabilidad.js?v=v4.2.8"></script>
 </body>
 </html>

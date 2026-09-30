@@ -697,6 +697,7 @@ function initOrUpdateMap() {
         if (clientObj) filterClientName = clientObj.name;
     }
 
+    const activeDate = window.currentVisitDate || getTodayDateStr();
     const mapStations = [];
     const maxStations = getMaxStationNumber();
     for (let i = 1; i <= maxStations; i++) {
@@ -704,8 +705,19 @@ function initOrUpdateMap() {
         const stationKey = `ESTACION-${numStr}`;
         const clientName = getClientNameForStation(i);
         
-        // Filter logic
+        // Filter logic by client
         if (filterClientName && clientName !== filterClientName) {
+            continue;
+        }
+
+        const visitRec = getStationVisitRecord(stationKey, activeDate);
+        const isInspectedInVisit = !!visitRec;
+
+        // Filter by visitFilterMode
+        if (window.visitFilterMode === 'pending' && isInspectedInVisit) {
+            continue;
+        }
+        if (window.visitFilterMode === 'completed' && !isInspectedInVisit) {
             continue;
         }
         
@@ -716,7 +728,9 @@ function initOrUpdateMap() {
                 key: stationKey,
                 clientName: clientName || 'Sin Cliente',
                 coords: coords,
-                analytics: calculateStationAnalytics(stationKey)
+                analytics: calculateStationAnalytics(stationKey),
+                isInspectedInVisit: isInspectedInVisit,
+                visitRec: visitRec
             });
         }
     }
@@ -806,12 +820,28 @@ function initOrUpdateMap() {
                 const avgColor = getColorForAvg(s.analytics.avg);
                 const numStr = String(s.num).padStart(2, '0');
                 
-                // DivIcon containing a styled circle with the station number
+                let iconHtml = '';
+                if (s.isInspectedInVisit) {
+                    iconHtml = `
+                        <div style="position: relative; width: 28px; height: 28px; cursor: pointer;">
+                            <div style="background-color: ${avgColor}; width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #10b981; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 11px; box-shadow: 0 0 10px rgba(16, 185, 129, 0.8), 0 2px 5px rgba(0,0,0,0.5);">${numStr}</div>
+                            <div style="position: absolute; top: -5px; right: -5px; background: #10b981; color: white; font-size: 9px; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid #fff; font-weight: 900; box-shadow: 0 1px 3px rgba(0,0,0,0.5);">✓</div>
+                        </div>
+                    `;
+                } else {
+                    iconHtml = `
+                        <div style="position: relative; width: 28px; height: 28px; cursor: pointer;">
+                            <div style="background-color: ${avgColor}; width: 26px; height: 26px; border-radius: 50%; border: 2.5px dashed #f59e0b; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 11px; box-shadow: 0 0 8px rgba(245, 158, 11, 0.7), 0 2px 5px rgba(0,0,0,0.5);">${numStr}</div>
+                            <div style="position: absolute; top: -5px; right: -5px; background: #f59e0b; color: #1e293b; font-size: 8px; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid #fff; font-weight: 900; box-shadow: 0 1px 3px rgba(0,0,0,0.5);">⏳</div>
+                        </div>
+                    `;
+                }
+
                 const customIcon = L.divIcon({
                     className: 'custom-station-icon',
-                    html: `<div style="background-color: ${avgColor}; width: 22px; height: 22px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.55);">${numStr}</div>`,
-                    iconSize: [22, 22],
-                    iconAnchor: [11, 11]
+                    html: iconHtml,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
                 });
 
                 const marker = L.marker([s.coords.lat, s.coords.lng], {
@@ -830,11 +860,21 @@ function initOrUpdateMap() {
                     }
                 });
 
+                const visitBadgeHtml = s.isInspectedInVisit
+                    ? `<div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 5px 8px; margin-bottom: 8px; font-weight: 700; color: #059669; font-size: 0.82rem; display: flex; align-items: center; gap: 5px;">
+                        <span>✔️ Inspeccionada en esta visita (${s.visitRec.timeStr})</span>
+                       </div>`
+                    : `<div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 6px; padding: 5px 8px; margin-bottom: 8px; font-weight: 700; color: #d97706; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                        <span>⏳ PENDIENTE EN ESTA VISITA</span>
+                        <button onclick="quickInspectStation('${s.key}')" style="background: #3b82f6; color: #fff; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.74rem; cursor: pointer; font-weight: 600;">⚡ Inspeccionar</button>
+                       </div>`;
+
                 const popupContent = `
                     <div style="color: #333; font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.4; padding: 5px;">
                         <h4 style="margin: 0 0 5px 0; font-size: 1rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; cursor: pointer;" onclick="window.selectStationFromMap('${numStr}')" title="Toca para registrar inspección">
                             📍 Estación #${numStr}
                         </h4>
+                        ${visitBadgeHtml}
                         <p style="margin: 4px 0;"><strong>Cliente:</strong> ${s.clientName}</p>
                         <p style="margin: 4px 0;"><strong>Último Consumo:</strong> ${s.analytics.lastVal}</p>
                         <p style="margin: 4px 0;"><strong>Promedio Histórico:</strong> ${s.analytics.avg}%</p>
@@ -1183,6 +1223,7 @@ function generateStationDropdown(skipInfoUpdate = false) {
     optPlaceholder.textContent = '-- Seleccionar Estación --';
     select.appendChild(optPlaceholder);
     
+    const activeDate = window.currentVisitDate || getTodayDateStr();
     const maxStations = getMaxStationNumber();
     for (let i = 1; i <= maxStations; i++) {
         const numStr = String(i).padStart(2, '0');
@@ -1190,13 +1231,16 @@ function generateStationDropdown(skipInfoUpdate = false) {
         
         // Find if this station is assigned to a client
         const clientName = getClientNameForStation(i);
+        const visitRec = getStationVisitRecord(stationKey, activeDate);
+        const isInspected = !!visitRec;
+        const prefix = isInspected ? `✔️ [Revisada ${visitRec.timeStr}] ` : `⏳ [Pendiente] `;
         
         const opt = document.createElement('option');
         opt.value = stationKey;
         if (clientName) {
-            opt.textContent = `Estación #${numStr} - ${clientName}`;
+            opt.textContent = `${prefix}Estación #${numStr} - ${clientName}`;
         } else {
-            opt.textContent = `Estación #${numStr}`;
+            opt.textContent = `${prefix}Estación #${numStr}`;
         }
         select.appendChild(opt);
     }
@@ -1769,25 +1813,147 @@ function renderMonitoreo() {
         clientNameLabel.innerHTML = `👤 Cliente: <strong>${filterClientName}</strong>${clientObj && clientObj.address ? ` <span style="font-size:0.85rem; color:var(--text-muted); font-weight:400; margin-left: 10px;">(📍 ${clientObj.address})</span>` : ''}`;
     }
 
+    const activeDate = window.currentVisitDate || getTodayDateStr();
+
+    // 1. Gather all stations belonging to this client to compute visit progress
+    const clientStations = [];
+    const maxStations = getMaxStationNumber();
+    for (let i = 1; i <= maxStations; i++) {
+        const clientName = getClientNameForStation(i);
+        if (filterClientName && clientName) {
+            if (clientName.trim().toLowerCase() === filterClientName.trim().toLowerCase()) {
+                clientStations.push(i);
+            }
+        }
+    }
+
+    let reviewedInVisitCount = 0;
+    let pendingInVisitCount = 0;
+    let nextPendingStationNum = null;
+
+    clientStations.forEach(num => {
+        const stationKey = `ESTACION-${String(num).padStart(2, '0')}`;
+        const visitRec = getStationVisitRecord(stationKey, activeDate);
+        if (visitRec) {
+            reviewedInVisitCount++;
+        } else {
+            pendingInVisitCount++;
+            if (nextPendingStationNum === null) {
+                nextPendingStationNum = num;
+            }
+        }
+    });
+
+    const totalClientStations = clientStations.length;
+    const visitPct = totalClientStations > 0 ? Math.round((reviewedInVisitCount / totalClientStations) * 100) : 0;
+
+    // 2. Render Visit Progress & Route Assistant Container
+    const progressContainer = document.getElementById('monitoreo-visit-progress-container');
+    if (progressContainer) {
+        const todayStr = getTodayDateStr();
+        const yesterdayStr = getYesterdayDateStr();
+        const isToday = activeDate === todayStr;
+        const isYesterday = activeDate === yesterdayStr;
+        
+        const dateLabel = isToday ? `Hoy (${formatDateDisplay(activeDate)})` : isYesterday ? `Ayer (${formatDateDisplay(activeDate)})` : formatDateDisplay(activeDate);
+        const filterMode = window.visitFilterMode || 'all';
+
+        let nextStationHtml = '';
+        if (nextPendingStationNum !== null) {
+            const nextKey = `ESTACION-${String(nextPendingStationNum).padStart(2, '0')}`;
+            nextStationHtml = `
+                <div style="display: flex; align-items: center; gap: 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); padding: 5px 12px; border-radius: 8px;">
+                    <span style="font-size: 0.8rem; color: #fbbf24; font-weight: 600;">🎯 Próxima en ruta: <strong>#${nextPendingStationNum}</strong></span>
+                    <button type="button" onclick="quickInspectStation('${nextKey}')" style="background: #f59e0b; color: #1e293b; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        ⚡ Inspeccionar #${nextPendingStationNum}
+                    </button>
+                </div>
+            `;
+        } else if (totalClientStations > 0) {
+            nextStationHtml = `
+                <div style="display: flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); padding: 5px 12px; border-radius: 8px; color: #34d399; font-size: 0.82rem; font-weight: 600;">
+                    🎉 ¡100% de estaciones inspeccionadas en esta visita!
+                </div>
+            `;
+        }
+
+        progressContainer.innerHTML = `
+            <div class="glass-panel" style="padding: 16px 20px; border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.25); background: rgba(15, 23, 42, 0.7); box-shadow: 0 4px 16px rgba(0,0,0,0.25);">
+                <!-- Top row: Title and Date Selectors -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 1.15rem;">📋</span>
+                        <strong style="color: #fff; font-size: 1rem;">Control de Visita en Terreno</strong>
+                        <span style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; font-size: 0.78rem; padding: 2px 8px; border-radius: 6px; font-weight: 600;">
+                            📅 ${dateLabel}
+                        </span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <button type="button" class="btn-visit-filter ${isToday ? 'active-completed' : ''}" onclick="setVisitDate('${todayStr}')" style="padding: 4px 10px; font-size: 0.76rem;">
+                            Hoy
+                        </button>
+                        <button type="button" class="btn-visit-filter ${isYesterday ? 'active-completed' : ''}" onclick="setVisitDate('${yesterdayStr}')" style="padding: 4px 10px; font-size: 0.76rem;">
+                            Ayer
+                        </button>
+                        <input type="date" value="${activeDate}" onchange="setVisitDate(this.value)" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 3px 8px; border-radius: 6px; font-size: 0.76rem; outline: none; cursor: pointer;" title="Seleccionar fecha específica">
+                    </div>
+                </div>
+                
+                <!-- Middle row: Progress Bar -->
+                <div style="margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                        <span style="color: #cbd5e1; font-weight: 500;">
+                            Progreso de inspección: <strong style="color: #fff;">${reviewedInVisitCount} de ${totalClientStations}</strong> estaciones (${visitPct}%)
+                        </span>
+                        <span style="color: ${pendingInVisitCount > 0 ? '#fbbf24' : '#34d399'}; font-weight: 600;">
+                            ${pendingInVisitCount > 0 ? `⏳ Faltan ${pendingInVisitCount} por inspeccionar` : '✔️ Visita completa'}
+                        </span>
+                    </div>
+                    <div style="width: 100%; height: 9px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden;">
+                        <div style="width: ${visitPct}%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399); border-radius: 6px; transition: width 0.4s ease;"></div>
+                    </div>
+                </div>
+
+                <!-- Bottom row: Quick Filter Buttons & Next Recommendation -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button type="button" class="btn-visit-filter ${filterMode === 'all' ? 'active-all' : ''}" onclick="setVisitFilterMode('all')">
+                            🔘 Todas (${totalClientStations})
+                        </button>
+                        <button type="button" class="btn-visit-filter ${filterMode === 'pending' ? 'active-pending' : ''}" onclick="setVisitFilterMode('pending')" title="Ver solo las estaciones que faltan por inspeccionar en esta visita">
+                            ⏳ Faltan por Revisar (${pendingInVisitCount})
+                        </button>
+                        <button type="button" class="btn-visit-filter ${filterMode === 'completed' ? 'active-completed' : ''}" onclick="setVisitFilterMode('completed')" title="Ver solo las estaciones ya inspeccionadas hoy">
+                            ✔️ Listas en Visita (${reviewedInVisitCount})
+                        </button>
+                    </div>
+                    ${nextStationHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    // 3. Update Stat KPI Cards
+    const statReviewed = document.getElementById('stat-reviewed-count');
+    if (statReviewed) statReviewed.innerText = `${reviewedInVisitCount} / ${totalClientStations}`;
+    
+    const statVisitPending = document.getElementById('stat-visit-pending-count');
+    if (statVisitPending) statVisitPending.innerText = pendingInVisitCount;
+
+    // 4. Render Grid of Stations (Heatmap)
     const grid = document.getElementById('heatmap-grid');
     if (!grid) return;
     grid.innerHTML = '';
     
-    let uniqueInspected = new Set();
-    const maxStations = getMaxStationNumber();
-    
-    let totalCount = 0;
-    let reviewedCount = 0;
     let criticalCount = 0;
+    let renderedCellsCount = 0;
     
     for (let i = 1; i <= maxStations; i++) {
         const numStr = String(i).padStart(2, '0');
         const stationKey = `ESTACION-${numStr}`;
-        
-        // Find if this station is assigned to a client
         const clientName = getClientNameForStation(i);
         
-        // Filter logic
+        // Filter logic by client
         if (filterClientName && clientName) {
             const safeFilter = String(filterClientName).trim().toLowerCase();
             const safeClient = String(clientName).trim().toLowerCase();
@@ -1795,9 +1961,16 @@ function renderMonitoreo() {
         } else if (filterClientName && !clientName) {
             continue;
         }
-        
-        totalCount++;
-        
+
+        const visitRec = getStationVisitRecord(stationKey, activeDate);
+        const isInspectedInVisit = !!visitRec;
+
+        // Filter logic by visitFilterMode
+        if (window.visitFilterMode === 'pending' && isInspectedInVisit) continue;
+        if (window.visitFilterMode === 'completed' && !isInspectedInVisit) continue;
+
+        renderedCellsCount++;
+
         // Calculate analytics for trend and average
         const analytics = calculateStationAnalytics(stationKey);
         
@@ -1814,10 +1987,7 @@ function renderMonitoreo() {
                 stateClass = 'station-red';
             }
             statusText = `Último: ${consumption}<br>Prom: ${analytics.avg}%`;
-            uniqueInspected.add(stationKey);
-            reviewedCount++;
             
-            // A station is critical only if it has >= 5 consecutive inspections of >= 75% consumption
             if (isStationCritical(stationKey)) {
                 criticalCount++;
             }
@@ -1825,7 +1995,6 @@ function renderMonitoreo() {
             statusText = 'Sin datos';
         }
         
-        // Trend Icon Mapping
         let trendIcon = '';
         if (analytics.trend === 'up') trendIcon = '📈';
         else if (analytics.trend === 'down') trendIcon = '📉';
@@ -1833,7 +2002,20 @@ function renderMonitoreo() {
         
         const cell = document.createElement('div');
         cell.className = `station-cell ${stateClass}`;
+        if (isInspectedInVisit) {
+            cell.style.borderColor = '#10b981';
+            cell.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.2)';
+        } else {
+            cell.style.borderColor = '#f59e0b';
+        }
         
+        const visitBadgeHtml = isInspectedInVisit 
+            ? `<div style="margin-top: 4px;"><span class="visit-badge-inspected">✔️ Hoy ${visitRec.timeStr}</span></div>`
+            : `<div style="margin-top: 4px; display: flex; justify-content: center; gap: 4px; align-items: center;">
+                 <span class="visit-badge-pending">⏳ PENDIENTE</span>
+                 <button type="button" onclick="event.stopPropagation(); quickInspectStation('${stationKey}')" title="Inspeccionar #${numStr}" style="background: rgba(245, 158, 11, 0.25); border: 1px solid rgba(245, 158, 11, 0.5); color: #fbbf24; border-radius: 4px; padding: 1px 5px; font-size: 0.68rem; font-weight: 700; cursor: pointer;">⚡</button>
+               </div>`;
+
         const clientLabel = clientName ? `<span style="font-size:0.65rem; color:#aaa; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top:2px; font-weight: 500;">👤 ${clientName}</span>` : '';
         
         cell.innerHTML = `
@@ -1841,21 +2023,27 @@ function renderMonitoreo() {
                 <span class="num">${numStr}</span>
                 <span class="trend-icon" style="font-size: 0.9rem;">${trendIcon}</span>
             </div>
-            <span class="status-lbl" style="font-size: 0.65rem; opacity: 0.95; line-height: 1.2; text-align: center; margin-top: 4px;">
+            <span class="status-lbl" style="font-size: 0.65rem; opacity: 0.95; line-height: 1.2; text-align: center; margin-top: 3px;">
                 ${statusText}
             </span>
+            ${visitBadgeHtml}
             ${clientLabel}
         `;
         
-        // Clicking cell opens Detail Modal
         cell.addEventListener('click', () => {
             openStationDetails(i);
         });
         
         grid.appendChild(cell);
     }
-    
-    document.getElementById('stat-reviewed-count').innerText = `${reviewedCount} / ${totalCount}`;
+
+    if (renderedCellsCount === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: var(--text-muted); background: rgba(255,255,255,0.02); border-radius: 10px; border: 1px dashed rgba(255,255,255,0.1);">
+                <span>ℹ️ No hay estaciones para mostrar con el filtro actual (${window.visitFilterMode === 'pending' ? '¡Todas ya fueron inspeccionadas en esta visita!' : 'Ninguna inspeccionada aún'}).</span>
+            </div>
+        `;
+    }
     
     const statCriticalCount = document.getElementById('stat-critical-count');
     if (statCriticalCount) {
@@ -2442,6 +2630,98 @@ function getRecordTimestamp(record) {
     
     return 0;
 }
+
+// ==========================================
+// VISIT CONTROL & FIELD PROGRESS UTILITIES
+// ==========================================
+function getTodayDateStr() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function getYesterdayDateStr() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function formatDateDisplay(dateStr) {
+    if (!dateStr) return '';
+    try {
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+    } catch(e) {}
+    return dateStr;
+}
+
+// Active visit date (defaults to today) and visual filter ('all' | 'pending' | 'completed')
+window.currentVisitDate = getTodayDateStr();
+window.visitFilterMode = 'all';
+
+function isRecordOnDate(record, dateStr) {
+    const ts = getRecordTimestamp(record);
+    if (!ts) return false;
+    const d = new Date(ts);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}` === dateStr;
+}
+
+function getStationVisitRecord(stationKey, targetDate = null) {
+    const dateStr = targetDate || window.currentVisitDate || getTodayDateStr();
+    const recs = (inspections || []).filter(r => r.station === stationKey && isRecordOnDate(r, dateStr));
+    if (recs.length === 0) return null;
+    const sorted = [...recs].sort((a, b) => getRecordTimestamp(b) - getRecordTimestamp(a));
+    const latest = sorted[0];
+    const ts = getRecordTimestamp(latest);
+    const timeStr = ts ? new Date(ts).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : '';
+    return {
+        record: latest,
+        timeStr: timeStr,
+        consumption: latest.consumption
+    };
+}
+
+window.setVisitDate = function(dateStr) {
+    if (!dateStr) return;
+    window.currentVisitDate = dateStr;
+    renderMonitoreo();
+    generateStationDropdown(true);
+};
+
+window.setVisitFilterMode = function(mode) {
+    window.visitFilterMode = mode;
+    renderMonitoreo();
+};
+
+window.quickInspectStation = function(stationKey) {
+    const stationNum = parseInt(stationKey.replace('ESTACION-', ''), 10);
+    const select = document.getElementById('station-id');
+    if (select) {
+        select.disabled = false;
+        const exists = Array.from(select.options).some(o => o.value === stationKey);
+        if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = stationKey;
+            const clientName = getClientNameForStation(stationNum);
+            opt.textContent = clientName ? `Estación #${String(stationNum).padStart(2, '0')} - ${clientName}` : `Estación #${String(stationNum).padStart(2, '0')}`;
+            select.appendChild(opt);
+        }
+        select.value = stationKey;
+        select.dispatchEvent(new Event('change'));
+        updateStationClientInfo();
+        switchToTab('panel-inspeccionar');
+    }
+};
 
 // Helper: Calculate max station count dynamically based on assignments & records
 function getMaxStationNumber() {
@@ -3377,6 +3657,24 @@ function updateStationClientInfo() {
         }
     }
     
+    const visitRec = getStationVisitRecord(stationValue);
+    let visitStatusHtml = '';
+    if (visitRec) {
+        visitStatusHtml = `
+            <div style="margin-top: 8px; padding: 6px 10px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; font-size: 0.78rem; color: #34d399; display: flex; align-items: center; gap: 6px;">
+                <span>✔️</span>
+                <span><strong>Inspeccionada hoy a las ${visitRec.timeStr}</strong> (Consumo: ${visitRec.consumption}). Puedes registrar otra inspección para actualizar sus datos.</span>
+            </div>
+        `;
+    } else {
+        visitStatusHtml = `
+            <div style="margin-top: 8px; padding: 6px 10px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; font-size: 0.78rem; color: #fbbf24; display: flex; align-items: center; gap: 6px;">
+                <span>⏳</span>
+                <span><strong>Estación pendiente de inspeccionar</strong> en la visita de hoy.</span>
+            </div>
+        `;
+    }
+
     if (assignment) {
         const client = (globalAppData.clients || []).find(c => c.id === assignment.clientId || c.name === assignment.clientName);
         const addressText = client && client.address ? ` | 📍 Dirección: ${client.address}` : '';
@@ -3387,6 +3685,7 @@ function updateStationClientInfo() {
                     ✏️ Corregir
                 </button>
             </div>
+            ${visitStatusHtml}
         `;
         infoDiv.style.display = 'block';
     } else {
@@ -3397,6 +3696,7 @@ function updateStationClientInfo() {
                     ➕ Vincular Cliente
                 </button>
             </div>
+            ${visitStatusHtml}
         `;
         infoDiv.style.display = 'block';
     }
