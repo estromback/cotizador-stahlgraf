@@ -375,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
     seedMockDataIfEmpty();
     loadGlobalAppData();
     loadLocalInspections();
+    populateClientsDropdown();
     generateStationDropdown();
     checkURLParameters();
     setupTabSwitching();
@@ -383,7 +384,6 @@ document.addEventListener('DOMContentLoaded', () => {
     handleAuthRedirects();
     
     // Initial renders for assignments
-    populateClientsDropdown();
     renderAssignmentsList();
     updateStationClientInfo();
 
@@ -509,6 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filterClientIdSelect) {
         filterClientIdSelect.addEventListener('change', () => {
             renderMonitoreo();
+            generateStationDropdown(true);
         });
     }
     
@@ -1224,24 +1225,76 @@ function generateStationDropdown(skipInfoUpdate = false) {
     
     const activeDate = window.currentVisitDate || getTodayDateStr();
     const maxStations = getMaxStationNumber();
-    for (let i = 1; i <= maxStations; i++) {
-        const numStr = String(i).padStart(2, '0');
-        const stationKey = `ESTACION-${numStr}`;
-        
-        // Find if this station is assigned to a client
-        const clientName = getClientNameForStation(i);
-        const visitRec = getStationVisitRecord(stationKey, activeDate);
-        const isInspected = !!visitRec;
-        const prefix = isInspected ? `✔️ [Revisada ${visitRec.timeStr}] ` : `⏳ [Pendiente] `;
-        
-        const opt = document.createElement('option');
-        opt.value = stationKey;
-        if (clientName) {
-            opt.textContent = `${prefix}Estación #${numStr} - ${clientName}`;
-        } else {
-            opt.textContent = `${prefix}Estación #${numStr}`;
+
+    const filterClientIdSelect = document.getElementById('filter-client-id');
+    const filterClientId = filterClientIdSelect ? filterClientIdSelect.value : '';
+    let filterClientName = '';
+    if (filterClientId) {
+        const clientObj = (globalAppData.clients || []).find(c => c.id === filterClientId);
+        if (clientObj) filterClientName = clientObj.name;
+    }
+
+    if (filterClientName) {
+        const clientStations = [];
+        const otherStations = [];
+        for (let i = 1; i <= maxStations; i++) {
+            const clientName = getClientNameForStation(i);
+            if (clientName === filterClientName) {
+                clientStations.push(i);
+            } else {
+                otherStations.push(i);
+            }
         }
-        select.appendChild(opt);
+
+        if (clientStations.length > 0) {
+            const grpClient = document.createElement('optgroup');
+            grpClient.label = `📍 Estaciones de ${filterClientName}`;
+            clientStations.forEach(i => {
+                const numStr = String(i).padStart(2, '0');
+                const stationKey = `ESTACION-${numStr}`;
+                const visitRec = getStationVisitRecord(stationKey, activeDate);
+                const prefix = visitRec ? `✔️ [Revisada ${visitRec.timeStr}] ` : `⏳ [Pendiente] `;
+                const opt = document.createElement('option');
+                opt.value = stationKey;
+                opt.textContent = `${prefix}Estación #${numStr}`;
+                grpClient.appendChild(opt);
+            });
+            select.appendChild(grpClient);
+        }
+
+        if (otherStations.length > 0) {
+            const grpOther = document.createElement('optgroup');
+            grpOther.label = `── Otras Estaciones ──`;
+            otherStations.forEach(i => {
+                const numStr = String(i).padStart(2, '0');
+                const stationKey = `ESTACION-${numStr}`;
+                const otherClient = getClientNameForStation(i);
+                const visitRec = getStationVisitRecord(stationKey, activeDate);
+                const prefix = visitRec ? `✔️ [Revisada ${visitRec.timeStr}] ` : `⏳ [Pendiente] `;
+                const opt = document.createElement('option');
+                opt.value = stationKey;
+                opt.textContent = otherClient ? `${prefix}Estación #${numStr} - ${otherClient}` : `${prefix}Estación #${numStr}`;
+                grpOther.appendChild(opt);
+            });
+            select.appendChild(grpOther);
+        }
+    } else {
+        for (let i = 1; i <= maxStations; i++) {
+            const numStr = String(i).padStart(2, '0');
+            const stationKey = `ESTACION-${numStr}`;
+            const clientName = getClientNameForStation(i);
+            const visitRec = getStationVisitRecord(stationKey, activeDate);
+            const prefix = visitRec ? `✔️ [Revisada ${visitRec.timeStr}] ` : `⏳ [Pendiente] `;
+            
+            const opt = document.createElement('option');
+            opt.value = stationKey;
+            if (clientName) {
+                opt.textContent = `${prefix}Estación #${numStr} - ${clientName}`;
+            } else {
+                opt.textContent = `${prefix}Estación #${numStr}`;
+            }
+            select.appendChild(opt);
+        }
     }
     
     if (currentVal && Array.from(select.options).some(o => o.value === currentVal)) {
@@ -1256,7 +1309,7 @@ function generateStationDropdown(skipInfoUpdate = false) {
     }
 }
 
-// Check if URL has ?id=ESTACION-XX parameter and preserve it across redirect logins
+// Check if URL has parameters (clientId, tab, id) and configure view accordingly
 function checkURLParameters() {
     const params = new URLSearchParams(window.location.search);
     
@@ -1277,11 +1330,28 @@ function checkURLParameters() {
         }
     }
     
+    // Parse client filter parameter
+    const clientIdParam = params.get('clientId');
+    if (clientIdParam) {
+        sessionStorage.setItem('trazabilidad_selected_client_id', clientIdParam);
+        const filterClientIdSelect = document.getElementById('filter-client-id');
+        if (filterClientIdSelect) {
+            filterClientIdSelect.value = clientIdParam;
+        }
+        // Update station dropdown to highlight this client's stations
+        generateStationDropdown(true);
+    }
+
+    // Parse tab parameter
+    const tabParam = params.get('tab');
+
     const activeMode = sessionStorage.getItem('trazabilidad_mode');
     if (activeMode === 'tech') {
-        // Hide tabs navigation
-        const tabsNav = document.querySelector('.tabs-nav');
-        if (tabsNav) tabsNav.style.display = 'none';
+        // In tech mode: keep Monitoreo (Mapa) and Inspeccionar (Ficha) accessible, hide administrative tabs
+        const tabAsig = document.querySelector('.tab-trigger[data-target="panel-asignaciones"]');
+        if (tabAsig) tabAsig.style.display = 'none';
+        const tabSync = document.querySelector('.tab-trigger[data-target="panel-sync"]');
+        if (tabSync) tabSync.style.display = 'none';
         
         // Hide page header sync actions
         const navActions = document.querySelector('.nav-actions');
@@ -1296,9 +1366,6 @@ function checkURLParameters() {
         if (logoLink) {
             logoLink.href = 'hub.html?mode=tech';
         }
-        
-        // Force switch to Registrar tab
-        switchToTab('panel-inspeccionar');
     }
 
     // Extract station ID parameter using robust checks
@@ -1343,6 +1410,12 @@ function checkURLParameters() {
         
         // Auto-switch to Registrar tab
         switchToTab('panel-inspeccionar');
+    } else if (tabParam === 'monitoreo' || tabParam === 'mapa' || (clientIdParam && !tabParam)) {
+        switchToTab('panel-monitoreo');
+    } else if (tabParam === 'inspeccionar' || tabParam === 'registrar') {
+        switchToTab('panel-inspeccionar');
+    } else if (activeMode === 'tech') {
+        switchToTab('panel-monitoreo');
     }
 }
 
@@ -1366,6 +1439,7 @@ function switchToTab(targetId) {
         renderMonitoreo();
     }
     if (targetId === 'panel-inspeccionar') {
+        generateStationDropdown(true);
         requestGPSLock();
     }
     if (targetId === 'panel-asignaciones') {
@@ -1867,8 +1941,11 @@ function renderMonitoreo() {
             `;
         } else if (totalClientStations > 0) {
             nextStationHtml = `
-                <div style="display: flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); padding: 5px 12px; border-radius: 8px; color: #34d399; font-size: 0.82rem; font-weight: 600;">
-                    🎉 ¡100% de estaciones inspeccionadas en esta visita!
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); padding: 6px 12px; border-radius: 8px; color: #34d399; font-size: 0.82rem; font-weight: 600;">
+                    <span>🎉 ¡100% de estaciones inspeccionadas en esta visita!</span>
+                    <button type="button" onclick="openReportConfigModal()" style="background: #10b981; color: #fff; border: none; padding: 4px 10px; border-radius: 6px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                        📄 Generar Reporte PDF
+                    </button>
                 </div>
             `;
         }

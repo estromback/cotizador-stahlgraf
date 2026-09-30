@@ -309,6 +309,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('btn-load-client')) {
         document.getElementById('btn-load-client').addEventListener('click', () => {
             activeClientSelectionTarget = 'crm';
+            const modalHeader = document.querySelector('#clients-modal .modal-header h2');
+            if (modalHeader) modalHeader.innerText = 'Mis Clientes';
+            document.getElementById('clients-modal').classList.add('active');
+            renderClientsSelect();
+        });
+    }
+    if (document.getElementById('btn-quick-inspect')) {
+        document.getElementById('btn-quick-inspect').addEventListener('click', (e) => {
+            e.preventDefault();
+            activeClientSelectionTarget = 'inspection-round';
+            const modalHeader = document.querySelector('#clients-modal .modal-header h2');
+            if (modalHeader) modalHeader.innerText = '🗺️ Iniciar Ronda: Seleccionar Cliente';
             document.getElementById('clients-modal').classList.add('active');
             renderClientsSelect();
         });
@@ -368,6 +380,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('btn-quick-service-select-client')) {
         document.getElementById('btn-quick-service-select-client').addEventListener('click', () => {
             activeClientSelectionTarget = 'quick-service';
+            const modalHeader = document.querySelector('#clients-modal .modal-header h2');
+            if (modalHeader) modalHeader.innerText = 'Seleccionar Cliente para Servicio';
             document.getElementById('clients-modal').classList.add('active');
             renderClientsSelect();
         });
@@ -1539,32 +1553,91 @@ function renderClientsSelect(filter = '') {
     const term = filter.toLowerCase();
     const filtered = clientsList.filter(c => c.name.toLowerCase().includes(term) || (c.address && c.address.toLowerCase().includes(term)));
     
+    // Helper to calculate stations assigned to client
+    const getClientStationsCount = (c) => {
+        let count = 0;
+        const assignments = (appData && appData.stationAssignments) || JSON.parse(localStorage.getItem('stahlgraf_data_v4') || '{}').stationAssignments || [];
+        assignments.filter(a => a.clientId === c.id || a.clientName === c.name).forEach(a => {
+            const s = parseInt(a.start, 10);
+            const e = parseInt(a.end, 10);
+            if (!isNaN(s) && !isNaN(e)) count += (e - s + 1);
+        });
+        return count;
+    };
+
+    // If starting inspection round, offer general map button at top
+    if (activeClientSelectionTarget === 'inspection-round' && !term) {
+        const generalMapDiv = document.createElement('div');
+        generalMapDiv.className = 'db-item';
+        generalMapDiv.style.cssText = 'cursor: pointer; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); margin-bottom: 12px; border-radius: 8px; padding: 12px 14px;';
+        generalMapDiv.onclick = () => {
+            document.getElementById('clients-modal').classList.remove('active');
+            window.location.href = 'trazabilidad.html?tab=monitoreo';
+        };
+        generalMapDiv.innerHTML = `
+            <div class="db-item-info">
+                <strong style="color: #60a5fa; display: flex; align-items: center; gap: 6px;">🗺️ Ver Mapa General (Todas las Estaciones)</strong>
+                <span style="font-size: 0.82rem; color: #cbd5e1;">Acceder al mapa de monitoreo sin filtrar por cliente</span>
+            </div>
+            <div class="db-item-actions">
+                <button class="btn btn-secondary btn-sm" style="border-color: #3b82f6; color: #60a5fa; white-space: nowrap;">Abrir Mapa ➔</button>
+            </div>
+        `;
+        listEl.appendChild(generalMapDiv);
+    }
+
     if (filtered.length === 0) {
-        listEl.innerHTML = '<p style="color: #666; font-size: 0.95rem;">No se encontraron clientes.</p>';
+        listEl.innerHTML += '<p style="color: #666; font-size: 0.95rem;">No se encontraron clientes.</p>';
         return;
     }
     
-    filtered.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    if (activeClientSelectionTarget === 'inspection-round') {
+        filtered.sort((a, b) => {
+            const countA = getClientStationsCount(a);
+            const countB = getClientStationsCount(b);
+            if (countA > 0 && countB === 0) return -1;
+            if (countB > 0 && countA === 0) return 1;
+            return (a.name || '').localeCompare(b.name || '');
+        });
+    } else {
+        filtered.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+    }
     
     filtered.forEach(client => {
         const div = document.createElement('div');
         div.className = 'db-item';
         div.style.cursor = 'pointer';
         div.onclick = () => {
+            document.getElementById('clients-modal').classList.remove('active');
             if (activeClientSelectionTarget === 'quick-service') {
                 loadClientToQuickService(client);
+            } else if (activeClientSelectionTarget === 'inspection-round') {
+                window.location.href = `trazabilidad.html?clientId=${encodeURIComponent(client.id)}&tab=monitoreo`;
             } else {
                 loadClientToForm(client.id);
             }
-            document.getElementById('clients-modal').classList.remove('active');
         };
+
+        const stCount = getClientStationsCount(client);
+        let stationBadge = '';
+        if (activeClientSelectionTarget === 'inspection-round') {
+            stationBadge = stCount > 0 
+                ? `<span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; font-weight: 700; margin-left: 8px;">📍 ${stCount} estaciones</span>` 
+                : `<span style="background: rgba(148, 163, 184, 0.1); color: #94a3b8; font-size: 0.72rem; padding: 2px 6px; border-radius: 6px; margin-left: 8px;">Sin estaciones</span>`;
+        }
+
+        const actionBtnText = activeClientSelectionTarget === 'inspection-round' ? 'Ir al Mapa ➔' : 'Seleccionar';
+
         div.innerHTML = `
             <div class="db-item-info">
-                <strong>${client.name}</strong>
+                <div style="display: flex; align-items: center; flex-wrap: wrap;">
+                    <strong>${client.name}</strong>
+                    ${stationBadge}
+                </div>
                 <span style="font-size: 0.85rem; color: #888;">Tel: ${client.phone || ''} | ${client.address || ''}${client.email ? ` | Email: ${client.email}` : ''}</span>
             </div>
             <div class="db-item-actions">
-                <button class="btn btn-primary btn-sm">Seleccionar</button>
+                <button class="btn btn-primary btn-sm" style="white-space: nowrap;">${actionBtnText}</button>
             </div>
         `;
         listEl.appendChild(div);
