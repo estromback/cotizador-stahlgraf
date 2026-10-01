@@ -13,6 +13,7 @@ const firebaseConfig = {
 let db = null;
 let auth = null;
 let currentUser = null;
+let storage = null;
 
 // Calendar widget states
 let currentMonth = new Date().getMonth();
@@ -57,6 +58,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
         db = firebase.firestore();
         if (typeof initFirestorePersistence === "function") initFirestorePersistence(db);
         auth = firebase.auth();
+        storage = firebase.storage();
     } catch (e) {
         console.warn("Firebase config is incomplete or invalid.");
     }
@@ -64,6 +66,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     db = firebase.firestore();
         if (typeof initFirestorePersistence === "function") initFirestorePersistence(db);
     auth = firebase.auth();
+    storage = firebase.storage();
 }
 
 // Default App Data (same structure as app.js)
@@ -306,6 +309,35 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('cal-btn-add').addEventListener('click', () => {
             const todayStr = formatDateStr(new Date());
             openCardModal(null, todayStr);
+        });
+    }
+    if (document.getElementById('cal-btn-sync-calendar')) {
+        document.getElementById('cal-btn-sync-calendar').addEventListener('click', openSyncCalendarModal);
+    }
+    if (document.getElementById('btn-close-sync-modal')) {
+        document.getElementById('btn-close-sync-modal').addEventListener('click', closeSyncCalendarModal);
+    }
+    if (document.getElementById('btn-copy-feed-url')) {
+        document.getElementById('btn-copy-feed-url').addEventListener('click', copyFeedUrlToClipboard);
+    }
+    if (document.getElementById('btn-open-gcal-settings')) {
+        document.getElementById('btn-open-gcal-settings').addEventListener('click', () => {
+            window.open('https://calendar.google.com/calendar/u/0/r/settings/addbyurl', '_blank');
+        });
+    }
+    if (document.getElementById('btn-download-ics-file')) {
+        document.getElementById('btn-download-ics-file').addEventListener('click', downloadICalFile);
+    }
+    if (document.getElementById('btn-force-refresh-feed')) {
+        document.getElementById('btn-force-refresh-feed').addEventListener('click', () => {
+            syncICalFeedToStorage(true);
+        });
+    }
+
+    const syncCalModalEl = document.getElementById('sync-calendar-modal');
+    if (syncCalModalEl) {
+        syncCalModalEl.addEventListener('click', (e) => {
+            if (e.target === syncCalModalEl) closeSyncCalendarModal();
         });
     }
 
@@ -920,6 +952,9 @@ function subscribeToCRM() {
             renderCalendar(currentMonth, currentYear);
             renderCRMColumnsSelect();
             syncCrmClientsToDirectory();
+            if (typeof debouncedSyncICalFeed === 'function') {
+                debouncedSyncICalFeed();
+            }
         }, err => {
             console.error("Error subscribing to CRM: ", err);
         });
@@ -940,6 +975,15 @@ function syncFromFirebase() {
             
             if (cloudData.clients) {
                 clientsList = cloudData.clients;
+            }
+
+            if (cloudData.calendarFeedUrl) {
+                appData.calendarFeedUrl = cloudData.calendarFeedUrl;
+                appData.calendarFeedUpdatedAt = cloudData.calendarFeedUpdatedAt;
+                localStorage.setItem('stahlgraf_calendar_feed_url', cloudData.calendarFeedUrl);
+                if (cloudData.calendarFeedEventsCount !== undefined) {
+                    localStorage.setItem('stahlgraf_calendar_feed_count', cloudData.calendarFeedEventsCount);
+                }
             }
             
             // Save to local cache
@@ -1159,6 +1203,338 @@ async function moveCardDate(cardId, newDate) {
     }
 }
 
+// ==========================================
+// GOOGLE CALENDAR & ICALENDAR (OPTION 3) SYNC LOGIC
+// ==========================================
+
+let isSyncingFeed = false;
+let feedSyncTimeout = null;
+
+function debouncedSyncICalFeed() {
+    if (feedSyncTimeout) clearTimeout(feedSyncTimeout);
+    feedSyncTimeout = setTimeout(() => {
+        syncICalFeedToStorage(false);
+    }, 2500);
+}
+
+function escapeICalText(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/\\/g, '\\\\')
+        .replace(/;/g, '\\;')
+        .replace(/,/g, '\\,')
+        .replace(/\r?\n/g, '\\n');
+}
+
+function generateICalendarData(cards, clients) {
+    const formatDateToICal = (dateStr, timeStr) => {
+        const cleanDate = dateStr.replace(/-/g, '');
+        if (timeStr && timeStr.includes(':')) {
+            const [h, m] = timeStr.split(':');
+            const startH = h.padStart(2, '0');
+            const startM = m.padStart(2, '0');
+            const dtStart = `${cleanDate}T${startH}${startM}00`;
+            
+            let startHourNum = parseInt(startH, 10);
+            let startMinNum = parseInt(startM, 10);
+            let endHourNum = startHourNum + 1;
+            let endCleanDate = cleanDate;
+            if (endHourNum >= 24) {
+                endHourNum = endHourNum - 24;
+                const dObj = new Date(dateStr + 'T00:00:00');
+                dObj.setDate(dObj.getDate() + 1);
+                endCleanDate = formatDateStr(dObj).replace(/-/g, '');
+            }
+            const dtEnd = `${endCleanDate}T${String(endHourNum).padStart(2, '0')}${String(startMinNum).padStart(2, '0')}00`;
+            return {
+                start: `DTSTART;TZID=America/Santiago:${dtStart}`,
+                end: `DTEND;TZID=America/Santiago:${dtEnd}`
+            };
+        } else {
+            const dObj = new Date(dateStr + 'T00:00:00');
+            dObj.setDate(dObj.getDate() + 1);
+            const nextDayStr = formatDateStr(dObj).replace(/-/g, '');
+            return {
+                start: `DTSTART;VALUE=DATE:${cleanDate}`,
+                end: `DTEND;VALUE=DATE:${nextDayStr}`
+            };
+        }
+    };
+
+    const now = new Date();
+    const nowUtc = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+    let ics = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Stahlgraf//Control de Operaciones CRM//ES',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'X-WR-CALNAME:Stahlgraf - Citas y Servicios',
+        'X-WR-TIMEZONE:America/Santiago',
+        'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+        'X-PUBLISHED-TTL:PT1H'
+    ];
+
+    const validCards = (cards || []).filter(c => c && c.date && c.date.trim() !== '');
+
+    validCards.forEach(c => {
+        const { start, end } = formatDateToICal(c.date, c.time);
+        const cardClient = c.client || 'Servicio';
+        const clientObj = (clients || []).find(cl => cl && cl.name && cl.name.trim().toLowerCase() === cardClient.trim().toLowerCase());
+        
+        const address = (c.formDetails && c.formDetails.clientAddress) ? c.formDetails.clientAddress : (clientObj && clientObj.address ? clientObj.address : '');
+        const phone = c.phone || (clientObj && clientObj.phone) || '';
+        const email = c.email || (clientObj && clientObj.email) || '';
+        
+        let descLines = [];
+        if (c.column) descLines.push(`📋 Estado CRM: ${c.column}`);
+        if (phone) descLines.push(`📞 Teléfono: ${phone}`);
+        if (email) descLines.push(`✉️ Email: ${email}`);
+        if (address) descLines.push(`📍 Dirección: ${address}`);
+        if (c.balanceDue !== null && c.balanceDue !== undefined && c.balanceDue !== '') {
+            descLines.push(`💰 Saldo Pendiente: $${Number(c.balanceDue).toLocaleString('es-CL')}`);
+        }
+        if (c.desc) descLines.push(`📝 Observaciones: ${c.desc}`);
+        if (c.formDetails) {
+            const fd = c.formDetails;
+            if (fd.propertyType) descLines.push(`🏠 Propiedad: ${fd.propertyType}`);
+            if (fd.propertySizeConstruction || fd.propertySize) descLines.push(`📐 Superficie: ${fd.propertySizeConstruction || fd.propertySize} m²`);
+            if (fd.plagas) {
+                const plagasStr = Array.isArray(fd.plagas) ? fd.plagas.join(', ') : fd.plagas;
+                descLines.push(`🐛 Plagas: ${plagasStr}`);
+            }
+            if (fd.treatmentArea) {
+                const areaStr = Array.isArray(fd.treatmentArea) ? fd.treatmentArea.join(', ') : fd.treatmentArea;
+                descLines.push(`🎯 Área a tratar: ${areaStr}`);
+            }
+        }
+        descLines.push(`🔗 Sincronizado desde Stahlgraf Hub Central`);
+
+        const summary = `Stahlgraf: ${cardClient} [${c.column || 'Cita'}]`;
+        const description = descLines.join('\n');
+
+        ics.push('BEGIN:VEVENT');
+        ics.push(`UID:stahlgraf_crm_${c.id}@stahlgraf.cl`);
+        ics.push(`DTSTAMP:${nowUtc}`);
+        ics.push(start);
+        ics.push(end);
+        ics.push(`SUMMARY:${escapeICalText(summary)}`);
+        ics.push(`DESCRIPTION:${escapeICalText(description)}`);
+        if (address) {
+            ics.push(`LOCATION:${escapeICalText(address)}`);
+        }
+        ics.push('STATUS:CONFIRMED');
+        ics.push('TRANSP:OPAQUE');
+        ics.push('END:VEVENT');
+    });
+
+    ics.push('END:VCALENDAR');
+    return ics.join('\r\n');
+}
+
+async function syncICalFeedToStorage(showFeedback = false) {
+    if (!currentUser || !storage) {
+        if (showFeedback) alert("Debes iniciar sesión con tu cuenta Google para sincronizar el calendario.");
+        return null;
+    }
+    if (isSyncingFeed) return null;
+    isSyncingFeed = true;
+
+    const btnForce = document.getElementById('btn-force-refresh-feed');
+    if (btnForce && showFeedback) {
+        btnForce.classList.add('loading');
+        btnForce.innerText = '⏳';
+    }
+
+    try {
+        const targetUid = getActiveUid();
+        if (!targetUid) return null;
+
+        const icsContent = generateICalendarData(crmCards, clientsList);
+        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+        
+        const feedRef = storage.ref().child(`users/${targetUid}/calendar/feed.ics`);
+        const metadata = {
+            contentType: 'text/calendar; charset=utf-8',
+            cacheControl: 'public, max-age=0, must-revalidate',
+            contentDisposition: 'inline; filename="stahlgraf_feed.ics"'
+        };
+
+        await feedRef.put(blob, metadata);
+        const downloadUrl = await feedRef.getDownloadURL();
+
+        const now = new Date();
+        const validEventsCount = crmCards.filter(c => c && c.date && c.date.trim() !== '').length;
+
+        if (db) {
+            await db.collection('users').doc(targetUid).set({
+                calendarFeedUrl: downloadUrl,
+                calendarFeedUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                calendarFeedEventsCount: validEventsCount
+            }, { merge: true });
+        }
+
+        localStorage.setItem('stahlgraf_calendar_feed_url', downloadUrl);
+        localStorage.setItem('stahlgraf_calendar_feed_time', now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }));
+        localStorage.setItem('stahlgraf_calendar_feed_count', validEventsCount);
+
+        updateSyncModalUI(downloadUrl, validEventsCount, now);
+
+        if (showFeedback) {
+            alert("✅ Enlace de calendario actualizado exitosamente en la nube con " + validEventsCount + " eventos.");
+        }
+        return downloadUrl;
+    } catch (err) {
+        console.error("Error syncing iCal feed to Storage:", err);
+        if (showFeedback) {
+            alert("⚠️ No se pudo sincronizar el feed en la nube: " + (err.message || err));
+        }
+        return null;
+    } finally {
+        isSyncingFeed = false;
+        if (btnForce && showFeedback) {
+            btnForce.classList.remove('loading');
+            btnForce.innerHTML = '<span>🔄 Refrescar</span>';
+        }
+    }
+}
+
+function updateSyncModalUI(feedUrl, eventsCount, updatedAt) {
+    const input = document.getElementById('feed-url-input');
+    const countEl = document.getElementById('feed-events-count');
+    const timeEl = document.getElementById('feed-last-updated');
+    const badge = document.getElementById('feed-status-badge');
+
+    if (input && feedUrl) input.value = feedUrl;
+    if (countEl) countEl.innerText = `📊 Eventos incluidos: ${eventsCount !== undefined ? eventsCount : crmCards.filter(c => c && c.date).length} citas`;
+    if (timeEl && updatedAt) {
+        const timeFormatted = updatedAt instanceof Date ? updatedAt.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : String(updatedAt);
+        timeEl.innerText = `🕒 Última sincronización: Hoy a las ${timeFormatted}`;
+    }
+    if (badge) {
+        badge.innerText = '🟢 Enlace Activo';
+        badge.style.background = 'rgba(16, 185, 129, 0.2)';
+        badge.style.color = '#34d399';
+    }
+}
+
+function openSyncCalendarModal() {
+    const modal = document.getElementById('sync-calendar-modal');
+    if (!modal) return;
+    modal.classList.add('active');
+
+    const cachedUrl = localStorage.getItem('stahlgraf_calendar_feed_url') || (appData && appData.calendarFeedUrl);
+    const cachedCount = localStorage.getItem('stahlgraf_calendar_feed_count');
+    const cachedTime = localStorage.getItem('stahlgraf_calendar_feed_time');
+
+    if (cachedUrl) {
+        updateSyncModalUI(cachedUrl, cachedCount, cachedTime);
+    } else {
+        const input = document.getElementById('feed-url-input');
+        if (input) input.value = "Generando tu enlace único...";
+    }
+
+    syncICalFeedToStorage(false);
+}
+
+function closeSyncCalendarModal() {
+    const modal = document.getElementById('sync-calendar-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+function copyFeedUrlToClipboard() {
+    const input = document.getElementById('feed-url-input');
+    if (!input || !input.value || input.value.startsWith('Generando')) return;
+    
+    input.select();
+    input.setSelectionRange(0, 99999);
+    
+    const finishCopy = () => {
+        const btn = document.getElementById('btn-copy-feed-url');
+        if (btn) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✅ ¡Copiado!';
+            btn.style.background = '#10b981';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.style.background = '';
+            }, 2000);
+        }
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(input.value).then(finishCopy).catch(() => {
+            document.execCommand('copy');
+            finishCopy();
+        });
+    } else {
+        document.execCommand('copy');
+        finishCopy();
+    }
+}
+
+function downloadICalFile() {
+    const icsContent = generateICalendarData(crmCards, clientsList);
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stahlgraf_agenda_${formatDateStr(new Date())}.ics`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function openCardInGoogleCalendar(card) {
+    if (!card || !card.date) {
+        alert("Esta tarjeta no tiene una fecha asignada aún.");
+        return;
+    }
+    const title = encodeURIComponent(`Stahlgraf: ${card.client || 'Servicio'} [${card.column || 'CRM'}]`);
+    
+    let datesParam = '';
+    const cleanDate = card.date.replace(/-/g, '');
+    if (card.time && card.time.includes(':')) {
+        const [h, m] = card.time.split(':');
+        const startH = h.padStart(2, '0');
+        const startM = m.padStart(2, '0');
+        const startHourNum = parseInt(startH, 10);
+        let endHourNum = startHourNum + 1;
+        let endCleanDate = cleanDate;
+        if (endHourNum >= 24) {
+            endHourNum = endHourNum - 24;
+            const dObj = new Date(card.date + 'T00:00:00');
+            dObj.setDate(dObj.getDate() + 1);
+            endCleanDate = formatDateStr(dObj).replace(/-/g, '');
+        }
+        const endH = String(endHourNum).padStart(2, '0');
+        datesParam = `${cleanDate}T${startH}${startM}00/${endCleanDate}T${endH}${startM}00`;
+    } else {
+        const dObj = new Date(card.date + 'T00:00:00');
+        dObj.setDate(dObj.getDate() + 1);
+        const nextDayStr = formatDateStr(dObj).replace(/-/g, '');
+        datesParam = `${cleanDate}/${nextDayStr}`;
+    }
+
+    const clientObj = (clientsList || []).find(cl => cl && cl.name && cl.name.trim().toLowerCase() === (card.client || '').trim().toLowerCase());
+    const address = (card.formDetails && card.formDetails.clientAddress) ? card.formDetails.clientAddress : (clientObj && clientObj.address ? clientObj.address : '');
+    const locationParam = encodeURIComponent(address);
+    
+    let descLines = [];
+    if (card.column) descLines.push(`Estado CRM: ${card.column}`);
+    if (card.phone) descLines.push(`Teléfono: ${card.phone}`);
+    if (card.email) descLines.push(`Email: ${card.email}`);
+    if (address) descLines.push(`Dirección: ${address}`);
+    if (card.balanceDue) descLines.push(`Saldo Pendiente: $${Number(card.balanceDue).toLocaleString('es-CL')}`);
+    if (card.desc) descLines.push(`Notas: ${card.desc}`);
+    const detailsParam = encodeURIComponent(descLines.join('\n'));
+
+    const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${datesParam}&details=${detailsParam}&location=${locationParam}&ctz=America/Santiago`;
+    window.open(gcalUrl, '_blank');
+}
+
 function openCardModal(card = null, defaultDate = '') {
     const modal = document.getElementById('card-modal');
     if (!modal) return;
@@ -1185,6 +1561,16 @@ function openCardModal(card = null, defaultDate = '') {
         document.getElementById('card-time').value = card.time || '';
         document.getElementById('card-desc').value = card.desc || '';
         document.getElementById('btn-delete-card').style.display = 'block';
+        
+        const btnCardGcal = document.getElementById('btn-card-gcal');
+        if (btnCardGcal) {
+            if (card.date) {
+                btnCardGcal.style.display = 'inline-flex';
+                btnCardGcal.onclick = () => openCardInGoogleCalendar(card);
+            } else {
+                btnCardGcal.style.display = 'none';
+            }
+        }
         
         const btnViewHistory = document.getElementById('btn-view-history');
         if (btnViewHistory) {
@@ -1310,6 +1696,8 @@ function openCardModal(card = null, defaultDate = '') {
         document.getElementById('card-time').value = '';
         document.getElementById('card-desc').value = '';
         document.getElementById('btn-delete-card').style.display = 'none';
+        const btnCardGcal = document.getElementById('btn-card-gcal');
+        if (btnCardGcal) btnCardGcal.style.display = 'none';
         const btnViewHistory = document.getElementById('btn-view-history');
         if (btnViewHistory) btnViewHistory.style.display = 'none';
         
