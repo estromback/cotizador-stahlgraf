@@ -771,6 +771,9 @@ function initDeviceOrientation() {
     isOrientationListenerActive = true;
 }
 
+let lastDisplayedHeading = null;
+let lastBadgeUpdateTime = 0;
+
 function applyHeadingUpdate(rawHeading) {
     if (rawHeading === null || isNaN(rawHeading)) return;
     rawHeading = Math.round(rawHeading);
@@ -781,31 +784,41 @@ function applyHeadingUpdate(rawHeading) {
         lastRawHeading = rawHeading;
     } else {
         let diff = (rawHeading - (lastRawHeading % 360) + 540) % 360 - 180;
-        unwrappedUserHeading += diff;
+        // Deadband: ignore sensor micro-noise jitter (< 0.8 degrees)
+        if (Math.abs(diff) < 0.8) return;
+        
+        // Low-pass exponential smoothing to eliminate nervously vibrating arrows
+        unwrappedUserHeading += diff * 0.35;
         lastRawHeading = rawHeading;
     }
 
-    currentUserHeading = rawHeading;
+    const normalizedHeading = Math.round(((unwrappedUserHeading % 360) + 360) % 360);
+    currentUserHeading = normalizedHeading;
     if (currentUserCoords) {
-        currentUserCoords.heading = rawHeading;
+        currentUserCoords.heading = normalizedHeading;
     }
     if (lastKnownGPS) {
-        lastKnownGPS.heading = rawHeading;
+        lastKnownGPS.heading = normalizedHeading;
     }
 
-    // Update DOM element directly for high performance (no Leaflet redraw required)
+    // Update DOM element directly with smooth CSS transition
     const headingEl = document.getElementById('user-live-gps-heading');
     if (headingEl) {
         headingEl.style.transform = `rotate(${unwrappedUserHeading}deg)`;
         headingEl.style.display = 'flex';
     }
 
-    // Update compass indicators in UI
-    const fsCompassVal = document.getElementById('map-fs-compass-val');
-    const fsCompassBadge = document.getElementById('map-fs-compass-badge');
-    if (fsCompassVal && fsCompassBadge) {
-        fsCompassVal.textContent = rawHeading;
-        fsCompassBadge.style.display = 'inline-flex';
+    // Update compass indicators in UI (throttled to avoid rapid text changes)
+    const now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+    if (now - lastBadgeUpdateTime > 120 || lastDisplayedHeading === null || Math.abs(normalizedHeading - lastDisplayedHeading) >= 2) {
+        lastBadgeUpdateTime = now;
+        lastDisplayedHeading = normalizedHeading;
+        const fsCompassVal = document.getElementById('map-fs-compass-val');
+        const fsCompassBadge = document.getElementById('map-fs-compass-badge');
+        if (fsCompassVal && fsCompassBadge) {
+            fsCompassVal.textContent = normalizedHeading;
+            fsCompassBadge.style.display = 'inline-flex';
+        }
     }
 }
 
@@ -1379,12 +1392,6 @@ window.closeQuickMapInspectSheet = function() {
     const sheet = document.getElementById('quick-map-inspect-sheet');
     if (sheet) sheet.classList.remove('active');
     activeQuickStationKey = null;
-
-    // Restore installation dock if installation mode is active
-    if (typeof mapInstallationMode !== 'undefined' && mapInstallationMode.active) {
-        const installDock = document.getElementById('map-install-dock');
-        if (installDock) installDock.style.display = 'flex';
-    }
 };
 
 window.setQuickConsumption = function(val) {
@@ -1684,13 +1691,6 @@ function initOrUpdateMap() {
                     draggable: true
                 });
 
-                // Synchronize active station in installation mode if active
-                marker.on('click', function() {
-                    if (typeof mapInstallationMode !== 'undefined' && mapInstallationMode.active) {
-                        window.setInstallStationNum(s.num);
-                    }
-                });
-
                 // Listen for drag end to allow correcting/updating the coordinates
                 marker.on('dragend', function(event) {
                     const newPos = event.target.getLatLng();
@@ -1856,16 +1856,17 @@ function updateStationCoordinates(stationKey, lat, lng, accuracy = 0, silent = f
 window.calibrateStationWithCurrentGPS = function(stationKey, showConfirm = true) {
     if (!stationKey) return;
 
-    if (!currentUserCoords) {
+    const phoneGPS = currentUserCoords || lastKnownGPS;
+    if (!phoneGPS) {
         window.toggleLiveGPSTracking(true);
         showMapToast("📡 Obteniendo tu señal GPS... Mantén el teléfono junto a la estación.");
         alert("📡 Obteniendo señal GPS...\n\nPor favor activa la ubicación en tu teléfono y mantén el dispositivo junto a la estación.");
         return;
     }
 
-    const lat = currentUserCoords.lat;
-    const lng = currentUserCoords.lng;
-    const accuracy = Math.round(currentUserCoords.accuracy || 0);
+    const lat = phoneGPS.lat;
+    const lng = phoneGPS.lng;
+    const accuracy = Math.round(phoneGPS.accuracy || 0);
     const numStr = String(stationKey).replace('ESTACION-', '').padStart(2, '0');
 
     if (showConfirm) {
@@ -1886,45 +1887,8 @@ window.calibrateStationWithCurrentGPS = function(stationKey, showConfirm = true)
 };
 
 // ========================================================
-// MODO INSTALACIÓN EN EL MAPA (Georreferenciación en Terreno)
+// GEORREFERENCIACIÓN E INSTALACIÓN DE ESTACIONES
 // ========================================================
-let mapInstallationMode = {
-    active: false,
-    currentStationNum: 1,
-    clientId: '',
-    clientName: '',
-    clickToPlaceActive: false
-};
-
-// Update GPS accuracy status badge inside the installation dock
-function updateInstallDockGPSStatus(state = null, accuracy = null) {
-    const statusEl = document.getElementById('install-dock-gps-status');
-    if (!statusEl) return;
-    
-    const acc = accuracy !== null ? Math.round(accuracy) : (currentUserCoords ? Math.round(currentUserCoords.accuracy || 0) : null);
-    
-    if (state === 'searching') {
-        statusEl.innerHTML = '🛰️ Buscando señal GPS satelital...';
-        statusEl.style.color = '#fbbf24';
-    } else if (acc !== null && (state === 'active' || currentUserCoords)) {
-        if (acc <= 5) {
-            statusEl.innerHTML = `🟢 GPS: ±${acc}m (Excelente precisión satelital)`;
-            statusEl.style.color = '#34d399';
-        } else if (acc <= 12) {
-            statusEl.innerHTML = `🟡 GPS: ±${acc}m (Buena precisión)`;
-            statusEl.style.color = '#fbbf24';
-        } else {
-            statusEl.innerHTML = `🟠 GPS: ±${acc}m (Aceptable - mantén el teléfono al descubierto)`;
-            statusEl.style.color = '#f97316';
-        }
-    } else if (state === 'error') {
-        statusEl.innerHTML = '⚠️ Error de GPS. Verifica los permisos de ubicación.';
-        statusEl.style.color = '#f87171';
-    } else {
-        statusEl.innerHTML = '🛰️ GPS Inactivo. Toca para conectar.';
-        statusEl.style.color = '#94a3b8';
-    }
-}
 
 // Find next suggested station number for a given client (unpositioned first, then max + 1)
 function getSuggestedNextInstallStationNum(clientId, clientName) {
@@ -2007,277 +1971,93 @@ function ensureStationAssignedToClient(stationNum, clientId, clientName) {
     return true;
 }
 
-// Set active station number in installation dock and update visual status tags
-window.setInstallStationNum = function(num) {
-    num = Math.max(1, parseInt(num, 10) || 1);
-    mapInstallationMode.currentStationNum = num;
-    
-    const numStr = String(num).padStart(2, '0');
-    const titleEl = document.getElementById('install-dock-station-title');
-    if (titleEl) titleEl.textContent = `#${numStr}`;
-    
-    const btnNumEl = document.getElementById('btn-dock-install-station-num');
-    if (btnNumEl) btnNumEl.textContent = `#${numStr}`;
-    
-    const key = `ESTACION-${numStr}`;
-    const coords = getLatestStationCoords(key);
-    const tag = document.getElementById('install-dock-station-status-tag');
-    if (tag) {
-        if (coords && coords.lat && coords.lng) {
-            tag.innerHTML = `⚠️ Ya ubicada (Recalibrar)`;
-            tag.style.background = 'rgba(245, 158, 11, 0.2)';
-            tag.style.color = '#fbbf24';
-            tag.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-        } else {
-            tag.innerHTML = `✨ Nueva (Sin GPS)`;
-            tag.style.background = 'rgba(16, 185, 129, 0.2)';
-            tag.style.color = '#34d399';
-            tag.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-        }
-    }
-};
-
-// Increment or decrement station number
-window.stepInstallStationNum = function(delta) {
-    window.setInstallStationNum(mapInstallationMode.currentStationNum + delta);
-};
-
-// Toggle map installation mode
-window.toggleMapInstallationMode = function(forceState) {
-    const newState = forceState !== undefined ? forceState : !mapInstallationMode.active;
-    
-    if (newState) {
-        // Ensure quick inspect sheet is closed
-        window.closeQuickMapInspectSheet();
-        
-        // Find active client
-        const filterSelect = document.getElementById('filter-client-id');
-        let clientId = filterSelect ? filterSelect.value : '';
-        let clientName = '';
-        if (clientId) {
-            const cObj = (globalAppData.clients || []).find(c => c.id === clientId);
-            if (cObj) clientName = cObj.name;
-        }
-        
-        if (!clientId && globalAppData.clients && globalAppData.clients.length > 0) {
-            clientId = globalAppData.clients[0].id;
-            clientName = globalAppData.clients[0].name;
-            if (filterSelect) {
-                filterSelect.value = clientId;
-                filterSelect.dispatchEvent(new Event('change'));
-            }
-        }
-        
-        if (!clientId) {
-            alert("⚠️ Selecciona o registra un cliente para poder instalar estaciones.");
-            return;
-        }
-        
-        mapInstallationMode.active = true;
-        mapInstallationMode.clientId = clientId;
-        mapInstallationMode.clientName = clientName;
-        
-        // Ensure live GPS tracking is enabled
-        if (!isLiveGPSTracking) {
-            window.toggleLiveGPSTracking(true);
-        }
-        
-        // Update client badge
-        const clientBadge = document.getElementById('install-dock-client-badge');
-        if (clientBadge) {
-            clientBadge.textContent = clientName;
-            clientBadge.title = `Cliente: ${clientName}`;
-        }
-        
-        // Suggest and set next station
-        const nextNum = getSuggestedNextInstallStationNum(clientId, clientName);
-        window.setInstallStationNum(nextNum);
-        
-        // Show dock
-        const dock = document.getElementById('map-install-dock');
-        if (dock) {
-            dock.style.display = 'flex';
-        }
-        
-        // Update button states
-        const btnToggle = document.getElementById('btn-toggle-map-install');
-        if (btnToggle) {
-            btnToggle.style.background = '#10b981';
-            btnToggle.style.color = '#fff';
-            btnToggle.style.borderColor = '#34d399';
-        }
-        const btnFsToggle = document.getElementById('btn-fs-toggle-install');
-        if (btnFsToggle) {
-            btnFsToggle.style.background = '#10b981';
-            btnFsToggle.style.color = '#fff';
-            btnFsToggle.style.borderColor = '#34d399';
-        }
-        const btnFloat = document.getElementById('btn-float-install');
-        if (btnFloat) {
-            btnFloat.classList.add('active');
-        }
-        
-        updateInstallDockGPSStatus();
-        showMapToast("🛠️ Modo Instalación Activo. Camina a la estación y pulsa el botón.");
-    } else {
-        // Exit installation mode
-        mapInstallationMode.active = false;
-        
-        // Turn off click-to-place if active
-        if (mapInstallationMode.clickToPlaceActive) {
-            window.toggleInstallClickToPlace();
-        }
-        
-        // Hide dock
-        const dock = document.getElementById('map-install-dock');
-        if (dock) {
-            dock.style.display = 'none';
-        }
-        
-        // Reset button states
-        const btnToggle = document.getElementById('btn-toggle-map-install');
-        if (btnToggle) {
-            btnToggle.style.background = 'rgba(16, 185, 129, 0.15)';
-            btnToggle.style.color = '#34d399';
-            btnToggle.style.borderColor = 'rgba(16, 185, 129, 0.35)';
-        }
-        const btnFsToggle = document.getElementById('btn-fs-toggle-install');
-        if (btnFsToggle) {
-            btnFsToggle.style.background = 'rgba(16, 185, 129, 0.2)';
-            btnFsToggle.style.color = '#34d399';
-            btnFsToggle.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-        }
-        const btnFloat = document.getElementById('btn-float-install');
-        if (btnFloat) {
-            btnFloat.classList.remove('active');
-        }
-        
-        initOrUpdateMap();
-    }
-};
-
-// Install station at technician's current real-time GPS coordinates
-window.installStationAtCurrentGPS = function() {
-    if (!mapInstallationMode.active) return;
-    
-    const phoneGPS = currentUserCoords || lastKnownGPS;
-    if (!phoneGPS) {
-        window.toggleLiveGPSTracking(true);
-        alert("📡 Obteniendo señal GPS satelital...\nPor favor activa la ubicación en tu teléfono y mantén el dispositivo junto a la estación.");
-        return;
-    }
-    
-    const stationNum = mapInstallationMode.currentStationNum;
-    const clientId = mapInstallationMode.clientId;
-    const clientName = mapInstallationMode.clientName;
-    
-    if (!ensureStationAssignedToClient(stationNum, clientId, clientName)) {
-        return;
-    }
-    
-    const numStr = String(stationNum).padStart(2, '0');
-    const stationKey = `ESTACION-${numStr}`;
-    const lat = phoneGPS.lat;
-    const lng = phoneGPS.lng;
-    const accuracy = Math.round(phoneGPS.accuracy || 0);
-    
-    // Save geolocated coordinates
-    updateStationCoordinates(stationKey, lat, lng, accuracy, false);
-    
-    // Haptic vibration feedback if supported
-    if (navigator.vibrate) {
-        navigator.vibrate([60, 40, 80]);
-    }
-    
-    showMapToast(`🎉 ¡Estación #${numStr} instalada en tu ubicación actual (±${accuracy}m)!`);
-    
-    // Re-render map and smoothly pan to this station
-    initOrUpdateMap();
-    if (leafletMap) {
-        leafletMap.panTo([lat, lng], { animate: true, duration: 0.5 });
-    }
-    
-    // Auto-advance to next suggested station number!
-    const nextNum = getSuggestedNextInstallStationNum(clientId, clientName);
-    window.setInstallStationNum(nextNum);
-};
-
-// Toggle manual click-on-map to install/place
-window.toggleInstallClickToPlace = function() {
-    if (!mapInstallationMode.active) return;
-    
-    mapInstallationMode.clickToPlaceActive = !mapInstallationMode.clickToPlaceActive;
-    const btn = document.getElementById('btn-dock-click-map');
-    
-    if (mapInstallationMode.clickToPlaceActive) {
-        if (btn) {
-            btn.style.background = 'rgba(59, 130, 246, 0.3)';
-            btn.style.borderColor = '#3b82f6';
-            btn.style.color = '#60a5fa';
-        }
-        if (leafletMap) {
-            leafletMap.getContainer().style.cursor = 'crosshair';
-            leafletMap.on('click', onMapClickForInstallMode);
-        }
-        showMapToast(`📍 Toca el mapa para ubicar la Estación #${String(mapInstallationMode.currentStationNum).padStart(2, '0')}`);
-    } else {
-        if (btn) {
-            btn.style.background = 'rgba(255,255,255,0.06)';
-            btn.style.borderColor = 'rgba(255,255,255,0.16)';
-            btn.style.color = '#cbd5e1';
-        }
-        if (leafletMap) {
-            leafletMap.getContainer().style.cursor = '';
-            leafletMap.off('click', onMapClickForInstallMode);
-        }
-    }
-};
-
-function onMapClickForInstallMode(e) {
-    if (!mapInstallationMode.active || !mapInstallationMode.clickToPlaceActive) return;
-    
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
-    const stationNum = mapInstallationMode.currentStationNum;
-    const clientId = mapInstallationMode.clientId;
-    const clientName = mapInstallationMode.clientName;
-    const numStr = String(stationNum).padStart(2, '0');
-    const stationKey = `ESTACION-${numStr}`;
-    
-    if (confirm(`¿Deseas ubicar la Estación #${numStr} en este punto del mapa?\n\nLatitud: ${lat.toFixed(6)}\nLongitud: ${lng.toFixed(6)}`)) {
-        if (!ensureStationAssignedToClient(stationNum, clientId, clientName)) return;
-        
-        updateStationCoordinates(stationKey, lat, lng, 5, false);
-        if (navigator.vibrate) navigator.vibrate([60, 40, 80]);
-        showMapToast(`🎉 ¡Estación #${numStr} ubicada en el mapa!`);
-        
-        window.toggleInstallClickToPlace();
-        
-        initOrUpdateMap();
-        
-        const nextNum = getSuggestedNextInstallStationNum(clientId, clientName);
-        window.setInstallStationNum(nextNum);
-    }
-}
-
 // Assign current phone GPS to station selected in unpositioned dropdown
 window.assignCurrentGPSToSelectedUnpositionedStation = function() {
     const select = document.getElementById('unpositioned-station-select');
     const stationNum = select ? select.value : '';
     if (!stationNum) {
-        alert("⚠️ Selecciona una estación sin ubicación de la lista.");
+        alert("⚠️ Selecciona una estación de la lista para asignarle tu ubicación GPS.");
         return;
     }
     const stationKey = `ESTACION-${String(stationNum).padStart(2, '0')}`;
     window.calibrateStationWithCurrentGPS(stationKey, true);
+
+    const filterSelect = document.getElementById('filter-client-id');
+    const clientId = filterSelect ? filterSelect.value : '';
+    let clientName = '';
+    if (clientId) {
+        const cObj = (globalAppData.clients || []).find(c => c.id === clientId);
+        if (cObj) clientName = cObj.name;
+        populateUnpositionedStationsSelector(clientId, clientName);
+    }
 };
 
+// Create and install next sequential station using phone's current GPS position
+window.addNewStationWithCurrentGPS = function() {
+    const filterSelect = document.getElementById('filter-client-id');
+    let clientId = filterSelect ? filterSelect.value : '';
+    let clientName = '';
+    if (clientId) {
+        const cObj = (globalAppData.clients || []).find(c => c.id === clientId);
+        if (cObj) clientName = cObj.name;
+    }
+    
+    if (!clientId) {
+        alert("⚠️ Por favor selecciona un cliente en el filtro superior antes de agregar una nueva estación.");
+        return;
+    }
+    
+    const phoneGPS = currentUserCoords || lastKnownGPS;
+    if (!phoneGPS) {
+        window.toggleLiveGPSTracking(true);
+        alert("📡 Obteniendo señal GPS satelital...\n\nPor favor activa la ubicación en tu teléfono y mantén el dispositivo en el punto de instalación.");
+        return;
+    }
+    
+    const nextNum = getSuggestedNextInstallStationNum(clientId, clientName);
+    const numStr = String(nextNum).padStart(2, '0');
+    const lat = phoneGPS.lat;
+    const lng = phoneGPS.lng;
+    const accuracy = Math.round(phoneGPS.accuracy || 0);
+    
+    const confirmMsg = `➕ ¿Deseas dar de alta e instalar la nueva Estación #${numStr} para "${clientName}" en tu ubicación GPS actual?\n\n📍 Latitud: ${lat.toFixed(6)}\n📍 Longitud: ${lng.toFixed(6)}\n📡 Precisión GPS: ±${accuracy}m`;
+    if (!confirm(confirmMsg)) return;
+    
+    if (!ensureStationAssignedToClient(nextNum, clientId, clientName)) {
+        return;
+    }
+    
+    const stationKey = `ESTACION-${numStr}`;
+    updateStationCoordinates(stationKey, lat, lng, accuracy, false);
+    
+    if (navigator.vibrate) {
+        navigator.vibrate([60, 40, 80]);
+    }
+    
+    showMapToast(`🎉 ¡Nueva Estación #${numStr} instalada y asignada a ${clientName}!`);
+    
+    initOrUpdateMap();
+    if (leafletMap) {
+        leafletMap.panTo([lat, lng], { animate: true, duration: 0.5 });
+    }
+    
+    populateUnpositionedStationsSelector(clientId, clientName);
+    const select = document.getElementById('unpositioned-station-select');
+    if (select) select.value = nextNum;
+};
+
+// Populate the georeferencing and station installation panel below the map
 function populateUnpositionedStationsSelector(filterClientId, filterClientName) {
     const container = document.getElementById('unpositioned-stations-container');
     const select = document.getElementById('unpositioned-station-select');
     if (!container || !select) return;
     
     if (!filterClientId) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    if (manualPlacementMode && manualPlacementMode.active) {
         container.style.display = 'none';
         return;
     }
@@ -2291,29 +2071,58 @@ function populateUnpositionedStationsSelector(filterClientId, filterClientName) 
     }
     
     const unpositioned = [];
+    const positioned = [];
     clientStations.forEach(num => {
         const stationKey = `ESTACION-${String(num).padStart(2, '0')}`;
         const coords = getLatestStationCoords(stationKey);
         if (!coords || !coords.lat || !coords.lng) {
             unpositioned.push(num);
+        } else {
+            positioned.push(num);
         }
     });
     
-    if (unpositioned.length === 0 || manualPlacementMode.active) {
-        container.style.display = 'none';
-        return;
+    const currentVal = select.value;
+    select.innerHTML = '<option value="" style="background-color: #1e293b; color: #fff;">-- Seleccionar Estación --</option>';
+    
+    if (unpositioned.length > 0) {
+        const groupUnpos = document.createElement('optgroup');
+        groupUnpos.label = '⚠️ Sin coordenadas GPS:';
+        groupUnpos.style.backgroundColor = '#0f172a';
+        groupUnpos.style.color = '#fbbf24';
+        unpositioned.forEach(num => {
+            const opt = document.createElement('option');
+            opt.value = num;
+            opt.textContent = `⚠️ Estación #${String(num).padStart(2, '0')} (Sin GPS)`;
+            opt.style.backgroundColor = '#1e293b';
+            opt.style.color = '#fff';
+            groupUnpos.appendChild(opt);
+        });
+        select.appendChild(groupUnpos);
     }
     
-    // Populate select
-    select.innerHTML = '<option value="" style="background-color: #1e293b; color: #fff;">-- Seleccionar Estación --</option>';
-    unpositioned.forEach(num => {
-        const opt = document.createElement('option');
-        opt.value = num;
-        opt.textContent = `Estación #${String(num).padStart(2, '0')}`;
-        opt.style.backgroundColor = '#1e293b';
-        opt.style.color = '#fff';
-        select.appendChild(opt);
-    });
+    if (positioned.length > 0) {
+        const groupPos = document.createElement('optgroup');
+        groupPos.label = '📍 Ya ubicadas (recalibrar):';
+        groupPos.style.backgroundColor = '#0f172a';
+        groupPos.style.color = '#38bdf8';
+        positioned.forEach(num => {
+            const opt = document.createElement('option');
+            opt.value = num;
+            opt.textContent = `📍 Estación #${String(num).padStart(2, '0')}`;
+            opt.style.backgroundColor = '#1e293b';
+            opt.style.color = '#cbd5e1';
+            groupPos.appendChild(opt);
+        });
+        select.appendChild(groupPos);
+    }
+    
+    // Auto-select first unpositioned if available, otherwise preserve current selection
+    if (currentVal && clientStations.includes(parseInt(currentVal, 10))) {
+        select.value = currentVal;
+    } else if (unpositioned.length > 0) {
+        select.value = unpositioned[0];
+    }
     
     container.style.display = 'flex';
 }
