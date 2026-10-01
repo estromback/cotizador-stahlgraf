@@ -2,7 +2,7 @@
 // Handles intelligent merging of appData arrays (clients, services, chemicals, etc.)
 // Prevents offline data loss during synchronization
 
-const STAHLGRAF_VERSION = "v4.3.3";
+const STAHLGRAF_VERSION = "v4.3.4";
 
 if (typeof window !== 'undefined') {
     window.STAHLGRAF_VERSION = STAHLGRAF_VERSION;

@@ -1535,6 +1535,14 @@ function openCardInGoogleCalendar(card) {
     window.open(gcalUrl, '_blank');
 }
 
+// Expose functions globally on window
+window.openSyncCalendarModal = openSyncCalendarModal;
+window.closeSyncCalendarModal = closeSyncCalendarModal;
+window.copyFeedUrlToClipboard = copyFeedUrlToClipboard;
+window.downloadICalFile = downloadICalFile;
+window.syncICalFeedToStorage = syncICalFeedToStorage;
+window.openCardInGoogleCalendar = openCardInGoogleCalendar;
+
 function openCardModal(card = null, defaultDate = '') {
     const modal = document.getElementById('card-modal');
     if (!modal) return;

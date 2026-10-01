@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.3.3"></script>
+    <script src="core-sync.js?v=v4.3.4"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
@@ -421,7 +421,7 @@
                     <button id="cal-btn-prev" class="btn btn-secondary btn-sm">⬅️ Anterior</button>
                     <button id="cal-btn-today" class="btn btn-secondary btn-sm">Hoy</button>
                     <button id="cal-btn-next" class="btn btn-secondary btn-sm">Siguiente ➡️</button>
-                    <button id="cal-btn-sync-calendar" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px; border-color: rgba(66, 133, 244, 0.4); color: #93c5fd;">
+                    <button id="cal-btn-sync-calendar" onclick="openSyncCalendarModal(event)" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px; border-color: rgba(66, 133, 244, 0.4); color: #93c5fd; cursor: pointer;">
                         <span>📅</span> Sincronizar Google Calendar
                     </button>
                     <button id="cal-btn-add" class="btn btn-primary btn-sm" style="margin-left: 5px;">+ Nuevo Evento</button>
@@ -875,7 +875,7 @@
                 <h2 style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem; margin: 0;">
                     <span>📅</span> Sincronización con Google Calendar
                 </h2>
-                <button id="btn-close-sync-modal" class="close-btn">&times;</button>
+                <button id="btn-close-sync-modal" onclick="closeSyncCalendarModal(event)" class="close-btn">&times;</button>
             </div>
             
             <div class="modal-body">
@@ -892,7 +892,7 @@
                     
                     <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                         <input type="text" id="feed-url-input" readonly placeholder="Generando enlace de calendario..." style="flex: 1; font-family: monospace; font-size: 0.85rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); color: #f1f5f9; padding: 8px 12px; border-radius: 6px; user-select: all;">
-                        <button type="button" id="btn-copy-feed-url" class="btn btn-primary btn-sm" style="white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;">
+                        <button type="button" id="btn-copy-feed-url" onclick="if(window.copyFeedUrlToClipboard)window.copyFeedUrlToClipboard();" class="btn btn-primary btn-sm" style="white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;">
                             📋 Copiar
                         </button>
                     </div>
@@ -905,13 +905,13 @@
 
                 <!-- Action Buttons Row -->
                 <div style="display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;">
-                    <button type="button" id="btn-open-gcal-settings" class="btn btn-primary" style="flex: 1; min-width: 190px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #2563eb;">
+                    <button type="button" id="btn-open-gcal-settings" onclick="window.open('https://calendar.google.com/calendar/u/0/r/settings/addbyurl', '_blank')" class="btn btn-primary" style="flex: 1; min-width: 190px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #2563eb;">
                         <span>🚀</span> Abrir en Google Calendar
                     </button>
-                    <button type="button" id="btn-download-ics-file" class="btn btn-secondary" style="flex: 1; min-width: 170px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                    <button type="button" id="btn-download-ics-file" onclick="if(window.downloadICalFile)window.downloadICalFile();" class="btn btn-secondary" style="flex: 1; min-width: 170px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
                         <span>📥</span> Descargar archivo .ics
                     </button>
-                    <button type="button" id="btn-force-refresh-feed" class="btn btn-secondary" title="Regenera el feed en la nube ahora" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px;">
+                    <button type="button" id="btn-force-refresh-feed" onclick="if(window.syncICalFeedToStorage)window.syncICalFeedToStorage(true);" class="btn btn-secondary" title="Regenera el feed en la nube ahora" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px;">
                         <span>🔄 Refrescar</span>
                     </button>
                 </div>
@@ -957,7 +957,40 @@
                 renderClientsSelect();
             }
         }
+
+        function openSyncCalendarModal(e) {
+            if (e) {
+                if (typeof e.preventDefault === 'function') e.preventDefault();
+                if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            }
+            if (typeof window.openSyncCalendarModal === 'function' && window.openSyncCalendarModal !== openSyncCalendarModal) {
+                return window.openSyncCalendarModal(e);
+            }
+            const modal = document.getElementById('sync-calendar-modal');
+            if (modal) {
+                modal.classList.add('active');
+            }
+            const cachedUrl = localStorage.getItem('stahlgraf_calendar_feed_url');
+            if (cachedUrl) {
+                const input = document.getElementById('feed-url-input');
+                if (input) input.value = cachedUrl;
+            }
+        }
+
+        function closeSyncCalendarModal(e) {
+            if (e) {
+                if (typeof e.preventDefault === 'function') e.preventDefault();
+                if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            }
+            if (typeof window.closeSyncCalendarModal === 'function' && window.closeSyncCalendarModal !== closeSyncCalendarModal) {
+                return window.closeSyncCalendarModal(e);
+            }
+            const modal = document.getElementById('sync-calendar-modal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
     </script>
-    <script src="hub.js?v=v4.3.3"></script>
+    <script src="hub.js?v=v4.3.4"></script>
 </body>
 </html>
