@@ -2116,6 +2116,15 @@ function populateUnpositionedStationsSelector(filterClientId, filterClientName) 
         });
         select.appendChild(groupPos);
     }
+
+    if (unpositioned.length === 0 && positioned.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = '✨ Sin estaciones registradas aún';
+        opt.style.backgroundColor = '#1e293b';
+        opt.style.color = '#94a3b8';
+        select.appendChild(opt);
+    }
     
     // Auto-select first unpositioned if available, otherwise preserve current selection
     if (currentVal && clientStations.includes(parseInt(currentVal, 10))) {
