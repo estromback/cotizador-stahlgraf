@@ -738,12 +738,104 @@ function updateGPSUIStatus(state, message) {
     }
 }
 
+// Device Orientation & Heading State for Technician Compass Arrow
+let currentUserHeading = null;
+let unwrappedUserHeading = null;
+let lastRawHeading = null;
+let isOrientationListenerActive = false;
+let orientationPermissionRequested = false;
+
+function initDeviceOrientation() {
+    if (isOrientationListenerActive) return;
+
+    const handleOrientation = (e) => {
+        let heading = null;
+        if (typeof e.webkitCompassHeading !== 'undefined' && e.webkitCompassHeading !== null) {
+            // iOS Safari: direct compass heading (0 = North, clockwise)
+            heading = e.webkitCompassHeading;
+        } else if (e.alpha !== null && e.alpha !== undefined) {
+            // Android: alpha is compass rotation
+            heading = (360 - e.alpha) % 360;
+            if (heading < 0) heading += 360;
+        }
+
+        if (heading !== null && !isNaN(heading)) {
+            applyHeadingUpdate(Math.round(heading));
+        }
+    };
+
+    if ('ondeviceorientationabsolute' in window) {
+        window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+    }
+    window.addEventListener('deviceorientation', handleOrientation, true);
+    isOrientationListenerActive = true;
+}
+
+function applyHeadingUpdate(rawHeading) {
+    if (rawHeading === null || isNaN(rawHeading)) return;
+    rawHeading = Math.round(rawHeading);
+    
+    // Angle unwrapping to avoid 359deg backspins
+    if (unwrappedUserHeading === null) {
+        unwrappedUserHeading = rawHeading;
+        lastRawHeading = rawHeading;
+    } else {
+        let diff = (rawHeading - (lastRawHeading % 360) + 540) % 360 - 180;
+        unwrappedUserHeading += diff;
+        lastRawHeading = rawHeading;
+    }
+
+    currentUserHeading = rawHeading;
+    if (currentUserCoords) {
+        currentUserCoords.heading = rawHeading;
+    }
+    if (lastKnownGPS) {
+        lastKnownGPS.heading = rawHeading;
+    }
+
+    // Update DOM element directly for high performance (no Leaflet redraw required)
+    const headingEl = document.getElementById('user-live-gps-heading');
+    if (headingEl) {
+        headingEl.style.transform = `rotate(${unwrappedUserHeading}deg)`;
+        headingEl.style.display = 'flex';
+    }
+
+    // Update compass indicators in UI
+    const fsCompassVal = document.getElementById('map-fs-compass-val');
+    const fsCompassBadge = document.getElementById('map-fs-compass-badge');
+    if (fsCompassVal && fsCompassBadge) {
+        fsCompassVal.textContent = rawHeading;
+        fsCompassBadge.style.display = 'inline-flex';
+    }
+}
+
+window.requestOrientationPermissionIfNeeded = function() {
+    if (orientationPermissionRequested) return;
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
+            .then(res => {
+                if (res === 'granted') {
+                    orientationPermissionRequested = true;
+                    initDeviceOrientation();
+                }
+            })
+            .catch(err => {
+                console.log('Orientation permission error:', err);
+                initDeviceOrientation();
+            });
+    } else {
+        initDeviceOrientation();
+    }
+};
+
 // Toggle Real-Time GPS continuous tracking on the map
 window.toggleLiveGPSTracking = function(forceStart = null) {
     if (!navigator.geolocation) {
         alert("Tu dispositivo o navegador no soporta geolocalización.");
         return;
     }
+
+    window.requestOrientationPermissionIfNeeded();
 
     const shouldStart = (forceStart !== null) ? forceStart : (liveLocationWatchId === null);
 
@@ -762,6 +854,13 @@ window.toggleLiveGPSTracking = function(forceStart = null) {
                     timestamp: pos.timestamp
                 };
                 lastKnownGPS = { ...currentUserCoords };
+
+                // Fallback movement heading if magnetometer is not providing orientation
+                if (pos.coords.heading !== null && !isNaN(pos.coords.heading) && pos.coords.heading >= 0) {
+                    if (lastRawHeading === null) {
+                        applyHeadingUpdate(pos.coords.heading);
+                    }
+                }
 
                 updateLiveLocationOnMap(currentUserCoords);
                 updateLiveGPSUIStatus('active', currentUserCoords.accuracy);
@@ -798,6 +897,8 @@ window.toggleLiveGPSTracking = function(forceStart = null) {
             liveLocationMarker = null;
             liveLocationAccuracyCircle = null;
         }
+        const fsCompassBadge = document.getElementById('map-fs-compass-badge');
+        if (fsCompassBadge) fsCompassBadge.style.display = 'none';
         updateLiveGPSUIStatus('inactive');
     }
 };
@@ -817,12 +918,20 @@ function updateLiveLocationOnMap(coords) {
         className: 'user-live-gps-divicon',
         html: `
             <div class="user-live-gps-marker">
+                <div class="user-live-gps-heading" id="user-live-gps-heading" style="transform: rotate(${unwrappedUserHeading || 0}deg); display: ${currentUserHeading !== null ? 'flex' : 'none'};">
+                    <div class="user-live-gps-cone"></div>
+                    <div class="user-live-gps-arrow">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2L19.5 20L12 16L4.5 20L12 2Z" fill="#2563eb" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
                 <div class="user-live-gps-pulse"></div>
                 <div class="user-live-gps-core"></div>
             </div>
         `,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
+        iconSize: [52, 52],
+        iconAnchor: [26, 26]
     });
 
     if (!liveLocationMarker) {
@@ -833,11 +942,12 @@ function updateLiveLocationOnMap(coords) {
 
         liveLocationMarker.bindTooltip(`👤 <strong>Tú estás aquí</strong><br><span style="font-size:0.75rem; color:#94a3b8;">Precisión: ±${Math.round(accuracy)}m</span>`, {
             direction: 'top',
-            offset: [0, -12],
+            offset: [0, -20],
             className: 'premium-map-tooltip'
         });
     } else {
         liveLocationMarker.setLatLng(latLng);
+        liveLocationMarker.setIcon(userIcon);
         liveLocationMarker.setTooltipContent(`👤 <strong>Tú estás aquí</strong><br><span style="font-size:0.75rem; color:#94a3b8;">Precisión: ±${Math.round(accuracy)}m</span>`);
     }
 
@@ -966,6 +1076,7 @@ function updateDistancesOnOpenViews() {
 
 // Center map on technician's real-time position
 window.centerOnUserLocation = function() {
+    window.requestOrientationPermissionIfNeeded();
     if (!currentUserCoords) {
         window.toggleLiveGPSTracking(true);
         showMapToast("🛰️ Obteniendo tu señal GPS...");
@@ -1072,6 +1183,7 @@ window.toggleMapFullscreen = function() {
             fsFloatBtn.classList.add('active');
         }
         updateFullscreenTopBar();
+        window.requestOrientationPermissionIfNeeded();
         
         // Auto-start live GPS tracking when entering inspection fullscreen if not already active
         if (liveLocationWatchId === null) {
@@ -1221,6 +1333,17 @@ window.openQuickMapInspectSheet = function(stationKey) {
         }
     }
 
+    const accTag = document.getElementById('quick-sheet-gps-acc');
+    if (accTag) {
+        if (currentUserCoords) {
+            accTag.textContent = `±${Math.round(currentUserCoords.accuracy || 0)}m`;
+            accTag.style.color = '#34d399';
+        } else {
+            accTag.textContent = 'GPS activo al guardar';
+            accTag.style.color = '#94a3b8';
+        }
+    }
+
     const defaultCons = visitRec ? (visitRec.consumption || '0%') : '0%';
     window.setQuickConsumption(defaultCons);
 
@@ -1299,11 +1422,30 @@ window.saveQuickMapInspection = function() {
     });
     if (evidence.length === 0) evidence.push('Ninguna');
 
+    // Check if user wants to refine/update coordinates with phone's current GPS
+    const chkUpdateGPS = document.getElementById('chk-quick-update-coords');
+    const shouldUpdateWithPhoneGPS = chkUpdateGPS ? chkUpdateGPS.checked : true;
+
     // Keep existing coordinates or use real-time GPS
     const existingCoords = getLatestStationCoords(stationKey);
     let coordsToSave = existingCoords;
-    if (!coordsToSave && currentUserCoords) {
-        coordsToSave = { lat: currentUserCoords.lat, lng: currentUserCoords.lng };
+
+    if (shouldUpdateWithPhoneGPS && currentUserCoords) {
+        coordsToSave = {
+            lat: currentUserCoords.lat,
+            lng: currentUserCoords.lng,
+            accuracy: currentUserCoords.accuracy || 0,
+            timestamp: Date.now()
+        };
+        // Update master coordinates so the station marker immediately locks onto the phone's position
+        updateStationCoordinates(stationKey, currentUserCoords.lat, currentUserCoords.lng, currentUserCoords.accuracy || 0, true);
+    } else if (!coordsToSave && currentUserCoords) {
+        coordsToSave = {
+            lat: currentUserCoords.lat,
+            lng: currentUserCoords.lng,
+            accuracy: currentUserCoords.accuracy || 0,
+            timestamp: Date.now()
+        };
     }
 
     const newRecord = {
@@ -1577,6 +1719,9 @@ function initOrUpdateMap() {
                             <span>${s.coords.lat.toFixed(6)}, ${s.coords.lng.toFixed(6)}</span>
                             <button onclick="navigator.clipboard.writeText('${s.coords.lat},${s.coords.lng}'); alert('Coordenadas copiadas');" style="margin-left: 8px; cursor: pointer; border: none; background: transparent; font-size: 0.8rem; color: #3b82f6;">📋</button>
                         </p>
+                        <button type="button" onclick="window.calibrateStationWithCurrentGPS('${s.key}')" style="width: 100%; margin-top: 6px; margin-bottom: 6px; background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 6px 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                            🎯 Calibrar con mi GPS actual
+                        </button>
                         <p style="margin: 6px 0 0 0; font-size: 0.7rem; color: #e11d48; font-weight: 500; font-style: italic; border-top: 1px solid #f1f5f9; padding-top: 5px;">
                             💡 Mantén presionado y arrastra este marcador para corregir su ubicación.
                         </p>
@@ -1617,9 +1762,10 @@ function initOrUpdateMap() {
 }
 
 // Correct coordinates of a station (updates the latest inspection record with coords)
-function updateStationCoordinates(stationKey, lat, lng) {
+function updateStationCoordinates(stationKey, lat, lng, accuracy = 0, silent = false) {
     // Find all inspections of this station
     const stationRecords = inspections.filter(r => r.station === stationKey);
+    const numStr = String(stationKey).replace('ESTACION-', '').padStart(2, '0');
     
     if (stationRecords.length > 0) {
         // Find latest record (newest first)
@@ -1632,14 +1778,17 @@ function updateStationCoordinates(stationKey, lat, lng) {
             inspections[recordIndex].coords = {
                 lat: lat,
                 lng: lng,
-                accuracy: 0, // Manual correction accuracy indicator
+                accuracy: accuracy,
                 timestamp: Date.now()
             };
             inspections[recordIndex].status = 'pendiente'; // Set as pending so it syncs to cloud
             
             localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
             renderMonitoreo();
-            alert(`✅ La ubicación de la Estación #${stationKey.replace('ESTACION-', '')} ha sido registrada.`);
+            initOrUpdateMap();
+            if (!silent) {
+                showMapToast(`🎯 Estación #${numStr} georreferenciada con éxito.`);
+            }
             
             if (navigator.onLine && currentUser) {
                 syncWithCloud(true);
@@ -1653,11 +1802,11 @@ function updateStationCoordinates(stationKey, lat, lng) {
             consumption: '0%',
             maintenance: [],
             evidence: [],
-            notes: 'Posicionamiento manual inicial',
+            notes: 'Posicionamiento georreferenciado registrado desde teléfono',
             coords: {
                 lat: lat,
                 lng: lng,
-                accuracy: 0,
+                accuracy: accuracy,
                 timestamp: Date.now()
             },
             timestamp: new Date().toLocaleString('es-CL'),
@@ -1667,13 +1816,61 @@ function updateStationCoordinates(stationKey, lat, lng) {
         localStorage.setItem('stahlgraf_qr_inspecciones', JSON.stringify(inspections));
         
         renderMonitoreo();
-        alert(`✅ La ubicación de la Estación #${stationKey.replace('ESTACION-', '')} ha sido registrada.`);
+        initOrUpdateMap();
+        if (!silent) {
+            showMapToast(`🎯 Estación #${numStr} georreferenciada con éxito.`);
+        }
         
         if (navigator.onLine && currentUser) {
             syncWithCloud(true);
         }
     }
 }
+
+// Assign phone's real-time GPS coordinates directly to a station
+window.calibrateStationWithCurrentGPS = function(stationKey, showConfirm = true) {
+    if (!stationKey) return;
+
+    if (!currentUserCoords) {
+        window.toggleLiveGPSTracking(true);
+        showMapToast("📡 Obteniendo tu señal GPS... Mantén el teléfono junto a la estación.");
+        alert("📡 Obteniendo señal GPS...\n\nPor favor activa la ubicación en tu teléfono y mantén el dispositivo junto a la estación.");
+        return;
+    }
+
+    const lat = currentUserCoords.lat;
+    const lng = currentUserCoords.lng;
+    const accuracy = Math.round(currentUserCoords.accuracy || 0);
+    const numStr = String(stationKey).replace('ESTACION-', '').padStart(2, '0');
+
+    if (showConfirm) {
+        const msg = `🎯 ¿Deseas fijar la Estación #${numStr} en la ubicación GPS actual de tu teléfono?\n\n📍 Latitud: ${lat.toFixed(6)}\n📍 Longitud: ${lng.toFixed(6)}\n📡 Precisión GPS: ±${accuracy} metros`;
+        if (!confirm(msg)) return;
+    }
+
+    updateStationCoordinates(stationKey, lat, lng, accuracy, false);
+
+    // Update distance in quick sheet if active
+    const distEl = document.getElementById('quick-sheet-distance');
+    if (distEl) {
+        distEl.innerHTML = `🚶 A <strong>0 m</strong> de ti (calibrada)`;
+        distEl.style.display = 'inline-block';
+    }
+
+    showMapToast(`🎯 ¡Estación #${numStr} fijada en tu ubicación actual (±${accuracy}m)!`);
+};
+
+// Assign current phone GPS to station selected in unpositioned dropdown
+window.assignCurrentGPSToSelectedUnpositionedStation = function() {
+    const select = document.getElementById('unpositioned-station-select');
+    const stationNum = select ? select.value : '';
+    if (!stationNum) {
+        alert("⚠️ Selecciona una estación sin ubicación de la lista.");
+        return;
+    }
+    const stationKey = `ESTACION-${String(stationNum).padStart(2, '0')}`;
+    window.calibrateStationWithCurrentGPS(stationKey, true);
+};
 
 function populateUnpositionedStationsSelector(filterClientId, filterClientName) {
     const container = document.getElementById('unpositioned-stations-container');
@@ -2258,23 +2455,32 @@ function saveInspection() {
     
     if (!station) return alert("Selecciona una estación.");
     
-    // Check installation mode for GPS recording and accuracy verification
+    // Check installation mode and GPS coords for saving
     const chkInstall = document.getElementById('chk-install-mode');
     const isInstallationMode = chkInstall ? chkInstall.checked : false;
     
     let coordsToSave = null;
+    const phoneGPS = currentUserCoords || lastKnownGPS;
+
     if (isInstallationMode) {
-        if (!lastKnownGPS) {
+        if (!phoneGPS) {
             if (!confirm("⚠️ El GPS aún no ha obtenido coordenadas (señal débil o permisos denegados). ¿Deseas registrar la estación sin geolocalización?")) {
                 return; // Cancel registration
             }
-        } else if (lastKnownGPS.accuracy > 20) { // Precision threshold: 20 meters
-            if (!confirm(`⚠️ La precisión del GPS es baja (±${lastKnownGPS.accuracy.toFixed(1)} metros). Se recomienda esperar unos segundos a que mejore la señal. ¿Deseas registrar la ubicación actual de todos modos?`)) {
+        } else if (phoneGPS.accuracy > 20) { // Precision threshold: 20 meters
+            if (!confirm(`⚠️ La precisión del GPS es baja (±${phoneGPS.accuracy.toFixed(1)} metros). Se recomienda esperar unos segundos a que mejore la señal. ¿Deseas registrar la ubicación actual de todos modos?`)) {
                 return; // Cancel registration to retry
             }
-            coordsToSave = { ...lastKnownGPS };
+            coordsToSave = { ...phoneGPS };
         } else {
-            coordsToSave = { ...lastKnownGPS };
+            coordsToSave = { ...phoneGPS };
+        }
+    } else {
+        const existingCoords = getLatestStationCoords(station);
+        if (existingCoords) {
+            coordsToSave = { ...existingCoords };
+        } else if (phoneGPS) {
+            coordsToSave = { ...phoneGPS };
         }
     }
 
@@ -4331,6 +4537,25 @@ function updateStationClientInfo() {
         `;
     }
 
+    const stationCoords = getLatestStationCoords(stationValue);
+    let coordsInfoHtml = '';
+    if (stationCoords && stationCoords.lat && stationCoords.lng) {
+        const accInfo = stationCoords.accuracy ? ` (±${Math.round(stationCoords.accuracy)}m)` : '';
+        coordsInfoHtml = `
+            <div style="margin-top: 8px; padding: 6px 10px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; font-size: 0.78rem; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <span style="color: #93c5fd;">📍 Coordenadas: <code>${stationCoords.lat.toFixed(6)}, ${stationCoords.lng.toFixed(6)}</code>${accInfo}</span>
+                <button type="button" onclick="window.calibrateStationWithCurrentGPS('${stationValue}')" style="background: #2563eb; color: #fff; border: none; border-radius: 4px; padding: 4px 9px; font-size: 0.72rem; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">🎯 Calibrar con mi GPS</button>
+            </div>
+        `;
+    } else {
+        coordsInfoHtml = `
+            <div style="margin-top: 8px; padding: 6px 10px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 6px; font-size: 0.78rem; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <span style="color: #fbbf24;">📍 Sin coordenadas registradas en el mapa</span>
+                <button type="button" onclick="window.calibrateStationWithCurrentGPS('${stationValue}')" style="background: #2563eb; color: #fff; border: none; border-radius: 4px; padding: 4px 9px; font-size: 0.72rem; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">🎯 Asignar mi GPS</button>
+            </div>
+        `;
+    }
+
     if (assignment) {
         const client = (globalAppData.clients || []).find(c => c.id === assignment.clientId || c.name === assignment.clientName);
         const addressText = client && client.address ? ` | 📍 Dirección: ${client.address}` : '';
@@ -4341,6 +4566,7 @@ function updateStationClientInfo() {
                     ✏️ Corregir
                 </button>
             </div>
+            ${coordsInfoHtml}
             ${visitStatusHtml}
         `;
         infoDiv.style.display = 'block';
@@ -4352,6 +4578,7 @@ function updateStationClientInfo() {
                     ➕ Vincular Cliente
                 </button>
             </div>
+            ${coordsInfoHtml}
             ${visitStatusHtml}
         `;
         infoDiv.style.display = 'block';
@@ -4531,11 +4758,14 @@ function calculateStationAnalytics(stationKey) {
     };
 }
 
+let currentDetailStationNum = null;
+
 // Action: Open station details modal
 function openStationDetails(stationNum) {
     const modal = document.getElementById('station-details-modal');
     if (!modal) return;
     
+    currentDetailStationNum = stationNum;
     const numStr = String(stationNum).padStart(2, '0');
     const stationKey = `ESTACION-${numStr}`;
     
@@ -4558,6 +4788,20 @@ function openStationDetails(stationNum) {
     // Set KPIs
     document.getElementById('detail-last-consumption').innerText = analytics.lastVal;
     document.getElementById('detail-avg-consumption').innerText = analytics.recordsCount > 0 ? `${analytics.avg}%` : '-%';
+
+    // Set Coordinates info in modal
+    const coords = getLatestStationCoords(stationKey);
+    const coordsText = document.getElementById('detail-coords-text');
+    if (coordsText) {
+        if (coords && coords.lat && coords.lng) {
+            const accInfo = coords.accuracy ? ` (±${Math.round(coords.accuracy)}m)` : '';
+            coordsText.textContent = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}${accInfo}`;
+            coordsText.style.color = '#38bdf8';
+        } else {
+            coordsText.textContent = 'Sin coordenadas registradas';
+            coordsText.style.color = '#fbbf24';
+        }
+    }
     
     // Set Trend Badge
     const trendBadge = document.getElementById('detail-station-trend');
@@ -4609,6 +4853,21 @@ function closeStationDetails() {
     const modal = document.getElementById('station-details-modal');
     if (modal) modal.style.display = 'none';
 }
+
+window.calibrateCurrentDetailStationGPS = function() {
+    if (!currentDetailStationNum) return;
+    const stationKey = `ESTACION-${String(currentDetailStationNum).padStart(2, '0')}`;
+    window.calibrateStationWithCurrentGPS(stationKey, true);
+    
+    // Refresh modal text
+    const coords = getLatestStationCoords(stationKey);
+    const coordsText = document.getElementById('detail-coords-text');
+    if (coordsText && coords) {
+        const accInfo = coords.accuracy ? ` (±${Math.round(coords.accuracy)}m)` : '';
+        coordsText.textContent = `${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}${accInfo}`;
+        coordsText.style.color = '#38bdf8';
+    }
+};
 
 // Helper to get Client ID for station
 function getClientIdForStation(stationNum) {
