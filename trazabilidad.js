@@ -970,6 +970,10 @@ function updateLiveLocationOnMap(coords) {
     if (btnCenter) btnCenter.style.display = 'inline-flex';
     const btnFloatCenter = document.getElementById('btn-float-center-user');
     if (btnFloatCenter) btnFloatCenter.style.display = 'flex';
+
+    if (typeof updateInstallDockGPSStatus === 'function') {
+        updateInstallDockGPSStatus('active', accuracy);
+    }
 }
 
 // Update GPS UI buttons & indicators
@@ -1056,6 +1060,10 @@ function updateLiveGPSUIStatus(state, accuracy = null, errMsg = null) {
             fsGpsStatus.style.color = '#f87171';
         }
         if (errMsg) alert(`⚠️ ${errMsg}`);
+    }
+
+    if (typeof updateInstallDockGPSStatus === 'function') {
+        updateInstallDockGPSStatus(state, accuracy);
     }
 }
 
@@ -1361,12 +1369,22 @@ window.openQuickMapInspectSheet = function(stationKey) {
 
     const sheet = document.getElementById('quick-map-inspect-sheet');
     if (sheet) sheet.classList.add('active');
+
+    // Temporarily hide installation dock so it does not collide with the inspect sheet
+    const installDock = document.getElementById('map-install-dock');
+    if (installDock) installDock.style.display = 'none';
 };
 
 window.closeQuickMapInspectSheet = function() {
     const sheet = document.getElementById('quick-map-inspect-sheet');
     if (sheet) sheet.classList.remove('active');
     activeQuickStationKey = null;
+
+    // Restore installation dock if installation mode is active
+    if (typeof mapInstallationMode !== 'undefined' && mapInstallationMode.active) {
+        const installDock = document.getElementById('map-install-dock');
+        if (installDock) installDock.style.display = 'flex';
+    }
 };
 
 window.setQuickConsumption = function(val) {
@@ -1666,6 +1684,13 @@ function initOrUpdateMap() {
                     draggable: true
                 });
 
+                // Synchronize active station in installation mode if active
+                marker.on('click', function() {
+                    if (typeof mapInstallationMode !== 'undefined' && mapInstallationMode.active) {
+                        window.setInstallStationNum(s.num);
+                    }
+                });
+
                 // Listen for drag end to allow correcting/updating the coordinates
                 marker.on('dragend', function(event) {
                     const newPos = event.target.getLatLng();
@@ -1859,6 +1884,381 @@ window.calibrateStationWithCurrentGPS = function(stationKey, showConfirm = true)
 
     showMapToast(`🎯 ¡Estación #${numStr} fijada en tu ubicación actual (±${accuracy}m)!`);
 };
+
+// ========================================================
+// MODO INSTALACIÓN EN EL MAPA (Georreferenciación en Terreno)
+// ========================================================
+let mapInstallationMode = {
+    active: false,
+    currentStationNum: 1,
+    clientId: '',
+    clientName: '',
+    clickToPlaceActive: false
+};
+
+// Update GPS accuracy status badge inside the installation dock
+function updateInstallDockGPSStatus(state = null, accuracy = null) {
+    const statusEl = document.getElementById('install-dock-gps-status');
+    if (!statusEl) return;
+    
+    const acc = accuracy !== null ? Math.round(accuracy) : (currentUserCoords ? Math.round(currentUserCoords.accuracy || 0) : null);
+    
+    if (state === 'searching') {
+        statusEl.innerHTML = '🛰️ Buscando señal GPS satelital...';
+        statusEl.style.color = '#fbbf24';
+    } else if (acc !== null && (state === 'active' || currentUserCoords)) {
+        if (acc <= 5) {
+            statusEl.innerHTML = `🟢 GPS: ±${acc}m (Excelente precisión satelital)`;
+            statusEl.style.color = '#34d399';
+        } else if (acc <= 12) {
+            statusEl.innerHTML = `🟡 GPS: ±${acc}m (Buena precisión)`;
+            statusEl.style.color = '#fbbf24';
+        } else {
+            statusEl.innerHTML = `🟠 GPS: ±${acc}m (Aceptable - mantén el teléfono al descubierto)`;
+            statusEl.style.color = '#f97316';
+        }
+    } else if (state === 'error') {
+        statusEl.innerHTML = '⚠️ Error de GPS. Verifica los permisos de ubicación.';
+        statusEl.style.color = '#f87171';
+    } else {
+        statusEl.innerHTML = '🛰️ GPS Inactivo. Toca para conectar.';
+        statusEl.style.color = '#94a3b8';
+    }
+}
+
+// Find next suggested station number for a given client (unpositioned first, then max + 1)
+function getSuggestedNextInstallStationNum(clientId, clientName) {
+    const clientStations = [];
+    const maxStations = getMaxStationNumber();
+    for (let i = 1; i <= maxStations; i++) {
+        if (getClientIdForStation(i) === clientId || getClientNameForStation(i) === clientName) {
+            clientStations.push(i);
+        }
+    }
+    
+    // 1. Look for unpositioned stations in this client's assignment
+    for (let i = 0; i < clientStations.length; i++) {
+        const num = clientStations[i];
+        const key = `ESTACION-${String(num).padStart(2, '0')}`;
+        const coords = getLatestStationCoords(key);
+        if (!coords || !coords.lat || !coords.lng) {
+            return num;
+        }
+    }
+    
+    // 2. If all assigned stations are already positioned, suggest maxAssigned + 1
+    if (clientStations.length > 0) {
+        return Math.max(...clientStations) + 1;
+    }
+    
+    return 1;
+}
+
+// Automatically expand or link station assignment to the client if needed
+function ensureStationAssignedToClient(stationNum, clientId, clientName) {
+    if (!clientId && !clientName) return false;
+    
+    const existingClientId = getClientIdForStation(stationNum);
+    const existingClientName = getClientNameForStation(stationNum);
+    
+    if (existingClientId === clientId || existingClientName === clientName) {
+        return true; // Already properly assigned
+    }
+    
+    if (existingClientId && existingClientId !== clientId) {
+        if (!confirm(`⚠️ La Estación #${stationNum} actualmente está asignada a "${existingClientName}".\n\n¿Deseas reasignarla al cliente "${clientName}"?`)) {
+            return false;
+        }
+    }
+    
+    if (!globalAppData.stationAssignments) {
+        globalAppData.stationAssignments = [];
+    }
+    
+    const assignments = globalAppData.stationAssignments;
+    
+    // Try to merge with contiguous range for this client
+    const contiguous = assignments.find(item => {
+        const isSame = (item.clientId && item.clientId === clientId) || 
+                       (!item.clientId && item.clientName === clientName) ||
+                       (item.clientName === clientName);
+        if (!isSame) return false;
+        const s = parseInt(item.start, 10);
+        const e = parseInt(item.end, 10);
+        return (stationNum === e + 1 || stationNum === s - 1);
+    });
+    
+    if (contiguous) {
+        contiguous.start = Math.min(stationNum, parseInt(contiguous.start, 10));
+        contiguous.end = Math.max(stationNum, parseInt(contiguous.end, 10));
+    } else {
+        assignments.push({
+            id: 'asg_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            clientId: clientId,
+            clientName: clientName,
+            start: stationNum,
+            end: stationNum
+        });
+    }
+    
+    saveGlobalAppData();
+    generateStationDropdown(true);
+    renderAssignmentsList();
+    return true;
+}
+
+// Set active station number in installation dock and update visual status tags
+window.setInstallStationNum = function(num) {
+    num = Math.max(1, parseInt(num, 10) || 1);
+    mapInstallationMode.currentStationNum = num;
+    
+    const numStr = String(num).padStart(2, '0');
+    const titleEl = document.getElementById('install-dock-station-title');
+    if (titleEl) titleEl.textContent = `#${numStr}`;
+    
+    const btnNumEl = document.getElementById('btn-dock-install-station-num');
+    if (btnNumEl) btnNumEl.textContent = `#${numStr}`;
+    
+    const key = `ESTACION-${numStr}`;
+    const coords = getLatestStationCoords(key);
+    const tag = document.getElementById('install-dock-station-status-tag');
+    if (tag) {
+        if (coords && coords.lat && coords.lng) {
+            tag.innerHTML = `⚠️ Ya ubicada (Recalibrar)`;
+            tag.style.background = 'rgba(245, 158, 11, 0.2)';
+            tag.style.color = '#fbbf24';
+            tag.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+        } else {
+            tag.innerHTML = `✨ Nueva (Sin GPS)`;
+            tag.style.background = 'rgba(16, 185, 129, 0.2)';
+            tag.style.color = '#34d399';
+            tag.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        }
+    }
+};
+
+// Increment or decrement station number
+window.stepInstallStationNum = function(delta) {
+    window.setInstallStationNum(mapInstallationMode.currentStationNum + delta);
+};
+
+// Toggle map installation mode
+window.toggleMapInstallationMode = function(forceState) {
+    const newState = forceState !== undefined ? forceState : !mapInstallationMode.active;
+    
+    if (newState) {
+        // Ensure quick inspect sheet is closed
+        window.closeQuickMapInspectSheet();
+        
+        // Find active client
+        const filterSelect = document.getElementById('filter-client-id');
+        let clientId = filterSelect ? filterSelect.value : '';
+        let clientName = '';
+        if (clientId) {
+            const cObj = (globalAppData.clients || []).find(c => c.id === clientId);
+            if (cObj) clientName = cObj.name;
+        }
+        
+        if (!clientId && globalAppData.clients && globalAppData.clients.length > 0) {
+            clientId = globalAppData.clients[0].id;
+            clientName = globalAppData.clients[0].name;
+            if (filterSelect) {
+                filterSelect.value = clientId;
+                filterSelect.dispatchEvent(new Event('change'));
+            }
+        }
+        
+        if (!clientId) {
+            alert("⚠️ Selecciona o registra un cliente para poder instalar estaciones.");
+            return;
+        }
+        
+        mapInstallationMode.active = true;
+        mapInstallationMode.clientId = clientId;
+        mapInstallationMode.clientName = clientName;
+        
+        // Ensure live GPS tracking is enabled
+        if (!isLiveGPSTracking) {
+            window.toggleLiveGPSTracking(true);
+        }
+        
+        // Update client badge
+        const clientBadge = document.getElementById('install-dock-client-badge');
+        if (clientBadge) {
+            clientBadge.textContent = clientName;
+            clientBadge.title = `Cliente: ${clientName}`;
+        }
+        
+        // Suggest and set next station
+        const nextNum = getSuggestedNextInstallStationNum(clientId, clientName);
+        window.setInstallStationNum(nextNum);
+        
+        // Show dock
+        const dock = document.getElementById('map-install-dock');
+        if (dock) {
+            dock.style.display = 'flex';
+        }
+        
+        // Update button states
+        const btnToggle = document.getElementById('btn-toggle-map-install');
+        if (btnToggle) {
+            btnToggle.style.background = '#10b981';
+            btnToggle.style.color = '#fff';
+            btnToggle.style.borderColor = '#34d399';
+        }
+        const btnFsToggle = document.getElementById('btn-fs-toggle-install');
+        if (btnFsToggle) {
+            btnFsToggle.style.background = '#10b981';
+            btnFsToggle.style.color = '#fff';
+            btnFsToggle.style.borderColor = '#34d399';
+        }
+        const btnFloat = document.getElementById('btn-float-install');
+        if (btnFloat) {
+            btnFloat.classList.add('active');
+        }
+        
+        updateInstallDockGPSStatus();
+        showMapToast("🛠️ Modo Instalación Activo. Camina a la estación y pulsa el botón.");
+    } else {
+        // Exit installation mode
+        mapInstallationMode.active = false;
+        
+        // Turn off click-to-place if active
+        if (mapInstallationMode.clickToPlaceActive) {
+            window.toggleInstallClickToPlace();
+        }
+        
+        // Hide dock
+        const dock = document.getElementById('map-install-dock');
+        if (dock) {
+            dock.style.display = 'none';
+        }
+        
+        // Reset button states
+        const btnToggle = document.getElementById('btn-toggle-map-install');
+        if (btnToggle) {
+            btnToggle.style.background = 'rgba(16, 185, 129, 0.15)';
+            btnToggle.style.color = '#34d399';
+            btnToggle.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+        }
+        const btnFsToggle = document.getElementById('btn-fs-toggle-install');
+        if (btnFsToggle) {
+            btnFsToggle.style.background = 'rgba(16, 185, 129, 0.2)';
+            btnFsToggle.style.color = '#34d399';
+            btnFsToggle.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+        }
+        const btnFloat = document.getElementById('btn-float-install');
+        if (btnFloat) {
+            btnFloat.classList.remove('active');
+        }
+        
+        initOrUpdateMap();
+    }
+};
+
+// Install station at technician's current real-time GPS coordinates
+window.installStationAtCurrentGPS = function() {
+    if (!mapInstallationMode.active) return;
+    
+    const phoneGPS = currentUserCoords || lastKnownGPS;
+    if (!phoneGPS) {
+        window.toggleLiveGPSTracking(true);
+        alert("📡 Obteniendo señal GPS satelital...\nPor favor activa la ubicación en tu teléfono y mantén el dispositivo junto a la estación.");
+        return;
+    }
+    
+    const stationNum = mapInstallationMode.currentStationNum;
+    const clientId = mapInstallationMode.clientId;
+    const clientName = mapInstallationMode.clientName;
+    
+    if (!ensureStationAssignedToClient(stationNum, clientId, clientName)) {
+        return;
+    }
+    
+    const numStr = String(stationNum).padStart(2, '0');
+    const stationKey = `ESTACION-${numStr}`;
+    const lat = phoneGPS.lat;
+    const lng = phoneGPS.lng;
+    const accuracy = Math.round(phoneGPS.accuracy || 0);
+    
+    // Save geolocated coordinates
+    updateStationCoordinates(stationKey, lat, lng, accuracy, false);
+    
+    // Haptic vibration feedback if supported
+    if (navigator.vibrate) {
+        navigator.vibrate([60, 40, 80]);
+    }
+    
+    showMapToast(`🎉 ¡Estación #${numStr} instalada en tu ubicación actual (±${accuracy}m)!`);
+    
+    // Re-render map and smoothly pan to this station
+    initOrUpdateMap();
+    if (leafletMap) {
+        leafletMap.panTo([lat, lng], { animate: true, duration: 0.5 });
+    }
+    
+    // Auto-advance to next suggested station number!
+    const nextNum = getSuggestedNextInstallStationNum(clientId, clientName);
+    window.setInstallStationNum(nextNum);
+};
+
+// Toggle manual click-on-map to install/place
+window.toggleInstallClickToPlace = function() {
+    if (!mapInstallationMode.active) return;
+    
+    mapInstallationMode.clickToPlaceActive = !mapInstallationMode.clickToPlaceActive;
+    const btn = document.getElementById('btn-dock-click-map');
+    
+    if (mapInstallationMode.clickToPlaceActive) {
+        if (btn) {
+            btn.style.background = 'rgba(59, 130, 246, 0.3)';
+            btn.style.borderColor = '#3b82f6';
+            btn.style.color = '#60a5fa';
+        }
+        if (leafletMap) {
+            leafletMap.getContainer().style.cursor = 'crosshair';
+            leafletMap.on('click', onMapClickForInstallMode);
+        }
+        showMapToast(`📍 Toca el mapa para ubicar la Estación #${String(mapInstallationMode.currentStationNum).padStart(2, '0')}`);
+    } else {
+        if (btn) {
+            btn.style.background = 'rgba(255,255,255,0.06)';
+            btn.style.borderColor = 'rgba(255,255,255,0.16)';
+            btn.style.color = '#cbd5e1';
+        }
+        if (leafletMap) {
+            leafletMap.getContainer().style.cursor = '';
+            leafletMap.off('click', onMapClickForInstallMode);
+        }
+    }
+};
+
+function onMapClickForInstallMode(e) {
+    if (!mapInstallationMode.active || !mapInstallationMode.clickToPlaceActive) return;
+    
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+    const stationNum = mapInstallationMode.currentStationNum;
+    const clientId = mapInstallationMode.clientId;
+    const clientName = mapInstallationMode.clientName;
+    const numStr = String(stationNum).padStart(2, '0');
+    const stationKey = `ESTACION-${numStr}`;
+    
+    if (confirm(`¿Deseas ubicar la Estación #${numStr} en este punto del mapa?\n\nLatitud: ${lat.toFixed(6)}\nLongitud: ${lng.toFixed(6)}`)) {
+        if (!ensureStationAssignedToClient(stationNum, clientId, clientName)) return;
+        
+        updateStationCoordinates(stationKey, lat, lng, 5, false);
+        if (navigator.vibrate) navigator.vibrate([60, 40, 80]);
+        showMapToast(`🎉 ¡Estación #${numStr} ubicada en el mapa!`);
+        
+        window.toggleInstallClickToPlace();
+        
+        initOrUpdateMap();
+        
+        const nextNum = getSuggestedNextInstallStationNum(clientId, clientName);
+        window.setInstallStationNum(nextNum);
+    }
+}
 
 // Assign current phone GPS to station selected in unpositioned dropdown
 window.assignCurrentGPSToSelectedUnpositionedStation = function() {

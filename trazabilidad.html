@@ -696,6 +696,39 @@
             transform: translateX(-50%) translateY(0);
             opacity: 1;
         }
+
+        /* Map Installation Mode Dock */
+        .map-install-dock {
+            position: absolute;
+            bottom: 14px;
+            left: 12px;
+            right: 12px;
+            max-width: 540px;
+            margin: 0 auto;
+            background: rgba(15, 23, 42, 0.96);
+            backdrop-filter: blur(16px);
+            border: 2px solid #10b981;
+            border-radius: 16px;
+            padding: 14px 18px;
+            z-index: 1003;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.75);
+            display: none;
+            flex-direction: column;
+            gap: 11px;
+            color: #fff;
+            animation: slideUpInstall 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+        }
+        @keyframes slideUpInstall {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
@@ -909,6 +942,10 @@
                             🗺️ Mapa Satelital de Estaciones
                         </h3>
                         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" id="btn-toggle-map-install" onclick="window.toggleMapInstallationMode()" class="btn btn-secondary" style="padding: 7px 14px; font-size: 0.82rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; cursor: pointer; font-weight: 600; transition: all 0.2s ease;">
+                                <span id="btn-map-install-icon">🛠️</span>
+                                <span id="btn-map-install-text">Modo Instalación</span>
+                            </button>
                             <button type="button" id="btn-toggle-live-gps" onclick="window.toggleLiveGPSTracking()" class="btn btn-secondary" style="padding: 7px 14px; font-size: 0.82rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd; cursor: pointer; font-weight: 600; transition: all 0.2s ease;">
                                 <span id="live-gps-icon">🛰️</span>
                                 <span id="live-gps-btn-text">Activar GPS en Vivo</span>
@@ -935,6 +972,9 @@
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
+                                <button type="button" id="btn-fs-toggle-install" onclick="window.toggleMapInstallationMode()" style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; border-radius: 8px; padding: 6px 11px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;" title="Activar Modo Instalación de Estaciones">
+                                    🛠️ Instalar
+                                </button>
                                 <span id="map-fs-gps-status" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #93c5fd; font-weight: 600;">🛰️ GPS Inactivo</span>
                                 <span id="map-fs-compass-badge" style="display: none; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; font-weight: 600;" title="Rumbo del teléfono">🧭 <span id="map-fs-compass-val">0</span>°</span>
                                 <button type="button" onclick="window.centerOnUserLocation()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 8px; padding: 6px 11px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;" title="Centrar en mi ubicación">
@@ -972,12 +1012,61 @@
                             <button type="button" id="btn-float-next-station" class="map-floating-btn" onclick="window.centerOnNextPendingStation()" title="Ir a la siguiente estación pendiente en ruta">
                                 ⏭️
                             </button>
+                            <button type="button" id="btn-float-install" class="map-floating-btn" onclick="window.toggleMapInstallationMode()" title="Modo Instalación con GPS">
+                                🛠️
+                            </button>
                             <button type="button" id="btn-float-gps" class="map-floating-btn" onclick="window.toggleLiveGPSTracking()" title="Activar/Desactivar GPS en Vivo">
                                 🛰️
                             </button>
                             <button type="button" id="btn-float-fs" class="map-floating-btn" onclick="window.toggleMapFullscreen()" title="Pantalla Completa">
                                 ⛶
                             </button>
+                        </div>
+
+                        <!-- Modo Instalación Dock (Floating Overlay) -->
+                        <div id="map-install-dock" class="map-install-dock">
+                            <!-- Header -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 1.15rem;">🛠️</span>
+                                    <div>
+                                        <div style="font-weight: 700; font-size: 0.95rem; color: #fff; display: flex; align-items: center; gap: 6px;">
+                                            Modo Instalación
+                                            <span id="install-dock-client-badge" style="font-size: 0.72rem; padding: 2px 7px; border-radius: 5px; background: rgba(59, 130, 246, 0.25); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); font-weight: 600;">Cliente: -</span>
+                                        </div>
+                                        <div id="install-dock-gps-status" style="font-size: 0.74rem; color: #10b981; font-weight: 600; margin-top: 2px;">
+                                            📡 GPS: Esperando señal...
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="window.toggleMapInstallationMode(false)" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.9rem;" title="Cerrar Modo Instalación">✕</button>
+                            </div>
+
+                            <!-- Station Selector Controls -->
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <button type="button" onclick="window.stepInstallStationNum(-1)" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; border-radius: 8px; width: 36px; height: 36px; font-size: 1.1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center;">➖</button>
+                                    <div style="text-align: center; min-width: 90px;">
+                                        <span style="font-size: 0.68rem; color: #94a3b8; display: block; text-transform: uppercase; font-weight: 600;">Estación</span>
+                                        <span id="install-dock-station-title" style="font-size: 1.25rem; font-weight: 800; color: #34d399; letter-spacing: 0.5px;">#01</span>
+                                    </div>
+                                    <button type="button" onclick="window.stepInstallStationNum(1)" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; border-radius: 8px; width: 36px; height: 36px; font-size: 1.1rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center;">➕</button>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span id="install-dock-station-status-tag" style="font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-weight: 600; display: inline-block;">✨ Nueva (Sin GPS)</span>
+                                </div>
+                            </div>
+
+                            <!-- Main 1-Tap Big Action Button -->
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" id="btn-dock-install-gps" onclick="window.installStationAtCurrentGPS()" style="flex: 1; padding: 13px; font-size: 0.96rem; font-weight: 700; border-radius: 12px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; box-shadow: 0 4px 18px rgba(16, 185, 129, 0.45); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.15s ease;">
+                                    <span>📍 Instalar Estación <span id="btn-dock-install-station-num">#01</span> Aquí</span>
+                                </button>
+                                <button type="button" id="btn-dock-click-map" onclick="window.toggleInstallClickToPlace()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.16); color: #cbd5e1; padding: 10px 14px; font-size: 0.8rem; border-radius: 12px; cursor: pointer; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 65px;" title="O marcar punto haciendo clic en el mapa">
+                                    <span style="font-size: 1rem;">🗺️</span>
+                                    <span style="font-size: 0.68rem;">En mapa</span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Quick In-Map Inspect Bottom Sheet -->
@@ -1527,6 +1616,6 @@
         </div>
     </div>
 
-    <script src="trazabilidad.js?v=v4.4.2"></script>
+    <script src="trazabilidad.js?v=v4.5.0"></script>
 </body>
 </html>
