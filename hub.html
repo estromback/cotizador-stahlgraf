@@ -14,10 +14,13 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.3.4"></script>
+    <script src="core-sync.js?v=v4.3.5"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+    <script src="https://gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
+    <!-- Google Identity Services & Google API Client -->
+    <script src="https://accounts.google.com/gsi/client" async defer onload="if(window.gisLoaded)window.gisLoaded()"></script>
+    <script src="https://apis.google.com/js/api.js" async defer onload="if(window.gapiLoaded)window.gapiLoaded()"></script>
 
     <!-- Mobile Drag and Drop Polyfill for iPad/Touch Support -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0/default.css">
@@ -471,6 +474,7 @@
                         <button class="tab-btn" data-tab="tab-polillas">Polillas</button>
                         <button class="tab-btn" data-tab="tab-quimicos">Químicos</button>
                         <button class="tab-btn" data-tab="tab-usuarios">Usuarios & Accesos</button>
+                        <button class="tab-btn" data-tab="tab-gcal">📅 Google Calendar</button>
                     </div>
 
                     <div class="settings-tab-content active" id="tab-general">
@@ -616,6 +620,65 @@
                                     <!-- Populated dynamically via JS -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+
+                    <div class="settings-tab-content" id="tab-gcal">
+                        <h3 style="margin-top: 0; color: #60a5fa; display: flex; align-items: center; gap: 8px;">
+                            <span>📅</span> Sincronización en Tiempo Real con Google Calendar API
+                        </h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px;">
+                            Permite que los eventos del calendario y CRM se sincronicen <strong>instantáneamente</strong> con tu cuenta de Google Calendar. Aunque otro usuario o técnico mueva una cita, se actualizará el calendario central indicado aquí.
+                        </p>
+
+                        <div class="settings-grid">
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <label for="setting-gcal-client-id">ID de Cliente OAuth 2.0 (Google Cloud)</label>
+                                <input type="text" id="setting-gcal-client-id" placeholder="Ej: 1234567890-abcdef.apps.googleusercontent.com" style="width: 100%; font-family: monospace; font-size: 0.85rem;">
+                                <small style="color: #94a3b8; margin-top: 4px; display: block;">
+                                    Obtenido desde Google Cloud Console (APIs y servicios > Credenciales > ID de cliente de OAuth 2.0 > Tipo: Aplicación web).
+                                </small>
+                            </div>
+
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <label for="setting-gcal-calendar-id">ID del Calendario de Google Destino</label>
+                                <input type="text" id="setting-gcal-calendar-id" placeholder="primary (o tu correo ej. contacto@stahlgraf.cl)" style="width: 100%; font-family: monospace; font-size: 0.85rem;">
+                                <small style="color: #94a3b8; margin-top: 4px; display: block;">
+                                    Usa <code>primary</code> para tu calendario principal, o ingresa el ID del calendario compartido (ej: <code>contacto@stahlgraf.cl</code> o <code>c_xxxxxxxx@group.calendar.google.com</code>).
+                                </small>
+                            </div>
+
+                            <div class="input-group" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                                <input type="checkbox" id="setting-gcal-auto-sync" style="width: 18px; height: 18px; cursor: pointer;">
+                                <label for="setting-gcal-auto-sync" style="margin: 0; cursor: pointer; font-weight: 500;">
+                                    Sincronizar automáticamente en tiempo real al crear, mover o editar citas
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Connection & Authorization Box -->
+                        <div style="margin-top: 25px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; padding: 18px;">
+                            <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: #fff; display: flex; align-items: center; gap: 6px;">
+                                🔐 Estado de Autorización de la Sesión
+                            </h4>
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                                <div id="gcal-auth-status" style="font-size: 0.85rem; color: #94a3b8; display: flex; align-items: center; gap: 8px;">
+                                    <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #e74c3c;"></span>
+                                    <span>No autorizado en este navegador</span>
+                                </div>
+                                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                    <button type="button" id="btn-auth-gcal" class="btn btn-primary btn-sm" style="background: #2563eb; display: inline-flex; align-items: center; gap: 6px;">
+                                        <span>🔑</span> Conectar / Autorizar Google Calendar
+                                    </button>
+                                    <button type="button" id="btn-sync-all-gcal" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                                        <span>🔄</span> Sincronizar todos los eventos ahora
+                                    </button>
+                                </div>
+                            </div>
+                            <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.8rem; color: #94a3b8; line-height: 1.5;">
+                                💡 <strong>¿Cómo compartir el calendario con tu equipo?</strong><br>
+                                Si otros usuarios (técnicos) usan el Hub, abre Google Calendar en tu computadora, ve a Configuración de tu calendario ➔ <em>"Compartir con personas específicas"</em> y añade sus correos con permiso de <strong>"Realizar cambios en eventos"</strong>. Así, cuando ellos inicien sesión en el Hub, sus cambios se registrarán en tu calendario automáticamente.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -991,6 +1054,6 @@
             }
         }
     </script>
-    <script src="hub.js?v=v4.3.4"></script>
+    <script src="hub.js?v=v4.3.5"></script>
 </body>
 </html>
