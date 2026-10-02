@@ -158,7 +158,7 @@ function computeKPIs() {
         if (f.serviceId) evaluatedSet.add(f.serviceId);
         if (f.id) evaluatedSet.add(f.id);
     });
-    const unevaluatedCount = allServices.filter(s => s && s.id && !evaluatedSet.has(s.id)).length;
+    const unevaluatedCount = allServices.filter(s => s && s.id && !s.skipEvaluation && !evaluatedSet.has(s.id)).length;
     if (elUnevaluatedCount) elUnevaluatedCount.textContent = `${unevaluatedCount}`;
     if (elUnevaluatedSub) {
         elUnevaluatedSub.textContent = unevaluatedCount === 0 
@@ -549,6 +549,8 @@ function renderUnevaluatedServices() {
     const badge = document.getElementById('unevaluated-badge');
     const elUnevaluatedCount = document.getElementById('kpi-unevaluated-count');
     const elUnevaluatedSub = document.getElementById('kpi-unevaluated-sub');
+    const showOmittedChk = document.getElementById('chk-show-omitted');
+    const showOmitted = showOmittedChk ? showOmittedChk.checked : false;
 
     if (!tbody) return;
 
@@ -558,20 +560,36 @@ function renderUnevaluatedServices() {
         if (f.id) evaluatedSet.add(f.id);
     });
 
-    const unevaluated = allServices.filter(s => s && s.id && !evaluatedSet.has(s.id));
+    const activePending = allServices.filter(s => s && s.id && !s.skipEvaluation && !evaluatedSet.has(s.id));
+    const omittedList = allServices.filter(s => s && s.id && s.skipEvaluation && !evaluatedSet.has(s.id));
 
-    if (badge) badge.innerText = `${unevaluated.length} pendientes`;
-    if (elUnevaluatedCount) elUnevaluatedCount.textContent = `${unevaluated.length}`;
-    if (elUnevaluatedSub) {
-        elUnevaluatedSub.textContent = unevaluated.length === 0 
-            ? "¡Todos los servicios evaluados!" 
-            : `${unevaluated.length} pendiente${unevaluated.length > 1 ? 's' : ''} de respuesta`;
+    if (badge) {
+        badge.innerText = showOmitted 
+            ? `${omittedList.length} omitidos` 
+            : `${activePending.length} pendientes`;
+        badge.style.background = showOmitted ? 'rgba(255, 255, 255, 0.08)' : 'rgba(245, 158, 11, 0.15)';
+        badge.style.color = showOmitted ? '#94a3b8' : '#fbbf24';
+        badge.style.borderColor = showOmitted ? 'rgba(255, 255, 255, 0.15)' : 'rgba(245, 158, 11, 0.3)';
     }
+
+    if (elUnevaluatedCount) elUnevaluatedCount.textContent = `${activePending.length}`;
+    if (elUnevaluatedSub) {
+        elUnevaluatedSub.textContent = activePending.length === 0 
+            ? "¡Todos los servicios evaluados!" 
+            : `${activePending.length} pendiente${activePending.length > 1 ? 's' : ''} de respuesta`;
+    }
+
+    const btnDismissAll = document.getElementById('btn-dismiss-all-unevaluated');
+    if (btnDismissAll) {
+        btnDismissAll.style.display = (!showOmitted && activePending.length > 0) ? 'inline-flex' : 'none';
+    }
+
+    const listToDisplay = showOmitted ? omittedList : activePending;
 
     const searchInput = document.getElementById('unevaluated-search');
     const searchVal = (searchInput ? searchInput.value : '').toLowerCase().trim();
 
-    const filtered = unevaluated.filter(s => {
+    const filtered = listToDisplay.filter(s => {
         if (!searchVal) return true;
         const name = (s.clientName || '').toLowerCase();
         const tech = (s.technician || '').toLowerCase();
@@ -583,10 +601,12 @@ function renderUnevaluatedServices() {
     if (filtered.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" style="text-align: center; color: #10b981; padding: 28px; font-size: 0.95rem;">
-                    ${unevaluated.length === 0 
-                        ? '🎉 ¡Excelente! Todos los servicios realizados cuentan con evaluación.' 
-                        : 'No se encontraron servicios que coincidan con la búsqueda.'}
+                <td colspan="5" style="text-align: center; color: ${showOmitted ? 'var(--text-muted)' : '#10b981'}; padding: 28px; font-size: 0.95rem;">
+                    ${showOmitted 
+                        ? 'No hay servicios en la lista de omitidos.' 
+                        : (activePending.length === 0 
+                            ? '🎉 ¡Excelente! Todos los servicios realizados cuentan con evaluación.' 
+                            : 'No se encontraron servicios que coincidan con la búsqueda.')}
                 </td>
             </tr>
         `;
@@ -601,6 +621,30 @@ function renderUnevaluatedServices() {
         const dateDisplay = s.date || '<span style="color: var(--text-muted);">-</span>';
         const typeDisplay = s.type || 'Servicio';
 
+        let actionButtonsHtml = '';
+        if (s.skipEvaluation) {
+            actionButtonsHtml = `
+                <span style="background: rgba(255, 255, 255, 0.05); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.1); padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; margin-right: 6px;">
+                    Omitido
+                </span>
+                <button type="button" class="btn btn-sm" onclick="restoreUnevaluatedService('${s.id}')" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 5px 10px; font-size: 0.8rem; border-radius: 6px; cursor: pointer;" title="Restaurar a pendientes de evaluación">
+                    <span>↩️ Restaurar</span>
+                </button>
+            `;
+        } else {
+            actionButtonsHtml = `
+                <button type="button" class="btn btn-sm" onclick="shareSurveyForService('${s.id}')" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 5px 11px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Ver mensaje y copiar encuesta para este cliente">
+                    <span>📋 Copiar</span>
+                </button>
+                <button type="button" class="btn btn-sm" onclick="openSurveyInBrowser('${s.id}')" style="background: rgba(255, 255, 255, 0.05); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.1); padding: 5px 8px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin-left: 4px;" title="Abrir formulario de encuesta en nueva pestaña">
+                    <span>🔗</span>
+                </button>
+                <button type="button" class="btn btn-sm" onclick="dismissUnevaluatedService('${s.id}')" style="background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.25); padding: 5px 8px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin-left: 4px;" title="Quitar de los pendientes de evaluación">
+                    <span>✕ Omitir</span>
+                </button>
+            `;
+        }
+
         return `
             <tr>
                 <td style="white-space: nowrap; font-weight: 500; font-size: 0.88rem; color: #cbd5e1;">${dateDisplay}</td>
@@ -608,12 +652,7 @@ function renderUnevaluatedServices() {
                 <td><span style="background: rgba(255, 255, 255, 0.06); padding: 3px 8px; border-radius: 6px; font-size: 0.82rem; border: 1px solid rgba(255, 255, 255, 0.1); color: #e2e8f0;">${typeDisplay}</span></td>
                 <td>${techDisplay}</td>
                 <td style="text-align: right; white-space: nowrap;">
-                    <button type="button" class="btn btn-sm" onclick="shareSurveyForService('${s.id}')" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 5px 12px; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;" title="Ver mensaje y copiar encuesta para este cliente">
-                        <span>📋 Copiar Encuesta</span>
-                    </button>
-                    <button type="button" class="btn btn-sm" onclick="openSurveyInBrowser('${s.id}')" style="background: rgba(255, 255, 255, 0.05); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.1); padding: 5px 9px; font-size: 0.82rem; border-radius: 6px; cursor: pointer; margin-left: 6px;" title="Abrir formulario de encuesta en nueva pestaña">
-                        <span>🔗</span>
-                    </button>
+                    ${actionButtonsHtml}
                 </td>
             </tr>
         `;
@@ -685,4 +724,154 @@ window.copyAlertContactMsg = function(clientName, serviceType, serviceDate, phon
         prompt("Copia este mensaje de contacto:", msg);
     }
 };
+
+window.dismissUnevaluatedService = async function(serviceId) {
+    const service = allServices.find(s => s.id === serviceId);
+    if (!service) return;
+
+    if (!confirm(`¿Deseas quitar el servicio de "${service.clientName}" de los pendientes de evaluación?\n\n(No se eliminará del registro ni de finanzas, solo se quitará de esta lista de satisfacción)`)) {
+        return;
+    }
+
+    service.skipEvaluation = true;
+    service.skippedEvaluationAt = new Date().toISOString();
+
+    // Local storage cache update
+    try {
+        const raw = localStorage.getItem('stahlgraf_data_v4');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed.services)) {
+                const s = parsed.services.find(item => item.id === serviceId);
+                if (s) s.skipEvaluation = true;
+                localStorage.setItem('stahlgraf_data_v4', JSON.stringify(parsed));
+            }
+        }
+    } catch(e) {}
+
+    renderUnevaluatedServices();
+    computeKPIs();
+
+    const activeUid = getActiveUid();
+    if (activeUid && db) {
+        try {
+            await db.collection('users').doc(activeUid).collection('services').doc(serviceId).set({
+                skipEvaluation: true,
+                skippedEvaluationAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        } catch(e) {
+            console.error("Error updating skipEvaluation:", e);
+        }
+    }
+};
+
+window.dismissAllVisibleUnevaluated = async function() {
+    const evaluatedSet = new Set();
+    allFeedback.forEach(f => {
+        if (f.serviceId) evaluatedSet.add(f.serviceId);
+        if (f.id) evaluatedSet.add(f.id);
+    });
+
+    const searchInput = document.getElementById('unevaluated-search');
+    const searchVal = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+    const targets = allServices.filter(s => {
+        if (!s || !s.id || s.skipEvaluation || evaluatedSet.has(s.id)) return false;
+        if (!searchVal) return true;
+        const name = (s.clientName || '').toLowerCase();
+        const tech = (s.technician || '').toLowerCase();
+        const type = (s.type || '').toLowerCase();
+        const date = (s.date || '').toLowerCase();
+        return name.includes(searchVal) || tech.includes(searchVal) || type.includes(searchVal) || date.includes(searchVal);
+    });
+
+    if (targets.length === 0) {
+        return alert("No hay servicios pendientes visibles para omitir.");
+    }
+
+    if (!confirm(`¿Estás seguro de quitar los ${targets.length} servicios de la lista de evaluación?\n\nNo se borrarán del historial técnico ni de finanzas.`)) {
+        return;
+    }
+
+    const nowIso = new Date().toISOString();
+    targets.forEach(s => {
+        s.skipEvaluation = true;
+        s.skippedEvaluationAt = nowIso;
+    });
+
+    // Local storage cache update
+    try {
+        const raw = localStorage.getItem('stahlgraf_data_v4');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed.services)) {
+                targets.forEach(target => {
+                    const s = parsed.services.find(item => item.id === target.id);
+                    if (s) s.skipEvaluation = true;
+                });
+                localStorage.setItem('stahlgraf_data_v4', JSON.stringify(parsed));
+            }
+        }
+    } catch(e) {}
+
+    renderUnevaluatedServices();
+    computeKPIs();
+
+    const activeUid = getActiveUid();
+    if (activeUid && db) {
+        try {
+            const batch = db.batch();
+            targets.forEach(t => {
+                const ref = db.collection('users').doc(activeUid).collection('services').doc(t.id);
+                batch.set(ref, {
+                    skipEvaluation: true,
+                    skippedEvaluationAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            });
+            await batch.commit();
+        } catch(e) {
+            console.error("Error batch updating skipEvaluation:", e);
+        }
+    }
+};
+
+window.restoreUnevaluatedService = async function(serviceId) {
+    const service = allServices.find(s => s.id === serviceId);
+    if (!service) return;
+
+    delete service.skipEvaluation;
+    delete service.skippedEvaluationAt;
+
+    // Local storage cache update
+    try {
+        const raw = localStorage.getItem('stahlgraf_data_v4');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed.services)) {
+                const s = parsed.services.find(item => item.id === serviceId);
+                if (s) {
+                    delete s.skipEvaluation;
+                    delete s.skippedEvaluationAt;
+                }
+                localStorage.setItem('stahlgraf_data_v4', JSON.stringify(parsed));
+            }
+        }
+    } catch(e) {}
+
+    renderUnevaluatedServices();
+    computeKPIs();
+
+    const activeUid = getActiveUid();
+    if (activeUid && db) {
+        try {
+            await db.collection('users').doc(activeUid).collection('services').doc(serviceId).update({
+                skipEvaluation: firebase.firestore.FieldValue.delete(),
+                skippedEvaluationAt: firebase.firestore.FieldValue.delete()
+            });
+        } catch(e) {
+            console.error("Error restoring service evaluation:", e);
+        }
+    }
+};
+
 

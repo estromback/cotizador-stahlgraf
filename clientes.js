@@ -956,6 +956,12 @@ function renderServicesTab() {
                     ⭐ ${fb.rating}/5
                 </span>
             `;
+        } else if (s.skipEvaluation) {
+            feedbackHtml = `
+                <span title="Evaluación omitida / no requerida" style="display:inline-flex; align-items:center; gap:4px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-muted); padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; white-space: nowrap;">
+                    Omitida
+                </span>
+            `;
         } else {
             feedbackHtml = `
                 <button class="btn btn-sm" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 3px 8px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="shareFeedbackWhatsAppFromHistory('${s.id}')" title="Ver mensaje y copiar encuesta de satisfacción">
