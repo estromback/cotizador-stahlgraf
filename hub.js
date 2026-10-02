@@ -332,6 +332,28 @@ document.addEventListener('DOMContentLoaded', () => {
             openCardModal(null, todayStr);
         });
     }
+
+    if (document.getElementById('cal-btn-refresh-gcal')) {
+        document.getElementById('cal-btn-refresh-gcal').addEventListener('click', () => {
+            if (typeof syncFromGoogleCalendarToHub === 'function') {
+                syncFromGoogleCalendarToHub({ silent: false });
+            }
+        });
+    }
+
+    // Bidirectional Sync: Listen for window focus to pull changes made in Google Calendar
+    window.addEventListener('focus', () => {
+        if (appData && appData.googleAutoSync && appData.googleClientId && typeof syncFromGoogleCalendarToHub === 'function' && checkGcalAuthStatus()) {
+            syncFromGoogleCalendarToHub({ silent: true });
+        }
+    });
+
+    // Periodic sync: Check Google Calendar every 3 minutes while tab is active
+    setInterval(() => {
+        if (document.visibilityState === 'visible' && appData && appData.googleAutoSync && appData.googleClientId && typeof syncFromGoogleCalendarToHub === 'function' && checkGcalAuthStatus()) {
+            syncFromGoogleCalendarToHub({ silent: true });
+        }
+    }, 180000);
     if (document.getElementById('btn-close-sync-modal')) {
         document.getElementById('btn-close-sync-modal').addEventListener('click', closeSyncCalendarModal);
     }
@@ -1009,6 +1031,9 @@ function subscribeToCRM() {
             if (typeof debouncedSyncICalFeed === 'function') {
                 debouncedSyncICalFeed();
             }
+            if (typeof debouncedSyncFromGoogleCalendar === 'function') {
+                debouncedSyncFromGoogleCalendar();
+            }
         }, err => {
             console.error("Error subscribing to CRM: ", err);
         });
@@ -1248,6 +1273,7 @@ async function moveCardDate(cardId, newDate) {
     
     // Optimistic UI update
     card.date = newDate;
+    card._lastLocalEdit = Date.now();
     renderCalendar(currentMonth, currentYear);
     
     try {
@@ -1892,6 +1918,7 @@ async function syncCardToGoogleCalendar(card, options = {}) {
     const calendarId = (appData.googleCalendarId || 'primary').trim() || 'primary';
     const eventResource = buildGoogleCalendarEventResource(card);
 
+    card._lastLocalEdit = Date.now();
     try {
         let resp;
         if (card.googleEventId) {
@@ -2021,12 +2048,205 @@ async function syncAllEventsToGoogleCalendar() {
     alert(`✅ Sincronización con Google Calendar finalizada.\n\nEventos sincronizados: ${successCount}\nFallidos/Omitidos: ${failCount}`);
 }
 
+// ==========================================
+// BIDIRECTIONAL SYNC: GOOGLE CALENDAR -> HUB
+// ==========================================
+
+let isSyncingFromGoogle = false;
+let lastGcalInboundSyncTimestamp = 0;
+let debouncedInboundGcalTimeout = null;
+
+function debouncedSyncFromGoogleCalendar() {
+    if (debouncedInboundGcalTimeout) clearTimeout(debouncedInboundGcalTimeout);
+    debouncedInboundGcalTimeout = setTimeout(() => {
+        if (appData && appData.googleAutoSync && appData.googleClientId && typeof syncFromGoogleCalendarToHub === 'function' && checkGcalAuthStatus()) {
+            syncFromGoogleCalendarToHub({ silent: true });
+        }
+    }, 2500);
+}
+
+async function syncFromGoogleCalendarToHub(options = { silent: true }) {
+    if (!currentUser || !db) return { updated: 0, removed: 0 };
+    if (!appData || !appData.googleClientId) return { updated: 0, removed: 0 };
+    if (isSyncingFromGoogle) return { updated: 0, removed: 0 };
+
+    if (!gapiInited) {
+        initializeGapiClient();
+    }
+    if (!gcalAccessToken) {
+        restoreGcalToken();
+    }
+    if (!gcalAccessToken) {
+        if (!options.silent) {
+            handleAuthGcalClick();
+        }
+        return { updated: 0, removed: 0 };
+    }
+
+    const now = Date.now();
+    // Rate limit silent auto-sync to avoid flooding Google API (min 10s between calls)
+    if (options.silent && (now - lastGcalInboundSyncTimestamp < 10000)) {
+        return { updated: 0, removed: 0 };
+    }
+
+    isSyncingFromGoogle = true;
+    lastGcalInboundSyncTimestamp = now;
+
+    const refreshBtn = document.getElementById('cal-btn-refresh-gcal');
+    const originalBtnText = refreshBtn ? refreshBtn.innerHTML : '';
+    if (refreshBtn && !options.silent) {
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<span>⏳</span> Leyendo Google...';
+    }
+
+    let updatedCount = 0;
+    let unscheduledCount = 0;
+
+    try {
+        const calendarId = (appData.googleCalendarId || 'primary').trim() || 'primary';
+
+        // Query active events window: from 60 days in past to 180 days in future
+        const timeMin = new Date();
+        timeMin.setDate(timeMin.getDate() - 60);
+        timeMin.setHours(0, 0, 0, 0);
+
+        const timeMax = new Date();
+        timeMax.setDate(timeMax.getDate() + 180);
+        timeMax.setHours(23, 59, 59, 999);
+
+        const resp = await gapi.client.calendar.events.list({
+            calendarId: calendarId,
+            timeMin: timeMin.toISOString(),
+            timeMax: timeMax.toISOString(),
+            showDeleted: true,
+            singleEvents: true,
+            maxResults: 250
+        });
+
+        const items = (resp && resp.result && resp.result.items) || [];
+        const activeUid = getActiveUid();
+
+        for (const event of items) {
+            // Find corresponding card in Hub CRM:
+            // 1. By googleEventId
+            let matchedCard = crmCards.find(c => c && c.googleEventId === event.id);
+
+            // 2. By embedded Card ID in event description if googleEventId wasn't linked yet
+            if (!matchedCard && event.description) {
+                const idMatch = event.description.match(/Card ID:\s*([a-zA-Z0-9_-]+)/);
+                if (idMatch && idMatch[1] && idMatch[1] !== 'nuevo') {
+                    matchedCard = crmCards.find(c => c && c.id === idMatch[1]);
+                }
+            }
+
+            // Only synchronize cards that belong to Stahlgraf CRM (ignore dentist, private events, etc.)
+            if (!matchedCard) continue;
+
+            // Skip if modified in Hub within the last 6 seconds to avoid echo
+            if (matchedCard._lastLocalEdit && (now - matchedCard._lastLocalEdit < 6000)) {
+                continue;
+            }
+
+            // 1. Handle Cancelled / Deleted in Google Calendar:
+            // Recommendation: Clear date & time (unscheduled), do not delete customer card
+            if (event.status === 'cancelled') {
+                if (matchedCard.date || matchedCard.time) {
+                    console.log(`[Google->Hub] Event cancelled in Google Calendar for "${matchedCard.client}". Unsetting scheduled date.`);
+                    matchedCard.date = '';
+                    matchedCard.time = '';
+                    matchedCard.googleEventId = null;
+
+                    await db.collection('users').doc(activeUid).collection('crm').doc(matchedCard.id).update({
+                        date: '',
+                        time: '',
+                        googleEventId: null,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    unscheduledCount++;
+                }
+                continue;
+            }
+
+            // 2. Extract Date and Time in America/Santiago timezone
+            let gDate = '';
+            let gTime = '';
+
+            if (event.start) {
+                if (event.start.dateTime) {
+                    const dt = new Date(event.start.dateTime);
+                    const santiagoParts = new Intl.DateTimeFormat('en-CA', {
+                        timeZone: 'America/Santiago',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    }).formatToParts(dt);
+
+                    const getP = (t) => santiagoParts.find(p => p.type === t)?.value || '';
+                    gDate = `${getP('year')}-${getP('month')}-${getP('day')}`;
+                    gTime = `${getP('hour')}:${getP('minute')}`;
+                } else if (event.start.date) {
+                    gDate = event.start.date;
+                    gTime = '';
+                }
+            }
+
+            if (!gDate) continue;
+
+            const dateChanged = gDate !== (matchedCard.date || '');
+            const timeChanged = (gTime || '') !== (matchedCard.time || '');
+            const idMissing = matchedCard.googleEventId !== event.id;
+
+            if (dateChanged || timeChanged || idMissing) {
+                console.log(`[Google->Hub] Updating card "${matchedCard.client}": date ${matchedCard.date}->${gDate}, time ${matchedCard.time}->${gTime}`);
+                matchedCard.date = gDate;
+                matchedCard.time = gTime;
+                matchedCard.googleEventId = event.id;
+
+                await db.collection('users').doc(activeUid).collection('crm').doc(matchedCard.id).update({
+                    date: gDate,
+                    time: gTime,
+                    googleEventId: event.id,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                updatedCount++;
+            }
+        }
+
+        if (updatedCount > 0 || unscheduledCount > 0) {
+            renderCalendar(currentMonth, currentYear);
+            if (typeof renderCRMColumnsSelect === 'function') renderCRMColumnsSelect();
+            if (typeof debouncedSyncICalFeed === 'function') debouncedSyncICalFeed();
+        }
+
+        if (!options.silent) {
+            alert(`✅ Sincronización desde Google Calendar completada.\n\nCitas actualizadas: ${updatedCount}\nCitas desasendadas (eliminadas en Google): ${unscheduledCount}`);
+        }
+    } catch (err) {
+        console.error("[Google->Hub] Error syncing from Google Calendar:", err);
+        if (!options.silent) {
+            alert("⚠️ No se pudo sincronizar desde Google Calendar: " + (err.message || err));
+        }
+    } finally {
+        isSyncingFromGoogle = false;
+        if (refreshBtn && !options.silent) {
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = originalBtnText;
+        }
+    }
+
+    return { updated: updatedCount, removed: unscheduledCount };
+}
+
 window.initGisTokenClient = initGisTokenClient;
 window.initializeGapiClient = initializeGapiClient;
 window.handleAuthGcalClick = handleAuthGcalClick;
 window.syncCardToGoogleCalendar = syncCardToGoogleCalendar;
 window.deleteCardFromGoogleCalendar = deleteCardFromGoogleCalendar;
 window.syncAllEventsToGoogleCalendar = syncAllEventsToGoogleCalendar;
+window.syncFromGoogleCalendarToHub = syncFromGoogleCalendarToHub;
 window.updateGcalAuthUI = updateGcalAuthUI;
 window.gisLoaded = function() {
     if (appData && appData.googleClientId) {
@@ -2265,6 +2485,7 @@ async function saveCard() {
             const existingCard = crmCards.find(c => c.id === id);
             if (existingCard) {
                 Object.assign(existingCard, { client, phone, email, column, balanceDue, date, time, desc });
+                existingCard._lastLocalEdit = Date.now();
                 if (pendingComment) {
                     if (!existingCard.comments) existingCard.comments = [];
                     existingCard.comments.push({ text: pendingComment, date: dateStr });
@@ -2278,6 +2499,7 @@ async function saveCard() {
             }
         } else {
             payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            payload._lastLocalEdit = Date.now();
             if (pendingComment) {
                 payload.comments = [{
                     text: pendingComment,
