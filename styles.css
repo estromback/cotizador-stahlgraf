@@ -1,5 +1,6 @@
 /* CSS Reset & Variables */
 :root {
+    color-scheme: dark;
     --bg-color: #0f172a;
     --glass-bg: rgba(30, 41, 59, 0.7);
     --glass-border: rgba(255, 255, 255, 0.1);
@@ -229,6 +230,32 @@ h1, h2, h3, h4 {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Date & Time Picker visibility for dark theme */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+    color-scheme: dark;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: brightness(1.25);
+    padding: 3px 5px;
+    border-radius: 4px;
+    opacity: 0.9;
+    transition: all 0.2s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    background: rgba(59, 130, 246, 0.25);
+    filter: brightness(1.6);
+    opacity: 1;
 }
 
 /* PDF Formal Document Layout */
