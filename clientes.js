@@ -859,6 +859,33 @@ function renderSummaryTab() {
     });
 }
 
+function populateClientServiceChemicals(selectedVal = '') {
+    const selectEl = document.getElementById('service-chemical');
+    if (!selectEl) return;
+    
+    selectEl.innerHTML = '<option value="">-- Sin producto / Ninguno --</option>';
+    const chems = (appData && Array.isArray(appData.chemicals)) ? appData.chemicals : [];
+    chems.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = `${c.name}${c.dose ? ` (${c.dose}cc/L)` : ''}`;
+        selectEl.appendChild(opt);
+    });
+    
+    if (selectedVal) {
+        const exists = Array.from(selectEl.options).some(o => o.value === selectedVal);
+        if (!exists) {
+            const customOpt = document.createElement('option');
+            customOpt.value = selectedVal;
+            customOpt.textContent = selectedVal;
+            selectEl.appendChild(customOpt);
+        }
+        selectEl.value = selectedVal;
+    } else {
+        selectEl.value = '';
+    }
+}
+
 function renderServicesTab() {
     const tbody = document.getElementById('hist-services-list');
     tbody.innerHTML = '';
@@ -870,7 +897,7 @@ function renderServicesTab() {
     document.getElementById('service-coverage').value = '';
     document.getElementById('service-exterior-zones').value = 'none';
     document.getElementById('service-area').value = '';
-    document.getElementById('service-chemical').value = '';
+    populateClientServiceChemicals('');
     
     const formTitle = document.getElementById('service-form-title');
     if (formTitle) formTitle.innerText = "Registrar Servicio Realizado";
@@ -931,8 +958,8 @@ function renderServicesTab() {
             `;
         } else {
             feedbackHtml = `
-                <button class="btn btn-sm" style="background: rgba(37, 211, 102, 0.15); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.3); padding: 3px 8px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="shareFeedbackWhatsAppFromHistory('${s.id}')" title="Enviar encuesta por WhatsApp">
-                    📲 Encuesta
+                <button class="btn btn-sm" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 3px 8px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="shareFeedbackWhatsAppFromHistory('${s.id}')" title="Ver mensaje y copiar encuesta de satisfacción">
+                    📋 Encuesta
                 </button>
             `;
         }
@@ -969,14 +996,20 @@ window.shareFeedbackWhatsAppFromHistory = function(serviceId) {
     evalUrl.searchParams.set('date', s.date || '');
 
     const firstName = (s.clientName || activeHistoryClientName || 'Estimado(a)').split(' ')[0];
-    const msg = `Hola ${firstName}, muchas gracias por confiar en Stahlgraf. Tu servicio de ${s.type || 'atención técnica'} realizado por ${s.technician || 'nuestro equipo'} ha finalizado. Para ayudarnos a mantener nuestro estándar de excelencia, ¿nos regalas 5 segundos para calificar la atención aquí? 👉 ${evalUrl.href}`;
+    const serviceTypeStr = s.type ? `servicio de ${s.type}` : 'servicio';
+    const msg = `Hola ${firstName}, muchas gracias por confiar en Stahlgraf. Tu ${serviceTypeStr} ha finalizado. Para ayudarnos a mantener nuestro estándar de excelencia, ¿nos regalas 5 segundos para calificar la atención aquí? 👉 ${evalUrl.href}`;
 
     const phone = clientObj && clientObj.phone ? clientObj.phone.replace(/\D/g, '') : '';
-    const waUrl = phone 
-        ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` 
-        : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
 
-    window.open(waUrl, '_blank');
+    if (typeof showShareSurveyModal === 'function') {
+        showShareSurveyModal({
+            clientName: s.clientName || activeHistoryClientName,
+            message: msg,
+            phone: phone
+        });
+    } else {
+        prompt("Copia este mensaje para el cliente:", msg);
+    }
 };
 
 function renderQuotesTab() {
@@ -1338,7 +1371,16 @@ async function saveRecordedService() {
         
         renderServicesTab();
         
-        alert(isEdit ? "✅ Servicio actualizado exitosamente." : "✅ Servicio registrado exitosamente.");
+        if (isEdit) {
+            alert("✅ Servicio actualizado exitosamente.");
+        } else {
+            setTimeout(() => {
+                const wantSurvey = confirm("✅ Servicio registrado exitosamente.\n\n¿Deseas ver el mensaje de satisfacción para copiarlo o compartirlo con el cliente?");
+                if (wantSurvey) {
+                    window.shareFeedbackWhatsAppFromHistory(servicePayload.id);
+                }
+            }, 150);
+        }
     } catch(e) {
         console.error("Error saving service:", e);
         alert("Ocurrió un error al guardar el servicio.");
@@ -1366,7 +1408,7 @@ window.editRecordedService = function(id) {
     document.getElementById('service-coverage').value = s.coverage || '';
     document.getElementById('service-exterior-zones').value = s.exteriorZones || 'none';
     document.getElementById('service-area').value = s.area || '';
-    document.getElementById('service-chemical').value = s.chemical || '';
+    populateClientServiceChemicals(s.chemical || '');
     
     const formTitle = document.getElementById('service-form-title');
     if (formTitle) formTitle.innerText = "✏️ Editar Servicio Realizado";

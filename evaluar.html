@@ -396,7 +396,7 @@
                     <span class="info-label">🛠️ Servicio</span>
                     <span class="info-value" id="val-type">Cargando...</span>
                 </div>
-                <div class="info-row">
+                <div class="info-row" id="row-tech">
                     <span class="info-label">👤 Técnico</span>
                     <span class="info-value" id="val-tech">-</span>
                 </div>
@@ -532,7 +532,9 @@
         const ownerUid = urlParams.get('uid') || 'tIeFkX1rZ1Z5w5hPZ4XkP2B1kK32'; // Fallback to primary owner if needed
         const serviceId = urlParams.get('sid') || ('srv_' + Date.now());
         const clientName = urlParams.get('client') || 'Estimado(a) Cliente';
-        const technician = urlParams.get('tech') || 'Técnico asignado';
+        const rawTech = urlParams.get('tech') || '';
+        const hasValidTech = rawTech && !['no asignado', 'sin asignar', 'técnico asignado', 'tecnico asignado', 'no asignada', ''].includes(rawTech.toLowerCase().trim());
+        const technician = hasValidTech ? rawTech : 'No asignado';
         const serviceType = urlParams.get('type') || 'Servicio Técnico';
         const serviceDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
         const prefilledRating = parseInt(urlParams.get('rating'), 10) || 0;
@@ -552,7 +554,12 @@
         // Populate initial UI
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('val-type').textContent = serviceType;
-            document.getElementById('val-tech').textContent = technician;
+            const techRow = document.getElementById('row-tech');
+            if (hasValidTech) {
+                document.getElementById('val-tech').textContent = technician;
+            } else if (techRow) {
+                techRow.style.display = 'none';
+            }
             document.getElementById('val-date').textContent = serviceDate;
             document.getElementById('greeting-title').textContent = `¡Hola, ${clientName.split(' ')[0]}!`;
 
@@ -719,8 +726,9 @@
             } else {
                 document.getElementById('completed-icon').textContent = '🎉';
                 document.getElementById('completed-title').textContent = '¡Muchas Gracias!';
+                const techPhrase = hasValidTech ? `con el técnico <strong>${technician}</strong> y todo el equipo.` : `con todo nuestro equipo.`;
                 document.getElementById('completed-desc').innerHTML = `
-                    Tus felicitaciones y comentarios han sido compartidos con el técnico <strong>${technician}</strong> y todo el equipo.
+                    Tus felicitaciones y comentarios han sido compartidos ${techPhrase}
                 `;
             }
         };

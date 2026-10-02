@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('quick-service-coverage').value = 'both';
             document.getElementById('quick-service-exterior-zones').value = 'none';
             document.getElementById('quick-service-area').value = '';
-            document.getElementById('quick-service-chemical').value = '';
+            populateQuickServiceChemicals('');
             quickServiceFetchedPrice = 0;
             
             // Set date to today
@@ -549,10 +549,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const clientObj = clientsList.find(c => c.id === clientId || c.name === clientName);
                 quickServiceModal.classList.remove('active');
 
-                const wantSurvey = confirm("✅ Servicio registrado exitosamente.\n\n¿Deseas enviar la encuesta de satisfacción por WhatsApp al cliente ahora?");
-                if (wantSurvey) {
-                    window.openFeedbackWhatsApp(servicePayload, clientObj);
-                }
+                setTimeout(() => {
+                    const wantSurvey = confirm("✅ Servicio registrado exitosamente.\n\n¿Deseas ver el mensaje de satisfacción para copiarlo o compartirlo con el cliente?");
+                    if (wantSurvey) {
+                        window.openFeedbackWhatsApp(servicePayload, clientObj);
+                    }
+                }, 150);
             } catch(e) {
                 console.error("Error saving quick service:", e);
                 alert("Ocurrió un error al guardar el servicio.");
@@ -574,14 +576,20 @@ document.addEventListener('DOMContentLoaded', () => {
         evalUrl.searchParams.set('date', service.date || '');
         
         const firstName = (service.clientName || 'Estimado(a)').split(' ')[0];
-        const msg = `Hola ${firstName}, muchas gracias por confiar en Stahlgraf. Tu servicio de ${service.type || 'atención técnica'} realizado por ${service.technician || 'nuestro equipo'} ha finalizado. Para ayudarnos a mantener nuestro estándar de excelencia, ¿nos regalas 5 segundos para calificar la atención aquí? 👉 ${evalUrl.href}`;
+        const serviceTypeStr = service.type ? `servicio de ${service.type}` : 'servicio';
+        const msg = `Hola ${firstName}, muchas gracias por confiar en Stahlgraf. Tu ${serviceTypeStr} ha finalizado. Para ayudarnos a mantener nuestro estándar de excelencia, ¿nos regalas 5 segundos para calificar la atención aquí? 👉 ${evalUrl.href}`;
         
         const phone = (client && client.phone) ? client.phone.replace(/\D/g, '') : '';
-        const waUrl = phone 
-            ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` 
-            : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
-            
-        window.open(waUrl, '_blank');
+        
+        if (typeof showShareSurveyModal === 'function') {
+            showShareSurveyModal({
+                clientName: service.clientName || (client ? client.name : 'Cliente'),
+                message: msg,
+                phone: phone
+            });
+        } else {
+            prompt("Copia este mensaje para el cliente:", msg);
+        }
     };
     
     // Toggle Client selection dropdown visibility based on selected role in settings
@@ -953,21 +961,51 @@ function deleteChemical(id) {
 
 function renderChemicalsSettings() {
     const list = document.getElementById('db-chemicals-list');
-    list.innerHTML = '';
-    appData.chemicals.forEach(chem => {
-        const div = document.createElement('div');
-        div.className = 'db-item';
-        div.innerHTML = `
-            <div class="db-item-info">
-                <strong>${chem.name}</strong>
-                <span>Precio: $${chem.price} | Envase: ${chem.size}ml | Dosis: ${chem.dose}ml/m²</span>
-            </div>
-            <div class="db-item-actions">
-                <button class="action-danger" onclick="deleteChemical('${chem.id}')">Eliminar</button>
-            </div>
-        `;
-        list.appendChild(div);
+    if (list) {
+        list.innerHTML = '';
+        appData.chemicals.forEach(chem => {
+            const div = document.createElement('div');
+            div.className = 'db-item';
+            div.innerHTML = `
+                <div class="db-item-info">
+                    <strong>${chem.name}</strong>
+                    <span>Precio: $${chem.price} | Envase: ${chem.size}ml | Dosis: ${chem.dose}ml/m²</span>
+                </div>
+                <div class="db-item-actions">
+                    <button class="action-danger" onclick="deleteChemical('${chem.id}')">Eliminar</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+    populateQuickServiceChemicals();
+}
+
+function populateQuickServiceChemicals(selectedVal = '') {
+    const selectEl = document.getElementById('quick-service-chemical');
+    if (!selectEl) return;
+    
+    selectEl.innerHTML = '<option value="">-- Sin producto / Ninguno --</option>';
+    const chems = (appData && Array.isArray(appData.chemicals)) ? appData.chemicals : [];
+    chems.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = `${c.name}${c.dose ? ` (${c.dose}cc/L)` : ''}`;
+        selectEl.appendChild(opt);
     });
+    
+    if (selectedVal) {
+        const exists = Array.from(selectEl.options).some(o => o.value === selectedVal);
+        if (!exists) {
+            const customOpt = document.createElement('option');
+            customOpt.value = selectedVal;
+            customOpt.textContent = selectedVal;
+            selectEl.appendChild(customOpt);
+        }
+        selectEl.value = selectedVal;
+    } else {
+        selectEl.value = '';
+    }
 }
 
 async function loadDashboardStats() {
@@ -2895,7 +2933,7 @@ async function loadClientToQuickService(client) {
     document.getElementById('quick-service-coverage').value = 'both';
     document.getElementById('quick-service-exterior-zones').value = 'none';
     document.getElementById('quick-service-area').value = '';
-    document.getElementById('quick-service-chemical').value = '';
+    populateQuickServiceChemicals('');
     quickServiceFetchedPrice = 0;
     
     if (currentUser && db) {
@@ -2951,7 +2989,7 @@ async function loadClientToQuickService(client) {
                     
                     const uniqueNames = [...new Set(names)];
                     if (uniqueNames.length > 0) {
-                        document.getElementById('quick-service-chemical').value = uniqueNames.join(', ');
+                        populateQuickServiceChemicals(uniqueNames.join(', '));
                     }
                 }
             }
