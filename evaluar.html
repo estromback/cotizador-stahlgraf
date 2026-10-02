@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stahlgraf - Calificación de Servicio</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 30, 46, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --star-gold: #fbbf24;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 60%),
+                radial-gradient(circle at 100% 100%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 15px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .brand-logo-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            color: #fff;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .brand-logo-text span {
+            color: var(--primary);
+        }
+
+        .brand-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .eval-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 30px 25px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .service-info-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.88rem;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #fff;
+            text-align: right;
+        }
+
+        .greeting {
+            font-size: 1.25rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 25px;
+            line-height: 1.4;
+        }
+
+        /* Star Rating Controls */
+        .stars-container {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .star-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            width: 58px;
+            height: 65px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            outline: none;
+            user-select: none;
+        }
+
+        .star-icon {
+            font-size: 1.8rem;
+            filter: grayscale(100%);
+            opacity: 0.4;
+            transition: all 0.2s;
+        }
+
+        .star-num {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .star-btn:hover {
+            transform: translateY(-4px) scale(1.08);
+            border-color: var(--star-gold);
+            background: rgba(251, 191, 36, 0.1);
+        }
+
+        .star-btn:hover .star-icon,
+        .star-btn.active .star-icon {
+            filter: grayscale(0%);
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        .star-btn.active {
+            border-color: var(--star-gold);
+            background: rgba(251, 191, 36, 0.18);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+            transform: translateY(-2px) scale(1.05);
+        }
+
+        .star-btn.active .star-num {
+            color: var(--star-gold);
+            font-weight: 700;
+        }
+
+        .rating-label-display {
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            min-height: 24px;
+            margin-bottom: 20px;
+            color: var(--star-gold);
+            transition: all 0.2s;
+        }
+
+        /* Success feedback badge */
+        .feedback-state-box {
+            display: none;
+            animation: fadeIn 0.35s ease forwards;
+            margin-top: 15px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tags-title {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .tags-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 18px;
+        }
+
+        .tag-pill {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .tag-pill:hover {
+            border-color: rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .tag-pill.selected {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+            font-weight: 600;
+        }
+
+        .comment-textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px;
+            color: #fff;
+            font-size: 0.9rem;
+            resize: none;
+            outline: none;
+            min-height: 80px;
+            margin-bottom: 15px;
+            transition: border-color 0.2s;
+        }
+
+        .comment-textarea:focus {
+            border-color: var(--primary);
+        }
+
+        .comment-textarea::placeholder {
+            color: #64748b;
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-submit:hover {
+            opacity: 0.95;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .instant-save-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .completed-card {
+            text-align: center;
+            padding: 20px 10px;
+            display: none;
+        }
+
+        .completed-icon {
+            font-size: 3.5rem;
+            margin-bottom: 12px;
+            animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 0.78rem;
+            color: #64748b;
+            margin-top: 25px;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Brand Header -->
+        <div class="brand-header">
+            <div class="brand-logo-text">STAHL<span>GRAF</span></div>
+            <div class="brand-sub">Control de Calidad & Satisfacción</div>
+        </div>
+
+        <!-- Main Card -->
+        <div class="eval-card" id="main-card">
+            
+            <!-- Service Summary Box -->
+            <div class="service-info-box" id="service-info-box">
+                <div class="info-row">
+                    <span class="info-label">🛠️ Servicio</span>
+                    <span class="info-value" id="val-type">Cargando...</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">👤 Técnico</span>
+                    <span class="info-value" id="val-tech">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">📅 Fecha</span>
+                    <span class="info-value" id="val-date">-</span>
+                </div>
+            </div>
+
+            <!-- Initial Interactive Rating Section -->
+            <div id="rating-section">
+                <h2 class="greeting" id="greeting-title">¡Hola!</h2>
+                <p class="subtitle" id="greeting-sub">¿Cómo evaluarías nuestro trabajo y atención?</p>
+
+                <!-- 5 Stars Button Grid -->
+                <div class="stars-container">
+                    <button type="button" class="star-btn" data-rating="1" onclick="selectRating(1)">
+                        <span class="star-icon">⭐</span>
+                        <span class="star-num">1</span>
+                    </button>
+                    <button type="button" class="star-btn" data-rating="2" onclick="selectRating(2)">
+                        <span class="star-icon">⭐</span>
+                        <span class="star-num">2</span>
+                    </button>
+                    <button type="button" class="star-btn" data-rating="3" onclick="selectRating(3)">
+                        <span class="star-icon">⭐</span>
+                        <span class="star-num">3</span>
+                    </button>
+                    <button type="button" class="star-btn" data-rating="4" onclick="selectRating(4)">
+                        <span class="star-icon">⭐</span>
+                        <span class="star-num">4</span>
+                    </button>
+                    <button type="button" class="star-btn" data-rating="5" onclick="selectRating(5)">
+                        <span class="star-icon">⭐</span>
+                        <span class="star-num">5</span>
+                    </button>
+                </div>
+
+                <div class="rating-label-display" id="rating-label">Toca una estrella para calificar</div>
+                <div style="text-align: center;" id="save-status-container"></div>
+            </div>
+
+            <!-- Progressive Conditional Follow-up -->
+            <div id="followup-section" class="feedback-state-box">
+                
+                <!-- Case A: High Score (4-5) -->
+                <div id="high-score-box" style="display: none; text-align: center;">
+                    <div class="instant-save-badge">✓ ¡Calificación guardada con éxito!</div>
+                    <p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 15px;">
+                        ¡Muchas gracias por confiar en nosotros! ¿Hay algo especial que te gustaría destacar de la atención?
+                    </p>
+                    <textarea id="high-comment" class="comment-textarea" placeholder="Opcional: Escribe aquí tu comentario o felicitación..."></textarea>
+                    <button type="button" class="btn-submit" onclick="submitFinalFeedback('high')">
+                        <span>Guardar Comentario</span>
+                    </button>
+                    <button type="button" onclick="finishFlow()" style="background: none; border: none; color: #64748b; font-size: 0.85rem; margin-top: 12px; cursor: pointer; text-decoration: underline;">
+                        Cerrar (Listo)
+                    </button>
+                </div>
+
+                <!-- Case B: Low/Neutral Score (1-3) -->
+                <div id="low-score-box" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 12px;">
+                        <div class="instant-save-badge" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171;">
+                            ✓ Calificación registrada
+                        </div>
+                    </div>
+                    
+                    <p style="font-size: 0.92rem; color: #cbd5e1; text-align: center; margin-bottom: 15px; line-height: 1.4;">
+                        Lamentamos que tu experiencia no haya sido óptima. Queremos resolverlo de inmediato. ¿Qué aspecto podemos mejorar?
+                    </p>
+
+                    <!-- Quick Tap Tags -->
+                    <div class="tags-title">Selecciona una o más opciones:</div>
+                    <div class="tags-grid" id="tags-grid">
+                        <div class="tag-pill" onclick="toggleTag(this, 'Puntualidad')">⏱️ Puntualidad</div>
+                        <div class="tag-pill" onclick="toggleTag(this, 'Calidad Técnica')">🔧 Calidad técnica</div>
+                        <div class="tag-pill" onclick="toggleTag(this, 'Atención y Trato')">💬 Atención y trato</div>
+                        <div class="tag-pill" onclick="toggleTag(this, 'Limpieza y Orden')">🧹 Limpieza y orden</div>
+                        <div class="tag-pill" onclick="toggleTag(this, 'Presupuesto')">💰 Cobro / Costo</div>
+                    </div>
+
+                    <textarea id="low-comment" class="comment-textarea" placeholder="Cuéntanos brevemente qué ocurrió para solucionarlo..."></textarea>
+
+                    <button type="button" class="btn-submit" style="background: linear-gradient(135deg, #f59e0b, #d97706);" onclick="submitFinalFeedback('low')">
+                        <span>Enviar y Solicitar Contacto</span>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Final State / Thank you screen -->
+            <div id="completed-section" class="completed-card">
+                <div class="completed-icon" id="completed-icon">🎉</div>
+                <h3 style="font-size: 1.3rem; font-weight: 700; margin-bottom: 8px; color: #fff;" id="completed-title">¡Muchas Gracias!</h3>
+                <p style="font-size: 0.92rem; color: var(--text-muted); line-height: 1.5;" id="completed-desc">
+                    Tus comentarios han sido registrados correctamente y nos ayudan a mejorar día a día.
+                </p>
+                <div style="margin-top: 25px;">
+                    <a href="https://stahlgraf.cl" style="color: var(--primary); text-decoration: none; font-size: 0.88rem; font-weight: 500;">
+                        ← Visitar sitio web de Stahlgraf
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer-note">
+            Stahlgraf SpA • Sistema Integral de Control de Calidad
+        </div>
+    </div>
+
+    <!-- Firebase Config & Logic -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDxz0JQhHBMCZi5kKb4Mtp2bFyZuJ5wfbA",
+            authDomain: "stahlgraf-apps.firebaseapp.com",
+            projectId: "stahlgraf-apps",
+            storageBucket: "stahlgraf-apps.firebasestorage.app",
+            messagingSenderId: "501285299028",
+            appId: "1:501285299028:web:b7adda0826e638d80a5ec1",
+            measurementId: "G-X0X7E48C64"
+        };
+
+        if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Parse URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const ownerUid = urlParams.get('uid') || 'tIeFkX1rZ1Z5w5hPZ4XkP2B1kK32'; // Fallback to primary owner if needed
+        const serviceId = urlParams.get('sid') || ('srv_' + Date.now());
+        const clientName = urlParams.get('client') || 'Estimado(a) Cliente';
+        const technician = urlParams.get('tech') || 'Técnico asignado';
+        const serviceType = urlParams.get('type') || 'Servicio Técnico';
+        const serviceDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
+        const prefilledRating = parseInt(urlParams.get('rating'), 10) || 0;
+
+        let currentRating = 0;
+        let selectedTags = [];
+        let feedbackDocId = null;
+
+        const ratingLabels = {
+            1: "Muy insatisfecho 🙁",
+            2: "Insatisfecho 😐",
+            3: "Aceptable / Regular 🙂",
+            4: "Muy satisfecho 😊",
+            5: "Excelente servicio 🤩"
+        };
+
+        // Populate initial UI
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('val-type').textContent = serviceType;
+            document.getElementById('val-tech').textContent = technician;
+            document.getElementById('val-date').textContent = serviceDate;
+            document.getElementById('greeting-title').textContent = `¡Hola, ${clientName.split(' ')[0]}!`;
+
+            // Attempt anonymous sign-in if needed for firestore rules
+            if (auth && !auth.currentUser) {
+                try {
+                    await auth.signInAnonymously();
+                } catch(e) {
+                    console.log("Anonymous auth fallback:", e.message);
+                }
+            }
+
+            // Check if this service was already rated
+            checkExistingFeedback();
+
+            // If rating was prefilled in URL
+            if (prefilledRating >= 1 && prefilledRating <= 5) {
+                selectRating(prefilledRating);
+            }
+        });
+
+        async function checkExistingFeedback() {
+            if (!ownerUid || !serviceId) return;
+            try {
+                const snap = await db.collection('users').doc(ownerUid).collection('feedback').doc(serviceId).get();
+                if (snap.exists) {
+                    const data = snap.data();
+                    feedbackDocId = snap.id;
+                    currentRating = data.rating;
+                    showAlreadyCompleted(data);
+                }
+            } catch(e) {
+                console.warn("Could not check existing feedback:", e);
+            }
+        }
+
+        function showAlreadyCompleted(data) {
+            document.getElementById('rating-section').style.display = 'none';
+            document.getElementById('followup-section').style.display = 'none';
+            const comp = document.getElementById('completed-section');
+            comp.style.display = 'block';
+            document.getElementById('completed-icon').textContent = data.rating >= 4 ? '⭐' : '📋';
+            document.getElementById('completed-title').textContent = '¡Servicio ya Calificado!';
+            document.getElementById('completed-desc').innerHTML = `
+                Ya has calificado este servicio con <strong>${data.rating}/5 estrellas</strong> (${ratingLabels[data.rating] || ''}).<br>
+                ¡Muchas gracias por ayudarnos a mantener nuestra calidad!
+            `;
+        }
+
+        // --- Rating Selection (INSTANT 1-CLICK SAVE) ---
+        window.selectRating = async function(val) {
+            currentRating = val;
+
+            // Highlight buttons
+            document.querySelectorAll('.star-btn').forEach(btn => {
+                const btnVal = parseInt(btn.dataset.rating, 10);
+                if (btnVal <= val) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Update Label
+            const lbl = document.getElementById('rating-label');
+            lbl.textContent = ratingLabels[val] || '';
+
+            // Instant Save to Firestore
+            await saveInitialRating(val);
+
+            // Progressive disclosure
+            const followup = document.getElementById('followup-section');
+            const highBox = document.getElementById('high-score-box');
+            const lowBox = document.getElementById('low-score-box');
+
+            followup.style.display = 'block';
+
+            if (val >= 4) {
+                highBox.style.display = 'block';
+                lowBox.style.display = 'none';
+            } else {
+                highBox.style.display = 'none';
+                lowBox.style.display = 'block';
+            }
+
+            // Scroll slightly down to make follow-up visible comfortably
+            followup.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
+
+        async function saveInitialRating(val) {
+            const statusEl = document.getElementById('save-status-container');
+            statusEl.innerHTML = '<span style="font-size: 0.8rem; color: #94a3b8;"><span class="spinner" style="margin-right: 5px;"></span>Guardando nota...</span>';
+
+            const payload = {
+                serviceId: serviceId,
+                clientName: clientName,
+                technician: technician,
+                serviceType: serviceType,
+                serviceDate: serviceDate,
+                rating: val,
+                tags: selectedTags,
+                comment: '',
+                channel: 'whatsapp',
+                status: val <= 3 ? 'alerta_pendiente' : 'satisfactorio',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection('users').doc(ownerUid).collection('feedback').doc(serviceId).set(payload, { merge: true });
+                feedbackDocId = serviceId;
+                statusEl.innerHTML = '<span style="font-size: 0.8rem; color: #34d399; font-weight: 600;">✓ Nota registrada</span>';
+            } catch(e) {
+                console.error("Error saving initial rating:", e);
+                statusEl.innerHTML = '<span style="font-size: 0.8rem; color: #f87171;">Error al guardar en la nube</span>';
+            }
+        }
+
+        window.toggleTag = function(element, tag) {
+            element.classList.toggle('selected');
+            if (element.classList.contains('selected')) {
+                if (!selectedTags.includes(tag)) selectedTags.push(tag);
+            } else {
+                selectedTags = selectedTags.filter(t => t !== tag);
+            }
+        };
+
+        window.submitFinalFeedback = async function(type) {
+            const comment = type === 'high' 
+                ? document.getElementById('high-comment').value.trim() 
+                : document.getElementById('low-comment').value.trim();
+
+            const updatePayload = {
+                comment: comment,
+                tags: selectedTags,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                if (feedbackDocId) {
+                    await db.collection('users').doc(ownerUid).collection('feedback').doc(feedbackDocId).update(updatePayload);
+                }
+            } catch(e) {
+                console.error("Error updating feedback detail:", e);
+            }
+
+            finishFlow(type);
+        };
+
+        window.finishFlow = function(type = 'high') {
+            document.getElementById('rating-section').style.display = 'none';
+            document.getElementById('followup-section').style.display = 'none';
+
+            const comp = document.getElementById('completed-section');
+            comp.style.display = 'block';
+
+            if (type === 'low') {
+                document.getElementById('completed-icon').textContent = '🤝';
+                document.getElementById('completed-title').textContent = 'Comentarios Recibidos';
+                document.getElementById('completed-desc').innerHTML = `
+                    Hemos notificado al equipo de operaciones sobre tus comentarios.<br>
+                    Nos pondremos en contacto contigo a la brevedad para garantizar tu total conformidad.
+                `;
+            } else {
+                document.getElementById('completed-icon').textContent = '🎉';
+                document.getElementById('completed-title').textContent = '¡Muchas Gracias!';
+                document.getElementById('completed-desc').innerHTML = `
+                    Tus felicitaciones y comentarios han sido compartidos con el técnico <strong>${technician}</strong> y todo el equipo.
+                `;
+            }
+        };
+    </script>
+</body>
+</html>

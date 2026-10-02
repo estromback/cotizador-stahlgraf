@@ -273,6 +273,27 @@
         .portal-item:hover {
             background: rgba(255, 255, 255, 0.04);
         }
+
+        .portal-star-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .portal-star-btn:hover {
+            background: rgba(251, 191, 36, 0.2);
+            border-color: #fbbf24;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.25);
+        }
         
         /* Client Dashboard Summary Styles */
         .client-dashboard {
@@ -406,10 +427,10 @@
                 <div class="app-desc">Control analítico de caja, egresos, ingresos y utilidades de servicios.</div>
             </a>
 
-            <a href="#" id="card-satisfaccion" class="app-card disabled">
+            <a href="satisfaccion.html" id="card-satisfaccion" class="app-card">
                 <div class="app-icon">⭐</div>
-                <div class="app-title">Satisfacción Cliente (Pronto)</div>
-                <div class="app-desc">Próximo módulo para encuestas de satisfacción y control de calidad.</div>
+                <div class="app-title">Satisfacción & Calidad</div>
+                <div class="app-desc">Métricas CSAT, control de calidad y rescate de clientes insatisfechos.</div>
             </a>
         </div>
 

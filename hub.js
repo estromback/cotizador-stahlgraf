@@ -546,8 +546,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('last_technician', technician);
                 }
                 
-                alert("✅ Servicio registrado exitosamente.");
+                const clientObj = clientsList.find(c => c.id === clientId || c.name === clientName);
                 quickServiceModal.classList.remove('active');
+
+                const wantSurvey = confirm("✅ Servicio registrado exitosamente.\n\n¿Deseas enviar la encuesta de satisfacción por WhatsApp al cliente ahora?");
+                if (wantSurvey) {
+                    window.openFeedbackWhatsApp(servicePayload, clientObj);
+                }
             } catch(e) {
                 console.error("Error saving quick service:", e);
                 alert("Ocurrió un error al guardar el servicio.");
@@ -557,6 +562,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    window.openFeedbackWhatsApp = function(service, client) {
+        const ownerUid = getActiveUid();
+        const evalUrl = new URL('evaluar.html', window.location.href);
+        evalUrl.searchParams.set('uid', ownerUid || '');
+        evalUrl.searchParams.set('sid', service.id);
+        evalUrl.searchParams.set('client', service.clientName || (client ? client.name : 'Cliente'));
+        evalUrl.searchParams.set('tech', service.technician || 'Técnico');
+        evalUrl.searchParams.set('type', service.type || 'Servicio');
+        evalUrl.searchParams.set('date', service.date || '');
+        
+        const firstName = (service.clientName || 'Estimado(a)').split(' ')[0];
+        const msg = `Hola ${firstName}, muchas gracias por confiar en Stahlgraf. Tu servicio de ${service.type || 'atención técnica'} realizado por ${service.technician || 'nuestro equipo'} ha finalizado. Para ayudarnos a mantener nuestro estándar de excelencia, ¿nos regalas 5 segundos para calificar la atención aquí? 👉 ${evalUrl.href}`;
+        
+        const phone = (client && client.phone) ? client.phone.replace(/\D/g, '') : '';
+        const waUrl = phone 
+            ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` 
+            : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+            
+        window.open(waUrl, '_blank');
+    };
     
     // Toggle Client selection dropdown visibility based on selected role in settings
     const selectRole = document.getElementById('new-user-role');
@@ -3147,13 +3173,14 @@ async function renderClientPortal() {
     
     try {
         // Fetch client documents in parallel with safe error wrapping
-        const [quotesSnap, reportsSnap, servicesSnap, reportsSentSnap, inspectionsSnap, assignmentsConfigSnap] = await Promise.all([
+        const [quotesSnap, reportsSnap, servicesSnap, reportsSentSnap, inspectionsSnap, assignmentsConfigSnap, feedbackSnap] = await Promise.all([
             safeQuery('quotes', db.collection('users').doc(ownerUid).collection('quotes').where('clientName', 'in', uniqueVariations)),
             safeQuery('reports', db.collection('users').doc(ownerUid).collection('reports').where('clientName', 'in', uniqueVariations)),
             safeQuery('services', db.collection('users').doc(ownerUid).collection('services').where('clientName', 'in', uniqueVariations)),
             safeQuery('station_reports_sent', db.collection('users').doc(ownerUid).collection('station_reports_sent').where('clientName', 'in', uniqueVariations)),
             safeQuery('inspecciones', db.collection('users').doc(ownerUid).collection('inspecciones')),
-            safeQuery('inspecciones/assignments_config', db.collection('users').doc(ownerUid).collection('inspecciones').doc('assignments_config'))
+            safeQuery('inspecciones/assignments_config', db.collection('users').doc(ownerUid).collection('inspecciones').doc('assignments_config')),
+            safeQuery('feedback', db.collection('users').doc(ownerUid).collection('feedback').where('clientName', 'in', uniqueVariations))
         ]);
         
         let assignments = [];
@@ -3176,6 +3203,9 @@ async function renderClientPortal() {
                     🟢 Cliente Activo
                 </div>
             </div>
+
+            <!-- Smart Satisfaction Feedback Banner Slot -->
+            <div id="portal-satisfaction-banner-slot"></div>
             
             <!-- Dynamic Dashboard Row -->
             <div class="client-dashboard" id="client-dashboard-row" style="display: none;">
@@ -3352,6 +3382,11 @@ async function renderClientPortal() {
         const servicesCard = document.getElementById('card-client-services');
         let servicesCount = 0;
         
+        const clientFeedbackList = [];
+        if (feedbackSnap && !feedbackSnap.error && feedbackSnap.forEach) {
+            feedbackSnap.forEach(doc => clientFeedbackList.push({ id: doc.id, ...doc.data() }));
+        }
+
         if (servicesSnap.error) {
             if (servicesCard) servicesCard.style.display = 'none';
         } else {
@@ -3360,6 +3395,40 @@ async function renderClientPortal() {
                 sortedServices.push({ id: doc.id, ...doc.data() });
             });
             sortedServices.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            // Check if there is an unrated service to prompt in top banner
+            const unratedService = sortedServices.find(s => !clientFeedbackList.some(fb => fb.serviceId === s.id));
+            if (unratedService) {
+                const bannerSlot = document.getElementById('portal-satisfaction-banner-slot');
+                if (bannerSlot) {
+                    bannerSlot.innerHTML = `
+                        <div id="portal-satisfaction-card" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.1)); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 14px; padding: 20px; margin-bottom: 25px; box-shadow: 0 8px 24px rgba(0,0,0,0.25);">
+                            <div id="portal-fb-initial-view">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-size: 1.3rem;">🌟</span>
+                                        <span style="font-weight: 700; color: #fff; font-size: 1.05rem;">¿Cómo evaluarías nuestro último servicio?</span>
+                                    </div>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted); background: rgba(255,255,255,0.06); padding: 4px 10px; border-radius: 20px;">
+                                        🛠️ ${unratedService.type || 'Servicio'} • 📅 ${unratedService.date || ''}
+                                    </span>
+                                </div>
+                                <p style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 15px;">
+                                    Técnico a cargo: <strong style="color: #fff;">${unratedService.technician || 'Asignado'}</strong>. Tu opinión de 1 clic nos ayuda a mantener la máxima calidad:
+                                </p>
+                                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                    <button class="portal-star-btn" onclick="submitPortalRating('${unratedService.id}', 1, '${escape(unratedService.technician || '')}', '${escape(unratedService.type || '')}', '${unratedService.date || ''}', '${escape(clientName)}')">⭐ 1</button>
+                                    <button class="portal-star-btn" onclick="submitPortalRating('${unratedService.id}', 2, '${escape(unratedService.technician || '')}', '${escape(unratedService.type || '')}', '${unratedService.date || ''}', '${escape(clientName)}')">⭐ 2</button>
+                                    <button class="portal-star-btn" onclick="submitPortalRating('${unratedService.id}', 3, '${escape(unratedService.technician || '')}', '${escape(unratedService.type || '')}', '${unratedService.date || ''}', '${escape(clientName)}')">⭐ 3</button>
+                                    <button class="portal-star-btn" onclick="submitPortalRating('${unratedService.id}', 4, '${escape(unratedService.technician || '')}', '${escape(unratedService.type || '')}', '${unratedService.date || ''}', '${escape(clientName)}')">⭐ 4</button>
+                                    <button class="portal-star-btn" onclick="submitPortalRating('${unratedService.id}', 5, '${escape(unratedService.technician || '')}', '${escape(unratedService.type || '')}', '${unratedService.date || ''}', '${escape(clientName)}')">⭐ 5 Excelente</button>
+                                </div>
+                            </div>
+                            <div id="portal-fb-followup" style="display: none; margin-top: 15px;"></div>
+                        </div>
+                    `;
+                }
+            }
             
             sortedServices.forEach(s => {
                 servicesCount++;
@@ -3367,6 +3436,14 @@ async function renderClientPortal() {
                 const typeStr = s.type || 'Servicio';
                 const techStr = s.technician || 'No asignado';
                 const notesStr = s.notes || '-';
+
+                const fb = clientFeedbackList.find(f => f.serviceId === s.id);
+                let fbStatusHtml = '';
+                if (fb) {
+                    fbStatusHtml = `<span style="color:#fbbf24; font-size:0.75rem; font-weight:600; display:inline-flex; align-items:center; gap:3px;">⭐ ${fb.rating}/5 Calificado</span>`;
+                } else {
+                    fbStatusHtml = `<button class="btn btn-sm" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 2px 8px; font-size: 0.72rem; border-radius: 6px; cursor: pointer;" onclick="promptPortalRatingDirectly('${s.id}', '${escape(techStr)}', '${escape(typeStr)}', '${dateStr}', '${escape(clientName)}')">⭐ Calificar</button>`;
+                }
                 
                 const div = document.createElement('div');
                 div.className = 'portal-item';
@@ -3374,9 +3451,12 @@ async function renderClientPortal() {
                 div.style.alignItems = 'stretch';
                 div.style.gap = '5px';
                 div.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                         <span style="font-weight: 600; font-size: 0.9rem; color: #fff;">🛠️ ${typeStr}</span>
-                        <span style="font-size: 0.75rem; color: var(--text-muted);">📅 ${dateStr}</span>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            ${fbStatusHtml}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">📅 ${dateStr}</span>
+                        </div>
                     </div>
                     <div style="font-size: 0.75rem; color: var(--text-muted);">Técnico: <strong style="color:#ccc;">${techStr}</strong></div>
                     <div style="font-size: 0.75rem; color: #aaa; margin-top: 2px; line-height: 1.3;">${notesStr}</div>
@@ -3752,3 +3832,140 @@ window.viewPDF = function(pdfData, filename) {
         window.open(pdfData, '_blank');
     }
 };
+
+// --- Client Portal Satisfaction Rating Logic ---
+window.portalSelectedTags = [];
+
+window.submitPortalRating = async function(serviceId, rating, techEsc, typeEsc, date, clientNameEsc) {
+    const tech = unescape(techEsc);
+    const type = unescape(typeEsc);
+    const clientName = unescape(clientNameEsc);
+    const ownerUid = getActiveUid();
+
+    const payload = {
+        serviceId: serviceId,
+        clientName: clientName,
+        technician: tech,
+        serviceType: type,
+        serviceDate: date,
+        rating: rating,
+        tags: [],
+        comment: '',
+        channel: 'portal',
+        status: rating <= 3 ? 'alerta_pendiente' : 'satisfactorio',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (ownerUid && db) {
+        try {
+            await db.collection('users').doc(ownerUid).collection('feedback').doc(serviceId).set(payload, { merge: true });
+        } catch(e) {
+            console.error("Error saving portal rating:", e);
+        }
+    }
+
+    const initialView = document.getElementById('portal-fb-initial-view');
+    const followupView = document.getElementById('portal-fb-followup');
+    if (initialView) initialView.style.display = 'none';
+
+    if (followupView) {
+        followupView.style.display = 'block';
+        if (rating >= 4) {
+            followupView.innerHTML = `
+                <div style="text-align: center; padding: 10px;">
+                    <div style="font-size: 1.5rem; margin-bottom: 6px;">🎉 ⭐</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 4px;">¡Muchas gracias por tu calificación de ${rating} estrellas!</div>
+                    <div style="font-size: 0.88rem; color: #94a3b8; margin-bottom: 12px;">Nos alegra mucho haber cumplido tus expectativas técnicas y de servicio.</div>
+                    <input type="text" id="portal-optional-comment" class="search-input" style="max-width: 400px; margin: 0 auto 10px; display: block; font-size: 0.85rem;" placeholder="Opcional: ¿Algo que quieras destacar?">
+                    <button class="btn btn-primary btn-sm" onclick="savePortalOptionalComment('${serviceId}')">Guardar Comentario</button>
+                </div>
+            `;
+        } else {
+            window.portalSelectedTags = [];
+            followupView.innerHTML = `
+                <div style="padding: 10px;">
+                    <div style="color: #f87171; font-weight: 700; font-size: 1rem; margin-bottom: 6px;">✓ Calificación registrada</div>
+                    <div style="font-size: 0.88rem; color: #cbd5e1; margin-bottom: 12px;">Lamentamos que el servicio no haya sido perfecto. ¿Qué aspecto podemos mejorar?</div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+                        <button type="button" class="portal-star-btn" style="font-size: 0.8rem; padding: 6px 12px;" onclick="togglePortalTag(this, 'Puntualidad')">⏱️ Puntualidad</button>
+                        <button type="button" class="portal-star-btn" style="font-size: 0.8rem; padding: 6px 12px;" onclick="togglePortalTag(this, 'Calidad Técnica')">🔧 Calidad técnica</button>
+                        <button type="button" class="portal-star-btn" style="font-size: 0.8rem; padding: 6px 12px;" onclick="togglePortalTag(this, 'Comunicación')">💬 Comunicación</button>
+                        <button type="button" class="portal-star-btn" style="font-size: 0.8rem; padding: 6px 12px;" onclick="togglePortalTag(this, 'Limpieza y Orden')">🧹 Limpieza y orden</button>
+                    </div>
+                    <textarea id="portal-low-comment" style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 8px; color: #fff; font-size: 0.88rem; margin-bottom: 10px; resize: none; min-height: 60px;" placeholder="Cuéntanos brevemente qué ocurrió para que la administración lo solucione..."></textarea>
+                    <button class="btn btn-primary btn-sm" style="background: #f59e0b;" onclick="savePortalLowDetail('${serviceId}')">Enviar detalle a administración</button>
+                </div>
+            `;
+        }
+    }
+};
+
+window.togglePortalTag = function(btn, tag) {
+    btn.classList.toggle('selected');
+    if (!window.portalSelectedTags) window.portalSelectedTags = [];
+    if (btn.classList.contains('selected')) {
+        btn.style.borderColor = '#3b82f6';
+        btn.style.background = 'rgba(59, 130, 246, 0.2)';
+        if (!window.portalSelectedTags.includes(tag)) window.portalSelectedTags.push(tag);
+    } else {
+        btn.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+        btn.style.background = 'rgba(255, 255, 255, 0.05)';
+        window.portalSelectedTags = window.portalSelectedTags.filter(t => t !== tag);
+    }
+};
+
+window.savePortalOptionalComment = async function(serviceId) {
+    const comment = (document.getElementById('portal-optional-comment')?.value || '').trim();
+    const ownerUid = getActiveUid();
+    if (comment && ownerUid && db) {
+        try {
+            await db.collection('users').doc(ownerUid).collection('feedback').doc(serviceId).update({
+                comment: comment,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch(e) {
+            console.error(e);
+        }
+    }
+    const card = document.getElementById('portal-satisfaction-card');
+    if (card) {
+        card.innerHTML = `<div style="text-align: center; color: #34d399; font-weight: 600; padding: 15px;">✓ ¡Comentarios guardados exitosamente! Muchas gracias.</div>`;
+        setTimeout(() => { card.style.display = 'none'; }, 2500);
+    }
+};
+
+window.savePortalLowDetail = async function(serviceId) {
+    const comment = (document.getElementById('portal-low-comment')?.value || '').trim();
+    const ownerUid = getActiveUid();
+    if (ownerUid && db) {
+        try {
+            await db.collection('users').doc(ownerUid).collection('feedback').doc(serviceId).update({
+                comment: comment,
+                tags: window.portalSelectedTags || [],
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch(e) {
+            console.error(e);
+        }
+    }
+    const card = document.getElementById('portal-satisfaction-card');
+    if (card) {
+        card.innerHTML = `<div style="text-align: center; color: #34d399; font-weight: 600; padding: 15px;">🤝 Hemos recibido tus observaciones y notificamos a la administración para darte seguimiento prioritario.</div>`;
+        setTimeout(() => { card.style.display = 'none'; }, 3500);
+    }
+};
+
+window.promptPortalRatingDirectly = function(serviceId, techEsc, typeEsc, date, clientNameEsc) {
+    const rating = prompt("Califica este servicio de 1 a 5 estrellas:\n(1: Muy insatisfecho, 5: Excelente)");
+    if (!rating) return;
+    const num = parseInt(rating, 10);
+    if (num >= 1 && num <= 5) {
+        window.submitPortalRating(serviceId, num, techEsc, typeEsc, date, clientNameEsc);
+        alert(`⭐ Calificación de ${num} estrellas registrada. ¡Muchas gracias!`);
+        setTimeout(() => { if (typeof renderClientPortal === 'function') renderClientPortal(); }, 600);
+    } else {
+        alert("Por favor ingresa un número del 1 al 5.");
+    }
+};
+

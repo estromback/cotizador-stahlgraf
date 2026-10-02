@@ -475,6 +475,7 @@ let currentClientCrmCard = null;
 let currentClientServices = [];
 let currentClientInspections = [];
 let currentClientReportsSent = [];
+let currentClientFeedback = [];
 
 function openHistoryModal(clientId) {
     const modal = document.getElementById('client-history-modal');
@@ -542,6 +543,7 @@ async function loadClientHistoryFromFirebaseAndLocal(clientId, clientName) {
     currentClientServices = [];
     currentClientInspections = [];
     currentClientReportsSent = [];
+    currentClientFeedback = [];
     
     // Load local cache fallbacks
     const localServices = appData.services || [];
@@ -554,14 +556,19 @@ async function loadClientHistoryFromFirebaseAndLocal(clientId, clientName) {
     if (activeUid && db) {
         try {
             // Parallel fetches
-            const [quotesSnap, reportsSnap, crmSnap, servicesSnap, reportsSentSnap, inspectionsSnap] = await Promise.all([
+            const [quotesSnap, reportsSnap, crmSnap, servicesSnap, reportsSentSnap, inspectionsSnap, feedbackSnap] = await Promise.all([
                 db.collection('users').doc(activeUid).collection('quotes').where('clientName', '==', clientName).get(),
                 db.collection('users').doc(activeUid).collection('reports').where('clientName', '==', clientName).get(),
                 db.collection('users').doc(activeUid).collection('crm').get(),
                 db.collection('users').doc(activeUid).collection('services').where('clientName', '==', clientName).get(),
                 db.collection('users').doc(activeUid).collection('station_reports_sent').where('clientName', '==', clientName).get(),
-                db.collection('users').doc(activeUid).collection('inspecciones').get()
+                db.collection('users').doc(activeUid).collection('inspecciones').get(),
+                db.collection('users').doc(activeUid).collection('feedback').where('clientName', '==', clientName).get()
             ]);
+            
+            if (feedbackSnap && !feedbackSnap.empty) {
+                feedbackSnap.forEach(doc => currentClientFeedback.push({ id: doc.id, ...doc.data() }));
+            }
             
             quotesSnap.forEach(doc => currentClientQuotes.push({ id: doc.id, ...doc.data() }));
             reportsSnap.forEach(doc => currentClientReports.push({ id: doc.id, ...doc.data() }));
@@ -877,7 +884,7 @@ function renderServicesTab() {
     
     const sorted = [...currentClientServices].sort((a,b) => new Date(b.date) - new Date(a.date));
     if (sorted.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#666; padding:15px;">No hay servicios registrados para este cliente.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#666; padding:15px;">No hay servicios registrados para este cliente.</td></tr>`;
         return;
     }
     
@@ -906,6 +913,29 @@ function renderServicesTab() {
             detailsHtml += parts.join(' | ');
             detailsHtml += '</div>';
         }
+
+        // Check satisfaction feedback for this service
+        const fb = currentClientFeedback.find(f => f.serviceId === s.id);
+        let feedbackHtml = '';
+        if (fb) {
+            const starsText = '⭐'.repeat(fb.rating || 5);
+            const tooltip = `${fb.rating}/5 estrellas\nCanal: ${fb.channel || 'web'}\n${fb.tags && fb.tags.length ? 'Tags: ' + fb.tags.join(', ') + '\n' : ''}${fb.comment ? 'Comentario: ' + fb.comment : ''}`;
+            const badgeBg = fb.rating >= 4 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+            const badgeColor = fb.rating >= 4 ? '#34d399' : '#f87171';
+            const badgeBorder = fb.rating >= 4 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)';
+
+            feedbackHtml = `
+                <span title="${tooltip}" style="display:inline-flex; align-items:center; gap:4px; background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${badgeColor}; padding: 3px 8px; border-radius: 12px; font-weight: 600; font-size: 0.78rem; cursor: pointer; white-space: nowrap;">
+                    ⭐ ${fb.rating}/5
+                </span>
+            `;
+        } else {
+            feedbackHtml = `
+                <button class="btn btn-sm" style="background: rgba(37, 211, 102, 0.15); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.3); padding: 3px 8px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" onclick="shareFeedbackWhatsAppFromHistory('${s.id}')" title="Enviar encuesta por WhatsApp">
+                    📲 Encuesta
+                </button>
+            `;
+        }
         
         tr.innerHTML = `
             <td>${s.date || '-'}</td>
@@ -913,6 +943,7 @@ function renderServicesTab() {
             <td>${s.technician || '-'}</td>
             <td>${detailsHtml}</td>
             <td class="price-column"><strong>$${s.price ? parseInt(s.price).toLocaleString('es-CL') : '0'}</strong></td>
+            <td>${feedbackHtml}</td>
             <td class="admin-only" style="white-space: nowrap;">
                 <button class="btn btn-secondary btn-sm" style="background: rgba(52, 152, 219, 0.2); color: #3498db; border-color: rgba(52, 152, 219, 0.3); padding: 3px 6px; font-size:0.75rem; margin-right: 5px;" onclick="editRecordedService('${s.id}')">Editar</button>
                 <button class="btn btn-secondary btn-sm" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; border-color: rgba(231, 76, 60, 0.3); padding: 3px 6px; font-size:0.75rem;" onclick="deleteRecordedService('${s.id}')">Eliminar</button>
@@ -921,6 +952,32 @@ function renderServicesTab() {
         tbody.appendChild(tr);
     });
 }
+
+window.shareFeedbackWhatsAppFromHistory = function(serviceId) {
+    const s = currentClientServices.find(item => item.id === serviceId);
+    if (!s) return alert("No se encontró el servicio.");
+
+    const clientObj = appData.clients.find(c => c.id === activeHistoryClientId || c.name === activeHistoryClientName);
+    const activeUid = getActiveUid();
+
+    const evalUrl = new URL('evaluar.html', window.location.href);
+    evalUrl.searchParams.set('uid', activeUid || '');
+    evalUrl.searchParams.set('sid', s.id);
+    evalUrl.searchParams.set('client', s.clientName || activeHistoryClientName);
+    evalUrl.searchParams.set('tech', s.technician || 'Técnico');
+    evalUrl.searchParams.set('type', s.type || 'Servicio');
+    evalUrl.searchParams.set('date', s.date || '');
+
+    const firstName = (s.clientName || activeHistoryClientName || 'Estimado(a)').split(' ')[0];
+    const msg = `Hola ${firstName}, muchas gracias por confiar en Stahlgraf. Tu servicio de ${s.type || 'atención técnica'} realizado por ${s.technician || 'nuestro equipo'} ha finalizado. Para ayudarnos a mantener nuestro estándar de excelencia, ¿nos regalas 5 segundos para calificar la atención aquí? 👉 ${evalUrl.href}`;
+
+    const phone = clientObj && clientObj.phone ? clientObj.phone.replace(/\D/g, '') : '';
+    const waUrl = phone 
+        ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` 
+        : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+
+    window.open(waUrl, '_blank');
+};
 
 function renderQuotesTab() {
     const tbody = document.getElementById('hist-quotes-list');
