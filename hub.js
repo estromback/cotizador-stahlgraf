@@ -1239,25 +1239,37 @@ function generateICalendarData(cards, clients) {
     const formatDateToICal = (dateStr, timeStr) => {
         const cleanDate = dateStr.replace(/-/g, '');
         if (timeStr && timeStr.includes(':')) {
-            const [h, m] = timeStr.split(':');
-            const startH = h.padStart(2, '0');
-            const startM = m.padStart(2, '0');
-            const dtStart = `${cleanDate}T${startH}${startM}00`;
-            
-            let startHourNum = parseInt(startH, 10);
-            let startMinNum = parseInt(startM, 10);
-            let endHourNum = startHourNum + 1;
-            let endCleanDate = cleanDate;
-            if (endHourNum >= 24) {
-                endHourNum = endHourNum - 24;
-                const dObj = new Date(dateStr + 'T00:00:00');
-                dObj.setDate(dObj.getDate() + 1);
-                endCleanDate = formatDateStr(dObj).replace(/-/g, '');
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const [h, min] = timeStr.split(':').map(Number);
+
+            // Dynamically calculate UTC offset for America/Santiago on this specific date
+            let offsetHours = -3;
+            try {
+                const testDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+                const formatter = new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'America/Santiago',
+                    timeZoneName: 'shortOffset'
+                });
+                const parts = formatter.formatToParts(testDate);
+                const tzPart = parts.find(p => p.type === 'timeZoneName');
+                if (tzPart && tzPart.value.includes('-')) {
+                    offsetHours = parseInt(tzPart.value.replace('GMT', ''), 10);
+                }
+            } catch (e) {
+                offsetHours = -3;
             }
-            const dtEnd = `${endCleanDate}T${String(endHourNum).padStart(2, '0')}${String(startMinNum).padStart(2, '0')}00`;
+
+            // Convert to UTC
+            const utcStart = new Date(Date.UTC(y, m - 1, d, h - offsetHours, min, 0));
+            const utcEnd = new Date(utcStart.getTime() + 60 * 60 * 1000); // 1 hour duration default
+
+            const formatUtc = (dt) => {
+                return dt.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            };
+
             return {
-                start: `DTSTART;TZID=America/Santiago:${dtStart}`,
-                end: `DTEND;TZID=America/Santiago:${dtEnd}`
+                start: `DTSTART:${formatUtc(utcStart)}`,
+                end: `DTEND:${formatUtc(utcEnd)}`
             };
         } else {
             const dObj = new Date(dateStr + 'T00:00:00');
@@ -1282,7 +1294,25 @@ function generateICalendarData(cards, clients) {
         'X-WR-CALNAME:Stahlgraf - Citas y Servicios',
         'X-WR-TIMEZONE:America/Santiago',
         'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
-        'X-PUBLISHED-TTL:PT1H'
+        'X-PUBLISHED-TTL:PT1H',
+        'BEGIN:VTIMEZONE',
+        'TZID:America/Santiago',
+        'X-LIC-LOCATION:America/Santiago',
+        'BEGIN:STANDARD',
+        'TZOFFSETFROM:-0300',
+        'TZOFFSETTO:-0400',
+        'TZNAME:-04',
+        'DTSTART:19700405T000000',
+        'RRULE:FREQ=YEARLY;BYMONTH=4;BYDAY=1SU',
+        'END:STANDARD',
+        'BEGIN:DAYLIGHT',
+        'TZOFFSETFROM:-0400',
+        'TZOFFSETTO:-0300',
+        'TZNAME:-03',
+        'DTSTART:19700906T000000',
+        'RRULE:FREQ=YEARLY;BYMONTH=9;BYDAY=1SU',
+        'END:DAYLIGHT',
+        'END:VTIMEZONE'
     ];
 
     const validCards = (cards || []).filter(c => c && c.date && c.date.trim() !== '');
