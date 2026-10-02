@@ -62,8 +62,8 @@
         /* KPI Cards Grid */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
             margin-bottom: 35px;
         }
 
@@ -452,6 +452,18 @@
                     Casos $\le 3$⭐ por atender
                 </div>
             </div>
+
+            <!-- Servicios sin Evaluación -->
+            <div class="kpi-card" id="kpi-unevaluated-card" style="border-color: rgba(245, 158, 11, 0.3);">
+                <div class="kpi-top">
+                    <span class="kpi-label" style="color: #fbbf24;">Sin Evaluación</span>
+                    <div class="kpi-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.15);">⏳</div>
+                </div>
+                <div class="kpi-value" style="color: #fbbf24;" id="kpi-unevaluated-count">-</div>
+                <div class="kpi-sub" style="color: #fcd34d;" id="kpi-unevaluated-sub">
+                    Servicios pendientes de calificar
+                </div>
+            </div>
         </div>
 
         <!-- Section: Service Recovery / Red Alerts -->
@@ -467,6 +479,43 @@
                 <div style="text-align: center; padding: 25px; color: #10b981; font-weight: 500;">
                     ✓ Sincronizando evaluaciones con la nube...
                 </div>
+            </div>
+        </div>
+
+        <!-- Section: Unevaluated Services (Servicios sin Evaluación) -->
+        <div class="section-box" id="section-unevaluated">
+            <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div class="section-title" style="display: flex; align-items: center; gap: 10px;">
+                    <span>⏳ Servicios sin Evaluación</span>
+                    <span id="unevaluated-badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.78rem; font-weight: 600; padding: 2px 10px; border-radius: 12px;">0 pendientes</span>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <input type="text" id="unevaluated-search" placeholder="Buscar por cliente, técnico..." oninput="filterUnevaluatedServices()" style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 7px 12px; color: #fff; font-size: 0.85rem; outline: none; min-width: 220px;">
+                </div>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: -6px; margin-bottom: 16px;">
+                Servicios realizados que aún no reciben calificación de satisfacción. Puedes copiar la encuesta para enviarla al cliente.
+            </p>
+
+            <div style="overflow-x: auto; max-height: 380px; scrollbar-width: thin;">
+                <table class="tech-table" id="unevaluated-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Servicio</th>
+                            <th>Técnico</th>
+                            <th style="text-align: right; min-width: 140px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="unevaluated-list-tbody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 25px;">
+                                Cargando servicios sin evaluación...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 

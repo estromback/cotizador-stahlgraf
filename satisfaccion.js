@@ -14,6 +14,7 @@ let db = null;
 let auth = null;
 let currentUser = null;
 let allFeedback = [];
+let allServices = [];
 let allClients = [];
 let currentResolvingDocId = null;
 
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (raw) {
             const parsed = JSON.parse(raw);
             allClients = parsed.clients || [];
+            allServices = parsed.services || [];
         }
     } catch(e) {}
 
@@ -75,11 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 syncBtn.classList.add('btn-secondary');
             }
             loadFeedbackData();
+            loadServicesData();
         } else if (user && user.isAnonymous) {
             currentUser = user;
             if (syncText) syncText.innerText = "Modo Anónimo";
             if (syncIcon) syncIcon.innerText = '☁️';
             loadFeedbackData();
+            loadServicesData();
         } else {
             if (syncText) syncText.innerText = "Ingresar para Sync";
             if (syncIcon) syncIcon.innerText = '☁️';
@@ -91,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             auth.signInAnonymously().then(cred => {
                 currentUser = cred.user;
                 loadFeedbackData();
+                loadServicesData();
             }).catch(() => {
                 alert("Debes iniciar sesión para visualizar las métricas administrativas.");
                 window.location.href = "hub.html";
@@ -129,6 +134,7 @@ async function loadFeedbackData() {
 function renderDashboard() {
     computeKPIs();
     renderRecoveryAlerts();
+    renderUnevaluatedServices();
     renderTechRanking();
     renderFeedList();
 }
@@ -143,6 +149,22 @@ function computeKPIs() {
     const elPositiveSub = document.getElementById('kpi-positive-sub');
     const elPendingAlerts = document.getElementById('kpi-pending-alerts');
     const elAlertsSub = document.getElementById('kpi-alerts-sub');
+    const elUnevaluatedCount = document.getElementById('kpi-unevaluated-count');
+    const elUnevaluatedSub = document.getElementById('kpi-unevaluated-sub');
+
+    // Compute unevaluated services
+    const evaluatedSet = new Set();
+    allFeedback.forEach(f => {
+        if (f.serviceId) evaluatedSet.add(f.serviceId);
+        if (f.id) evaluatedSet.add(f.id);
+    });
+    const unevaluatedCount = allServices.filter(s => s && s.id && !evaluatedSet.has(s.id)).length;
+    if (elUnevaluatedCount) elUnevaluatedCount.textContent = `${unevaluatedCount}`;
+    if (elUnevaluatedSub) {
+        elUnevaluatedSub.textContent = unevaluatedCount === 0 
+            ? "¡Todos los servicios evaluados!" 
+            : `${unevaluatedCount} pendiente${unevaluatedCount > 1 ? 's' : ''} de calificar`;
+    }
 
     if (total === 0) {
         elCsatScore.textContent = '5.0 ⭐';
@@ -234,9 +256,9 @@ function renderRecoveryAlerts() {
                 ${commentHtml}
 
                 <div class="alert-actions">
-                    <a href="${waLink}" target="_blank" class="btn btn-sm" style="background: rgba(37, 211, 102, 0.2); color: #25D366; border: 1px solid rgba(37, 211, 102, 0.4); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.82rem; border-radius: 8px;">
-                        📲 Contactar por WhatsApp
-                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyAlertContactMsg('${escape(fb.clientName)}', '${escape(fb.serviceType || 'Servicio')}', '${escape(fb.serviceDate || '')}', '${cleanPhone}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.82rem; cursor: pointer;">
+                        📋 Copiar Mensaje de Contacto
+                    </button>
                     <button class="btn btn-primary btn-sm" style="padding: 6px 12px; font-size: 0.82rem;" onclick="openResolveModal('${fb.id}', '${escape(fb.clientName)}')">
                         ✅ Marcar como Resuelto
                     </button>
@@ -466,3 +488,201 @@ window.confirmResolveAlert = async function() {
         alert("Ocurrió un error al actualizar el estado: " + e.message);
     }
 };
+
+// --- Unevaluated Services (Servicios sin Evaluación) Logic ---
+async function loadServicesData() {
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) return;
+
+    // Cache fallback from localStorage
+    try {
+        const raw = localStorage.getItem('stahlgraf_data_v4');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed.services) && parsed.services.length > 0) {
+                allServices = parsed.services;
+                renderUnevaluatedServices();
+            }
+            if (Array.isArray(parsed.clients) && parsed.clients.length > 0) {
+                allClients = parsed.clients;
+            }
+        }
+    } catch(e) {}
+
+    // Fetch clients to ensure phone numbers are accessible for sharing survey
+    try {
+        db.collection('users').doc(activeUid).collection('clients').get().then(snap => {
+            if (!snap.empty) {
+                const fetchedClients = [];
+                snap.forEach(d => fetchedClients.push({ id: d.id, ...d.data() }));
+                allClients = fetchedClients;
+            }
+        }).catch(() => {});
+    } catch(e) {}
+
+    // Real-time listener for services
+    try {
+        db.collection('users').doc(activeUid).collection('services')
+            .onSnapshot(snapshot => {
+                allServices = [];
+                snapshot.forEach(doc => {
+                    allServices.push({ id: doc.id, ...doc.data() });
+                });
+                // Sort descending by date
+                allServices.sort((a,b) => {
+                    const dateA = a.date || '';
+                    const dateB = b.date || '';
+                    return dateB.localeCompare(dateA);
+                });
+                renderUnevaluatedServices();
+                computeKPIs();
+            }, err => {
+                console.error("Error listening to services in satisfaccion:", err);
+            });
+    } catch (e) {
+        console.error("Failed to load services in satisfaccion:", e);
+    }
+}
+
+function renderUnevaluatedServices() {
+    const tbody = document.getElementById('unevaluated-list-tbody');
+    const badge = document.getElementById('unevaluated-badge');
+    const elUnevaluatedCount = document.getElementById('kpi-unevaluated-count');
+    const elUnevaluatedSub = document.getElementById('kpi-unevaluated-sub');
+
+    if (!tbody) return;
+
+    const evaluatedSet = new Set();
+    allFeedback.forEach(f => {
+        if (f.serviceId) evaluatedSet.add(f.serviceId);
+        if (f.id) evaluatedSet.add(f.id);
+    });
+
+    const unevaluated = allServices.filter(s => s && s.id && !evaluatedSet.has(s.id));
+
+    if (badge) badge.innerText = `${unevaluated.length} pendientes`;
+    if (elUnevaluatedCount) elUnevaluatedCount.textContent = `${unevaluated.length}`;
+    if (elUnevaluatedSub) {
+        elUnevaluatedSub.textContent = unevaluated.length === 0 
+            ? "¡Todos los servicios evaluados!" 
+            : `${unevaluated.length} pendiente${unevaluated.length > 1 ? 's' : ''} de respuesta`;
+    }
+
+    const searchInput = document.getElementById('unevaluated-search');
+    const searchVal = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+    const filtered = unevaluated.filter(s => {
+        if (!searchVal) return true;
+        const name = (s.clientName || '').toLowerCase();
+        const tech = (s.technician || '').toLowerCase();
+        const type = (s.type || '').toLowerCase();
+        const date = (s.date || '').toLowerCase();
+        return name.includes(searchVal) || tech.includes(searchVal) || type.includes(searchVal) || date.includes(searchVal);
+    });
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center; color: #10b981; padding: 28px; font-size: 0.95rem;">
+                    ${unevaluated.length === 0 
+                        ? '🎉 ¡Excelente! Todos los servicios realizados cuentan con evaluación.' 
+                        : 'No se encontraron servicios que coincidan con la búsqueda.'}
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(s => {
+        const techDisplay = (s.technician && s.technician !== 'No asignado') 
+            ? `👤 ${s.technician}` 
+            : `<span style="color: var(--text-muted); font-style: italic;">No asignado</span>`;
+        
+        const dateDisplay = s.date || '<span style="color: var(--text-muted);">-</span>';
+        const typeDisplay = s.type || 'Servicio';
+
+        return `
+            <tr>
+                <td style="white-space: nowrap; font-weight: 500; font-size: 0.88rem; color: #cbd5e1;">${dateDisplay}</td>
+                <td style="font-weight: 600; color: #fff;">${s.clientName || 'Cliente sin nombre'}</td>
+                <td><span style="background: rgba(255, 255, 255, 0.06); padding: 3px 8px; border-radius: 6px; font-size: 0.82rem; border: 1px solid rgba(255, 255, 255, 0.1); color: #e2e8f0;">${typeDisplay}</span></td>
+                <td>${techDisplay}</td>
+                <td style="text-align: right; white-space: nowrap;">
+                    <button type="button" class="btn btn-sm" onclick="shareSurveyForService('${s.id}')" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 5px 12px; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;" title="Ver mensaje y copiar encuesta para este cliente">
+                        <span>📋 Copiar Encuesta</span>
+                    </button>
+                    <button type="button" class="btn btn-sm" onclick="openSurveyInBrowser('${s.id}')" style="background: rgba(255, 255, 255, 0.05); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.1); padding: 5px 9px; font-size: 0.82rem; border-radius: 6px; cursor: pointer; margin-left: 6px;" title="Abrir formulario de encuesta en nueva pestaña">
+                        <span>🔗</span>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+window.filterUnevaluatedServices = function() {
+    renderUnevaluatedServices();
+};
+
+window.shareSurveyForService = function(serviceId) {
+    const service = allServices.find(s => s.id === serviceId);
+    if (!service) return alert("No se encontró el servicio.");
+
+    const activeUid = getActiveUid();
+    const evalUrl = new URL('evaluar.html', window.location.href);
+    evalUrl.searchParams.set('uid', activeUid || '');
+    evalUrl.searchParams.set('sid', service.id);
+    evalUrl.searchParams.set('client', service.clientName || 'Cliente');
+    evalUrl.searchParams.set('tech', service.technician || 'Técnico');
+    evalUrl.searchParams.set('type', service.type || 'Servicio');
+    evalUrl.searchParams.set('date', service.date || '');
+
+    const firstName = (service.clientName || 'Estimado(a)').split(' ')[0];
+    const serviceTypeStr = service.type ? `servicio de ${service.type}` : 'servicio';
+    const msg = `Hola ${firstName}, muchas gracias por confiar en Stahlgraf. Tu ${serviceTypeStr} ha finalizado. Para ayudarnos a mantener nuestro estándar de excelencia, ¿nos regalas 5 segundos para calificar la atención aquí? 👉 ${evalUrl.href}`;
+
+    const clientObj = allClients.find(c => c.name === service.clientName || c.id === service.clientId);
+    const phone = clientObj && clientObj.phone ? clientObj.phone.replace(/\D/g, '') : '';
+
+    if (typeof showShareSurveyModal === 'function') {
+        showShareSurveyModal({
+            clientName: service.clientName || 'Cliente',
+            message: msg,
+            phone: phone
+        });
+    } else {
+        prompt("Copia este mensaje para el cliente:", msg);
+    }
+};
+
+window.openSurveyInBrowser = function(serviceId) {
+    const service = allServices.find(s => s.id === serviceId);
+    if (!service) return alert("No se encontró el servicio.");
+
+    const activeUid = getActiveUid();
+    const evalUrl = new URL('evaluar.html', window.location.href);
+    evalUrl.searchParams.set('uid', activeUid || '');
+    evalUrl.searchParams.set('sid', service.id);
+    evalUrl.searchParams.set('client', service.clientName || 'Cliente');
+    evalUrl.searchParams.set('tech', service.technician || 'Técnico');
+    evalUrl.searchParams.set('type', service.type || 'Servicio');
+    evalUrl.searchParams.set('date', service.date || '');
+
+    window.open(evalUrl.href, '_blank');
+};
+
+window.copyAlertContactMsg = function(clientName, serviceType, serviceDate, phone) {
+    const firstName = (clientName || 'Estimado(a)').split(' ')[0];
+    const msg = `Hola ${firstName}, te escribe la administración de Stahlgraf. Vimos tu evaluación respecto al servicio de ${serviceType || 'atención técnica'} del ${serviceDate || ''}. Queremos conversar contigo para entender qué ocurrió y darte una solución inmediata.`;
+    
+    if (typeof showShareSurveyModal === 'function') {
+        showShareSurveyModal({
+            clientName: clientName || 'Cliente',
+            message: msg,
+            phone: phone
+        });
+    } else {
+        prompt("Copia este mensaje de contacto:", msg);
+    }
+};
+
