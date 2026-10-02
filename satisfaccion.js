@@ -41,13 +41,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch(e) {}
 
+    // Sync button logic
+    const syncBtn = document.getElementById('btn-sync-login');
+    if (syncBtn) {
+        syncBtn.addEventListener('click', () => {
+            if (!auth) return alert("Firebase no está configurado.");
+            if (currentUser && !currentUser.isAnonymous) {
+                if (confirm("¿Deseas cerrar sesión?")) {
+                    auth.signOut().then(() => {
+                        window.location.href = "hub.html";
+                    });
+                }
+            } else {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider).catch(e => {
+                    console.error("Login popup error:", e);
+                });
+            }
+        });
+    }
+
     auth.onAuthStateChanged(user => {
-        if (user) {
+        const syncText = document.getElementById('sync-text');
+        const syncIcon = document.getElementById('sync-icon');
+        const syncBtn = document.getElementById('btn-sync-login');
+
+        if (user && !user.isAnonymous) {
             currentUser = user;
+            if (syncText) syncText.innerText = user.email;
+            if (syncIcon) syncIcon.innerText = '🟢';
+            if (syncBtn) {
+                syncBtn.classList.remove('btn-primary-outline');
+                syncBtn.classList.add('btn-secondary');
+            }
+            loadFeedbackData();
+        } else if (user && user.isAnonymous) {
+            currentUser = user;
+            if (syncText) syncText.innerText = "Modo Anónimo";
+            if (syncIcon) syncIcon.innerText = '☁️';
             loadFeedbackData();
         } else {
+            if (syncText) syncText.innerText = "Ingresar para Sync";
+            if (syncIcon) syncIcon.innerText = '☁️';
+            if (syncBtn) {
+                syncBtn.classList.add('btn-primary-outline');
+                syncBtn.classList.remove('btn-secondary');
+            }
             // Attempt anonymous fallback if needed
-            auth.signInAnonymously().then(() => {
+            auth.signInAnonymously().then(cred => {
+                currentUser = cred.user;
                 loadFeedbackData();
             }).catch(() => {
                 alert("Debes iniciar sesión para visualizar las métricas administrativas.");

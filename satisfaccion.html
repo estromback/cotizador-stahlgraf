@@ -20,10 +20,12 @@
     <link rel="stylesheet" href="styles.css">
 
     <style>
+        body { margin: 0; padding: 0; min-height: 100vh; }
+        
         .satisfaction-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 30px 20px 80px;
+            padding: 0 20px 80px;
         }
 
         .page-header {
@@ -368,18 +370,36 @@
 </head>
 <body>
 
-    <div class="satisfaction-container">
+    <!-- Header Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <a href="hub.html" style="display: flex; align-items: center; gap: 15px; text-decoration: none; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+                    <img src="logo.png" alt="Stahlgraf Logo" style="height: 120px; object-fit: contain;" onerror="this.style.display='none'">
+                    <h1 class="logo" style="margin: 0;"> <span>Satisfacción</span></h1>
+                </a>
+                <span class="app-version-badge" style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 4px 8px; border-radius: 6px; font-weight: 600; border: 1px solid rgba(59, 130, 246, 0.3);"></span>
+            </div>
+            <div class="nav-actions" style="display: flex; gap: 10px; align-items: center;">
+                <button id="btn-sync-login" class="btn btn-primary-outline" style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 6px 12px;">
+                    <span id="sync-icon">☁️</span>
+                    <span id="sync-text">Ingresar para Sync</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="satisfaction-container">
         
         <!-- Header -->
         <div class="page-header">
             <div class="header-title-box">
-                <h1>⭐ Satisfacción & Calidad</h1>
-                <p>Monitoreo continuo de experiencia del cliente, alertas de post-venta y desempeño técnico</p>
-            </div>
-            <div class="header-actions">
-                <a href="hub.html" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-                    ← Volver al Hub
-                </a>
+                <h2 style="margin: 0 0 6px 0; font-size: 1.6rem; color: #fff; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                    <span>⭐ Control de Satisfacción & Calidad</span>
+                </h2>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
+                    Monitoreo continuo de experiencia del cliente, alertas preventivas y desempeño técnico
+                </p>
             </div>
         </div>
 
@@ -510,8 +530,7 @@
                 </div>
             </div>
         </div>
-
-    </div>
+    </main>
 
     <!-- Modal for Resolving Detractor Alert -->
     <div class="custom-modal" id="modal-resolve-alert">
