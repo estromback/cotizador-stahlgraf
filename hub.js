@@ -332,9 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
             openCardModal(null, todayStr);
         });
     }
-    if (document.getElementById('cal-btn-sync-calendar')) {
-        document.getElementById('cal-btn-sync-calendar').addEventListener('click', openSyncCalendarModal);
-    }
     if (document.getElementById('btn-close-sync-modal')) {
         document.getElementById('btn-close-sync-modal').addEventListener('click', closeSyncCalendarModal);
     }
