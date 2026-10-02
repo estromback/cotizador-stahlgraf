@@ -182,6 +182,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Comments
     document.getElementById('btn-add-comment').addEventListener('click', addComment);
+    const commentInput = document.getElementById('new-comment-text');
+    if (commentInput) {
+        commentInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addComment();
+            }
+        });
+    }
 });
 
 function getColumns() {
@@ -566,6 +575,15 @@ async function saveCard() {
 
     if (!client) return alert("Ingresa un cliente o título.");
 
+    const commentInput = document.getElementById('new-comment-text');
+    const pendingComment = commentInput ? commentInput.value.trim() : '';
+
+    // If an inline comment was being edited, save it as well
+    const inlineSaveBtn = document.querySelector('.save-edit-btn');
+    if (inlineSaveBtn) {
+        try { inlineSaveBtn.click(); } catch(e) {}
+    }
+
     const btn = document.getElementById('btn-save-card');
     btn.disabled = true;
     btn.innerText = 'Guardando...';
@@ -577,14 +595,43 @@ async function saveCard() {
         };
 
         const activeUid = getActiveUid();
+        const now = new Date();
+        const dateStr = now.toLocaleString();
+
         if (id) {
+            if (pendingComment) {
+                payload.comments = firebase.firestore.FieldValue.arrayUnion({
+                    text: pendingComment,
+                    date: dateStr
+                });
+            }
             await db.collection('users').doc(activeUid).collection('crm').doc(id).update(payload);
+
+            const existingCard = crmCards.find(c => c.id === id);
+            if (existingCard) {
+                Object.assign(existingCard, { client, phone, email, column, balanceDue, date, time, desc });
+                if (pendingComment) {
+                    if (!existingCard.comments) existingCard.comments = [];
+                    existingCard.comments.push({ text: pendingComment, date: dateStr });
+                }
+            }
         } else {
             payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-            payload.comments = [];
+            if (pendingComment) {
+                payload.comments = [{
+                    text: pendingComment,
+                    date: dateStr
+                }];
+            } else {
+                payload.comments = [];
+            }
             await db.collection('users').doc(activeUid).collection('crm').add(payload);
         }
         
+        if (commentInput) {
+            commentInput.value = '';
+        }
+
         // Auto-save client to directory
         saveClientToDirectorySilently(client, phone, email);
 
@@ -636,7 +683,10 @@ async function addComment() {
     const text = textInput.value.trim();
     if (!text) return;
     const cardId = document.getElementById('card-id').value;
-    if (!cardId) return;
+    if (!cardId) {
+        alert("Debes guardar el registro nuevo antes de agregar comentarios.");
+        return;
+    }
 
     const btn = document.getElementById('btn-add-comment');
     btn.disabled = true;
@@ -654,16 +704,24 @@ async function addComment() {
         });
         
         textInput.value = '';
-        const commentsList = document.getElementById('card-comments-list');
-        if (commentsList.innerHTML.includes('No hay comentarios aún')) commentsList.innerHTML = '';
         
-        const cDiv = document.createElement('div');
-        cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-        cDiv.style.paddingBottom = '5px';
-        cDiv.style.marginBottom = '5px';
-        cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${dateStr}</span><p style="margin: 3px 0; font-size: 0.9rem; white-space: pre-wrap;">${text}</p>`;
-        commentsList.appendChild(cDiv);
-        commentsList.scrollTop = commentsList.scrollHeight;
+        const card = crmCards.find(c => c.id === cardId);
+        if (card) {
+            if (!card.comments) card.comments = [];
+            card.comments.push({ text: text, date: dateStr });
+            renderModalComments(card);
+        } else {
+            const commentsList = document.getElementById('card-comments-list');
+            if (commentsList.innerHTML.includes('No hay comentarios aún')) commentsList.innerHTML = '';
+            
+            const cDiv = document.createElement('div');
+            cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+            cDiv.style.paddingBottom = '5px';
+            cDiv.style.marginBottom = '5px';
+            cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${dateStr}</span><p style="margin: 3px 0; font-size: 0.9rem; white-space: pre-wrap;">${text}</p>`;
+            commentsList.appendChild(cDiv);
+            commentsList.scrollTop = commentsList.scrollHeight;
+        }
 
     } catch (e) {
         console.error(e);
