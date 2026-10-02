@@ -469,8 +469,19 @@ async function syncReportToCRM(reportData, reportId, correlative) {
     }
 }
 
+function downloadBlob(blob, filename) {
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+}
 
-async function generatePDF() {
+async function generatePDF(isShare = false) {
+    const shouldShare = isShare === true;
     const clientName = document.getElementById('client-name').value.trim();
     if (!clientName) {
         return alert("Por favor ingresa al menos el Nombre del Cliente antes de generar el PDF.");
@@ -519,7 +530,7 @@ async function generatePDF() {
 
         const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
         let shared = false;
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        if (shouldShare && navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
                await navigator.share({
                    title: 'Informe de Inspección Stahlgraf',
@@ -533,7 +544,7 @@ async function generatePDF() {
         }
         
         if (!shared) {
-            await worker.save();
+            downloadBlob(pdfBlob, opt.filename);
         }
 
         // Auto-save silently to the cloud (which triggers directory save and CRM sync) in the background

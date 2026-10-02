@@ -1119,8 +1119,20 @@ window.deleteChemical = function(id) {
     }
 };
 
+function downloadBlob(blob, filename) {
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+}
+
 // PDF Generation & Web Share
-async function generatePDF() {
+async function generatePDF(isShare = false) {
+    const shouldShare = isShare === true;
     const name = document.getElementById('client-name').value;
     if(!name) {
         alert("Por favor ingresa al menos el nombre del cliente para exportar.");
@@ -1131,7 +1143,8 @@ async function generatePDF() {
     if (!currentQuoteId && loadedCorrelative === null) {
         loadedCorrelative = appData.correlative;
         appData.correlative++;
-        document.getElementById('setting-correlative').value = appData.correlative;
+        const corrEl = document.getElementById('setting-correlative');
+        if (corrEl) corrEl.value = appData.correlative;
         saveData();
     }
 
@@ -1176,7 +1189,7 @@ async function generatePDF() {
 
         const file = new File([pdfBlob], opt.filename, { type: 'application/pdf' });
         let shared = false;
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        if (shouldShare && navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
                await navigator.share({
                    title: 'Cotización Stahlgraf',
@@ -1190,7 +1203,7 @@ async function generatePDF() {
         }
         
         if (!shared) {
-            await worker.save();
+            downloadBlob(pdfBlob, opt.filename);
         }
 
         // Save to cloud and upload to storage asynchronously in the background
@@ -1295,7 +1308,8 @@ async function saveQuote(silent = false) {
             if (loadedCorrelative === null) {
                 loadedCorrelative = appData.correlative;
                 appData.correlative++;
-                document.getElementById('setting-correlative').value = appData.correlative;
+                const corrEl = document.getElementById('setting-correlative');
+                if (corrEl) corrEl.value = appData.correlative;
                 saveData();
             }
             quoteData.correlative = loadedCorrelative;
@@ -1497,7 +1511,7 @@ window.resendWhatsAppFromDB = async function(id) {
     window.loadQuoteFromDB(id, true);
     // Allow DOM to process the changes immediately before generating PDF
     setTimeout(async () => {
-        await generatePDF();
+        await generatePDF(true);
     }, 200);
 };
 // --- Client Directory Management ---
