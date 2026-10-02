@@ -542,6 +542,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     await db.collection('users').doc(getActiveUid()).collection('services').doc(servicePayload.id).set(servicePayload);
                 }
                 
+                if (typeof window.logSystemActivity === 'function') {
+                    window.logSystemActivity({
+                        actionType: 'service_created',
+                        category: 'services',
+                        summary: `Registró servicio "${servicePayload.type}" (${servicePayload.technician}, $${(servicePayload.price || 0).toLocaleString('es-CL')}) para "${clientName}"`,
+                        details: { type: servicePayload.type, date: servicePayload.date, price: servicePayload.price, technician: servicePayload.technician, notes: servicePayload.notes },
+                        clientName: clientName,
+                        clientId: clientId,
+                        serviceId: servicePayload.id
+                    });
+                }
+                
                 if (technician) {
                     localStorage.setItem('last_technician', technician);
                 }
@@ -1335,6 +1347,8 @@ async function moveCardDate(cardId, newDate) {
     const card = crmCards.find(c => c.id === cardId);
     if (!card || card.date === newDate) return;
     
+    const oldDate = card.date;
+
     // Optimistic UI update
     card.date = newDate;
     card._lastLocalEdit = Date.now();
@@ -1345,6 +1359,18 @@ async function moveCardDate(cardId, newDate) {
             date: newDate,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+
+        // Track date change activity (Asana style)
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: 'date_changed',
+                category: 'dates',
+                summary: `Reprogramó la fecha de seguimiento a ${newDate || 'Sin fecha'} para "${card.client}"`,
+                details: { previousDate: oldDate || 'Sin fecha', newDate: newDate || 'Sin fecha' },
+                clientName: card.client,
+                cardId: card.id
+            });
+        }
 
         // Real-time Google Calendar sync
         if (appData.googleAutoSync && typeof syncCardToGoogleCalendar === 'function') {
@@ -2534,25 +2560,80 @@ async function saveCard() {
         };
 
         const activeUid = getActiveUid();
+        const userInfo = typeof window.getCurrentUserInfo === 'function' ? window.getCurrentUserInfo() : { email: currentUser.email, displayName: currentUser.email.split('@')[0], role: 'tech', roleLabel: 'Técnico' };
         const now = new Date();
-        const dateStr = now.toLocaleString();
+        const dateStr = now.toLocaleDateString('es-CL') + ' ' + now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+
+        const commentObj = pendingComment ? {
+            text: pendingComment,
+            date: dateStr,
+            timestamp: now.getTime(),
+            authorEmail: userInfo.email,
+            authorName: userInfo.displayName,
+            authorRole: userInfo.role,
+            authorRoleLabel: userInfo.roleLabel
+        } : null;
         
         if (id) {
-            if (pendingComment) {
-                payload.comments = firebase.firestore.FieldValue.arrayUnion({
-                    text: pendingComment,
-                    date: dateStr
-                });
+            const existingCard = crmCards.find(c => c.id === id);
+            const oldDate = existingCard ? existingCard.date : null;
+            const oldCol = existingCard ? existingCard.column : null;
+
+            if (commentObj) {
+                payload.comments = firebase.firestore.FieldValue.arrayUnion(commentObj);
             }
             await db.collection('users').doc(activeUid).collection('crm').doc(id).update(payload);
 
-            const existingCard = crmCards.find(c => c.id === id);
             if (existingCard) {
                 Object.assign(existingCard, { client, phone, email, column, balanceDue, date, time, desc });
                 existingCard._lastLocalEdit = Date.now();
-                if (pendingComment) {
+                if (commentObj) {
                     if (!existingCard.comments) existingCard.comments = [];
-                    existingCard.comments.push({ text: pendingComment, date: dateStr });
+                    existingCard.comments.push(commentObj);
+                }
+            }
+
+            // Track changes in Activity Log
+            if (typeof window.logSystemActivity === 'function') {
+                if (oldDate !== date) {
+                    window.logSystemActivity({
+                        actionType: 'date_changed',
+                        category: 'dates',
+                        summary: `Cambió la fecha de seguimiento a ${date || 'Sin fecha'} para "${client}"`,
+                        details: { previousDate: oldDate || 'Sin fecha', newDate: date || 'Sin fecha' },
+                        clientName: client,
+                        cardId: id
+                    });
+                }
+                if (oldCol && oldCol !== column) {
+                    window.logSystemActivity({
+                        actionType: 'crm_stage_changed',
+                        category: 'crm',
+                        summary: `Movió "${client}" de "${oldCol}" a "${column}"`,
+                        details: { fromCol: oldCol, toCol: column },
+                        clientName: client,
+                        cardId: id
+                    });
+                }
+                if (oldDate === date && (!oldCol || oldCol === column)) {
+                    window.logSystemActivity({
+                        actionType: 'crm_updated',
+                        category: 'crm',
+                        summary: `Actualizó datos del trato CRM para "${client}"`,
+                        details: { client, column, phone, email, balanceDue, desc },
+                        clientName: client,
+                        cardId: id
+                    });
+                }
+                if (commentObj) {
+                    window.logSystemActivity({
+                        actionType: 'comment_added',
+                        category: 'comments',
+                        summary: `Agregó un comentario en "${client}"`,
+                        details: { textSnippet: pendingComment.substring(0, 80) },
+                        clientName: client,
+                        cardId: id
+                    });
                 }
             }
 
@@ -2564,16 +2645,34 @@ async function saveCard() {
         } else {
             payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
             payload._lastLocalEdit = Date.now();
-            if (pendingComment) {
-                payload.comments = [{
-                    text: pendingComment,
-                    date: dateStr
-                }];
+            if (commentObj) {
+                payload.comments = [commentObj];
             } else {
                 payload.comments = [];
             }
             const newDocRef = await db.collection('users').doc(activeUid).collection('crm').add(payload);
             payload.id = newDocRef.id;
+
+            if (typeof window.logSystemActivity === 'function') {
+                window.logSystemActivity({
+                    actionType: 'crm_created',
+                    category: 'crm',
+                    summary: `Creó un nuevo trato CRM para "${client}" (Etapa: ${column})`,
+                    details: { client, column, date, phone, email, balanceDue },
+                    clientName: client,
+                    cardId: payload.id
+                });
+                if (commentObj) {
+                    window.logSystemActivity({
+                        actionType: 'comment_added',
+                        category: 'comments',
+                        summary: `Agregó un comentario en "${client}"`,
+                        details: { textSnippet: pendingComment.substring(0, 80) },
+                        clientName: client,
+                        cardId: payload.id
+                    });
+                }
+            }
 
             // Real-time Google Calendar sync
             if (appData.googleAutoSync && date && typeof syncCardToGoogleCalendar === 'function') {
@@ -2609,6 +2708,17 @@ async function deleteCard() {
             await db.collection('users').doc(getActiveUid()).collection('crm').doc(id).delete();
             closeCardModal();
 
+            if (typeof window.logSystemActivity === 'function' && cardToDelete) {
+                window.logSystemActivity({
+                    actionType: 'crm_deleted',
+                    category: 'crm',
+                    summary: `Eliminó el trato CRM de "${cardToDelete.client}" (Etapa: ${cardToDelete.column})`,
+                    details: { client: cardToDelete.client, column: cardToDelete.column, date: cardToDelete.date },
+                    clientName: cardToDelete.client,
+                    cardId: id
+                });
+            }
+
             // Real-time Google Calendar sync
             if (cardToDelete && cardToDelete.googleEventId && typeof deleteCardFromGoogleCalendar === 'function') {
                 deleteCardFromGoogleCalendar(cardToDelete);
@@ -2636,14 +2746,22 @@ async function addComment() {
     btn.disabled = true;
     
     try {
+        const userInfo = typeof window.getCurrentUserInfo === 'function' ? window.getCurrentUserInfo() : { email: currentUser.email, displayName: currentUser.email.split('@')[0], role: 'tech', roleLabel: 'Técnico' };
         const now = new Date();
-        const dateStr = now.toLocaleString();
+        const dateStr = now.toLocaleDateString('es-CL') + ' ' + now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+
+        const commentObj = {
+            text: text,
+            date: dateStr,
+            timestamp: now.getTime(),
+            authorEmail: userInfo.email,
+            authorName: userInfo.displayName,
+            authorRole: userInfo.role,
+            authorRoleLabel: userInfo.roleLabel
+        };
         
         await db.collection('users').doc(getActiveUid()).collection('crm').doc(cardId).update({
-            comments: firebase.firestore.FieldValue.arrayUnion({
-                text: text,
-                date: dateStr
-            }),
+            comments: firebase.firestore.FieldValue.arrayUnion(commentObj),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
@@ -2652,19 +2770,19 @@ async function addComment() {
         const card = crmCards.find(c => c.id === cardId);
         if (card) {
             if (!card.comments) card.comments = [];
-            card.comments.push({ text: text, date: dateStr });
+            card.comments.push(commentObj);
             renderModalComments(card);
-        } else {
-            const commentsList = document.getElementById('card-comments-list');
-            if (commentsList.innerHTML.includes('No hay comentarios aún')) commentsList.innerHTML = '';
-            
-            const cDiv = document.createElement('div');
-            cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-            cDiv.style.paddingBottom = '5px';
-            cDiv.style.marginBottom = '5px';
-            cDiv.innerHTML = `<span style="font-size: 0.8rem; color: #aaa;">${dateStr}</span><p style="margin: 3px 0; font-size: 0.9rem; white-space: pre-wrap;">${text}</p>`;
-            commentsList.appendChild(cDiv);
-            commentsList.scrollTop = commentsList.scrollHeight;
+        }
+
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: 'comment_added',
+                category: 'comments',
+                summary: `Agregó un comentario en "${card ? card.client : 'Trato CRM'}"`,
+                details: { textSnippet: text.length > 80 ? text.substring(0, 80) + '...' : text },
+                clientName: card ? card.client : '',
+                cardId: cardId
+            });
         }
     } catch(e) {
         console.error(e);
@@ -2685,70 +2803,85 @@ function renderModalComments(card) {
 
     card.comments.forEach((c, index) => {
         const cDiv = document.createElement('div');
-        cDiv.className = 'comment-item';
-        cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-        cDiv.style.paddingBottom = '5px';
-        cDiv.style.marginBottom = '8px';
-        cDiv.style.display = 'flex';
-        cDiv.style.justifyContent = 'space-between';
-        cDiv.style.alignItems = 'flex-start';
-        cDiv.style.gap = '10px';
-        
+        cDiv.className = 'asana-comment-item';
+        cDiv.style.marginBottom = '10px';
+
+        const authorName = c.authorName || (c.authorEmail ? c.authorEmail.split('@')[0].replace(/[._\-]/g, ' ') : 'Usuario');
+        const authorRole = c.authorRole || 'tech';
+        const authorRoleLabel = c.authorRoleLabel || (authorRole === 'admin' ? 'Admin' : (authorRole === 'client' ? 'Cliente' : 'Técnico'));
+        let initials = 'U';
+        if (authorName && authorName !== 'Usuario') {
+            const parts = authorName.trim().split(/\s+/);
+            initials = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+        } else {
+            initials = '💬';
+        }
+        const timeAgoStr = typeof window.formatTimeAgo === 'function' ? window.formatTimeAgo(c.timestamp || c.date) : (c.date || '-');
+
         cDiv.innerHTML = `
-            <div class="comment-content-view" style="flex: 1;">
-                <span style="font-size: 0.78rem; color: #aaa; display: block; margin-bottom: 2px;">${c.date}</span>
-                <p style="margin: 0; font-size: 0.9rem; white-space: pre-wrap; color: #cbd5e1;">${c.text}</p>
+            <div class="asana-comment-header">
+                <div class="asana-author-left">
+                    <div class="user-avatar-circle ${authorRole}" style="width: 24px; height: 24px; font-size: 0.7rem;">${initials}</div>
+                    <strong class="asana-author-name" style="font-size: 0.85rem;">${authorName}</strong>
+                    <span class="user-role-badge ${authorRole}">${authorRoleLabel}</span>
+                    <span class="asana-comment-time" title="${c.date || ''}">• ${timeAgoStr}</span>
+                </div>
+                <div class="asana-comment-actions">
+                    <a href="#" class="edit-comment-link" style="color: #60a5fa;">Editar</a>
+                    <span style="color: rgba(255,255,255,0.2);">|</span>
+                    <a href="#" class="delete-comment-link" style="color: #f87171;">Borrar</a>
+                </div>
             </div>
-            <div class="comment-actions" style="display: flex; gap: 8px; font-size: 0.78rem; align-items: center; padding-top: 2px;">
-                <a href="#" class="edit-comment-link" style="color: #60a5fa; text-decoration: none; font-weight: 500;">Editar</a>
-                <span style="color: rgba(255,255,255,0.2);">|</span>
-                <a href="#" class="delete-comment-link" style="color: #f87171; text-decoration: none; font-weight: 500;">Borrar</a>
-            </div>
+            <p class="asana-comment-body" style="padding-left: 32px; font-size: 0.88rem; color: #cbd5e1;">${(c.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
         `;
 
         const editLink = cDiv.querySelector('.edit-comment-link');
         const deleteLink = cDiv.querySelector('.delete-comment-link');
 
-        editLink.onclick = (e) => {
-            e.preventDefault();
-            cDiv.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
-                    <span style="font-size: 0.78rem; color: #aaa;">Editando comentario de ${c.date}</span>
-                    <textarea class="edit-comment-textarea" style="width: 100%; min-height: 60px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; padding: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical; outline: none;"></textarea>
-                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                        <button class="btn btn-secondary btn-sm cancel-edit-btn" style="padding: 2px 8px; font-size: 0.75rem; background: transparent; border-color: transparent; color: #aaa;">Cancelar</button>
-                        <button class="btn btn-primary btn-sm save-edit-btn" style="padding: 2px 10px; font-size: 0.75rem;">Guardar</button>
+        if (editLink) {
+            editLink.onclick = (e) => {
+                e.preventDefault();
+                cDiv.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                        <span style="font-size: 0.78rem; color: #aaa;">Editando comentario de ${c.date}</span>
+                        <textarea class="edit-comment-textarea" style="width: 100%; min-height: 60px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; padding: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical; outline: none;"></textarea>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <button class="btn btn-secondary btn-sm cancel-edit-btn" style="padding: 2px 8px; font-size: 0.75rem; background: transparent; border-color: transparent; color: #aaa;">Cancelar</button>
+                            <button class="btn btn-primary btn-sm save-edit-btn" style="padding: 2px 10px; font-size: 0.75rem;">Guardar</button>
+                        </div>
                     </div>
-                </div>
-            `;
-            const textarea = cDiv.querySelector('.edit-comment-textarea');
-            textarea.value = c.text;
-            textarea.focus();
+                `;
+                const textarea = cDiv.querySelector('.edit-comment-textarea');
+                textarea.value = c.text;
+                textarea.focus();
 
-            cDiv.querySelector('.cancel-edit-btn').onclick = (ev) => {
-                ev.preventDefault();
-                renderModalComments(card);
+                cDiv.querySelector('.cancel-edit-btn').onclick = (ev) => {
+                    ev.preventDefault();
+                    renderModalComments(card);
+                };
+
+                cDiv.querySelector('.save-edit-btn').onclick = async (ev) => {
+                    ev.preventDefault();
+                    const newText = textarea.value.trim();
+                    if (!newText) return;
+                    
+                    await updateCardComment(card.id, index, newText);
+                    card.comments[index].text = newText;
+                    renderModalComments(card);
+                };
             };
+        }
 
-            cDiv.querySelector('.save-edit-btn').onclick = async (ev) => {
-                ev.preventDefault();
-                const newText = textarea.value.trim();
-                if (!newText) return;
-                
-                await updateCardComment(card.id, index, newText);
-                card.comments[index].text = newText;
-                renderModalComments(card);
+        if (deleteLink) {
+            deleteLink.onclick = async (e) => {
+                e.preventDefault();
+                if (confirm("¿Seguro que deseas eliminar este comentario?")) {
+                    await deleteCardComment(card.id, index);
+                    card.comments.splice(index, 1);
+                    renderModalComments(card);
+                }
             };
-        };
-
-        deleteLink.onclick = async (e) => {
-            e.preventDefault();
-            if (confirm("¿Seguro que deseas eliminar este comentario?")) {
-                await deleteCardComment(card.id, index);
-                card.comments.splice(index, 1);
-                renderModalComments(card);
-            }
-        };
+        }
 
         commentsList.appendChild(cDiv);
     });
@@ -2768,6 +2901,17 @@ async function updateCardComment(cardId, index, newText) {
             comments: updatedComments,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: 'comment_edited',
+                category: 'comments',
+                summary: `Editó un comentario en "${card ? card.client : 'Trato CRM'}"`,
+                details: { textSnippet: newText.substring(0, 80) },
+                clientName: card ? card.client : '',
+                cardId: cardId
+            });
+        }
     } catch (e) {
         console.error(e);
         alert("Error al actualizar el comentario.");
@@ -2780,13 +2924,24 @@ async function deleteCardComment(cardId, index) {
     if (!card || !card.comments || !card.comments[index]) return;
 
     const updatedComments = [...card.comments];
-    updatedComments.splice(index, 1);
+    const removed = updatedComments.splice(index, 1);
 
     try {
         await db.collection('users').doc(getActiveUid()).collection('crm').doc(cardId).update({
             comments: updatedComments,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: 'comment_deleted',
+                category: 'comments',
+                summary: `Eliminó un comentario en "${card ? card.client : 'Trato CRM'}"`,
+                details: { textSnippet: removed[0] ? (removed[0].text || '').substring(0, 80) : '' },
+                clientName: card ? card.client : '',
+                cardId: cardId
+            });
+        }
     } catch (e) {
         console.error(e);
         alert("Error al eliminar el comentario.");

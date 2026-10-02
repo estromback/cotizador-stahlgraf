@@ -308,6 +308,7 @@ function saveClient() {
         name, attention, phone, email, address
     };
 
+    const isEdit = !!id;
     if (id) {
         const idx = appData.clients.findIndex(c => c.id === id);
         if (idx > -1) appData.clients[idx] = payload;
@@ -323,6 +324,17 @@ function saveClient() {
     saveData();
     renderClients();
     closeModal();
+
+    if (typeof window.logSystemActivity === 'function') {
+        window.logSystemActivity({
+            actionType: isEdit ? 'client_updated' : 'client_created',
+            category: 'clients',
+            summary: `${isEdit ? 'Actualizó datos de' : 'Registró nuevo cliente'} "${name}"`,
+            details: { name, attention, phone, email, address },
+            clientName: name,
+            clientId: payload.id
+        });
+    }
 }
 
 async function deleteClientCascading(id) {
@@ -330,6 +342,17 @@ async function deleteClientCascading(id) {
     if (!client) return;
 
     if (!confirm(`¿Estás seguro de eliminar a "${client.name}" del directorio de clientes?`)) return;
+
+    if (typeof window.logSystemActivity === 'function') {
+        window.logSystemActivity({
+            actionType: 'client_deleted',
+            category: 'clients',
+            summary: `Eliminó al cliente "${client.name}" del directorio`,
+            details: { name: client.name, address: client.address, phone: client.phone },
+            clientName: client.name,
+            clientId: id
+        });
+    }
 
     let cascade = false;
     if (currentUser && db) {
@@ -666,6 +689,10 @@ function renderActiveHistoryTab() {
         renderReportsTab();
     } else if (targetId === 'history-tab-crm') {
         renderCrmTab();
+    } else if (targetId === 'history-tab-audit') {
+        if (typeof window.renderClientAuditTimeline === 'function') {
+            window.renderClientAuditTimeline('hist-client-audit-container', activeHistoryClientName);
+        }
     }
 }
 
@@ -1148,73 +1175,85 @@ function renderCrmTab() {
         } else {
             comments.forEach((c, index) => {
                 const cDiv = document.createElement('div');
-                cDiv.className = 'comment-item';
-                cDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
-                cDiv.style.paddingBottom = '8px';
-                cDiv.style.marginBottom = '8px';
-                cDiv.style.display = 'flex';
-                cDiv.style.justifyContent = 'space-between';
-                cDiv.style.alignItems = 'flex-start';
-                cDiv.style.gap = '10px';
+                cDiv.className = 'asana-comment-item';
+                cDiv.style.marginBottom = '10px';
+
+                const authorName = c.authorName || (c.authorEmail ? c.authorEmail.split('@')[0].replace(/[._\-]/g, ' ') : 'Nota Interna CRM');
+                const authorRole = c.authorRole || 'tech';
+                const authorRoleLabel = c.authorRoleLabel || (authorRole === 'admin' ? 'Admin' : (authorRole === 'client' ? 'Cliente' : 'Técnico'));
+                let initials = 'U';
+                if (authorName && authorName !== 'Nota Interna CRM') {
+                    const parts = authorName.trim().split(/\s+/);
+                    initials = parts.length > 1 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+                } else {
+                    initials = '📝';
+                }
+                const timeAgoStr = typeof window.formatTimeAgo === 'function' ? window.formatTimeAgo(c.timestamp || c.date) : (c.date || '-');
 
                 cDiv.innerHTML = `
-                    <div class="comment-content-view" style="flex: 1;">
-                        <div class="comment-header" style="display: flex; justify-content: space-between; font-size: 0.78rem; color: #aaa; margin-bottom: 2px;">
-                            <span style="font-weight: 600; color: #e2e8f0;">Nota Interna CRM</span>
-                            <span>${c.date || '-'}</span>
+                    <div class="asana-comment-header">
+                        <div class="asana-author-left">
+                            <div class="user-avatar-circle ${authorRole}" style="width: 24px; height: 24px; font-size: 0.7rem;">${initials}</div>
+                            <strong class="asana-author-name" style="font-size: 0.85rem;">${authorName}</strong>
+                            <span class="user-role-badge ${authorRole}">${authorRoleLabel}</span>
+                            <span class="asana-comment-time" title="${c.date || ''}">• ${timeAgoStr}</span>
                         </div>
-                        <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: #ccc; white-space: pre-wrap;">${c.text || ''}</p>
+                        <div class="asana-comment-actions admin-only">
+                            <a href="#" class="edit-comment-link" style="color: #60a5fa;">Editar</a>
+                            <span style="color: rgba(255,255,255,0.2);">|</span>
+                            <a href="#" class="delete-comment-link" style="color: #f87171;">Borrar</a>
+                        </div>
                     </div>
-                    <div class="comment-actions admin-only" style="display: flex; gap: 8px; font-size: 0.78rem; align-items: center; padding-top: 2px;">
-                        <a href="#" class="edit-comment-link" style="color: #60a5fa; text-decoration: none; font-weight: 500;">Editar</a>
-                        <span style="color: rgba(255,255,255,0.2);">|</span>
-                        <a href="#" class="delete-comment-link" style="color: #f87171; text-decoration: none; font-weight: 500;">Borrar</a>
-                    </div>
+                    <p class="asana-comment-body" style="padding-left: 32px; font-size: 0.88rem; color: #cbd5e1;">${(c.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
                 `;
 
                 const editLink = cDiv.querySelector('.edit-comment-link');
                 const deleteLink = cDiv.querySelector('.delete-comment-link');
 
-                editLink.onclick = (e) => {
-                    e.preventDefault();
-                    cDiv.innerHTML = `
-                        <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
-                            <span style="font-size: 0.78rem; color: #aaa;">Editando nota de CRM (${c.date})</span>
-                            <textarea class="edit-comment-textarea" style="width: 100%; min-height: 60px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; padding: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical; outline: none;"></textarea>
-                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                <button class="btn btn-secondary btn-sm cancel-edit-btn" style="padding: 2px 8px; font-size: 0.75rem; background: transparent; border-color: transparent; color: #aaa;">Cancelar</button>
-                                <button class="btn btn-primary btn-sm save-edit-btn" style="padding: 2px 10px; font-size: 0.75rem;">Guardar</button>
+                if (editLink) {
+                    editLink.onclick = (e) => {
+                        e.preventDefault();
+                        cDiv.innerHTML = `
+                            <div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
+                                <span style="font-size: 0.78rem; color: #aaa;">Editando nota de CRM (${c.date})</span>
+                                <textarea class="edit-comment-textarea" style="width: 100%; min-height: 60px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 6px; padding: 8px; font-family: inherit; font-size: 0.9rem; resize: vertical; outline: none;"></textarea>
+                                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                    <button class="btn btn-secondary btn-sm cancel-edit-btn" style="padding: 2px 8px; font-size: 0.75rem; background: transparent; border-color: transparent; color: #aaa;">Cancelar</button>
+                                    <button class="btn btn-primary btn-sm save-edit-btn" style="padding: 2px 10px; font-size: 0.75rem;">Guardar</button>
+                                </div>
                             </div>
-                        </div>
-                    `;
-                    const textarea = cDiv.querySelector('.edit-comment-textarea');
-                    textarea.value = c.text;
-                    textarea.focus();
+                        `;
+                        const textarea = cDiv.querySelector('.edit-comment-textarea');
+                        textarea.value = c.text;
+                        textarea.focus();
 
-                    cDiv.querySelector('.cancel-edit-btn').onclick = (ev) => {
-                        ev.preventDefault();
-                        renderCrmTab();
+                        cDiv.querySelector('.cancel-edit-btn').onclick = (ev) => {
+                            ev.preventDefault();
+                            renderCrmTab();
+                        };
+
+                        cDiv.querySelector('.save-edit-btn').onclick = async (ev) => {
+                            ev.preventDefault();
+                            const newText = textarea.value.trim();
+                            if (!newText) return;
+                            
+                            await updateHistoryCrmComment(currentClientCrmCard.id, index, newText);
+                            currentClientCrmCard.comments[index].text = newText;
+                            renderCrmTab();
+                        };
                     };
+                }
 
-                    cDiv.querySelector('.save-edit-btn').onclick = async (ev) => {
-                        ev.preventDefault();
-                        const newText = textarea.value.trim();
-                        if (!newText) return;
-                        
-                        await updateHistoryCrmComment(currentClientCrmCard.id, index, newText);
-                        currentClientCrmCard.comments[index].text = newText;
-                        renderCrmTab();
+                if (deleteLink) {
+                    deleteLink.onclick = async (e) => {
+                        e.preventDefault();
+                        if (confirm("¿Seguro que deseas eliminar esta nota de CRM?")) {
+                            await deleteHistoryCrmComment(currentClientCrmCard.id, index);
+                            currentClientCrmCard.comments.splice(index, 1);
+                            renderCrmTab();
+                        }
                     };
-                };
-
-                deleteLink.onclick = async (e) => {
-                    e.preventDefault();
-                    if (confirm("¿Seguro que deseas eliminar esta nota de CRM?")) {
-                        await deleteHistoryCrmComment(currentClientCrmCard.id, index);
-                        currentClientCrmCard.comments.splice(index, 1);
-                        renderCrmTab();
-                    }
-                };
+                }
 
                 commentsList.appendChild(cDiv);
             });
@@ -1239,6 +1278,17 @@ async function updateHistoryCrmComment(cardId, index, newText) {
             comments: updatedComments,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: 'comment_edited',
+                category: 'comments',
+                summary: `Editó un comentario en "${currentClientCrmCard.client || activeHistoryClientName}"`,
+                details: { textSnippet: newText.substring(0, 80) },
+                clientName: currentClientCrmCard.client || activeHistoryClientName,
+                cardId: cardId
+            });
+        }
     } catch (e) {
         console.error(e);
         alert("Error al actualizar el comentario.");
@@ -1251,12 +1301,23 @@ async function deleteHistoryCrmComment(cardId, index) {
     try {
         const docRef = db.collection('users').doc(activeUid).collection('crm').doc(cardId);
         const updatedComments = [...currentClientCrmCard.comments];
-        updatedComments.splice(index, 1);
+        const removed = updatedComments.splice(index, 1);
 
         await docRef.update({
             comments: updatedComments,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: 'comment_deleted',
+                category: 'comments',
+                summary: `Eliminó un comentario en "${currentClientCrmCard.client || activeHistoryClientName}"`,
+                details: { textSnippet: removed[0] ? (removed[0].text || '').substring(0, 80) : '' },
+                clientName: currentClientCrmCard.client || activeHistoryClientName,
+                cardId: cardId
+            });
+        }
     } catch (e) {
         console.error(e);
         alert("Error al eliminar el comentario.");
@@ -1277,23 +1338,42 @@ async function addHistoryCrmComment() {
     btn.disabled = true;
     
     try {
+        const userInfo = typeof window.getCurrentUserInfo === 'function' ? window.getCurrentUserInfo() : { email: currentUser.email, displayName: currentUser.email.split('@')[0], role: 'tech', roleLabel: 'Técnico' };
         const now = new Date();
-        const dateStr = now.toLocaleString();
+        const dateStr = now.toLocaleDateString('es-CL') + ' ' + now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
         const activeUid = getActiveUid();
+
+        const commentObj = {
+            text: text,
+            date: dateStr,
+            timestamp: now.getTime(),
+            authorEmail: userInfo.email,
+            authorName: userInfo.displayName,
+            authorRole: userInfo.role,
+            authorRoleLabel: userInfo.roleLabel
+        };
         
         await db.collection('users').doc(activeUid).collection('crm').doc(currentClientCrmCard.id).update({
-            comments: firebase.firestore.FieldValue.arrayUnion({
-                text: text,
-                date: dateStr
-            }),
+            comments: firebase.firestore.FieldValue.arrayUnion(commentObj),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         
         textInput.value = '';
         
         if (!currentClientCrmCard.comments) currentClientCrmCard.comments = [];
-        currentClientCrmCard.comments.push({ text: text, date: dateStr });
+        currentClientCrmCard.comments.push(commentObj);
         renderCrmTab();
+
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: 'comment_added',
+                category: 'comments',
+                summary: `Agregó un comentario en "${currentClientCrmCard.client || activeHistoryClientName}"`,
+                details: { textSnippet: text.length > 80 ? text.substring(0, 80) + '...' : text },
+                clientName: currentClientCrmCard.client || activeHistoryClientName,
+                cardId: currentClientCrmCard.id
+            });
+        }
         
     } catch(e) {
         console.error("Error adding comment in central history modal:", e);
@@ -1377,6 +1457,18 @@ async function saveRecordedService() {
         
         renderServicesTab();
         
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: isEdit ? 'service_updated' : 'service_created',
+                category: 'services',
+                summary: `${isEdit ? 'Modificó' : 'Registró'} servicio "${type}" (${technician || 'Técnico'}, $${priceVal.toLocaleString('es-CL')}) para "${activeHistoryClientName}"`,
+                details: { type, date, price: priceVal, technician: technician || 'No asignado', notes },
+                clientName: activeHistoryClientName,
+                clientId: activeHistoryClientId,
+                serviceId: servicePayload.id
+            });
+        }
+
         if (isEdit) {
             alert("✅ Servicio actualizado exitosamente.");
         } else {
@@ -1430,6 +1522,8 @@ window.editRecordedService = function(id) {
 async function deleteRecordedService(serviceId) {
     if (!confirm("¿Estás seguro de que deseas eliminar este registro de servicio de forma permanente?")) return;
     
+    const targetService = currentClientServices.find(s => s.id === serviceId);
+
     try {
         if (appData.services) {
             appData.services = appData.services.filter(s => s.id !== serviceId);
@@ -1443,6 +1537,18 @@ async function deleteRecordedService(serviceId) {
         
         currentClientServices = currentClientServices.filter(s => s.id !== serviceId);
         renderServicesTab();
+
+        if (typeof window.logSystemActivity === 'function' && targetService) {
+            window.logSystemActivity({
+                actionType: 'service_deleted',
+                category: 'services',
+                summary: `Eliminó el servicio "${targetService.type}" de "${activeHistoryClientName}"`,
+                details: { type: targetService.type, date: targetService.date, technician: targetService.technician },
+                clientName: activeHistoryClientName,
+                clientId: activeHistoryClientId,
+                serviceId: serviceId
+            });
+        }
         
         alert("🗑️ Servicio eliminado correctamente.");
     } catch(e) {

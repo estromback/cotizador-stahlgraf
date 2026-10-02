@@ -608,3 +608,186 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
 #clients-modal {
     z-index: 1100;
 }
+
+/* ============================================================
+   ASANA-STYLE MULTI-USER AUDIT TRAIL, ROLE BADGES & COMMENTS
+   ============================================================ */
+
+/* User Role Badges */
+.user-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+    vertical-align: middle;
+}
+.user-role-badge.admin {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+}
+.user-role-badge.tech {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.user-role-badge.client {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+/* User Avatars */
+.user-avatar-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: #fff;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    flex-shrink: 0;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.user-avatar-circle.tech {
+    background: linear-gradient(135deg, #10b981, #047857);
+}
+.user-avatar-circle.client {
+    background: linear-gradient(135deg, #f59e0b, #b45309);
+}
+
+/* Asana Comment Item */
+.asana-comment-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    transition: background 0.2s, border-color 0.2s;
+}
+.asana-comment-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+.asana-comment-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    gap: 8px;
+}
+.asana-author-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.asana-author-name {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #f1f5f9;
+}
+.asana-comment-time {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+.asana-comment-body {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #cbd5e1;
+    white-space: pre-wrap;
+    line-height: 1.45;
+    padding-left: 36px;
+}
+.asana-comment-actions {
+    display: flex;
+    gap: 8px;
+    font-size: 0.75rem;
+    align-items: center;
+}
+.asana-comment-actions a {
+    text-decoration: none;
+    font-weight: 500;
+}
+.asana-comment-actions a:hover {
+    text-decoration: underline;
+}
+
+/* In-Card Activity Item */
+.asana-activity-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 11px;
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 3px solid #3b82f6;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+    color: #cbd5e1;
+}
+.asana-activity-pill.dates { border-left-color: #3b82f6; }
+.asana-activity-pill.crm { border-left-color: #f59e0b; }
+.asana-activity-pill.services { border-left-color: #10b981; }
+.asana-activity-pill.quotes { border-left-color: #8b5cf6; }
+.asana-activity-pill.reports { border-left-color: #ec4899; }
+.asana-activity-pill.clients { border-left-color: #6366f1; }
+
+.asana-activity-pill .act-icon {
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+.asana-activity-pill strong {
+    color: #f8fafc;
+}
+.asana-activity-pill .act-time {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+/* Global Audit Modal & Timeline */
+.audit-card {
+    display: flex;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+.audit-card:hover {
+    border-color: rgba(59, 130, 246, 0.35);
+    background: rgba(255, 255, 255, 0.05);
+}
+.audit-action-chip {
+    font-size: 0.72rem;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-transform: uppercase;
+}
+.audit-action-chip.dates { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+.audit-action-chip.comments { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); }
+.audit-action-chip.crm { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.audit-action-chip.services { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+.audit-action-chip.quotes { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
+.audit-action-chip.reports { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+.audit-action-chip.clients { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }

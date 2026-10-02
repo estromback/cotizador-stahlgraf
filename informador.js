@@ -332,9 +332,12 @@ async function saveReportToCloud(silent = false) {
             nestingPlaces: document.getElementById('nesting-places').value,
             weakPoints: document.getElementById('weak-points').value,
             recommendations: document.getElementById('recommendations').value,
-            photoUrls: photoUrls,
-            timestamp: timestamp
-        };
+        const userInfo = typeof window.getCurrentUserInfo === 'function' ? window.getCurrentUserInfo() : null;
+        if (userInfo) {
+            reportData.createdBy = userInfo.email;
+            reportData.createdByName = userInfo.displayName;
+            reportData.createdByRole = userInfo.role;
+        }
 
         const activeUid = getActiveUid();
         await db.collection('users').doc(activeUid).collection('reports').doc(reportId).set(reportData);
@@ -354,6 +357,18 @@ async function saveReportToCloud(silent = false) {
         
         loadedReportCorrelative = appData.reportCorrelative;
         document.getElementById('doc-correlative').innerText = String(loadedReportCorrelative).padStart(4, '0');
+
+        // Log system activity (Asana style)
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: 'report_created',
+                category: 'reports',
+                summary: `Generó informe técnico #${String(loadedReportCorrelative || 1).padStart(4, '0')} para "${clientName}" (Técnico: ${document.getElementById('technician-name').value || 'Técnico'})`,
+                details: { reportId, clientName, technician: document.getElementById('technician-name').value, pests: selectedPests },
+                clientName: clientName,
+                reportId: reportId
+            });
+        }
 
         // Auto-guardar cliente en el directorio
         saveClientToDirectorySilently(clientName, document.getElementById('client-address').value, document.getElementById('client-phone').value, clientEmail);
@@ -747,7 +762,7 @@ async function loadHistoryUI() {
                 <div class="db-item-actions" style="display: flex; gap: 5px; align-items: center;">
                     <button class="btn btn-secondary btn-sm btn-load-historic" data-id="${doc.id}">Ver Resumen</button>
                     ${data.pdfUrl ? `<a href="#" onclick="viewPDF('${data.pdfUrl}', 'Informe_${doc.id}.pdf'); return false;" class="btn btn-sm" style="padding: 5px 8px; font-size:0.75rem; background-color: #3b82f6; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-weight: normal; white-space: nowrap;">📥 PDF</a>` : ''}
-                    <button class="btn btn-sm btn-delete-historic" data-id="${doc.id}" style="background: transparent; border: 1px solid var(--danger); color: var(--danger);">Eliminar</button>
+                    <button class="btn btn-sm btn-delete-historic" data-id="${doc.id}" data-client="${(data.clientName || '').replace(/"/g, '&quot;')}" style="background: transparent; border: 1px solid var(--danger); color: var(--danger);">Eliminar</button>
                 </div>
             `;
             listEl.appendChild(div);
@@ -757,6 +772,7 @@ async function loadHistoryUI() {
         document.querySelectorAll('.btn-delete-historic').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const id = e.target.getAttribute('data-id');
+                const clientName = e.target.getAttribute('data-client') || '';
                 if (confirm('¿Estás seguro de que deseas eliminar este informe del historial de forma permanente?')) {
                     try {
                         const actUid = getActiveUid();
@@ -770,6 +786,18 @@ async function loadHistoryUI() {
                             }
                         }
                         await db.collection('users').doc(actUid).collection('reports').doc(id).delete();
+
+                        if (window.logSystemActivity) {
+                            window.logSystemActivity({
+                                actionType: 'report_deleted',
+                                category: 'reports',
+                                summary: `Informe Técnico #${id ? id.slice(-6) : ''} eliminado`,
+                                details: `Se eliminó permanentemente el informe técnico${clientName ? ` de ${clientName}` : ''}`,
+                                reportId: id,
+                                clientName: clientName
+                            });
+                        }
+
                         loadHistoryUI(); // Reload list
                     } catch (error) {
                         alert("Error al eliminar: " + error.message);

@@ -17,7 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.3.4"></script>
+    <script src="core-sync.js?v=v4.4.0"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
@@ -714,6 +714,9 @@
                 <button id="btn-sync-login" class="btn btn-primary-outline" style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 6px 12px;">
                     <span id="sync-icon">☁️</span>
                     <span id="sync-text">Ingresar para Sync</span>
+                </button>
+                <button onclick="if(window.openActivityAuditModal) window.openActivityAuditModal();" class="btn btn-secondary" style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 6px 12px;" title="Registro de cambios estilo Asana">
+                    ⚡ Auditoría & Actividad
                 </button>
             </div>
         </div>

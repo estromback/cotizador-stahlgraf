@@ -1303,6 +1303,19 @@ async function saveQuote(silent = false) {
     }
 
     try {
+        const isNew = !currentQuoteId;
+        const userInfo = typeof window.getCurrentUserInfo === 'function' ? window.getCurrentUserInfo() : null;
+        if (userInfo) {
+            if (isNew) {
+                quoteData.createdBy = userInfo.email;
+                quoteData.createdByName = userInfo.displayName;
+                quoteData.createdByRole = userInfo.role;
+            }
+            quoteData.updatedBy = userInfo.email;
+            quoteData.updatedByName = userInfo.displayName;
+            quoteData.updatedByRole = userInfo.role;
+        }
+
         if (!currentQuoteId) {
             // Lock correlative if not already locked
             if (loadedCorrelative === null) {
@@ -1319,6 +1332,18 @@ async function saveQuote(silent = false) {
         } else {
             quoteData.correlative = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
             await db.collection('users').doc(activeUid).collection('quotes').doc(currentQuoteId).set(quoteData, { merge: true });
+        }
+
+        // Log system activity (Asana style)
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: isNew ? 'quote_created' : 'quote_updated',
+                category: 'quotes',
+                summary: `${isNew ? 'Generó' : 'Actualizó'} cotización #${quoteData.correlative} ($${(quoteData.total || 0).toLocaleString('es-CL')}) para "${quoteData.clientName}"`,
+                details: { correlative: quoteData.correlative, total: quoteData.total, clientName: quoteData.clientName },
+                clientName: quoteData.clientName,
+                quoteId: currentQuoteId
+            });
         }
         
         if (!silent) alert("✅ Cotización guardada exitosamente en Firestore.");
@@ -1499,6 +1524,17 @@ window.deleteQuoteFromDB = async function(id) {
             }
         }
         await db.collection('users').doc(activeUid).collection('quotes').doc(id).delete();
+
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: 'quote_deleted',
+                category: 'quotes',
+                summary: `Eliminó una cotización de la nube`,
+                details: { quoteId: id },
+                quoteId: id
+            });
+        }
+
         if (currentQuoteId === id) resetForm(); // If it was loaded, reset UI
         loadHistoryUI();
     } catch(err) {

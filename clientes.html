@@ -378,6 +378,9 @@
                     <span id="sync-icon">☁️</span>
                     <span id="sync-text">Ingresar para Sync</span>
                 </button>
+                <button id="btn-open-audit-log" class="btn btn-secondary" onclick="window.openActivityAuditModal()" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; padding: 6px 12px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa;">
+                    <span>⚡</span> <span>Auditoría & Actividad</span>
+                </button>
                 <button id="btn-export-emails" class="btn btn-secondary" style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 6px 12px;">
                     <span>✉️</span>
                     <span>Exportar Correos</span>
@@ -483,6 +486,7 @@
                     <button class="tab-btn admin-only" data-tab="history-tab-quotes">💰 Cotizaciones</button>
                     <button class="tab-btn" data-tab="history-tab-reports">📄 Informes Técnicos</button>
                     <button class="tab-btn admin-only" data-tab="history-tab-crm">💬 CRM & Seguimiento</button>
+                    <button class="tab-btn admin-only" data-tab="history-tab-audit">⚡ Auditoría & Cambios</button>
                 </div>
                 
                 <!-- Tab 1: Resumen & Estaciones -->
@@ -715,6 +719,21 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Tab 6: Auditoría & Cambios (Estilo Asana) -->
+                <div id="history-tab-audit" class="tab-panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div>
+                            <h3 class="history-section-title" style="margin: 0; border-bottom: none;">⚡ Auditoría & Trazabilidad de Cambios</h3>
+                            <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: var(--text-muted);">
+                                Registro cronológico de quién modificó fechas, agregó servicios, cotizaciones, informes o comentarios para este cliente.
+                            </p>
+                        </div>
+                    </div>
+                    <div id="hist-client-audit-container">
+                        <!-- Populated dynamically via window.renderClientAuditTimeline -->
                     </div>
                 </div>
             </div>
