@@ -2,7 +2,7 @@
 // Handles intelligent merging of appData arrays (clients, services, chemicals, etc.)
 // Prevents offline data loss during synchronization
 
-const STAHLGRAF_VERSION = "v4.4.0";
+const STAHLGRAF_VERSION = "v4.4.1";
 
 if (typeof window !== 'undefined') {
     window.STAHLGRAF_VERSION = STAHLGRAF_VERSION;
@@ -17,6 +17,39 @@ if (typeof window !== 'undefined') {
         applyVersionBadges();
     }
 }
+
+// Global safe resolver helpers
+window.resolveOwnerUid = function() {
+    let uid = null;
+    try {
+        if (typeof getActiveUid === 'function') uid = getActiveUid();
+    } catch (e) {}
+    if (!uid) {
+        try {
+            uid = localStorage.getItem('stahlgraf_target_uid') || localStorage.getItem('stahlgraf_active_uid');
+        } catch (e) {}
+    }
+    if (!uid && typeof currentUser !== 'undefined' && currentUser && currentUser.uid) {
+        uid = currentUser.uid;
+    }
+    if (!uid && typeof firebase !== 'undefined' && firebase.auth && firebase.apps && firebase.apps.length) {
+        try {
+            const authObj = firebase.auth();
+            if (authObj && authObj.currentUser) uid = authObj.currentUser.uid;
+        } catch(e) {}
+    }
+    return uid || null;
+};
+
+window.resolveDbInstance = function() {
+    if (typeof db !== 'undefined' && db) return db;
+    if (typeof firebase !== 'undefined' && firebase.firestore && firebase.apps && firebase.apps.length) {
+        try {
+            return firebase.firestore();
+        } catch(e) {}
+    }
+    return null;
+};
 
 function mergeAppData(localData, cloudData) {
     if (!localData) return cloudData || {};
@@ -336,13 +369,10 @@ window.logSystemActivity = async function({
             return null;
         }
 
-        const ownerUid = (typeof getActiveUid === 'function' ? getActiveUid() : null) || 
-                         localStorage.getItem('stahlgraf_target_uid') || 
-                         userInfo.uid;
-        
+        const ownerUid = window.resolveOwnerUid() || userInfo.uid;
         if (!ownerUid) return null;
 
-        const dbInstance = (typeof db !== 'undefined' && db) ? db : (typeof firebase !== 'undefined' && firebase.firestore && firebase.apps.length ? firebase.firestore() : null);
+        const dbInstance = window.resolveDbInstance();
         if (!dbInstance) return null;
 
         const now = new Date();
@@ -457,92 +487,107 @@ let cachedAuditLogs = [];
 let auditActiveFilterClient = null;
 
 window.openActivityAuditModal = function(options = {}) {
-    let modal = document.getElementById('modal-activity-audit');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'modal-activity-audit';
-        modal.style.cssText = 'display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 10050; align-items: center; justify-content: center; padding: 20px;';
-        modal.innerHTML = `
-            <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; width: 100%; max-width: 900px; height: 90vh; max-height: 800px; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); color: #fff; font-family: inherit; overflow: hidden;">
-                <!-- Header -->
-                <div style="padding: 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(30,41,59,0.7); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 1.4rem;">⚡</span>
-                            <h2 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #fff;">Centro de Actividades & Auditoría</h2>
-                            <span id="audit-log-counter" class="pill-badge pill-badge-primary" style="font-size: 0.75rem; padding: 2px 8px; border-radius: 9999px; background: rgba(59,130,246,0.2); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3);">Cargando...</span>
+    try {
+        console.log("[Activity Audit] Opening activity audit modal with options:", options);
+        let modal = document.getElementById('modal-activity-audit');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'modal-activity-audit';
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 10050; display: flex; align-items: center; justify-content: center; padding: 20px;';
+            modal.innerHTML = `
+                <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; width: 100%; max-width: 900px; height: 90vh; max-height: 800px; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); color: #fff; font-family: inherit; overflow: hidden;">
+                    <!-- Header -->
+                    <div style="padding: 18px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(30,41,59,0.7); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 1.4rem;">⚡</span>
+                                <h2 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #fff;">Centro de Actividades & Auditoría</h2>
+                                <span id="audit-log-counter" class="pill-badge pill-badge-primary" style="font-size: 0.75rem; padding: 2px 8px; border-radius: 9999px; background: rgba(59,130,246,0.2); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3);">Cargando...</span>
+                            </div>
+                            <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">
+                                Tracking en tiempo real (estilo Asana) de todos los cambios de fecha, CRM, cotizaciones, informes, comentarios y servicios.
+                            </p>
                         </div>
-                        <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">
-                            Tracking en tiempo real (estilo Asana) de todos los cambios de fecha, CRM, cotizaciones, informes, comentarios y servicios.
-                        </p>
+                        <button type="button" onclick="window.closeActivityAuditModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.8rem; cursor: pointer; line-height: 1; padding: 4px;" title="Cerrar modal">&times;</button>
                     </div>
-                    <button type="button" onclick="window.closeActivityAuditModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.8rem; cursor: pointer; line-height: 1; padding: 4px;">&times;</button>
-                </div>
 
-                <!-- Filters Bar -->
-                <div style="padding: 14px 24px; background: rgba(15,23,42,0.9); border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex-shrink: 0;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <input type="text" id="audit-filter-search" placeholder="🔍 Buscar por cliente, detalle o acción..." style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.88rem; outline: none;">
+                    <!-- Filters Bar -->
+                    <div style="padding: 14px 24px; background: rgba(15,23,42,0.9); border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; flex-shrink: 0;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <input type="text" id="audit-filter-search" placeholder="🔍 Buscar por cliente, detalle o acción..." style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); color: #fff; font-size: 0.88rem; outline: none;">
+                        </div>
+                        <div>
+                            <select id="audit-filter-category" style="padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(30,41,59,0.9); color: #fff; font-size: 0.85rem; outline: none; cursor: pointer;">
+                                <option value="all">📁 Todas las Categorías</option>
+                                <option value="dates">📅 Cambios de Fecha</option>
+                                <option value="comments">💬 Comentarios</option>
+                                <option value="crm">📋 CRM & Tratos</option>
+                                <option value="services">🛠️ Servicios Realizados</option>
+                                <option value="quotes">💰 Cotizaciones</option>
+                                <option value="reports">📄 Informes Técnicos</option>
+                                <option value="clients">👥 Clientes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select id="audit-filter-user" style="padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(30,41,59,0.9); color: #fff; font-size: 0.85rem; outline: none; cursor: pointer;">
+                                <option value="all">👤 Todos los Usuarios</option>
+                            </select>
+                        </div>
+                        <button type="button" id="btn-audit-clear-filters" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; padding: 8px 12px; border-radius: 8px; font-size: 0.82rem; cursor: pointer;">
+                            Limpiar
+                        </button>
                     </div>
-                    <div>
-                        <select id="audit-filter-category" style="padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(30,41,59,0.9); color: #fff; font-size: 0.85rem; outline: none; cursor: pointer;">
-                            <option value="all">📁 Todas las Categorías</option>
-                            <option value="dates">📅 Cambios de Fecha</option>
-                            <option value="comments">💬 Comentarios</option>
-                            <option value="crm">📋 CRM & Tratos</option>
-                            <option value="services">🛠️ Servicios Realizados</option>
-                            <option value="quotes">💰 Cotizaciones</option>
-                            <option value="reports">📄 Informes Técnicos</option>
-                            <option value="clients">👥 Clientes</option>
-                        </select>
+
+                    <!-- Feed Content Area -->
+                    <div id="audit-feed-list" style="flex: 1; overflow-y: auto; padding: 20px 24px; background: rgba(15,23,42,0.6);">
+                        <p style="color: #94a3b8; text-align: center; margin-top: 40px;">Cargando registro de actividades en tiempo real...</p>
                     </div>
-                    <div>
-                        <select id="audit-filter-user" style="padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(30,41,59,0.9); color: #fff; font-size: 0.85rem; outline: none; cursor: pointer;">
-                            <option value="all">👤 Todos los Usuarios</option>
-                        </select>
+
+                    <!-- Footer -->
+                    <div style="padding: 12px 24px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(30,41,59,0.5); display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #94a3b8; flex-shrink: 0;">
+                        <span>🟢 Sincronizado en vivo con la nube de Stahlgraf</span>
+                        <button type="button" onclick="window.closeActivityAuditModal()" class="btn btn-secondary btn-sm" style="padding: 6px 14px;">Cerrar</button>
                     </div>
-                    <button type="button" id="btn-audit-clear-filters" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; padding: 8px 12px; border-radius: 8px; font-size: 0.82rem; cursor: pointer;">
-                        Limpiar
-                    </button>
                 </div>
+            `;
+            document.body.appendChild(modal);
 
-                <!-- Feed Content Area -->
-                <div id="audit-feed-list" style="flex: 1; overflow-y: auto; padding: 20px 24px; background: rgba(15,23,42,0.6);">
-                    <p style="color: #94a3b8; text-align: center; margin-top: 40px;">Cargando registro de actividades en tiempo real...</p>
-                </div>
+            // Close when clicking outside modal body
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) window.closeActivityAuditModal();
+            });
 
-                <!-- Footer -->
-                <div style="padding: 12px 24px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(30,41,59,0.5); display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #94a3b8; flex-shrink: 0;">
-                    <span>🟢 Sincronizado en vivo con la nube de Stahlgraf</span>
-                    <button type="button" onclick="window.closeActivityAuditModal()" class="btn btn-secondary btn-sm" style="padding: 6px 14px;">Cerrar</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
+            // Bind filter events safely
+            const searchInput = document.getElementById('audit-filter-search');
+            const catSelect = document.getElementById('audit-filter-category');
+            const userSelect = document.getElementById('audit-filter-user');
+            const clearBtn = document.getElementById('btn-audit-clear-filters');
 
-        // Bind filter events
-        document.getElementById('audit-filter-search').addEventListener('input', renderFilteredAuditLogs);
-        document.getElementById('audit-filter-category').addEventListener('change', renderFilteredAuditLogs);
-        document.getElementById('audit-filter-user').addEventListener('change', renderFilteredAuditLogs);
-        document.getElementById('btn-audit-clear-filters').addEventListener('click', () => {
-            document.getElementById('audit-filter-search').value = '';
-            document.getElementById('audit-filter-category').value = 'all';
-            document.getElementById('audit-filter-user').value = 'all';
+            if (searchInput) searchInput.addEventListener('input', renderFilteredAuditLogs);
+            if (catSelect) catSelect.addEventListener('change', renderFilteredAuditLogs);
+            if (userSelect) userSelect.addEventListener('change', renderFilteredAuditLogs);
+            if (clearBtn) clearBtn.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                if (catSelect) catSelect.value = 'all';
+                if (userSelect) userSelect.value = 'all';
+                auditActiveFilterClient = null;
+                renderFilteredAuditLogs();
+            });
+        }
+
+        if (options && options.clientName) {
+            auditActiveFilterClient = options.clientName;
+            const searchInput = document.getElementById('audit-filter-search');
+            if (searchInput) searchInput.value = options.clientName;
+        } else {
             auditActiveFilterClient = null;
-            renderFilteredAuditLogs();
-        });
-    }
+        }
 
-    if (options && options.clientName) {
-        auditActiveFilterClient = options.clientName;
-        const searchInput = document.getElementById('audit-filter-search');
-        if (searchInput) searchInput.value = options.clientName;
-    } else {
-        auditActiveFilterClient = null;
+        modal.style.display = 'flex';
+        subscribeToGlobalAuditLogs();
+    } catch (err) {
+        console.error("[Activity Audit] Error opening modal:", err);
     }
-
-    modal.style.display = 'flex';
-    subscribeToGlobalAuditLogs();
 };
 
 window.closeActivityAuditModal = function() {
@@ -551,13 +596,37 @@ window.closeActivityAuditModal = function() {
 };
 
 function subscribeToGlobalAuditLogs() {
-    const ownerUid = (typeof getActiveUid === 'function' ? getActiveUid() : null) || 
-                     localStorage.getItem('stahlgraf_target_uid') || 
-                     (currentUser ? currentUser.uid : null);
-    
-    if (!ownerUid) return;
-    const dbInstance = (typeof db !== 'undefined' && db) ? db : (typeof firebase !== 'undefined' && firebase.firestore && firebase.apps.length ? firebase.firestore() : null);
-    if (!dbInstance) return;
+    const ownerUid = window.resolveOwnerUid();
+    const dbInstance = window.resolveDbInstance();
+    const feed = document.getElementById('audit-feed-list');
+    const counter = document.getElementById('audit-log-counter');
+
+    if (!dbInstance) {
+        if (feed) {
+            feed.innerHTML = `
+                <div style="text-align: center; padding: 50px 20px; color: #94a3b8;">
+                    <div style="font-size: 2.2rem; margin-bottom: 10px;">⚠️</div>
+                    <h4 style="margin: 0 0 5px 0; color: #cbd5e1;">Base de datos no inicializada</h4>
+                    <p style="font-size: 0.85rem; margin: 0;">No se pudo conectar con la base de datos de Firebase.</p>
+                </div>
+            `;
+        }
+        return;
+    }
+
+    if (!ownerUid) {
+        if (feed) {
+            feed.innerHTML = `
+                <div style="text-align: center; padding: 50px 20px; color: #94a3b8;">
+                    <div style="font-size: 2.2rem; margin-bottom: 10px;">☁️</div>
+                    <h4 style="margin: 0 0 5px 0; color: #cbd5e1;">Inicia sesión para sincronizar</h4>
+                    <p style="font-size: 0.85rem; margin: 0;">Presiona el botón "Ingresar para Sync" para conectar con la nube y ver las actividades del equipo en vivo.</p>
+                </div>
+            `;
+        }
+        if (counter) counter.innerText = 'Esperando conexión';
+        return;
+    }
 
     if (auditLogsListener) auditLogsListener();
 
@@ -573,18 +642,26 @@ function subscribeToGlobalAuditLogs() {
                 updateAuditUserDropdown();
                 renderFilteredAuditLogs();
             }, err => {
-                console.error("Error subscribing to activity_logs:", err);
-                // Fallback without orderBy if index not ready
+                console.warn("[Activity Audit] orderBy listener notice, using fallback get:", err);
                 dbInstance.collection('users').doc(ownerUid).collection('activity_logs').limit(100).get().then(snap => {
                     cachedAuditLogs = [];
                     snap.forEach(doc => cachedAuditLogs.push({ id: doc.id, ...doc.data() }));
                     cachedAuditLogs.sort((a,b) => (b.clientTimestamp || 0) - (a.clientTimestamp || 0));
                     updateAuditUserDropdown();
                     renderFilteredAuditLogs();
-                }).catch(e => console.error("Fallback get error:", e));
+                }).catch(e => {
+                    console.error("[Activity Audit] Fallback get error:", e);
+                    if (feed) {
+                        feed.innerHTML = `
+                            <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+                                <p style="color: #f87171;">Error al cargar actividades: ${escapeHTML(e.message || '')}</p>
+                            </div>
+                        `;
+                    }
+                });
             });
     } catch(err) {
-        console.error("Audit listener setup failed:", err);
+        console.error("[Activity Audit] Listener setup failed:", err);
     }
 }
 
@@ -757,16 +834,13 @@ window.renderClientAuditTimeline = function(containerElOrId, targetClientName) {
         return;
     }
 
-    const ownerUid = (typeof getActiveUid === 'function' ? getActiveUid() : null) || 
-                     localStorage.getItem('stahlgraf_target_uid') || 
-                     (currentUser ? currentUser.uid : null);
-    
+    const ownerUid = window.resolveOwnerUid();
     if (!ownerUid) {
         container.innerHTML = '<p style="color:#666; font-size:0.9rem;">Inicia sesión para ver la auditoría.</p>';
         return;
     }
 
-    const dbInstance = (typeof db !== 'undefined' && db) ? db : (typeof firebase !== 'undefined' && firebase.firestore && firebase.apps.length ? firebase.firestore() : null);
+    const dbInstance = window.resolveDbInstance();
     if (!dbInstance) return;
 
     container.innerHTML = '<p style="color:#94a3b8; font-size:0.88rem;">Cargando registro de auditoría de este cliente...</p>';
@@ -846,3 +920,26 @@ window.renderClientAuditTimeline = function(containerElOrId, targetClientName) {
             container.innerHTML = '<p style="color:#ef4444; font-size:0.85rem;">Error al cargar auditoría del cliente.</p>';
         });
 };
+
+// 7. Global Event Listeners & Delegates
+if (typeof window !== 'undefined') {
+    // Escape key to close audit modal
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('modal-activity-audit');
+            if (modal && modal.style.display !== 'none') {
+                window.closeActivityAuditModal();
+            }
+        }
+    });
+
+    // Delegate click on any audit trigger button
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('#btn-open-audit-log, .btn-open-audit-log, [data-action="open-audit"]');
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.openActivityAuditModal();
+        }
+    });
+}

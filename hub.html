@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.3.6"></script>
+    <script src="core-sync.js?v=v4.4.1"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
@@ -362,7 +362,7 @@
                 <button id="btn-sync-login" class="btn btn-primary-outline" style="margin-right: 10px; display: inline-flex; align-items: center; gap: 5px;">
                     <span id="sync-icon">☁️</span> <span id="sync-text">Ingresar para Sync</span>
                 </button>
-                <button id="btn-open-audit-log" class="btn btn-secondary" onclick="window.openActivityAuditModal()" style="margin-right: 10px; display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa;">
+                <button id="btn-open-audit-log" class="btn btn-secondary btn-open-audit-log" onclick="window.openActivityAuditModal()" style="margin-right: 10px; display: inline-flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa; cursor: pointer;" title="Registro de actividades estilo Asana">
                     <span>⚡</span> <span>Auditoría & Actividad</span>
                 </button>
                 <button id="btn-settings" class="btn btn-secondary">Ajustes & BD Global</button>
@@ -1080,6 +1080,6 @@
             }
         }
     </script>
-    <script src="hub.js?v=v4.3.6"></script>
+    <script src="hub.js?v=v4.4.1"></script>
 </body>
 </html>
