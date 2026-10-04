@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estudia con Manú</title>
+<style>
+  :root {
+    --primary: #00796b;
+    --secondary: #004d40;
+    --accent: #ffb300;
+    --bg: #e0f2f1;
+    --card: #ffffff;
+    --text: #333333;
+    --correct: #81c784;
+    --incorrect: #e57373;
+  }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .container {
+    background: var(--card);
+    width: 100%;
+    max-width: 800px;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  }
+
+  h1 {
+    text-align: center;
+    color: var(--primary);
+    margin-bottom: 5px;
+  }
+  
+  .subtitle {
+    text-align: center;
+    color: #666;
+    margin-bottom: 30px;
+  }
+
+  .menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 30px;
+  }
+
+  button {
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--primary);
+    color: white;
+    transition: background-color 0.3s, transform 0.1s;
+  }
+
+  button:hover {
+    background-color: var(--secondary);
+  }
+  
+  button:active {
+    transform: scale(0.98);
+  }
+
+  .question-container {
+    display: none;
+    background-color: #f1f8e9;
+    padding: 20px;
+    border-left: 6px solid var(--primary);
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+
+  .question-text {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: var(--secondary);
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .option-btn {
+    background-color: white;
+    border: 2px solid #cfd8dc;
+    color: var(--text);
+    text-align: left;
+    padding: 12px;
+    font-weight: normal;
+  }
+
+  .option-btn:hover:not(:disabled) {
+    background-color: #eceff1;
+    border-color: #b0bec5;
+  }
+  
+  .option-btn:disabled {
+    cursor: default;
+  }
+
+  .correct-btn {
+    background-color: var(--correct) !important;
+    border-color: #388e3c !important;
+    color: #000;
+  }
+
+  .incorrect-btn {
+    background-color: var(--incorrect) !important;
+    border-color: #d32f2f !important;
+    color: #fff;
+  }
+
+  .feedback {
+    margin-top: 15px;
+    font-weight: bold;
+    font-size: 16px;
+    display: none;
+  }
+
+  .progress-bar {
+    height: 10px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background-color: var(--accent);
+    width: 0%;
+    transition: width 0.3s;
+  }
+  
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+
+  #result-screen {
+    text-align: center;
+    display: none;
+    padding: 20px;
+  }
+
+  .grade {
+    font-size: 64px;
+    font-weight: bold;
+    margin: 20px 0;
+  }
+  
+  .grade.excellent { color: #2e7d32; }
+  .grade.good { color: #1565c0; }
+  .grade.pass { color: #e65100; }
+  .grade.fail { color: #c62828; }
+  
+  .stat {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🏔️ La Historia de Manú</h1>
+  <div class="subtitle" id="subtitle">Selecciona un modo para comenzar a estudiar</div>
+
+  <div class="menu" id="menu">
+    <button onclick="startMode('practice')">📚 Práctica (40 Preguntas)</button>
+    <button onclick="startMode('exam')">📝 Evaluación (20 Preguntas - Nota Real)</button>
+  </div>
+
+  <div class="progress-bar" id="progress-bar">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+
+  <div class="question-container" id="question-container">
+    <div class="question-text" id="question-text"></div>
+    <div class="options" id="options-container"></div>
+    <div class="feedback" id="feedback"></div>
+    
+    <div class="controls">
+      <span id="counter" style="font-weight: bold; color: #666; margin-top: 10px;"></span>
+      <button id="next-btn" style="display: none;" onclick="nextQuestion()">Siguiente Pregunta ➔</button>
+    </div>
+  </div>
+
+  <div id="result-screen">
+    <h2 id="result-title">Resultados de la Evaluación</h2>
+    <div class="grade" id="grade-display"></div>
+    <div class="stat" id="score-display"></div>
+    <div class="stat" id="percentage-display"></div>
+    <div style="margin-top: 30px;">
+      <button onclick="resetApp()">Volver al Menú Principal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const allQuestions = [
+    { q: "¿Quién es la autora del libro 'La historia de Manú'?", a: "Ana María del Río", options: ["Marcela Paz", "Ana María del Río", "Gabriela Mistral", "Isabel Allende"] },
+    { q: "¿Cuál es el verdadero nombre de la protagonista?", a: "Manuela Mamani", options: ["Mariela Mimani", "Manuela Mamani", "Macarena Mamani", "María Mamani"] },
+    { q: "¿A qué pueblo originario pertenece Manú?", a: "Aymara", options: ["Mapuche", "Aymara", "Diaguita", "Atacameño"] },
+    { q: "¿Cuántos años cumplía Manú al inicio de la historia?", a: "7 años", options: ["6 años", "7 años", "8 años", "9 años"] },
+    { q: "¿Dónde vivía Manú?", a: "En Chipana, un poblado del altiplano chileno", options: ["En Iquique, junto al mar", "En Chipana, un poblado del altiplano chileno", "En Santiago", "En un bosque del sur"] },
+    { q: "¿Con quién vivía Manú?", a: "Con su papá, su mamá y 12 llamas", options: ["Con su abuela y su gato", "Con su papá, su mamá y 12 llamas", "Con sus hermanos y Kunturo", "Sola con su papá"] },
+    { q: "¿Cómo era físicamente Manú?", a: "Pequeñita, de pelo negro y lacio, y ojos oblicuos", options: ["Alta, rubia y de ojos azules", "Pequeñita, de pelo negro y lacio, y ojos oblicuos", "De pelo crespo y ojos verdes", "Morena, alta y de pelo corto"] },
+    { q: "¿A qué se dedicaba el papá de Manú?", a: "Era el Jefe de la Comunidad y doctor", options: ["Era profesor en la escuela", "Era el alcalde de Iquique", "Era el Jefe de la Comunidad y doctor", "Era pastor de ovejas"] },
+    { q: "¿Cómo le pagaba la gente al papá de Manú por curarlos?", a: "Muchas veces le pagaban con animales", options: ["Con mucho dinero", "No le pagaban nunca", "Muchas veces le pagaban con animales", "Con ropa y juguetes"] },
+    { q: "¿Qué había conseguido el papá de Manú para el pueblo últimamente?", a: "Luz eléctrica y la primera televisión", options: ["Una escuela nueva", "Luz eléctrica y la primera televisión", "Un hospital", "Un supermercado"] },
+    { q: "¿Qué pidió Manú como regalo de cumpleaños?", a: "Permiso para ir a la escuela en la ciudad", options: ["Una llama nueva", "Permiso para ir a la escuela en la ciudad", "Un viaje en avión", "Conocer el mar"] },
+    { q: "¿Por qué el papá de Manú se enojó al escuchar su deseo?", a: "Porque temía que, al ir a la ciudad, no volviera al pueblo", options: ["Porque no tenían dinero", "Porque temía que, al ir a la ciudad, no volviera al pueblo", "Porque la ciudad era aburrida", "Porque Manú no sabía caminar"] },
+    { q: "¿Qué le dijo su papá que debía aprender antes de ir a la escuela?", a: "A hilar y teñir la lana", options: ["A cocinar", "A hilar y teñir la lana", "A ordeñar vacas", "A leer y escribir"] },
+    { q: "¿Quién le había enseñado ya a hilar y teñir a Manú?", a: "La señora Olaya", options: ["Su mamá", "La señora Olaya", "Su tía Eduvigis", "La directora"] },
+    { q: "¿Qué don o característica especial tenía Manú?", a: "Podía ver el futuro en sus sueños", options: ["Podía hablar con las rocas", "Podía volar sin ayuda", "Podía ver el futuro en sus sueños", "Era invisible"] },
+    { q: "¿Con qué soñó Manú la noche antes de su cumpleaños?", a: "Con una ola grande que subía por una montaña", options: ["Con un terremoto", "Con un cóndor herido", "Con una ola grande que subía por una montaña", "Con sacarse malas notas"] },
+    { q: "¿Cómo se llamaba el mejor amigo de Manú?", a: "Kunturo", options: ["Kantaro", "Kunturo", "Kintiro", "Kanito"] },
+    { q: "¿Qué animal era Kunturo?", a: "Un cóndor", options: ["Una llama", "Un águila", "Un perro", "Un cóndor"] },
+    { q: "¿Cómo conoció Manú a Kunturo?", a: "Su papá intentó curar a la madre cóndor herida; al morir, rescataron al polluelo", options: ["Lo compró en la ciudad", "Su papá intentó curar a la madre cóndor herida; al morir, rescataron al polluelo", "Se lo regaló el alcalde", "Lo encontró nadando en el lago"] },
+    { q: "¿Qué le dio de comer Manú a Kunturo cuando era un polluelo hambriento?", a: "Sobras de un asado", options: ["Leche de llama", "Sobras de un asado", "Pescado fresco", "Semillas y trigo"] },
+    { q: "¿Qué gran favor le pidió Manú a Kunturo?", a: "Que la llevara volando en secreto a la escuela de la ciudad", options: ["Que la llevara al mar", "Que la llevara volando en secreto a la escuela de la ciudad", "Que asustara a los niños", "Que le enseñara castellano"] },
+    { q: "¿Dónde aterrizó Kunturo la primera vez que fueron a la ciudad?", a: "En el cerro Dragón", options: ["En la plaza de Iquique", "En el techo de la escuela", "En el cerro Dragón", "En la playa"] },
+    { q: "¿Qué pasó el primer día de clases de Manú?", a: "Los niños se rieron de ella y le hablaron en un idioma extraño", options: ["Hizo muchos amigos inmediatamente", "Los niños se rieron de ella y le hablaron en un idioma extraño", "Se sacó un siete en matemáticas", "La directora la echó del colegio"] },
+    { q: "¿Por qué Manú no entendía lo que hablaban en el colegio?", a: "Porque ellos hablaban castellano y ella solo hablaba aymara", options: ["Porque hablaban inglés", "Porque ellos hablaban castellano y ella solo hablaba aymara", "Porque ella tenía problemas auditivos", "Porque hablaban muy rápido"] },
+    { q: "¿Quién le explicó a Manú por qué se reían los demás niños?", a: "Una niña aymara que ya había aprendido castellano", options: ["La profesora", "Una niña aymara que ya había aprendido castellano", "La directora", "El alcalde"] },
+    { q: "¿Qué mentira le dijo Manú a su papá al volver del primer día de clases?", a: "Que había estado pastoreando las llamas", options: ["Que se había quedado dormida", "Que había estado pastoreando las llamas", "Que se había perdido en la montaña", "Que había ido donde su tía"] },
+    { q: "¿Qué le dio el papá a Manú para pasar su evidente pena?", a: "Una taza de agua humeante buena para la tristeza", options: ["Un chocolate", "Una taza de agua humeante buena para la tristeza", "Un remedio amargo", "Un abrazo y un juguete"] },
+    { q: "¿A dónde le pidió Manú a Kunturo que la llevara el segundo día?", a: "A dar una vuelta para ver el mar", options: ["Al colegio de nuevo", "A Santiago", "A dar una vuelta para ver el mar", "Al municipio"] },
+    { q: "¿Qué observó Manú en el mar el segundo día?", a: "El mar oscuro y una montaña de agua acercándose (un tsunami)", options: ["Muchos delfines", "El mar oscuro y una montaña de agua acercándose (un tsunami)", "Barcos piratas", "Una tormenta de nieve"] },
+    { q: "¿Qué hizo Manú al darse cuenta del peligro del tsunami?", a: "Le dijo a Kunturo que la llevara rápido al colegio para avisar", options: ["Se fue a esconder a su casa", "Se puso a llorar", "Le dijo a Kunturo que la llevara rápido al colegio para avisar", "Intentó detener la ola sola"] },
+    { q: "¿Dónde aterrizó Kunturo en la escuela durante la emergencia?", a: "En el centro del patio, durante el acto cívico", options: ["En la sala de clases", "En el techo", "En el centro del patio, durante el acto cívico", "En la calle"] },
+    { q: "¿Cómo logró Manú comunicar la advertencia del tsunami a la directora?", a: "Le pidió a la niña aymara que le sirviera de traductora", options: ["Gritó muy fuerte en castellano", "Hizo un dibujo de una gran ola", "Le pidió a la niña aymara que le sirviera de traductora", "Llamó por teléfono al alcalde"] },
+    { q: "¿Hacia dónde ofreció Manú llevar a la gente para salvarlos?", a: "Hacia su pueblo en el altiplano, donde su papá los hospedaría", options: ["A los techos más altos de Iquique", "Hacia su pueblo en el altiplano, donde su papá los hospedaría", "Hacia el desierto de Atacama", "Hacia unos barcos de rescate"] },
+    { q: "¿Cómo se trasladaron las personas de la ciudad al altiplano?", a: "En una larga caravana de autos, camiones y micros", options: ["Caminando", "En un tren", "En una larga caravana de autos, camiones y micros", "En aviones y helicópteros"] },
+    { q: "¿Quién iba guiando la caravana de vehículos hacia Chipana?", a: "Manú, montada sobre Kunturo y volando en círculos", options: ["El alcalde", "Manú, montada sobre Kunturo y volando en círculos", "La directora del colegio", "Los carabineros"] },
+    { q: "¿Qué estaba haciendo el papá de Manú antes de que llegara la caravana?", a: "La buscaba asustado por todo el pueblo porque sus llamas estaban solas", options: ["Estaba durmiendo en su casa", "La buscaba asustado por todo el pueblo porque sus llamas estaban solas", "Estaba viendo la televisión", "Estaba cocinando para todos"] },
+    { q: "¿Cómo recibieron los habitantes de Chipana a los evacuados de la ciudad?", a: "Las señoras prepararon grandes ollas de comida para compartir", options: ["Los echaron porque no había espacio", "Les cobraron por quedarse en el pueblo", "Las señoras prepararon grandes ollas de comida para compartir", "Se escondieron asustados en sus casas"] },
+    { q: "¿Qué gran propuesta le hizo el papá de Manú al alcalde tras la emergencia?", a: "Que profesores aymaras enseñen junto a profesores chilenos en los colegios", options: ["Que construyeran un muro gigante en la playa", "Que profesores aymaras enseñen junto a profesores chilenos en los colegios", "Que Manú no volviera nunca más a la ciudad", "Que todos se fueran a vivir a Iquique"] },
+    { q: "¿A qué se comprometió la directora del colegio con Manú?", a: "A tener una profesora que hable aymara para enseñarle en su idioma", options: ["A regalarle útiles escolares nuevos", "A tener una profesora que hable aymara para enseñarle en su idioma", "A pasarla de curso inmediatamente", "A dejar que Kunturo duerma en la sala"] },
+    { q: "¿Qué premio especial anunció el alcalde para Kunturo?", a: "Una fuente con carne siempre dispuesta en la alcaldía", options: ["Una medalla de oro al valor", "Una fuente con carne siempre dispuesta en la alcaldía", "Un nido nuevo en la plaza", "El título de ciudadano ilustre"] }
+  ];
+
+  let currentMode = '';
+  let activeQuestions = [];
+  let currentIndex = 0;
+  let correctAnswers = 0;
+  let answered = false;
+
+  function shuffleArray(array) {
+    let newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  }
+
+  function startMode(mode) {
+    currentMode = mode;
+    correctAnswers = 0;
+    currentIndex = 0;
+    
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('subtitle').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'none';
+    
+    document.getElementById('progress-bar').style.display = 'block';
+    document.getElementById('question-container').style.display = 'block';
+
+    if (mode === 'practice') {
+      activeQuestions = shuffleArray(allQuestions);
+    } else if (mode === 'exam') {
+      activeQuestions = shuffleArray(allQuestions).slice(0, 20); // 20 preguntas aleatorias
+    }
+
+    loadQuestion();
+  }
+
+  function loadQuestion() {
+    answered = false;
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('feedback').style.display = 'none';
+    
+    const qData = activeQuestions[currentIndex];
+    document.getElementById('question-text').innerText = `${currentIndex + 1}. ${qData.q}`;
+    document.getElementById('counter').innerText = `Pregunta ${currentIndex + 1} de ${activeQuestions.length}`;
+    
+    const progressPercent = (currentIndex / activeQuestions.length) * 100;
+    document.getElementById('progress-fill').style.width = `${progressPercent}%`;
+
+    const optionsContainer = document.getElementById('options-container');
+    optionsContainer.innerHTML = '';
+    
+    const shuffledOptions = shuffleArray(qData.options);
+    
+    shuffledOptions.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.innerText = opt;
+      btn.onclick = () => selectAnswer(btn, opt, qData.a);
+      optionsContainer.appendChild(btn);
+    });
+  }
+
+  function selectAnswer(btnElement, selectedOpt, correctOpt) {
+    if (answered) return;
+    answered = true;
+
+    const allBtns = document.querySelectorAll('.option-btn');
+    allBtns.forEach(btn => btn.disabled = true);
+
+    const feedbackEl = document.getElementById('feedback');
+    feedbackEl.style.display = 'block';
+
+    if (selectedOpt === correctOpt) {
+      btnElement.classList.add('correct-btn');
+      feedbackEl.innerText = "¡Correcto! 🌟";
+      feedbackEl.style.color = "#2e7d32";
+      correctAnswers++;
+    } else {
+      btnElement.classList.add('incorrect-btn');
+      feedbackEl.innerText = `Incorrecto. La respuesta correcta era: "${correctOpt}"`;
+      feedbackEl.style.color = "#d32f2f";
+      
+      allBtns.forEach(btn => {
+        if (btn.innerText === correctOpt) btn.classList.add('correct-btn');
+      });
+    }
+
+    document.getElementById('next-btn').style.display = 'block';
+  }
+
+  function nextQuestion() {
+    currentIndex++;
+    if (currentIndex < activeQuestions.length) {
+      loadQuestion();
+    } else {
+      showResults();
+    }
+  }
+
+  function calculateChileanGrade(score, maxScore) {
+    const exigencia = 0.6;
+    const corte = maxScore * exigencia;
+    let nota;
+    if (score < corte) {
+      nota = 3.0 * (score / corte) + 1.0;
+    } else {
+      nota = 3.0 * ((score - corte) / (maxScore - corte)) + 4.0;
+    }
+    return nota.toFixed(1);
+  }
+
+  function showResults() {
+    document.getElementById('question-container').style.display = 'none';
+    document.getElementById('progress-bar').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'block';
+
+    const maxScore = activeQuestions.length;
+    const gradeDisplay = document.getElementById('grade-display');
+    const scoreDisplay = document.getElementById('score-display');
+    const percentDisplay = document.getElementById('percentage-display');
+    
+    scoreDisplay.innerText = `Respuestas Correctas: ${correctAnswers} de ${maxScore}`;
+    percentDisplay.innerText = `Porcentaje de Logro: ${Math.round((correctAnswers/maxScore)*100)}%`;
+
+    if (currentMode === 'exam') {
+      document.getElementById('result-title').innerText = "Simulación de Evaluación (Exigencia 60%)";
+      const nota = calculateChileanGrade(correctAnswers, maxScore);
+      gradeDisplay.innerText = `Nota: ${nota}`;
+      
+      gradeDisplay.className = 'grade';
+      if (nota >= 6.0) gradeDisplay.classList.add('excellent');
+      else if (nota >= 5.0) gradeDisplay.classList.add('good');
+      else if (nota >= 4.0) gradeDisplay.classList.add('pass');
+      else gradeDisplay.classList.add('fail');
+      
+    } else {
+      document.getElementById('result-title').innerText = "Resultados de Práctica";
+      gradeDisplay.innerText = "¡Buen trabajo!";
+      gradeDisplay.className = 'grade good';
+    }
+  }
+
+  function resetApp() {
+    document.getElementById('result-screen').style.display = 'none';
+    document.getElementById('menu').style.display = 'flex';
+    document.getElementById('subtitle').style.display = 'block';
+  }
+</script>
+</body>
+</html>
