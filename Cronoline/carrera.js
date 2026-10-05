@@ -177,6 +177,7 @@ const DOM = {
 
   // Modales
   triviaModal: document.getElementById('trivia-modal'),
+  triviaModalCard: document.querySelector('#trivia-modal .trivia-modal-card'),
   triviaModalTeam: document.getElementById('trivia-modal-team'),
   triviaTeamIcon: document.getElementById('trivia-team-icon'),
   triviaTeamName: document.getElementById('trivia-team-name'),
@@ -1516,8 +1517,12 @@ function prepareAndShowTrivia(team, tile) {
   // Feedback Panel oculto
   DOM.triviaFeedbackPanel.classList.add('hidden');
 
-  // Mostrar modal
+  // Mostrar modal y reiniciar posición de scroll
   DOM.triviaModal.classList.remove('hidden');
+  if (DOM.triviaModalCard) {
+    DOM.triviaModalCard.scrollTop = 0;
+  }
+  DOM.triviaModal.scrollTop = 0;
 
   // Iniciar Temporizador
   startTimer();
@@ -1780,7 +1785,17 @@ function applyConsequences(isCorrect, team, tile) {
   DOM.triviaFeedbackPanel.classList.remove('hidden');
   saveCronoTriviaGame();
 
+  // Desplazamiento automático suave hacia el feedback y botón Continuar en celulares
+  setTimeout(() => {
+    if (DOM.btnNextTurn) {
+      DOM.btnNextTurn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (DOM.triviaFeedbackPanel) {
+      DOM.triviaFeedbackPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, 100);
+
   DOM.btnNextTurn.onclick = () => {
+    DOM.btnNextTurn.onclick = null;
     DOM.triviaModal.classList.add('hidden');
     if (actionCallback) {
       actionCallback(() => {
