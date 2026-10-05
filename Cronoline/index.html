@@ -24,6 +24,19 @@
         <p class="brand-subtitle">Elige la Versión del Juego</p>
       </div>
 
+      <!-- BANNER NUEVO MODO: CRONOTRIVIA -->
+      <a href="carrera.html" class="carrera-mode-banner">
+        <div class="carrera-badge">⭐ ¡NUEVO! ⭐</div>
+        <div class="carrera-banner-content">
+          <div class="carrera-banner-icon">🎲</div>
+          <div class="carrera-banner-info">
+            <h3 class="carrera-banner-title">CronoTrivia: La Pista del Saber</h3>
+            <p class="carrera-banner-desc">Juego de Tablero & Trivia por Equipos. ¡Lanza el dado, domina las categorías y compite hasta la meta!</p>
+          </div>
+          <div class="carrera-banner-arrow">➔</div>
+        </div>
+      </a>
+
       <div class="version-grid">
         <button type="button" class="version-select-btn" data-version="historia" style="--color-accent: #fbbf24; --glow-accent: rgba(251, 191, 36, 0.3)">
           <span class="version-icon">⏳</span>
@@ -149,23 +162,26 @@
           </div>
         </div>
 
-        <label>Nombres de Jugadores / Grupos</label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <label style="margin-bottom: 0;">Nombres de Jugadores / Equipos</label>
+          <button type="button" id="btn-randomize-cronoline-names" class="btn-randomize-names" title="Generar nombres aleatorios">🎲 Aleatorios</button>
+        </div>
         <div class="player-input-list" id="player-inputs">
           <div class="input-wrapper">
             <span>P1</span>
-            <input type="text" id="player-name-1" value="Jugador 1" placeholder="Nombre..." maxlength="12">
+            <input type="text" id="player-name-1" value="" placeholder="Nombre del Equipo..." maxlength="24">
           </div>
           <div class="input-wrapper">
             <span>P2</span>
-            <input type="text" id="player-name-2" value="Jugador 2" placeholder="Nombre..." maxlength="12">
+            <input type="text" id="player-name-2" value="" placeholder="Nombre del Equipo..." maxlength="24">
           </div>
           <div class="input-wrapper hidden">
             <span>P3</span>
-            <input type="text" id="player-name-3" value="Jugador 3" placeholder="Nombre..." maxlength="12">
+            <input type="text" id="player-name-3" value="" placeholder="Nombre del Equipo..." maxlength="24">
           </div>
           <div class="input-wrapper hidden">
             <span>P4</span>
-            <input type="text" id="player-name-4" value="Jugador 4" placeholder="Nombre..." maxlength="12">
+            <input type="text" id="player-name-4" value="" placeholder="Nombre del Equipo..." maxlength="24">
           </div>
         </div>
       </div>
@@ -224,7 +240,7 @@
 
     <!-- Mano del Jugador / Carta Activa a colocar -->
     <section class="hand-section">
-      <h3 class="hand-title">Tu Carta a Colocar</h3>
+      <h3 class="hand-title">Tu Carta a Colocar <span style="font-size: 0.78rem; font-weight: normal; color: var(--gold); margin-left: 0.35rem;">(Haz clic en "+" o arrastra la carta)</span></h3>
       <div class="active-card-container" id="active-card-container">
         <!-- La carta actual aparece aquí -->
       </div>
@@ -316,8 +332,8 @@
           <ol style="margin-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; list-style-type: decimal;">
             <li>Observa tu carta activa en la sección <strong>"Tu Carta a Colocar"</strong>.</li>
             <li>Busca los botones con el símbolo <strong>"+"</strong> entre las cartas ya ordenadas en la mesa (Línea de Tiempo).</li>
-            <li>Haz clic en el <strong>"+"</strong> donde creas que encaja la carta (ej: después de un evento del 2000 y antes de uno del 2010).</li>
-            <li>La carta se moverá tentativamente allí. Haz clic en <strong>"🔮 Voltear"</strong> para confirmar o <strong>"↩️ Devolver"</strong> si cambias de opinión.</li>
+            <li>Haz <strong>clic en el "+"</strong> o <strong>arrastra la carta</strong> directamente al lugar donde creas que encaja (ej: entre un evento del 2000 y uno del 2010).</li>
+            <li>La carta se posicionará allí. Haz clic en <strong>"🔮 Voltear"</strong> para confirmar o <strong>"↩️ Devolver"</strong> si cambias de opinión.</li>
             <li>Si el orden es correcto, la carta se revela y se queda en la línea. Si te equivocas, la carta se descarta, ves el año real y pierdes una vida o tu racha.</li>
           </ol>
         </div>
@@ -347,6 +363,7 @@
 
   <!-- Carga de Base de Datos y Scripts -->
   <script src="cards.js"></script>
+  <script src="team_names.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

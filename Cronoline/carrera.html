@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CronoTrivia: La Pista del Saber - Cronoline</title>
+  
+  <!-- Tipografías y Estilos Base -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="carrera.css">
+</head>
+<body class="carrera-body">
+
+  <!-- ==================== PANTALLA 1: SETUP DE PARTIDA ==================== -->
+  <section id="carrera-setup" class="carrera-screen">
+    <div class="carrera-setup-card">
+      <div class="brand-container text-center">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+          <a href="index.html" class="back-link-top" style="margin-bottom: 0;">⬅ Volver a Cronoline Clásico</a>
+          <button type="button" id="btn-top-rules" class="back-link-top btn-open-rules" style="margin-bottom: 0; cursor: pointer; color: var(--gold-light); border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.1);">❓ ¿Cómo Jugar? (Reglas)</button>
+        </div>
+        <div class="badge-hero">⭐ MODO DE TABLERO & TRIVIA ⭐</div>
+        <h1 class="brand-title">CronoTrivia: La Pista del Saber</h1>
+        <p class="brand-slogan">"Compite por equipos o parejas: lanza el dado, domina las categorías y conquista la pista"</p>
+      </div>
+
+      <!-- Configuración de Equipos -->
+      <div class="setup-section">
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span class="step-num">1</span>
+            <h3 style="margin: 0;">Equipos / Parejas en Competencia</h3>
+          </div>
+          <button type="button" id="btn-randomize-carrera-teams" class="btn-randomize-names" title="Generar nuevos nombres aleatorios">🎲 Aleatorios</button>
+        </div>
+        
+        <div class="teams-count-selector">
+          <label>Cantidad de Equipos:</label>
+          <div class="btn-group">
+            <button type="button" class="team-count-btn active" data-count="2">2 Equipos</button>
+            <button type="button" class="team-count-btn" data-count="3">3 Equipos</button>
+            <button type="button" class="team-count-btn" data-count="4">4 Equipos</button>
+          </div>
+        </div>
+
+        <div id="teams-list" class="teams-config-grid">
+          <!-- Renderizado dinámico en JS -->
+        </div>
+      </div>
+
+      <!-- Configuración del Tablero -->
+      <div class="setup-section">
+        <div class="section-header">
+          <span class="step-num">2</span>
+          <h3>Longitud del Tablero</h3>
+        </div>
+        <div class="board-length-selector btn-group">
+          <button type="button" class="length-btn" data-length="20">
+            <span class="btn-icon">⚡</span>
+            <span class="btn-title">Express</span>
+            <span class="btn-sub">20 Casillas (~15 min)</span>
+          </button>
+          <button type="button" class="length-btn active" data-length="30">
+            <span class="btn-icon">🏆</span>
+            <span class="btn-title">Estándar</span>
+            <span class="btn-sub">30 Casillas (~25 min)</span>
+          </button>
+          <button type="button" class="length-btn" data-length="40">
+            <span class="btn-icon">🌌</span>
+            <span class="btn-title">Épica</span>
+            <span class="btn-sub">40 Casillas (~40 min)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Categorías de Trivia -->
+      <div class="setup-section">
+        <div class="section-header">
+          <span class="step-num">3</span>
+          <h3>Categorías de Trivia Incluidas</h3>
+        </div>
+        <div class="categories-selection-grid">
+          <label class="cat-pill-label">
+            <input type="checkbox" name="cat" value="historia" checked>
+            <span class="cat-pill" style="--c-accent: #fbbf24;">🏛️ Historia Universal</span>
+          </label>
+          <label class="cat-pill-label">
+            <input type="checkbox" name="cat" value="geografia" checked>
+            <span class="cat-pill" style="--c-accent: #0284c7;">🌍 Banderas & Geografía</span>
+          </label>
+          <label class="cat-pill-label">
+            <input type="checkbox" name="cat" value="quimica" checked>
+            <span class="cat-pill" style="--c-accent: #06b6d4;">🧪 Química & Física</span>
+          </label>
+          <label class="cat-pill-label">
+            <input type="checkbox" name="cat" value="biologia" checked>
+            <span class="cat-pill" style="--c-accent: #10b981;">🧬 Biología & Naturaleza</span>
+          </label>
+          <label class="cat-pill-label">
+            <input type="checkbox" name="cat" value="deportes" checked>
+            <span class="cat-pill" style="--c-accent: #f97316;">⚽ Deportes & Mundiales</span>
+          </label>
+          <label class="cat-pill-label">
+            <input type="checkbox" name="cat" value="arte" checked>
+            <span class="cat-pill" style="--c-accent: #8b5cf6;">🎨 Arte & Literatura</span>
+          </label>
+          <label class="cat-pill-label">
+            <input type="checkbox" name="cat" value="canciones" checked>
+            <span class="cat-pill" style="--c-accent: #ec4899;">🎸 Música & Canciones</span>
+          </label>
+          <label class="cat-pill-label">
+            <input type="checkbox" name="cat" value="peliculas" checked>
+            <span class="cat-pill" style="--c-accent: #14b8a6;">🎬 Cine & Películas</span>
+          </label>
+          <label class="cat-pill-label">
+            <input type="checkbox" name="cat" value="tecnologia" checked>
+            <span class="cat-pill" style="--c-accent: #a855f7;">💻 Tecnología & Gaming</span>
+          </label>
+          <label class="cat-pill-label">
+            <input type="checkbox" name="cat" value="farandula" checked>
+            <span class="cat-pill" style="--c-accent: #eab308;">📺 Farándula Pop</span>
+          </label>
+          <label class="cat-pill-label">
+            <input type="checkbox" name="cat" value="guerras" checked>
+            <span class="cat-pill" style="--c-accent: #fb7185;">🪖 Guerras Mundiales</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Reglas / Opciones Adicionales -->
+      <div class="setup-section">
+        <div class="section-header">
+          <span class="step-num">4</span>
+          <h3>Tiempo para Responder</h3>
+        </div>
+        <div class="timer-selector btn-group">
+          <button type="button" class="timer-btn" data-time="30">30 Segundos</button>
+          <button type="button" class="timer-btn active" data-time="45">45 Segundos</button>
+          <button type="button" class="timer-btn" data-time="60">60 Segundos</button>
+          <button type="button" class="timer-btn" data-time="0">Sin Límite</button>
+        </div>
+      </div>
+
+      <!-- Penalización por Fallo -->
+      <div class="setup-section">
+        <div class="section-header">
+          <span class="step-num">5</span>
+          <h3>Regla al Fallar Respuesta</h3>
+        </div>
+        <div class="penalty-selector btn-group">
+          <button type="button" class="penalty-btn active" data-penalty="origin">
+            <span class="btn-icon">🔙</span>
+            <span class="btn-title">Retroceder a Casilla de Origen</span>
+            <span class="btn-sub">¡Pierdes la tirada si no aciertas!</span>
+          </button>
+          <button type="button" class="penalty-btn" data-penalty="double">
+            <span class="btn-icon">⚡</span>
+            <span class="btn-title">Retroceso + Turno al Rival</span>
+            <span class="btn-sub">Vuelves al origen y el rival tira doble</span>
+          </button>
+          <button type="button" class="penalty-btn" data-penalty="none">
+            <span class="btn-icon">🛡️</span>
+            <span class="btn-title">Mantener Casilla</span>
+            <span class="btn-sub">Modo amigable de práctica</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Paso 6: Modo y Cantidad de Dados -->
+      <div class="setup-section">
+        <div class="section-header">
+          <span class="step-num">6</span>
+          <h3>Lanzamiento de Dados (Virtual o Físico)</h3>
+        </div>
+        
+        <div style="margin-bottom: 0.85rem;">
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">Modalidad de juego:</label>
+          <div class="dice-mode-selector btn-group">
+            <button type="button" class="dice-mode-btn active" data-dice-mode="virtual">
+              <span class="btn-icon">🎲</span>
+              <span class="btn-title">Dado Virtual</span>
+              <span class="btn-sub">Lanzamiento digital en pantalla</span>
+            </button>
+            <button type="button" class="dice-mode-btn" data-dice-mode="manual">
+              <span class="btn-icon">🖐️</span>
+              <span class="btn-title">Dados Reales / Físicos</span>
+              <span class="btn-sub">Tiras en tu mesa e ingresas el valor</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">Cantidad de dados por turno:</label>
+          <div class="dice-count-selector btn-group">
+            <button type="button" class="dice-count-btn active" data-dice-count="1">
+              <span class="btn-icon">🎲</span>
+              <span class="btn-title">1 Dado (1 a 6)</span>
+              <span class="btn-sub">Avance estándar casilla a casilla</span>
+            </button>
+            <button type="button" class="dice-count-btn" data-dice-count="2">
+              <span class="btn-icon">🎲🎲</span>
+              <span class="btn-title">2 Dados (2 a 12)</span>
+              <span class="btn-sub">Carrera más rápida y dinámica</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botón Iniciar Partida y Ver Reglas -->
+      <div class="setup-actions" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <button type="button" id="btn-iniciar-carrera" class="btn-start-epic">
+          🚀 ¡Iniciar CronoTrivia!
+        </button>
+        <button type="button" id="btn-setup-rules" class="btn-rules-setup btn-open-rules">
+          ❓ ¿Cómo Jugar y Reglas del Tablero?
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PANTALLA 2: EL JUEGO / TABLERO ==================== -->
+  <section id="carrera-game" class="carrera-screen hidden">
+    
+    <!-- Barra Superior de Control y Estado -->
+    <header class="game-top-bar">
+      <div class="bar-left">
+        <a href="index.html" class="nav-btn-icon" title="Volver al Menú Principal">🏠</a>
+        <button type="button" id="btn-toggle-sound" class="nav-btn-icon" title="Silenciar / Activar Sonido">🔊</button>
+        <button type="button" id="btn-show-rules" class="nav-btn-rules btn-open-rules" title="Reglas del Juego">❓ Reglas</button>
+      </div>
+
+      <!-- Turno Actual Destacado -->
+      <div id="active-turn-indicator" class="active-turn-box">
+        <div class="turn-label">TURNO DE</div>
+        <div class="turn-team-wrapper">
+          <span id="turn-team-avatar" class="turn-avatar">🚀</span>
+          <span id="turn-team-name" class="turn-name">Equipo Azul</span>
+        </div>
+      </div>
+
+      <div class="bar-right">
+        <button type="button" id="btn-abandon-game" class="nav-btn-text">Reiniciar</button>
+      </div>
+    </header>
+
+    <!-- Marcador de Equipos (Leaderboard) -->
+    <div id="teams-leaderboard" class="teams-leaderboard-bar">
+      <!-- Generado dinámicamente -->
+    </div>
+
+    <!-- Contenedor Principal: Tablero + Panel Lateral -->
+    <main class="game-main-layout">
+      
+      <!-- Zona del Tablero -->
+      <div class="board-wrapper">
+        <!-- Leyenda de Categorías por Color -->
+        <div id="board-legend-bar" class="board-legend-bar"></div>
+        <div class="board-scroll-area">
+          <div id="board-container" class="board-track">
+            <!-- Casillas generadas dinámicamente -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Control del Turno Activo -->
+      <aside class="turn-control-panel">
+        <div class="control-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h4 class="control-title" style="margin: 0;">Lanzamiento del Dado</h4>
+          </div>
+
+          <!-- Barra de Selección Rápida de Modo de Dado en Turno -->
+          <div class="turn-dice-toggle-bar">
+            <div class="dice-toggle-group">
+              <button type="button" class="dice-toggle-btn active" id="btn-toggle-dice-virtual" title="Usar dado virtual">🎲 Virtual</button>
+              <button type="button" class="dice-toggle-btn" id="btn-toggle-dice-manual" title="Usar dados reales en mesa">🖐️ Real</button>
+            </div>
+            <div class="dice-toggle-group">
+              <button type="button" class="dice-toggle-btn active" id="btn-toggle-dice-count-1" title="Jugar con 1 dado">1 Dado</button>
+              <button type="button" class="dice-toggle-btn" id="btn-toggle-dice-count-2" title="Jugar con 2 dados">2 Dados</button>
+            </div>
+          </div>
+          
+          <!-- MODO VIRTUAL: Dado 3D Interactivo -->
+          <div id="virtual-dice-section" class="virtual-dice-section">
+            <div class="dice-container">
+              <div id="dice-element" class="dice-cube">
+                <span id="dice-face-val">🎲</span>
+              </div>
+              <p id="dice-message" class="dice-status">¡Tira el dado para avanzar!</p>
+            </div>
+
+            <button type="button" id="btn-roll-dice" class="btn-roll-dice">
+              🎲 ¡TIRAR DADO!
+            </button>
+          </div>
+
+          <!-- MODO MANUAL: Botonera de Dados Reales / Físicos -->
+          <div id="manual-dice-section" class="manual-dice-section hidden">
+            <div class="manual-dice-card">
+              <p class="manual-dice-desc" id="manual-dice-instruction">Tira tu dado en la mesa y pulsa el valor:</p>
+              
+              <!-- Botonera de 1 Dado (1 a 6) -->
+              <div id="manual-keypad-1" class="manual-dice-keypad keypad-1">
+                <button type="button" class="manual-die-val-btn" data-val="1">1</button>
+                <button type="button" class="manual-die-val-btn" data-val="2">2</button>
+                <button type="button" class="manual-die-val-btn" data-val="3">3</button>
+                <button type="button" class="manual-die-val-btn" data-val="4">4</button>
+                <button type="button" class="manual-die-val-btn" data-val="5">5</button>
+                <button type="button" class="manual-die-val-btn" data-val="6">6</button>
+              </div>
+
+              <!-- Botonera de 2 Dados (2 a 12) -->
+              <div id="manual-keypad-2" class="manual-dice-keypad keypad-2 hidden">
+                <button type="button" class="manual-die-val-btn" data-val="2">2</button>
+                <button type="button" class="manual-die-val-btn" data-val="3">3</button>
+                <button type="button" class="manual-die-val-btn" data-val="4">4</button>
+                <button type="button" class="manual-die-val-btn" data-val="5">5</button>
+                <button type="button" class="manual-die-val-btn" data-val="6">6</button>
+                <button type="button" class="manual-die-val-btn" data-val="7">7</button>
+                <button type="button" class="manual-die-val-btn" data-val="8">8</button>
+                <button type="button" class="manual-die-val-btn" data-val="9">9</button>
+                <button type="button" class="manual-die-val-btn" data-val="10">10</button>
+                <button type="button" class="manual-die-val-btn" data-val="11">11</button>
+                <button type="button" class="manual-die-val-btn" data-val="12">12</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botón de Acción para Abrir Pregunta de la Casilla -->
+          <button type="button" id="btn-open-question" class="btn-open-question hidden">
+            🧠 ¡RESPONDER PREGUNTA!
+          </button>
+
+          <!-- Info de la Casilla Actual -->
+          <div id="tile-info-card" class="tile-info-card">
+            <span id="tile-info-icon" class="tile-info-icon">🏁</span>
+            <div class="tile-info-text">
+              <span id="tile-info-num" class="tile-info-num">Casilla #0</span>
+              <span id="tile-info-name" class="tile-info-name">Portal de Salida</span>
+            </div>
+          </div>
+
+          <!-- Inventario de Comodines del Equipo -->
+          <div class="comodines-inventory">
+            <h5>Comodines Disponibles</h5>
+            <div id="active-team-comodines" class="comodines-tags">
+              <!-- Comodines del equipo activo -->
+            </div>
+          </div>
+        </div>
+      </aside>
+
+    </main>
+
+  </section>
+
+  <!-- ==================== MODAL DE TRIVIA / PREGUNTA ==================== -->
+  <div id="trivia-modal" class="carrera-modal-overlay hidden">
+    <div class="trivia-modal-card">
+      
+      <!-- Cabecera de la Pregunta -->
+      <div class="trivia-modal-header">
+        <div class="trivia-team-pill" id="trivia-modal-team">
+          <span id="trivia-team-icon">🚀</span>
+          <span id="trivia-team-name">Equipo 1</span>
+        </div>
+        
+        <div class="trivia-cat-pill" id="trivia-modal-cat">
+          <span id="trivia-cat-icon">🏛️</span>
+          <span id="trivia-cat-title">Historia</span>
+        </div>
+
+        <div class="trivia-diff-pill" id="trivia-modal-diff">
+          Intermedia
+        </div>
+      </div>
+
+      <!-- Temporizador Regresivo -->
+      <div id="timer-bar-wrapper" class="timer-bar-wrapper">
+        <div id="timer-bar-fill" class="timer-bar-fill"></div>
+        <span id="timer-seconds-text" class="timer-seconds-text">45s</span>
+      </div>
+
+      <!-- Contenido de la Pregunta -->
+      <div class="trivia-question-content">
+        <span id="trivia-event-type" class="trivia-prompt-tag">¿En qué año ocurrió este suceso?</span>
+        
+        <!-- Contenedor Visual para Banderas, Mapas SVG, Obras de Arte y Diagramas -->
+        <div id="trivia-media-wrapper" class="trivia-media-wrapper hidden">
+          <div id="trivia-media-container" class="trivia-media-container"></div>
+        </div>
+
+        <h2 id="trivia-event-title" class="trivia-event-title">Llegada del Hombre a la Luna</h2>
+        <p id="trivia-event-desc" class="trivia-event-desc">
+          Neil Armstrong y Buzz Aldrin descienden del módulo lunar Eagle en el Mar de la Tranquilidad.
+        </p>
+      </div>
+
+      <!-- Comodines utilizables durante la pregunta -->
+      <div class="trivia-perks-bar">
+        <button type="button" id="perk-btn-5050" class="perk-btn" title="Descarta 2 opciones incorrectas">
+          🔍 50 / 50 <span class="perk-count" id="count-5050">0</span>
+        </button>
+        <button type="button" id="perk-btn-skip" class="perk-btn" title="Cambia por otra pregunta">
+          ⏳ Salto Temporal <span class="perk-count" id="count-skip">0</span>
+        </button>
+        <button type="button" id="perk-btn-shield" class="perk-btn" title="Inmunidad ante retrocesos en vórtices">
+          🛡️ Escudo Paradoja <span class="perk-count" id="count-shield">0</span>
+        </button>
+      </div>
+
+      <!-- Opciones de Respuesta -->
+      <div id="trivia-options-grid" class="trivia-options-grid">
+        <!-- 4 Opciones inyectadas por JS -->
+      </div>
+
+      <!-- Panel de Resolución / Feedback (Aparece tras responder) -->
+      <div id="trivia-feedback-panel" class="trivia-feedback-panel hidden">
+        <div id="feedback-icon" class="feedback-icon">🎉</div>
+        <div class="feedback-details">
+          <h3 id="feedback-status-title">¡RESPUESTA CORRECTA!</h3>
+          <p id="feedback-explanation">El acontecimiento ocurrió exactamente en <strong>1969</strong>.</p>
+          <div id="feedback-consequence" class="feedback-consequence-tag">
+            ¡Mantienes tu posición en la casilla!
+          </div>
+        </div>
+        <button type="button" id="btn-next-turn" class="btn-continue-trivia">
+          Continuar ➔
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE EVENTO ESPECIAL (COFRE, DUELO, VÓRTICE) ==================== -->
+  <div id="event-modal" class="carrera-modal-overlay hidden">
+    <div class="event-modal-card">
+      <div id="event-icon" class="event-icon-big">🎁</div>
+      <h2 id="event-title" class="event-title">¡Cofre de la Fortuna!</h2>
+      <p id="event-desc" class="event-desc">Has encontrado una reliquia temporal en el camino.</p>
+      <div id="event-reward-box" class="event-reward-box">
+        <!-- Recompensa o reto -->
+      </div>
+      <button type="button" id="btn-event-confirm" class="btn-event-action">
+        ¡Aceptar!
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE REGLAS RÁPIDAS ==================== -->
+  <div id="rules-modal" class="carrera-modal-overlay hidden">
+    <div class="rules-modal-card">
+      <div class="rules-header">
+        <h2>📜 Cómo Jugar a CronoTrivia: La Pista del Saber</h2>
+        <button type="button" id="btn-close-rules" class="btn-close-modal">✕</button>
+      </div>
+      <div class="rules-body">
+        <div class="rule-item">
+          <span class="rule-icon">🎲</span>
+          <div>
+            <strong>1. Turnos y Lanzamiento de Dados:</strong>
+            <p>Se juega en modalidad <em>Pass & Play</em>. Puedes jugar con <strong>Dado Virtual</strong> en pantalla o con <strong>Dados Reales / Físicos</strong> en tu mesa (1 dado del 1 al 6 o 2 dados del 2 al 12). Tu ficha avanzará automáticamente el número obtenido.</p>
+          </div>
+        </div>
+        <div class="rule-item">
+          <span class="rule-icon">🧠</span>
+          <div>
+            <strong>2. Responde la Pregunta de Trivia:</strong>
+            <p>El color de la casilla determina la categoría (<strong>Geografía con banderas y mapas, Historia, Ciencias, Deportes, Arte, Música, Cine, etc.</strong>). Tienes un tiempo límite para responder entre 4 opciones:</p>
+            <ul style="margin: 0.35rem 0 0 1.2rem; font-size: 0.9rem; color: var(--text-muted);">
+              <li><strong>Si aciertas:</strong> Consolidas tu avance y tu ficha se queda en la casilla.</li>
+              <li><strong>Si fallas o se agota el tiempo:</strong> Se aplica la penalización configurada (en el modo estándar, <em>retrocedes a tu casilla de origen</em>; en el modo doble, <em>el rival obtiene turno extra</em>).</li>
+            </ul>
+          </div>
+        </div>
+        <div class="rule-item">
+          <span class="rule-icon">🎁</span>
+          <div>
+            <strong>3. Casillas de Cofre (Bono):</strong>
+            <p><strong>¡El bono ya no es gratis!</strong> Al caer en un cofre (🎁), debes <strong>responder correctamente una pregunta de trivia</strong> para abrirlo. Si aciertas, desbloqueas un comodín aleatorio; si fallas, el cofre se bloquea y aplicará la penalización de turno.</p>
+          </div>
+        </div>
+        <div class="rule-item">
+          <span class="rule-icon">🛡️</span>
+          <div>
+            <strong>4. Comodines Disponibles:</strong>
+            <p style="margin-bottom: 0.3rem;">Puedes usar tus comodines durante cualquier pregunta activa:</p>
+            <ul style="margin: 0 0 0 1.2rem; font-size: 0.9rem; color: var(--text-muted);">
+              <li>🔍 <strong>50 / 50:</strong> Descarta automáticamente 2 alternativas erróneas.</li>
+              <li>⏳ <strong>Salto Temporal:</strong> Cambia la pregunta actual por una completamente nueva sin penalización.</li>
+              <li>🛡️ <strong>Escudo Paradoja:</strong> Te protege contra la penalización de un vórtice temporal.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="rule-item">
+          <span class="rule-icon">🌀</span>
+          <div>
+            <strong>5. Casillas Especiales del Tablero:</strong>
+            <p><strong>Atajos Cuánticos (🚀):</strong> Pregunta especial; si aciertas, ¡saltas 3 casillas más hacia adelante!<br>
+            <strong>Vórtices Temporales (🌀):</strong> Si fallas la pregunta, el vórtice te arrastra 2 casillas adicionales hacia atrás.</p>
+          </div>
+        </div>
+        <div class="rule-item">
+          <span class="rule-icon">👑</span>
+          <div>
+            <strong>6. Meta y Victoria:</strong>
+            <p>El primer equipo en llegar a la última casilla y superar con éxito el <strong>Desafío Final del Campeón</strong> se corona vencedor indiscutido de la partida.</p>
+          </div>
+        </div>
+      </div>
+      <div class="rules-footer">
+        <button type="button" id="btn-ack-rules" class="mode-btn active" style="width: 100%;">¡Entendido, a Jugar!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== PANTALLA DE VICTORIA Y PODIO ==================== -->
+  <div id="victory-screen" class="carrera-modal-overlay hidden">
+    <div class="victory-card">
+      <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
+      <div class="victory-header">
+        <div class="trophy-icon">🏆</div>
+        <h1 class="victory-title">¡TENEMOS UN CAMPEÓN!</h1>
+        <p class="victory-subtitle">Ha conquistado el curso de la historia universal</p>
+      </div>
+
+      <div id="winner-banner" class="winner-banner">
+        <span id="winner-avatar" class="winner-avatar">🚀</span>
+        <h2 id="winner-team-name" class="winner-team-name">Equipo Azul</h2>
+      </div>
+
+      <!-- Podio de Equipos -->
+      <div id="victory-podium" class="victory-podium">
+        <!-- Renderizado dinámico -->
+      </div>
+
+      <!-- Estadísticas de la Partida -->
+      <div id="victory-stats" class="victory-stats-grid">
+        <!-- Stats -->
+      </div>
+
+      <div class="victory-actions">
+        <button type="button" id="btn-rematch" class="btn-start-epic">🔄 Jugar Otra Partida</button>
+        <a href="index.html" class="mode-btn text-center" style="margin-top: 0.75rem; display: block;">⬅ Volver al Menú Principal</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Carga de la base de datos de cartas existente -->
+  <script src="cards.js"></script>
+  <!-- Base de datos de Trivia General (Geografía, Química, Biología, Deportes, Arte) -->
+  <script src="trivia_data.js"></script>
+  <!-- Nombres de equipos aleatorios compartidos -->
+  <script src="team_names.js"></script>
+  <!-- Lógica de CronoTrivia: La Pista del Saber -->
+  <script src="carrera.js"></script>
+</body>
+</html>

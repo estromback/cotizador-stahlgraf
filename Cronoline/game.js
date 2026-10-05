@@ -247,12 +247,51 @@ targetCardsButtons.forEach(btn => {
   });
 });
 
+// Asignar nombres aleatorios a los inputs de jugadores
+function randomizeCronolinePlayerNames(force = false) {
+  if (typeof getRandomTeamNames !== 'function') return;
+  const count = 4;
+  const currentValues = [];
+  if (!force) {
+    for (let i = 1; i <= count; i++) {
+      const input = document.getElementById(`player-name-${i}`);
+      if (input && input.value.trim() && !input.value.startsWith('Jugador ')) {
+        currentValues.push(input.value.trim());
+      }
+    }
+  }
+  
+  const randomNames = getRandomTeamNames(count, currentValues);
+  for (let i = 1; i <= count; i++) {
+    const input = document.getElementById(`player-name-${i}`);
+    if (input) {
+      if (force || !input.value.trim() || input.value.startsWith('Jugador ')) {
+        input.value = randomNames[i - 1];
+      }
+    }
+  }
+}
+
+// Botón para aleatorizar nombres en Cronoline
+const btnRandomizeCronolineNames = document.getElementById('btn-randomize-cronoline-names');
+if (btnRandomizeCronolineNames) {
+  btnRandomizeCronolineNames.addEventListener('click', () => {
+    randomizeCronolinePlayerNames(true);
+  });
+}
+
 // Mostrar/Ocultar inputs de nombres según cantidad elegida
 function configurePlayerInputs(count) {
   const inputs = playerInputsContainer.querySelectorAll('.input-wrapper');
   inputs.forEach((inputWrapper, index) => {
     if (index < count) {
       inputWrapper.classList.remove('hidden');
+      const input = inputWrapper.querySelector('input');
+      if (input && !input.value.trim()) {
+        input.value = (typeof getRandomSingleTeamName === 'function') 
+          ? getRandomSingleTeamName() 
+          : `Equipo ${index + 1}`;
+      }
     } else {
       inputWrapper.classList.add('hidden');
     }
@@ -270,6 +309,7 @@ btnStartGame.addEventListener('click', () => {
 // Botón salir al menú
 btnExitGame.addEventListener('click', () => {
   if (confirm('¿Estás seguro de que quieres abandonar la partida? Se perderá todo el progreso.')) {
+    clearCronolineSavedGame();
     returnToMenu();
   }
 });
@@ -285,6 +325,7 @@ btnContinueError.addEventListener('click', () => {
       endGame(status.victory);
     } else {
       renderActiveCard();
+      saveCronolineGame();
     }
   } else {
     // Comprobar si la partida terminó tras perder vidas
@@ -293,12 +334,14 @@ btnContinueError.addEventListener('click', () => {
       endGame(status.victory, status.winner);
     } else {
       renderPassTurnButton();
+      saveCronolineGame();
     }
   }
 });
 
 btnRestartGame.addEventListener('click', () => {
   gameoverOverlay.classList.remove('active');
+  clearCronolineSavedGame();
   returnToMenu();
 });
 
@@ -401,7 +444,8 @@ function startNewGame() {
     
     for (let i = 1; i <= playerCount; i++) {
       const nameInput = document.getElementById(`player-name-${i}`);
-      const name = nameInput.value.trim() || `Equipo ${i}`;
+      const fallback = (typeof getRandomSingleTeamName === 'function') ? getRandomSingleTeamName() : `Equipo ${i}`;
+      const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : fallback;
       gameState.players.push({
         name: name,
         lives: gameState.maxLives,
@@ -438,6 +482,7 @@ function startNewGame() {
   renderTimeline();
   renderActiveCard();
   
+  saveCronolineGame();
   return true;
 }
 
@@ -466,8 +511,224 @@ function getActiveTimeline() {
   }
 }
 
+// ==================== MECÁNICA DE DRAG & DROP EN CRONOLINE ====================
+let isDragInProgress = false;
+
 /**
- * Renderiza la línea de tiempo horizontal con sus ranuras y carta tentativa
+ * Habilita arrastrar (Desktop Drag & Drop y Touch Mobile) en una carta activa o tentativa
+ */
+function enableDragOnCard(cardEl) {
+  if (!gameState.currentCard) return;
+  cardEl.setAttribute('draggable', 'true');
+  cardEl.classList.add('draggable');
+
+  // --- HTML5 Desktop Drag & Drop ---
+  cardEl.addEventListener('dragstart', (e) => {
+    isDragInProgress = true;
+    setTimeout(() => {
+      cardEl.classList.add('is-dragging');
+    }, 0);
+    e.dataTransfer.setData('text/plain', 'cronoline-card');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  cardEl.addEventListener('dragend', () => {
+    cardEl.classList.remove('is-dragging');
+    clearAllSlotDragOver();
+    setTimeout(() => {
+      isDragInProgress = false;
+    }, 100);
+  });
+
+  // --- Mobile Touch Drag & Drop (Pantallas táctiles y móviles) ---
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchMoved = false;
+  let touchGhost = null;
+
+  cardEl.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchMoved = false;
+  }, { passive: true });
+
+  cardEl.addEventListener('touchmove', (e) => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+
+    if (!touchMoved && Math.hypot(dx, dy) > 8) {
+      touchMoved = true;
+      isDragInProgress = true;
+      cardEl.classList.add('is-dragging');
+
+      touchGhost = cardEl.cloneNode(true);
+      touchGhost.className = 'card touch-drag-ghost';
+      // Eliminar por completo la cara trasera del fantasma de arrastre
+      const ghostBack = touchGhost.querySelector('.card-back');
+      if (ghostBack) ghostBack.remove();
+      touchGhost.style.left = `${touch.clientX}px`;
+      touchGhost.style.top = `${touch.clientY}px`;
+      document.body.appendChild(touchGhost);
+    }
+
+    if (touchMoved && touchGhost) {
+      if (e.cancelable) e.preventDefault();
+      touchGhost.style.left = `${touch.clientX}px`;
+      touchGhost.style.top = `${touch.clientY}px`;
+
+      checkAutoScrollTimeline(touch.clientX);
+      updateTouchHoverTarget(touch.clientX, touch.clientY);
+    }
+  }, { passive: false });
+
+  cardEl.addEventListener('touchend', (e) => {
+    if (touchMoved) {
+      if (e.cancelable) e.preventDefault();
+      cardEl.classList.remove('is-dragging');
+      if (touchGhost && touchGhost.parentNode) {
+        touchGhost.parentNode.removeChild(touchGhost);
+        touchGhost = null;
+      }
+
+      const touch = e.changedTouches[0];
+      const targetIndex = findDropTargetIndexAtPoint(touch.clientX, touch.clientY);
+      clearAllSlotDragOver();
+
+      if (targetIndex !== null) {
+        selectTentativeSlot(targetIndex);
+      }
+
+      setTimeout(() => {
+        isDragInProgress = false;
+      }, 150);
+    }
+  }, { passive: false });
+
+  cardEl.addEventListener('touchcancel', () => {
+    cardEl.classList.remove('is-dragging');
+    if (touchGhost && touchGhost.parentNode) {
+      touchGhost.parentNode.removeChild(touchGhost);
+      touchGhost = null;
+    }
+    clearAllSlotDragOver();
+    isDragInProgress = false;
+  });
+}
+
+function setupSlotDropTarget(slot, index) {
+  slot.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    slot.classList.add('drag-over');
+    checkAutoScrollTimeline(e.clientX);
+  });
+
+  slot.addEventListener('dragleave', () => {
+    slot.classList.remove('drag-over');
+  });
+
+  slot.addEventListener('drop', (e) => {
+    e.preventDefault();
+    slot.classList.remove('drag-over');
+    selectTentativeSlot(index);
+  });
+}
+
+function setupCardDropTarget(cardEl, index) {
+  cardEl.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const rect = cardEl.getBoundingClientRect();
+    const isLeft = e.clientX < rect.left + rect.width / 2;
+    const targetIdx = isLeft ? index : index + 1;
+    highlightSlotByIndex(targetIdx);
+    checkAutoScrollTimeline(e.clientX);
+  });
+
+  cardEl.addEventListener('dragleave', (e) => {
+    if (!cardEl.contains(e.relatedTarget)) {
+      clearAllSlotDragOver();
+    }
+  });
+
+  cardEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    clearAllSlotDragOver();
+    const rect = cardEl.getBoundingClientRect();
+    const isLeft = e.clientX < rect.left + rect.width / 2;
+    const targetIdx = isLeft ? index : index + 1;
+    selectTentativeSlot(targetIdx);
+  });
+}
+
+function highlightSlotByIndex(index) {
+  clearAllSlotDragOver();
+  const slot = timelineWrapper.querySelector(`.insert-slot[data-index="${index}"]`);
+  if (slot) slot.classList.add('drag-over');
+}
+
+function clearAllSlotDragOver() {
+  document.querySelectorAll('.insert-slot.drag-over').forEach(s => s.classList.remove('drag-over'));
+}
+
+function checkAutoScrollTimeline(clientX) {
+  const container = document.getElementById('timeline-section');
+  if (!container) return;
+  const rect = container.getBoundingClientRect();
+  const threshold = 70;
+  if (clientX < rect.left + threshold) {
+    container.scrollLeft -= 15;
+  } else if (clientX > rect.right - threshold) {
+    container.scrollLeft += 15;
+  }
+}
+
+function updateTouchHoverTarget(clientX, clientY) {
+  const targetIndex = findDropTargetIndexAtPoint(clientX, clientY);
+  if (targetIndex !== null) {
+    highlightSlotByIndex(targetIndex);
+  } else {
+    clearAllSlotDragOver();
+  }
+}
+
+function findDropTargetIndexAtPoint(clientX, clientY) {
+  const ghost = document.querySelector('.touch-drag-ghost');
+  if (ghost) ghost.style.display = 'none';
+  const el = document.elementFromPoint(clientX, clientY);
+  if (ghost) ghost.style.display = 'block';
+
+  if (!el) return null;
+
+  // 1. Directamente sobre una ranura
+  const slot = el.closest('.insert-slot');
+  if (slot && slot.dataset.index !== undefined) {
+    return parseInt(slot.dataset.index, 10);
+  }
+
+  // 2. Sobre una carta colocada en el timeline
+  const card = el.closest('#timeline-wrapper .card:not(.tentative-card)');
+  if (card && card.dataset.placedIndex !== undefined) {
+    const placedIdx = parseInt(card.dataset.placedIndex, 10);
+    const rect = card.getBoundingClientRect();
+    return (clientX < rect.left + rect.width / 2) ? placedIdx : placedIdx + 1;
+  }
+
+  // 3. Sobre la carta tentativa misma
+  const tentativeCard = el.closest('.tentative-card');
+  if (tentativeCard && tentativeCard.dataset.tentativeIndex !== undefined) {
+    return parseInt(tentativeCard.dataset.tentativeIndex, 10);
+  }
+
+  return null;
+}
+
+/**
+ * Renderiza la línea de tiempo horizontal con sus ranuras y carta tentativa (sin pin redundante)
  */
 function renderTimeline() {
   // Limpiar contenedor (dejando solo la línea de fondo estática)
@@ -479,39 +740,43 @@ function renderTimeline() {
   
   // Renderizar ranuras e insertar cartas
   for (let i = 0; i <= totalCards; i++) {
-    // 1. Si la carta tentativa se encuentra en esta posición, dibujarla ANTES de la ranura / carta i
+    // 1. Si la carta tentativa se encuentra en esta posición, dibujarla en lugar de la ranura i (SIN PIN REDUNDANTE)
     if (T !== null && T === i) {
       const tentativeCardEl = createCardElement(gameState.currentCard, false);
       tentativeCardEl.classList.add('tentative-card');
+      tentativeCardEl.dataset.tentativeIndex = i;
+      enableDragOnCard(tentativeCardEl);
       timelineWrapper.appendChild(tentativeCardEl);
+    } else {
+      // 2. Ranura de Inserción normal con botón '+'
+      const slot = document.createElement('div');
+      slot.className = 'insert-slot';
+      slot.dataset.index = i;
+      
+      const slotBtn = document.createElement('button');
+      slotBtn.className = 'insert-slot-btn';
+      slotBtn.textContent = '+';
+      slot.appendChild(slotBtn);
+      
+      slot.addEventListener('click', () => {
+        selectTentativeSlot(i);
+      });
+      
+      setupSlotDropTarget(slot, i);
+      timelineWrapper.appendChild(slot);
     }
-    
-    // 2. Ranura de Inserción
-    const slot = document.createElement('div');
-    slot.className = 'insert-slot';
-    if (T !== null && T === i) {
-      slot.classList.add('occupied');
-    }
-    slot.dataset.index = i;
-    
-    const slotBtn = document.createElement('button');
-    slotBtn.className = 'insert-slot-btn';
-    slotBtn.textContent = (T !== null && T === i) ? '📍' : '+';
-    slot.appendChild(slotBtn);
-    
-    slot.addEventListener('click', () => {
-      selectTentativeSlot(i);
-    });
-    
-    timelineWrapper.appendChild(slot);
     
     // 3. Carta ya colocada (si no es la última ranura)
     if (i < totalCards) {
       const cardData = activeTimeline[i];
       const cardEl = createCardElement(cardData, true);
+      cardEl.dataset.placedIndex = i;
       cardEl.addEventListener('click', () => {
-        showCardInspection(cardData);
+        if (!isDragInProgress) {
+          showCardInspection(cardData);
+        }
       });
+      setupCardDropTarget(cardEl, i);
       timelineWrapper.appendChild(cardEl);
     }
   }
@@ -557,11 +822,11 @@ function createCardElement(cardData, isRevealed) {
         <p class="card-desc">${cardData.descripcion_corta}</p>
       </div>
       <!-- CARA TRASERA (Año revelado) -->
-      <div class="card-face card-back">
+      <div class="card-face card-back" style="${!isRevealed ? 'display: none;' : ''}">
         <span class="card-back-header">${catConfig.icon} ${catConfig.name}</span>
-        <div class="card-year-reveal">${formatCardValue(cardData)}</div>
+        <div class="card-year-reveal">${isRevealed ? formatCardValue(cardData) : ''}</div>
         <div class="card-back-title">${cardData.titulo}</div>
-        ${(cardData.categoria === 'rock_pop' || cardData.categoria === 'latino' || cardData.categoria === 'clasicos') ? `
+        ${(isRevealed && (cardData.categoria === 'rock_pop' || cardData.categoria === 'latino' || cardData.categoria === 'clasicos')) ? `
           <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(cardData.titulo)}" target="_blank" class="card-play-btn" onclick="event.stopPropagation()" title="Escuchar en YouTube">▶️</a>
         ` : ''}
       </div>
@@ -582,9 +847,12 @@ function renderActiveCard() {
       // Caso estándar: la carta está en la mano
       const activeCardEl = createCardElement(gameState.currentCard, false);
       activeCardEl.classList.add('active-card');
+      enableDragOnCard(activeCardEl);
       
       activeCardEl.addEventListener('click', () => {
-        showCardInspection(gameState.currentCard);
+        if (!isDragInProgress) {
+          showCardInspection(gameState.currentCard);
+        }
       });
       
       activeCardContainer.appendChild(activeCardEl);
@@ -647,6 +915,14 @@ function confirmPlacement() {
   
   const tentativeCard = timelineWrapper.querySelector('.tentative-card');
   if (tentativeCard) {
+    const cardBack = tentativeCard.querySelector('.card-back');
+    const yearReveal = tentativeCard.querySelector('.card-year-reveal');
+    if (yearReveal && gameState.currentCard) {
+      yearReveal.textContent = formatCardValue(gameState.currentCard);
+    }
+    if (cardBack) {
+      cardBack.style.display = 'flex';
+    }
     tentativeCard.classList.add('revealed');
     
     // Esperar a que la animación de volteo 3D termine (600ms) para gatillar validación
@@ -775,6 +1051,7 @@ function handlePlacementSuccess(card, index) {
       endGame(status.victory);
     } else {
       renderActiveCard();
+      saveCronolineGame();
     }
   } else {
     // Modo Multijugador
@@ -787,6 +1064,7 @@ function handlePlacementSuccess(card, index) {
       endGame(status.victory, status.winner);
     } else {
       renderPassTurnButton();
+      saveCronolineGame();
     }
   }
 }
@@ -826,6 +1104,7 @@ function handlePlacementFailure(card) {
     }
     updateMultiplayerHeader();
   }
+  saveCronolineGame();
 }
 
 /**
@@ -932,6 +1211,7 @@ function renderPassTurnButton() {
     gameState.tentativeIndex = null;
     renderTimeline();
     renderActiveCard();
+    saveCronolineGame();
   });
   
   activeCardContainer.appendChild(passBtn);
@@ -987,6 +1267,7 @@ function updateMultiplayerHeader() {
  * Termina el juego y muestra la pantalla resumen
  */
 function endGame(isVictory, winnerOverride = null) {
+  clearCronolineSavedGame();
   gameoverOverlay.classList.add('active');
   
   let winner = winnerOverride;
@@ -1067,6 +1348,7 @@ function endGame(isVictory, winnerOverride = null) {
  * Retorna al menú de configuración
  */
 function returnToMenu() {
+  clearCronolineSavedGame();
   gameScreen.classList.add('hidden');
   setupScreen.classList.remove('hidden');
   
@@ -1076,3 +1358,210 @@ function returnToMenu() {
   gameState.deck = [];
   gameState.tentativeIndex = null;
 }
+
+// ==================== PERSISTENCIA DE SESIÓN (AUTO-SAVE & RESTORE) ====================
+
+const CRONOLINE_STORAGE_KEY = 'cronoline_active_session_v1';
+
+/**
+ * Guarda el estado actual de la partida en localStorage
+ */
+function saveCronolineGame() {
+  // Solo guardar si estamos dentro de una partida activa con cartas
+  if (!gameScreen || gameScreen.classList.contains('hidden')) return;
+  
+  const hasPlaced = (Array.isArray(gameState.placedCards) && gameState.placedCards.length > 0) ||
+    (Array.isArray(gameState.players) && gameState.players.some(p => p.placedCards && p.placedCards.length > 0));
+  
+  if (!hasPlaced) return;
+
+  const sessionData = {
+    version: gameState.version,
+    mode: gameState.mode,
+    deck: gameState.deck,
+    placedCards: gameState.placedCards,
+    currentCard: gameState.currentCard,
+    score: gameState.score,
+    bestScore: gameState.bestScore,
+    players: gameState.players.map(p => ({
+      name: p.name,
+      lives: p.lives === Infinity ? 'infinite' : p.lives,
+      score: p.score,
+      isDead: !!p.isDead,
+      placedCards: p.placedCards || []
+    })),
+    activePlayerIndex: gameState.activePlayerIndex,
+    maxLives: gameState.maxLives === Infinity ? 'infinite' : gameState.maxLives,
+    timelineMode: gameState.timelineMode,
+    difficulty: gameState.difficulty,
+    winCondition: gameState.winCondition,
+    targetCards: gameState.targetCards,
+    timestamp: Date.now()
+  };
+
+  try {
+    localStorage.setItem(CRONOLINE_STORAGE_KEY, JSON.stringify(sessionData));
+  } catch (err) {
+    console.warn('No se pudo guardar la sesión de Cronoline:', err);
+  }
+}
+
+/**
+ * Borra el guardado de la partida
+ */
+function clearCronolineSavedGame() {
+  try {
+    localStorage.removeItem(CRONOLINE_STORAGE_KEY);
+  } catch (err) {}
+}
+
+/**
+ * Muestra notificación toast de progreso restaurado
+ */
+function showCronolineToast(msg = '🔄 ¡Partida restaurada automáticamente!', onDiscard = null) {
+  let toast = document.getElementById('save-restore-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'save-restore-toast';
+    toast.className = 'save-restore-toast';
+    document.body.appendChild(toast);
+  }
+
+  toast.innerHTML = `
+    <span>${msg}</span>
+    ${onDiscard ? '<button type="button" class="btn-discard-toast" style="background: rgba(239,68,68,0.25); border: 1px solid rgba(239,68,68,0.6); color: #fca5a5; border-radius: 6px; padding: 0.2rem 0.55rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; margin-left: 0.4rem;">Descartar</button>' : ''}
+  `;
+
+  if (onDiscard) {
+    const discardBtn = toast.querySelector('.btn-discard-toast');
+    if (discardBtn) {
+      discardBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toast.classList.remove('show');
+        onDiscard();
+      });
+    }
+  }
+
+  toast.classList.add('show');
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 4000);
+}
+
+/**
+ * Comprueba y restaura la partida en caso de recarga de página (F5)
+ */
+function checkAndRestoreCronolineGame() {
+  const raw = localStorage.getItem(CRONOLINE_STORAGE_KEY);
+  if (!raw) return false;
+
+  try {
+    const session = JSON.parse(raw);
+    if (!session || !session.version) return false;
+
+    // Verificar que haya cartas colocadas
+    const hasPlaced = (Array.isArray(session.placedCards) && session.placedCards.length > 0) ||
+      (Array.isArray(session.players) && session.players.some(p => Array.isArray(p.placedCards) && p.placedCards.length > 0));
+
+    if (!hasPlaced) {
+      clearCronolineSavedGame();
+      return false;
+    }
+
+    // Actualizar versión y metadatos
+    gameState.version = session.version;
+    const versionMeta = GAME_VERSIONS[session.version];
+    if (versionMeta) {
+      setupTitle.textContent = versionMeta.title;
+      setupSubtitle.textContent = versionMeta.subtitle;
+    }
+
+    gameState.mode = session.mode || 'solitario';
+    gameState.deck = Array.isArray(session.deck) ? session.deck : [];
+    gameState.placedCards = Array.isArray(session.placedCards) ? session.placedCards : [];
+    gameState.currentCard = session.currentCard || null;
+    gameState.score = session.score || 0;
+    gameState.bestScore = parseInt(session.bestScore) || 0;
+    gameState.activePlayerIndex = session.activePlayerIndex || 0;
+    gameState.maxLives = (session.maxLives === 'infinite' || session.maxLives === null) ? Infinity : session.maxLives;
+    gameState.timelineMode = session.timelineMode || 'compartida';
+    gameState.difficulty = session.difficulty || 'todas';
+    gameState.winCondition = session.winCondition || 'survival';
+    gameState.targetCards = session.targetCards || 5;
+    gameState.tentativeIndex = null;
+
+    if (Array.isArray(session.players) && session.players.length > 0) {
+      gameState.players = session.players.map(p => ({
+        name: p.name || 'Equipo',
+        lives: (p.lives === 'infinite' || p.lives === null) ? Infinity : p.lives,
+        score: p.score || 0,
+        isDead: !!p.isDead,
+        placedCards: Array.isArray(p.placedCards) ? p.placedCards : []
+      }));
+    } else {
+      gameState.players = [];
+    }
+
+    // Si currentCard es nula pero quedan cartas en el mazo y no es momento de pasar turno
+    if (!gameState.currentCard && gameState.deck.length > 0) {
+      if (gameState.mode === 'solitario') {
+        gameState.currentCard = gameState.deck.pop();
+      }
+    }
+
+    // Pasar a pantalla de juego
+    versionScreen.classList.add('hidden');
+    setupScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+
+    if (gameState.mode === 'solitario') {
+      activePlayerTag.textContent = 'Modo Solitario';
+      scoreLabel.textContent = 'Racha Actual';
+      scoreValue.textContent = gameState.score;
+      livesDisplay.innerHTML = `🏆 Racha máx: ${gameState.bestScore}`;
+    } else {
+      scoreLabel.textContent = gameState.timelineMode === 'individual' ? 'Cartas en Línea' : 'Aciertos';
+      const activePlayer = gameState.players[gameState.activePlayerIndex];
+      scoreValue.textContent = activePlayer ? (gameState.timelineMode === 'individual' ? activePlayer.placedCards.length : activePlayer.score) : 0;
+      updateMultiplayerHeader();
+    }
+
+    renderTimeline();
+
+    if (gameState.currentCard) {
+      renderActiveCard();
+    } else {
+      renderPassTurnButton();
+    }
+
+    showCronolineToast('🔄 ¡Partida de Cronoline restaurada!', () => {
+      clearCronolineSavedGame();
+      returnToMenu();
+    });
+
+    return true;
+  } catch (err) {
+    console.error('Error restaurando partida de Cronoline:', err);
+    clearCronolineSavedGame();
+    return false;
+  }
+}
+
+// Guardar antes de descargar la página
+window.addEventListener('beforeunload', () => {
+  saveCronolineGame();
+});
+
+// Comprobar y restaurar partida guardada al iniciar la aplicación
+function initCronolineApp() {
+  randomizeCronolinePlayerNames(false);
+  checkAndRestoreCronolineGame();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCronolineApp);
+} else {
+  initCronolineApp();
+}
+

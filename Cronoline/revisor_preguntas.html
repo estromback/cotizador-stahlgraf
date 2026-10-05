@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revisor Visual de Preguntas - CronoTrivia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: rgba(15, 23, 42, 0.85);
+      --card-border: rgba(255, 255, 255, 0.12);
+      --gold: #fbbf24;
+      --gold-light: #fef08a;
+      --green: #10b981;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: radial-gradient(circle at 50% 10%, #1e293b 0%, #090d16 100%);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+
+    header {
+      max-width: 1300px;
+      margin: 0 auto 1.5rem auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+      padding-bottom: 1.25rem;
+    }
+
+    .header-title h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.8rem;
+      color: var(--gold-light);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header-title p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: var(--gold);
+      color: var(--gold-light);
+    }
+
+    /* Barra de filtros */
+    .controls-bar {
+      max-width: 1300px;
+      margin: 0 auto 1.5rem auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 0.85rem 1.25rem;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-tab {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-muted);
+      padding: 0.4rem 0.9rem;
+      border-radius: 20px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-tab.active {
+      background: rgba(251, 191, 36, 0.25);
+      border-color: var(--gold);
+      color: var(--gold-light);
+      font-weight: 700;
+    }
+
+    .filter-tab:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 0.4rem 0.75rem;
+      width: 280px;
+    }
+
+    .search-box input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+      width: 100%;
+    }
+
+    .stats-info {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Grid de tarjetas de preguntas */
+    .questions-grid {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .question-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .question-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(251, 191, 36, 0.5);
+    }
+
+    .card-header {
+      padding: 0.75rem 1rem;
+      background: rgba(0, 0, 0, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.8rem;
+    }
+
+    .card-id {
+      font-family: monospace;
+      color: var(--gold-light);
+      font-weight: 700;
+    }
+
+    .card-badge {
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-bandera { background: rgba(59, 130, 246, 0.25); color: #93c5fd; border: 1px solid #3b82f6; }
+    .badge-mapa { background: rgba(16, 185, 129, 0.25); color: #6ee7b7; border: 1px solid #10b981; }
+    .badge-diagrama { background: rgba(168, 85, 247, 0.25); color: #d8b4fe; border: 1px solid #a855f7; }
+    .badge-arte { background: rgba(236, 72, 153, 0.25); color: #f472b6; border: 1px solid #ec4899; }
+
+    /* Contenedor de la ilustración */
+    .card-visual-media {
+      height: 180px;
+      background: #090d16;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem;
+      position: relative;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .card-visual-media img {
+      max-height: 155px;
+      max-width: 90%;
+      object-fit: contain;
+      border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    }
+
+    .card-visual-media svg {
+      max-height: 165px;
+      width: 100%;
+    }
+
+    .card-body {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      gap: 0.75rem;
+    }
+
+    .question-prompt {
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.4;
+      min-height: 2.8rem;
+    }
+
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .option-item {
+      padding: 0.45rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+    }
+
+    .option-item.correct {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: #10b981;
+      color: #34d399;
+      font-weight: 700;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+    }
+
+    .option-badge-ok {
+      background: #10b981;
+      color: #064e3b;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+    }
+
+    .card-explanation {
+      background: rgba(0, 0, 0, 0.35);
+      border-left: 3px solid var(--gold);
+      padding: 0.55rem 0.75rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      border-radius: 0 6px 6px 0;
+      margin-top: auto;
+    }
+
+    .card-explanation strong {
+      color: var(--gold-light);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <h1>🔍 Revisor Visual de Preguntas</h1>
+      <p>Verificación de Banderas, Mapas, Siluetas y Diagramas de CronoTrivia</p>
+    </div>
+    <div class="nav-links">
+      <a href="carrera.html" class="nav-btn">🎲 Ir a CronoTrivia</a>
+      <a href="index.html" class="nav-btn">🏠 Menú Principal</a>
+    </div>
+  </header>
+
+  <div class="controls-bar">
+    <div class="filter-tabs">
+      <button type="button" class="filter-tab active" data-filter="all">🌐 Todas las Visuales (<span id="count-all">0</span>)</button>
+      <button type="button" class="filter-tab" data-filter="bandera">🚩 Banderas (<span id="count-bandera">0</span>)</button>
+      <button type="button" class="filter-tab" data-filter="mapa">🗺️ Mapas & Siluetas (<span id="count-mapa">0</span>)</button>
+      <button type="button" class="filter-tab" data-filter="diagrama">🔬 Diagramas Ciencia (<span id="count-diagrama">0</span>)</button>
+      <button type="button" class="filter-tab" data-filter="arte">🎨 Obras de Arte (<span id="count-arte">0</span>)</button>
+    </div>
+
+    <div class="search-box">
+      <span>🔎&nbsp;</span>
+      <input type="text" id="search-input" placeholder="Buscar país, mar, continente...">
+    </div>
+  </div>
+
+  <main>
+    <div id="questions-grid" class="questions-grid">
+      <!-- Generado dinámicamente -->
+    </div>
+  </main>
+
+  <!-- Carga de la base de datos de preguntas -->
+  <script src="trivia_data.js"></script>
+
+  <script>
+    (function() {
+      const questions = (typeof TRIVIA_GENERAL_QUESTIONS !== 'undefined' ? TRIVIA_GENERAL_QUESTIONS : [])
+        .filter(q => q.tipoImagen || q.imagen || q.svg);
+
+      const grid = document.getElementById('questions-grid');
+      const searchInput = document.getElementById('search-input');
+      const tabs = document.querySelectorAll('.filter-tab');
+
+      let currentFilter = 'all';
+      let currentQuery = '';
+
+      // Contadores
+      const counts = { all: questions.length, bandera: 0, mapa: 0, diagrama: 0, arte: 0 };
+      questions.forEach(q => {
+        if (q.tipoImagen && counts[q.tipoImagen] !== undefined) {
+          counts[q.tipoImagen]++;
+        }
+      });
+
+      document.getElementById('count-all').textContent = counts.all;
+      document.getElementById('count-bandera').textContent = counts.bandera;
+      document.getElementById('count-mapa').textContent = counts.mapa;
+      document.getElementById('count-diagrama').textContent = counts.diagrama;
+      document.getElementById('count-arte').textContent = counts.arte;
+
+      function render() {
+        grid.innerHTML = '';
+        const filtered = questions.filter(q => {
+          const matchTab = currentFilter === 'all' || q.tipoImagen === currentFilter;
+          const qText = `${q.id} ${q.pregunta} ${q.respuestaCorrecta} ${q.opciones.join(' ')} ${q.explicacion || ''}`.toLowerCase();
+          const matchQuery = !currentQuery || qText.includes(currentQuery);
+          return matchTab && matchQuery;
+        });
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted); font-size: 1.1rem;">No se encontraron preguntas que coincidan con la búsqueda o filtro.</div>`;
+          return;
+        }
+
+        filtered.forEach(q => {
+          const card = document.createElement('div');
+          card.className = 'question-card';
+
+          const badgeClass = `badge-${q.tipoImagen || 'bandera'}`;
+          const badgeText = (q.tipoImagen || 'visual').toUpperCase();
+
+          let mediaHtml = '';
+          if (q.svg) {
+            mediaHtml = q.svg;
+          } else if (q.imagen) {
+            mediaHtml = `<img src="${q.imagen}" alt="${q.respuestaCorrecta}" loading="lazy">`;
+          }
+
+          const optionsHtml = q.opciones.map(opt => {
+            const isCorrect = opt === q.respuestaCorrecta;
+            return `
+              <div class="option-item ${isCorrect ? 'correct' : ''}">
+                <span>${opt}</span>
+                ${isCorrect ? '<span class="option-badge-ok">✓ CORRECTA</span>' : ''}
+              </div>
+            `;
+          }).join('');
+
+          card.innerHTML = `
+            <div class="card-header">
+              <span class="card-id">#${q.id}</span>
+              <span class="card-badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <div class="card-visual-media">
+              ${mediaHtml}
+            </div>
+            <div class="card-body">
+              <h3 class="question-prompt">${q.pregunta}</h3>
+              <div class="options-list">
+                ${optionsHtml}
+              </div>
+              ${q.explicacion ? `<div class="card-explanation">${q.explicacion}</div>` : ''}
+            </div>
+          `;
+
+          grid.appendChild(card);
+        });
+      }
+
+      // Eventos Filtros
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          currentFilter = tab.dataset.filter;
+          render();
+        });
+      });
+
+      // Evento Búsqueda
+      searchInput.addEventListener('input', (e) => {
+        currentQuery = e.target.value.trim().toLowerCase();
+        render();
+      });
+
+      // Render inicial
+      render();
+    })();
+  </script>
+</body>
+</html>
