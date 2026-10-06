@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>El Impostor • Juegos Stahlgraf</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="impostor.css">
+</head>
+<body>
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div class="imp-app-container">
+
+    <!-- HEADER SUPERIOR -->
+    <header class="imp-header">
+      <a href="index.html" class="imp-back-btn" title="Volver al Hub de Juegos">
+        <span>← Hub Juegos</span>
+      </a>
+
+      <div class="imp-header-title-wrap">
+        <span class="imp-header-icon">🕵️</span>
+        <h1 class="imp-header-title">EL IMPOSTOR</h1>
+      </div>
+
+      <div class="imp-header-actions">
+        <button type="button" id="btn-sound-toggle" class="imp-icon-btn" title="Activar/Silenciar sonido">
+          <span id="sound-icon">🔊</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ======================================================== -->
+    <!-- 1. PANTALLA DE CONFIGURACIÓN                             -->
+    <!-- ======================================================== -->
+    <section id="setup-screen" class="imp-screen active">
+      <div class="imp-card setup-card">
+        
+        <div class="imp-setup-hero">
+          <div class="imp-hero-badge">🕵️ ENGAÑO & DEDUCCIÓN SOCIAL</div>
+          <h2 class="imp-hero-title">Configuración de Partida</h2>
+          <p class="imp-hero-subtitle">Descubre al mentiroso entre tus amigos antes de que sea demasiado tarde.</p>
+        </div>
+
+        <!-- SECCIÓN 1: MODO DE JUEGO -->
+        <div class="imp-section">
+          <div class="imp-section-title">🎭 Modo del Impostor</div>
+          <div class="imp-mode-grid">
+            <button type="button" class="imp-mode-card active" data-mode="blind">
+              <span class="imp-mode-icon">🕵️</span>
+              <div class="imp-mode-info">
+                <span class="imp-mode-name">Impostor a Ciegas (Clásico)</span>
+                <span class="imp-mode-desc">Los inocentes ven la palabra secreta. El impostor no sabe nada y debe deducirla de las pistas de los demás sin delatarse.</span>
+              </div>
+              <div class="imp-mode-radio"></div>
+            </button>
+
+            <button type="button" class="imp-mode-card" data-mode="undercover">
+              <span class="imp-mode-icon">🎭</span>
+              <div class="imp-mode-info">
+                <span class="imp-mode-name">Modo Infiltrado (Palabra Similar)</span>
+                <span class="imp-mode-desc">Los inocentes reciben una palabra y el impostor una muy parecida (ej: Pizza vs Hamburguesa). ¡Nadie sabe al inicio quién es el infiltrado!</span>
+              </div>
+              <div class="imp-mode-radio"></div>
+            </button>
+          </div>
+
+          <!-- Opciones para Modo a Ciegas -->
+          <div id="blind-mode-options" class="imp-sub-option-box">
+            <label class="imp-toggle-label">
+              <input type="checkbox" id="chk-category-hint" checked>
+              <span class="imp-toggle-custom"></span>
+              <span class="imp-toggle-text">
+                <strong>Dar pista de categoría al Impostor</strong>
+                <small>Si está activado, el impostor sabrá el tema general (ej: "Comidas"). Si lo desactivas, es dificultad extrema.</small>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 2: CANTIDAD DE IMPOSTORES -->
+        <div class="imp-section">
+          <div class="imp-section-title">😈 Cantidad de Impostores</div>
+          <div class="imp-btn-group" id="impostor-count-group">
+            <button type="button" class="imp-pill-btn active" data-impostors="1">1 Impostor (Recomendado)</button>
+            <button type="button" class="imp-pill-btn" data-impostors="2" id="btn-two-impostors">2 Impostores (6+ jugadores)</button>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 3: TIEMPO DE DEBATE (OPCIONAL) -->
+        <div class="imp-section">
+          <div class="imp-section-title">⏱️ Reloj de Debate (Opcional)</div>
+          <div class="imp-btn-group" id="timer-limit-group">
+            <button type="button" class="imp-pill-btn" data-time="0">Sin Límite ♾️</button>
+            <button type="button" class="imp-pill-btn" data-time="120">2 Minutos ⏳</button>
+            <button type="button" class="imp-pill-btn active" data-time="180">3 Minutos ⌛</button>
+            <button type="button" class="imp-pill-btn" data-time="300">5 Minutos 🕒</button>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 4: CATEGORÍAS -->
+        <div class="imp-section">
+          <div class="imp-section-header-flex">
+            <div class="imp-section-title">📚 Categorías de Palabras</div>
+            <button type="button" id="btn-toggle-all-cats" class="imp-text-action">Seleccionar Todas</button>
+          </div>
+          <div class="imp-cats-grid" id="cats-container">
+            <!-- Renderizado dinámico desde impostor_data.js -->
+          </div>
+        </div>
+
+        <!-- SECCIÓN 5: JUGADORES -->
+        <div class="imp-section">
+          <div class="imp-section-header-flex">
+            <div class="imp-section-title">👥 Jugadores Participantes</div>
+            <div class="imp-player-count-chips" id="player-count-chips">
+              <button type="button" class="imp-chip-btn" data-count="3">3</button>
+              <button type="button" class="imp-chip-btn active" data-count="4">4</button>
+              <button type="button" class="imp-chip-btn" data-count="5">5</button>
+              <button type="button" class="imp-chip-btn" data-count="6">6</button>
+              <button type="button" class="imp-chip-btn" data-count="7">7</button>
+              <button type="button" class="imp-chip-btn" data-count="8">8</button>
+              <button type="button" class="imp-chip-btn" data-count="9">9</button>
+              <button type="button" class="imp-chip-btn" data-count="10">10</button>
+              <button type="button" class="imp-chip-btn" data-count="12">12</button>
+            </div>
+          </div>
+
+          <div class="imp-players-inputs-grid" id="players-inputs-list">
+            <!-- Inputs dinámicos de nombres -->
+          </div>
+        </div>
+
+        <!-- BOTÓN DE INICIO -->
+        <div class="imp-setup-footer">
+          <button type="button" id="btn-start-game" class="imp-primary-btn">
+            <span>🚀 Comenzar Partida</span>
+            <span class="imp-btn-arrow">➔</span>
+          </button>
+        </div>
+
+        <!-- Footer Copyright -->
+        <footer style="margin-top: 1rem; text-align: center; color: var(--text-muted); font-size: 0.78rem; opacity: 0.85;">
+          © 2026 Stahlgraf Games. Todos los derechos reservados.
+        </footer>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 2. PANTALLA: PASA EL TELÉFONO (REPARTO SECRETO)           -->
+    <!-- ======================================================== -->
+    <section id="pass-screen" class="imp-screen hidden">
+      <div class="imp-card imp-pass-card">
+        
+        <div class="imp-pass-header">
+          <span class="imp-step-badge">FASE 1: ASIGNACIÓN SECRETA</span>
+          <div class="imp-pass-progress" id="pass-progress-text">Jugador 1 de 4</div>
+        </div>
+
+        <!-- TARJETA DE TURNO DE JUGADOR -->
+        <div class="imp-pass-player-box">
+          <div class="imp-pass-avatar" id="pass-player-avatar">🦊</div>
+          <div class="imp-pass-instruction">Pásale el teléfono a:</div>
+          <div class="imp-pass-player-name" id="pass-player-name">Jugador 1</div>
+          <p class="imp-pass-warning">⚠️ Asegúrate de que nadie más mire la pantalla.</p>
+        </div>
+
+        <!-- ÁREA SECRETA INTERACTIVA (PRESIONAR PARA REVELAR) -->
+        <div class="imp-secret-reveal-zone" id="secret-zone">
+          
+          <!-- ESTADO OCULTO (POR DEFECTO) -->
+          <div class="imp-secret-hidden-state" id="secret-hidden-state">
+            <div class="imp-fingerprint-icon">👆</div>
+            <div class="imp-hold-label">MANTÉN PRESIONADO PARA VER TU PALABRA</div>
+            <div class="imp-hold-sub">Suelta la pantalla cuando termines de leer</div>
+          </div>
+
+          <!-- ESTADO REVELADO (AL MANTENER PRESIONADO) -->
+          <div class="imp-secret-revealed-state hidden" id="secret-revealed-state">
+            
+            <!-- VISTA PARA CIUDADANOS -->
+            <div id="view-citizen" class="imp-role-view hidden">
+              <span class="imp-role-badge citizen-badge">😇 ERES CIUDADANO</span>
+              <div class="imp-category-tag" id="citizen-category">Comidas y Bebidas</div>
+              <div class="imp-secret-word-display" id="citizen-word">PIZZA</div>
+              <p class="imp-role-hint">💡 Da una pista sutil en tu turno. ¡Que tus amigos te entiendan pero el impostor no adivine la palabra!</p>
+            </div>
+
+            <!-- VISTA PARA IMPOSTOR (MODO A CIEGAS) -->
+            <div id="view-blind-impostor" class="imp-role-view hidden">
+              <span class="imp-role-badge impostor-badge">🕵️ ¡ERES EL IMPOSTOR!</span>
+              <div class="imp-blind-title">NO TIENES PALABRA SECRETA</div>
+              <div class="imp-category-tag" id="blind-category-hint">Categoría: Comidas y Bebidas</div>
+              <p class="imp-role-hint alert-hint">🤫 Escucha atentamente las pistas de los demás, inventa una pista creíble y finge que sabes la palabra.</p>
+            </div>
+
+            <!-- VISTA PARA INFILTRADO (MODO PALABRA SIMILAR) -->
+            <div id="view-undercover" class="imp-role-view hidden">
+              <span class="imp-role-badge undercover-badge">🎭 TU PALABRA SECRETA ES:</span>
+              <div class="imp-category-tag" id="undercover-category">Comidas y Bebidas</div>
+              <div class="imp-secret-word-display" id="undercover-word">HAMBURGUESA</div>
+              <p class="imp-role-hint">💡 Di una pista relacionada. Podrías ser un ciudadano común... o el infiltrado con la palabra diferente.</p>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- BOTÓN DE CONFIRMACIÓN PARA SIGUIENTE JUGADOR -->
+        <div class="imp-pass-footer">
+          <button type="button" id="btn-next-pass" class="imp-primary-btn" disabled>
+            <span>Continuar al Siguiente ➔</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 3. PANTALLA: RONDA DE PISTAS & DEBATE                     -->
+    <!-- ======================================================== -->
+    <section id="debate-screen" class="imp-screen hidden">
+      <div class="imp-card imp-debate-card">
+        
+        <div class="imp-debate-header">
+          <span class="imp-step-badge debate-badge">FASE 2: PISTAS & DEBATE EN LA MESA</span>
+          <h2 class="imp-debate-title">¡La Búsqueda del Impostor Comienza!</h2>
+        </div>
+
+        <!-- BANNER DE QUIÉN COMIENZA -->
+        <div class="imp-starter-banner">
+          <div class="imp-starter-icon">🎲</div>
+          <div class="imp-starter-info">
+            <div class="imp-starter-label">Comienza diciendo la primera pista:</div>
+            <div class="imp-starter-name" id="debate-starter-name">Camila</div>
+            <div class="imp-starter-desc">Continuar en sentido horario dando 1 pista por jugador.</div>
+          </div>
+        </div>
+
+        <!-- RELOJ DE DEBATE (SI ESTÁ HABILITADO) -->
+        <div id="debate-timer-container" class="imp-timer-box">
+          <div class="imp-timer-dial">
+            <span class="imp-timer-icon">⏳</span>
+            <span class="imp-timer-digits" id="debate-timer-digits">03:00</span>
+          </div>
+          <div class="imp-timer-actions">
+            <button type="button" id="btn-timer-pause" class="imp-small-btn">Pausar</button>
+            <button type="button" id="btn-timer-add" class="imp-small-btn">+30 seg</button>
+          </div>
+        </div>
+
+        <!-- GUÍA DE CONVIVENCIA Y REGLAS -->
+        <div class="imp-rules-box">
+          <div class="imp-rules-title">📜 Cómo se juega en la mesa:</div>
+          <ul class="imp-rules-list">
+            <li><strong>1. Una pista por turno:</strong> Di una palabra o frase corta en voz alta vinculada a tu palabra.</li>
+            <li><strong>2. Prohibido:</strong> Decir la palabra secreta directamente, deletrearla o hacer rimas obvias.</li>
+            <li><strong>3. Sospecha & Análisis:</strong> Si alguien da una pista demasiado genérica o rara, ¡podría ser el impostor!</li>
+            <li><strong>4. Votación a mano alzada:</strong> Cuando todos hayan hablado, debatan y decidan a quién van a acusar.</li>
+          </ul>
+        </div>
+
+        <!-- JUGADORES ACTIVOS -->
+        <div class="imp-active-players-section">
+          <div class="imp-section-title">👥 Jugadores en Juego (<span id="debate-active-count">4</span>)</div>
+          <div class="imp-active-chips-grid" id="debate-players-grid">
+            <!-- Chips de jugadores -->
+          </div>
+        </div>
+
+        <!-- BOTÓN IR A VOTACIÓN -->
+        <div class="imp-debate-footer">
+          <button type="button" id="btn-go-to-vote" class="imp-danger-btn">
+            <span>⚖️ Ir a Votación y Expulsión ➔</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 4. PANTALLA: VOTACIÓN & SELECCIÓN DE EXPULSADO            -->
+    <!-- ======================================================== -->
+    <section id="voting-screen" class="imp-screen hidden">
+      <div class="imp-card imp-voting-card">
+        
+        <div class="imp-voting-header">
+          <span class="imp-step-badge vote-badge">FASE 3: EL JUICIO</span>
+          <h2 class="imp-voting-title">¿A quién van a expulsar?</h2>
+          <p class="imp-voting-subtitle">Debatan en el grupo. A la cuenta de tres, apunten con el dedo al sospechoso y <strong>toquen su tarjeta</strong> para revelar su verdadera identidad.</p>
+        </div>
+
+        <!-- GRILLA DE JUGADORES SOSPECHOSOS -->
+        <div class="imp-suspects-grid" id="suspects-grid">
+          <!-- Tarjetas seleccionables de jugadores -->
+        </div>
+
+        <!-- BOTÓN CANCELAR Y VOLVER AL DEBATE -->
+        <div class="imp-voting-footer">
+          <button type="button" id="btn-back-to-debate" class="imp-secondary-btn">
+            <span>← Volver a debatir</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 5. MODAL / PANTALLA DE REVELACIÓN DRAMÁTICA               -->
+    <!-- ======================================================== -->
+    <div id="suspense-modal" class="imp-modal-backdrop hidden">
+      <div class="imp-suspense-content">
+        
+        <!-- FASE A: SUSPENSO (LATIDOS Y CUENTA REGRESIVA) -->
+        <div id="suspense-drumroll-box" class="imp-drumroll-box">
+          <div class="imp-pulse-heart">💓</div>
+          <div class="imp-drumroll-title">REVELANDO IDENTIDAD...</div>
+          <div class="imp-accused-name" id="drumroll-player-name">CAMILA</div>
+          <div class="imp-drumroll-sub">¿Es el Impostor o un Ciudadano Inocente?</div>
+        </div>
+
+        <!-- FASE B: RESULTADO EXPULSADO (ERA CIUDADANO) -->
+        <div id="result-citizen-box" class="imp-verdict-box hidden">
+          <div class="imp-verdict-icon">😇</div>
+          <div class="imp-verdict-badge citizen-tag">¡ERA UN CIUDADANO INOCENTE!</div>
+          <h3 class="imp-verdict-name" id="expelled-citizen-name">Camila</h3>
+          <p class="imp-verdict-text">
+            ¡Cometieron un error fatal! Un inocente ha sido expulsado del pueblo y <strong>el Impostor sigue libre</strong> entre los sobrevivientes.
+          </p>
+
+          <div class="imp-verdict-actions" id="citizen-fail-actions">
+            <button type="button" id="btn-continue-debate" class="imp-primary-btn">
+              <span>Continuar debate con los sobrevivientes ➔</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- FASE C: RESULTADO EXPULSADO (ERA EL IMPOSTOR) -->
+        <div id="result-impostor-box" class="imp-verdict-box hidden">
+          <div class="imp-verdict-icon">🕵️</div>
+          <div class="imp-verdict-badge impostor-tag">¡ATRAPARON AL IMPOSTOR!</div>
+          <h3 class="imp-verdict-name" id="expelled-impostor-name">Pedro</h3>
+          <p class="imp-verdict-text">
+            ¡Excelente deducción del grupo! Descubrieron con éxito a quien estaba mintiendo.
+          </p>
+
+          <!-- MOMENTO DE REDENCIÓN: EL IMPOSTOR PUEDE ADIVINAR LA PALABRA -->
+          <div class="imp-redemption-card">
+            <div class="imp-redemption-title">🎯 Última Oportunidad del Impostor:</div>
+            <p class="imp-redemption-desc">
+              El impostor tiene derecho a intentar <strong>adivinar la palabra secreta de los ciudadanos</strong> en voz alta. ¿Lo logró?
+            </p>
+            <div class="imp-redemption-btns">
+              <button type="button" id="btn-impostor-guessed" class="imp-redemption-btn guessed-btn">
+                <span>🎯 ¡Adivinó la palabra!</span>
+                <small>Robo de victoria (+3 pts al impostor)</small>
+              </button>
+              <button type="button" id="btn-impostor-failed" class="imp-redemption-btn failed-btn">
+                <span>❌ No logró adivinarla</span>
+                <small>Victoria total ciudadana (+2 pts a cada inocente)</small>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 6. PANTALLA: PODIO & FIN DE PARTIDA                       -->
+    <!-- ======================================================== -->
+    <section id="podium-screen" class="imp-screen hidden">
+      <div class="imp-card imp-podium-card">
+        
+        <div class="imp-podium-hero">
+          <div class="imp-crown-icon">👑</div>
+          <div class="imp-podium-badge" id="podium-outcome-badge">VICTORIA DE LOS CIUDADANOS</div>
+          <h2 class="imp-podium-title" id="podium-headline">¡Fin de la Partida!</h2>
+          <p class="imp-podium-sub" id="podium-summary-text">Los ciudadanos desenmascararon al infiltrado.</p>
+        </div>
+
+        <!-- TARJETA DE REVELACIÓN COMPLETA DE PALABRAS -->
+        <div class="imp-words-reveal-box">
+          <div class="imp-reveal-row">
+            <span class="imp-reveal-label">Palabra de los Ciudadanos:</span>
+            <span class="imp-reveal-val citizen-val" id="podium-citizen-word">PIZZA</span>
+          </div>
+          <div class="imp-reveal-row" id="podium-impostor-word-row">
+            <span class="imp-reveal-label">Palabra del Infiltrado:</span>
+            <span class="imp-reveal-val impostor-val" id="podium-impostor-word">HAMBURGUESA</span>
+          </div>
+          <div class="imp-reveal-row">
+            <span class="imp-reveal-label">Impostor(es):</span>
+            <span class="imp-reveal-val" id="podium-impostor-names">Pedro</span>
+          </div>
+        </div>
+
+        <!-- TABLA DE POSICIONES Y PUNTAJE ACUMULADO -->
+        <div class="imp-leaderboard-section">
+          <div class="imp-section-title">🏆 Tabla de Puntos Acumulada</div>
+          <div class="imp-leaderboard-table" id="podium-leaderboard-table">
+            <!-- Filas dinámicas -->
+          </div>
+        </div>
+
+        <!-- BOTONES DE ACCIÓN FINAL -->
+        <div class="imp-podium-actions">
+          <button type="button" id="btn-play-again-same" class="imp-primary-btn">
+            <span>🔄 Jugar Otra Ronda (Mismos Jugadores)</span>
+          </button>
+          <button type="button" id="btn-back-to-setup" class="imp-secondary-btn">
+            <span>⚙️ Cambiar Configuración / Jugadores</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="analytics.js"></script>
+  <script src="impostor_data.js"></script>
+  <script src="impostor.js"></script>
+</body>
+</html>

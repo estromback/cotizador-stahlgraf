@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>¿Quién Soy? | Juegos Stahlgraf</title>
+  <link rel="stylesheet" href="quiensoy.css">
+</head>
+<body>
+
+  <div class="screen-wrapper">
+
+    <!-- ==================== PANTALLA 1: SETUP ==================== -->
+    <section id="setup-screen">
+      <div style="display: flex; justify-content: flex-start; margin-bottom: 0.75rem;">
+        <a href="index.html" class="back-link-top">⬅ Volver a Juegos Stahlgraf</a>
+      </div>
+
+      <div class="qs-setup-card">
+        <header class="qs-header">
+          <span class="qs-badge">🎭 JUEGO DE GRUPO & FIESTA</span>
+          <h1 class="qs-title">¿QUIÉN SOY?</h1>
+          <p class="qs-slogan">
+            Ponte el teléfono en la frente o muéstralo al grupo. Haz preguntas de <strong>Sí o No</strong> y adivina qué personaje eres antes de que termine el tiempo.
+          </p>
+        </header>
+
+        <!-- 1. Selector de Tiempo por Turno -->
+        <div class="qs-section">
+          <div class="qs-section-title">⏱️ Tiempo para Adivinar</div>
+          <div class="qs-time-grid">
+            <button type="button" class="qs-time-btn" data-time="30">30 seg</button>
+            <button type="button" class="qs-time-btn" data-time="45">45 seg</button>
+            <button type="button" class="qs-time-btn active" data-time="60">60 seg</button>
+            <button type="button" class="qs-time-btn" data-time="90">90 seg</button>
+            <button type="button" class="qs-time-btn" data-time="120">120 seg</button>
+            <button type="button" class="qs-time-btn" data-time="0">Sin Límite ♾️</button>
+          </div>
+        </div>
+
+        <!-- 2. Condición de Victoria / Fin de Partida -->
+        <div class="qs-section">
+          <div class="qs-section-title">🏆 Modo de Juego & Victoria</div>
+          <div class="qs-mode-selector-grid">
+            <button type="button" class="qs-mode-tab-btn active" data-mode="race">
+              <span class="qs-mode-tab-icon">🎯</span>
+              <span class="qs-mode-tab-title">Carrera de Aciertos</span>
+              <span class="qs-mode-tab-desc">Meta de puntos</span>
+            </button>
+            <button type="button" class="qs-mode-tab-btn" data-mode="survival">
+              <span class="qs-mode-tab-icon">💀</span>
+              <span class="qs-mode-tab-title">Modo Muerte (Vidas)</span>
+              <span class="qs-mode-tab-desc">Eliminación por fallos</span>
+            </button>
+            <button type="button" class="qs-mode-tab-btn" data-mode="free">
+              <span class="qs-mode-tab-icon">♾️</span>
+              <span class="qs-mode-tab-title">Rondas Libres</span>
+              <span class="qs-mode-tab-desc">Sin límite fijo</span>
+            </button>
+          </div>
+
+          <!-- Sub-configuración para Carrera de Aciertos -->
+          <div id="subconfig-race" class="qs-subconfig-box">
+            <label class="qs-subconfig-label">¿Cuántos aciertos se necesitan para ganar?</label>
+            <div class="qs-subconfig-btns">
+              <button type="button" class="qs-sub-btn" data-target="3">3 aciertos</button>
+              <button type="button" class="qs-sub-btn active" data-target="5">5 aciertos</button>
+              <button type="button" class="qs-sub-btn" data-target="7">7 aciertos</button>
+              <button type="button" class="qs-sub-btn" data-target="10">10 aciertos</button>
+            </div>
+          </div>
+
+          <!-- Sub-configuración para Modo Muerte (Vidas) -->
+          <div id="subconfig-survival" class="qs-subconfig-box hidden">
+            <label class="qs-subconfig-label">Vidas por jugador (fallos permitidos antes de morir):</label>
+            <div class="qs-subconfig-btns">
+              <button type="button" class="qs-sub-btn" data-lives="1">1 vida (Muerte Súbita ⚡)</button>
+              <button type="button" class="qs-sub-btn" data-lives="2">2 vidas 💔</button>
+              <button type="button" class="qs-sub-btn active" data-lives="3">3 vidas ❤️</button>
+              <button type="button" class="qs-sub-btn" data-lives="5">5 vidas 💖</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Categorías de Personajes -->
+        <div class="qs-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div class="qs-section-title" style="margin-bottom: 0;">📚 Categorías de Personajes</div>
+            <button type="button" id="btn-toggle-all-cats" style="background: none; border: none; color: var(--gold); font-size: 0.8rem; font-weight: 700; cursor: pointer;">Seleccionar Todas</button>
+          </div>
+          <div class="qs-cats-grid" id="cats-container">
+            <!-- Renderizado dinámico desde quiensoy_data.js -->
+          </div>
+        </div>
+
+        <!-- 3. Jugadores Participantes -->
+        <div class="qs-section">
+          <div class="qs-players-header">
+            <div class="qs-section-title" style="margin-bottom: 0;">👥 Jugadores</div>
+            <div class="qs-player-count-btns" id="player-count-selector">
+              <button type="button" class="qs-count-btn" data-count="2">2</button>
+              <button type="button" class="qs-count-btn" data-count="3">3</button>
+              <button type="button" class="qs-count-btn active" data-count="4">4</button>
+              <button type="button" class="qs-count-btn" data-count="5">5</button>
+              <button type="button" class="qs-count-btn" data-count="6">6</button>
+              <button type="button" class="qs-count-btn" data-count="7">7</button>
+              <button type="button" class="qs-count-btn" data-count="8">8</button>
+            </div>
+          </div>
+
+          <div class="qs-players-list" id="players-inputs-list">
+            <!-- Inputs dinámicos -->
+          </div>
+        </div>
+
+        <button type="button" id="btn-start-game" class="btn-qs-start">
+          <span>🚀 ¡Comenzar Partida!</span>
+        </button>
+
+        <!-- Footer Copyright -->
+        <footer style="margin-top: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.78rem; opacity: 0.85;">
+          © 2026 Stahlgraf Games. Todos los derechos reservados.
+        </footer>
+      </div>
+    </section>
+
+    <!-- ==================== PANTALLA 2: PREPARACIÓN DE TURNO ==================== -->
+    <section id="prep-screen" class="hidden">
+      <div class="qs-prep-card">
+        <div class="qs-prep-avatar" id="prep-player-avatar">🎭</div>
+        <span class="qs-prep-turn-badge">TURNO ACTUAL</span>
+        <h2 class="qs-prep-player-name" id="prep-player-name">Jugador 1</h2>
+        <div id="prep-player-status" class="qs-player-status-pill">3 vidas ❤️❤️❤️</div>
+
+        <div class="qs-prep-instructions">
+          📱 <strong>Colócate el teléfono en la frente</strong> mirando hacia el resto del grupo (o apóyalo en la mesa mirando hacia ellos).<br><br>
+          ¡Haz preguntas de <strong>Sí o No</strong> para descubrir quién eres!
+        </div>
+
+        <button type="button" id="btn-ready-to-guess" class="btn-qs-ready">
+          👀 ¡Listo, Comenzar!
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== PANTALLA 3: JUEGO ACTIVO (PANTALLA LIMPIA) ==================== -->
+    <div id="game-active-modal" class="qs-active-game-screen hidden">
+      <!-- Barra superior discreta -->
+      <div class="qs-game-top">
+        <div class="qs-active-player-pill">
+          <span id="active-player-avatar">👤</span>
+          <div>
+            <span id="active-player-name">Jugador 1</span>
+            <small id="active-player-status" style="display: block; font-size: 0.72rem; color: var(--gold-light); font-weight: 700;">3 vidas</small>
+          </div>
+        </div>
+        <div class="qs-active-cat-badge">
+          <span id="active-cat-icon">🇨🇱</span>
+          <span id="active-cat-name">Chile Pop</span>
+        </div>
+      </div>
+
+      <!-- Nombre del Personaje en Gigante -->
+      <div class="qs-character-display">
+        <div class="qs-character-hint">ERES...</div>
+        <div class="qs-character-name" id="character-name-display">PEDRO PASCAL</div>
+      </div>
+
+      <!-- Temporizador -->
+      <div class="qs-timer-section">
+        <div class="qs-timer-value" id="timer-display">60</div>
+        <div class="qs-timer-bar-wrapper" id="timer-bar-wrapper">
+          <div class="qs-timer-bar-fill" id="timer-bar-fill"></div>
+        </div>
+        <p class="qs-screen-tap-notice">Toca la pantalla si adivinó antes de tiempo</p>
+      </div>
+    </div>
+
+    <!-- ==================== PANTALLA 4: RESULTADO DE LA RONDA ==================== -->
+    <section id="result-screen" class="hidden">
+      <div class="qs-result-card">
+        
+        <!-- Alerta de Victoria / Fin de Partida -->
+        <div id="match-over-alert" class="qs-match-over-alert hidden">
+          <div class="qs-match-over-icon">👑</div>
+          <div class="qs-match-over-text">
+            <strong id="match-over-title">¡TENEMOS UN GANADOR!</strong>
+            <p id="match-over-desc">[Nombre] ha ganado la partida.</p>
+          </div>
+        </div>
+
+        <div class="qs-result-header">
+          <span class="qs-result-badge">FIN DE LA RONDA</span>
+          <h2 class="qs-result-question">¿<span id="result-player-name">Jugador</span> logró adivinar a su personaje?</h2>
+          <div class="qs-result-target-char" id="result-char-name">PEDRO PASCAL</div>
+        </div>
+
+        <!-- Botones de Resolución -->
+        <div class="qs-choice-actions">
+          <button type="button" id="btn-record-success" class="btn-qs-action btn-qs-success">
+            <span>🎉 ¡Sí, Adivinó! (+1 pto)</span>
+          </button>
+          <button type="button" id="btn-record-fail" class="btn-qs-action btn-qs-fail">
+            <span>❌ No Adivinó</span>
+          </button>
+        </div>
+
+        <!-- Tabla de Puntos Acumulados -->
+        <div class="qs-leaderboard-section">
+          <div class="qs-leaderboard-title">🏆 Tabla de Puntos (Veces Adivinadas)</div>
+          <div class="qs-scores-list" id="scores-leaderboard-list">
+            <!-- Filas dinámicas -->
+          </div>
+        </div>
+
+        <!-- Siguiente Jugador -->
+        <button type="button" id="btn-next-player" class="btn-qs-next">
+          <span>➡️ Turno de <strong id="next-player-btn-label">Siguiente</strong></span>
+        </button>
+
+        <button type="button" id="btn-finish-game" class="btn-qs-finish">
+          🏁 Terminar Partida y Ver Podio
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== PANTALLA 5: PODIO FINAL ==================== -->
+    <section id="podium-screen" class="hidden">
+      <div class="qs-podium-card">
+        <div class="qs-winner-avatar" id="podium-winner-avatar">👑</div>
+        <h2 class="qs-winner-title" id="podium-winner-title">¡Ganador!</h2>
+        <p class="qs-winner-sub" id="podium-winner-sub">Gran maestro de la deducción</p>
+
+        <div class="qs-leaderboard-section">
+          <div class="qs-leaderboard-title">🏅 Posiciones Finales</div>
+          <div class="qs-scores-list" id="final-scores-list">
+            <!-- Filas finales -->
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" id="btn-rematch" class="btn-qs-start" style="margin-top: 0;">
+            <span>🔄 Jugar Otra Partida</span>
+          </button>
+          <a href="index.html" class="back-link-top" style="justify-content: center; padding: 0.8rem 1rem;">
+            ⬅️ Volver a Juegos Stahlgraf
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="analytics.js"></script>
+  <script src="quiensoy_data.js"></script>
+  <script src="quiensoy.js"></script>
+</body>
+</html>

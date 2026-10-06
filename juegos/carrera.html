@@ -16,7 +16,7 @@
     <div class="carrera-setup-card">
       <div class="brand-container text-center">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
-          <a href="index.html" class="back-link-top" style="margin-bottom: 0;">⬅ Volver a Cronoline Clásico</a>
+          <a href="index.html" class="back-link-top" style="margin-bottom: 0;">⬅ Volver a Juegos Stahlgraf</a>
           <button type="button" id="btn-top-rules" class="back-link-top btn-open-rules" style="margin-bottom: 0; cursor: pointer; color: var(--gold-light); border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.1);">❓ ¿Cómo Jugar? (Reglas)</button>
         </div>
         <div class="badge-hero">⭐ MODO DE TABLERO & TRIVIA ⭐</div>
@@ -215,6 +215,11 @@
           ❓ ¿Cómo Jugar y Reglas del Tablero?
         </button>
       </div>
+
+      <!-- Footer Copyright -->
+      <footer style="margin-top: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.78rem; opacity: 0.85;">
+        © 2026 Stahlgraf Games. Todos los derechos reservados.
+      </footer>
     </div>
   </section>
 
@@ -253,8 +258,6 @@
       
       <!-- Zona del Tablero -->
       <div class="board-wrapper">
-        <!-- Leyenda de Categorías por Color -->
-        <div id="board-legend-bar" class="board-legend-bar"></div>
         <div class="board-scroll-area">
           <div id="board-container" class="board-track">
             <!-- Casillas generadas dinámicamente -->
@@ -355,6 +358,91 @@
 
   </section>
 
+  <!-- ==================== MODAL DE DECISIÓN DE APUESTA (VENTANA PREVIA) ==================== -->
+  <div id="bet-decision-modal" class="carrera-modal-overlay hidden">
+    <div class="bet-decision-card">
+      
+      <!-- Cabecera -->
+      <div class="bet-decision-header">
+        <span class="bet-decision-badge">⚡ Decisión de Turno</span>
+        <div class="bet-team-pill" id="bet-modal-team-pill">
+          <span id="bet-modal-team-avatar">🚀</span>
+          <span id="bet-modal-team-name">Equipo Activo</span>
+        </div>
+      </div>
+
+      <!-- Contexto de la Casilla -->
+      <div class="bet-decision-context">
+        <div class="bet-cat-info">
+          <span id="bet-modal-cat-icon">🏛️</span>
+          <span id="bet-modal-cat-title">Historia Universal</span>
+        </div>
+        <p class="bet-roll-summary" id="bet-modal-roll-summary">
+          Tu tirada de dados fue de <strong>4</strong> casillas.
+        </p>
+        <h3 class="bet-question-prompt">¿Cómo deseas enfrentar este desafío?</h3>
+      </div>
+
+      <!-- Tarjetas de Selección: Normal vs Doble o Nada -->
+      <div class="bet-options-grid">
+        <!-- Tarjeta 1: Normal -->
+        <button type="button" id="btn-choose-normal" class="bet-card-choice bet-choice-normal">
+          <div class="bet-choice-top">
+            <span class="bet-choice-icon">🎲</span>
+            <div class="bet-choice-title-wrap">
+              <span class="bet-choice-tag">MODO ESTÁNDAR</span>
+              <h4 class="bet-choice-title">Jugar Normal (1x)</h4>
+            </div>
+          </div>
+          <div class="bet-choice-body">
+            <p class="bet-choice-desc">Pregunta estándar de dificultad equilibrada.</p>
+            <div class="bet-choice-stakes">
+              <div class="bet-stake-item win">
+                <span class="bet-stake-icon">✅</span>
+                <span>Acierto: Aseguras tu casilla.</span>
+              </div>
+              <div class="bet-stake-item loss">
+                <span class="bet-stake-icon">❌</span>
+                <span>Fallo: Penalización estándar.</span>
+              </div>
+            </div>
+          </div>
+          <div class="bet-choice-action">
+            <span>Jugar Pregunta Normal ➔</span>
+          </div>
+        </button>
+
+        <!-- Tarjeta 2: Doble o Nada -->
+        <button type="button" id="btn-choose-double" class="bet-card-choice bet-choice-double">
+          <div class="bet-choice-top">
+            <span class="bet-choice-icon">🔥</span>
+            <div class="bet-choice-title-wrap">
+              <span class="bet-choice-tag bet-tag-fire">ALTO RIESGO</span>
+              <h4 class="bet-choice-title">¡Doble o Nada (2x)!</h4>
+            </div>
+          </div>
+          <div class="bet-choice-body">
+            <p class="bet-choice-desc">Pregunta de <strong>ALTA DIFICULTAD</strong> para expertos.</p>
+            <div class="bet-choice-stakes">
+              <div class="bet-stake-item win gold">
+                <span class="bet-stake-icon">🔥</span>
+                <span>Acierto: <strong id="bet-choice-bonus-text">+0 casillas extra</strong> (duplicas tu tirada)</span>
+              </div>
+              <div class="bet-stake-item loss danger">
+                <span class="bet-stake-icon">💥</span>
+                <span>Fallo: <strong>Pierdes el avance</strong> y vuelves al origen.</span>
+              </div>
+            </div>
+          </div>
+          <div class="bet-choice-action bet-action-fire">
+            <span>¡Apostar y Responder Difícil! ➔</span>
+          </div>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ==================== MODAL DE TRIVIA / PREGUNTA ==================== -->
   <div id="trivia-modal" class="carrera-modal-overlay hidden">
     <div class="trivia-modal-card">
@@ -382,6 +470,12 @@
         <span id="timer-seconds-text" class="timer-seconds-text">45s</span>
       </div>
 
+      <!-- Indicador Informativo del Modo de Pregunta Activo -->
+      <div id="trivia-mode-indicator" class="trivia-mode-indicator mode-normal">
+        <span id="trivia-mode-badge" class="trivia-mode-badge">🎲 Modo Normal (1x)</span>
+        <span id="trivia-mode-summary" class="trivia-mode-summary">Acierta para asegurar tu casilla.</span>
+      </div>
+
       <!-- Contenido de la Pregunta -->
       <div class="trivia-question-content">
         <span id="trivia-event-type" class="trivia-prompt-tag">¿En qué año ocurrió este suceso?</span>
@@ -403,16 +497,23 @@
           🔍 50 / 50 <span class="perk-count" id="count-5050">0</span>
         </button>
         <button type="button" id="perk-btn-skip" class="perk-btn" title="Cambia por otra pregunta">
-          ⏳ Salto Temporal <span class="perk-count" id="count-skip">0</span>
+          🔄 Cambiar Pregunta <span class="perk-count" id="count-skip">0</span>
         </button>
-        <button type="button" id="perk-btn-shield" class="perk-btn" title="Inmunidad ante retrocesos en vórtices">
-          🛡️ Escudo Paradoja <span class="perk-count" id="count-shield">0</span>
+        <button type="button" id="perk-btn-shield" class="perk-btn" title="Inmunidad ante retrocesos en casillas trampa">
+          🛡️ Escudo Protector <span class="perk-count" id="count-shield">0</span>
         </button>
       </div>
 
       <!-- Opciones de Respuesta -->
       <div id="trivia-options-grid" class="trivia-options-grid">
         <!-- 4 Opciones inyectadas por JS -->
+      </div>
+
+      <!-- Barra de Confirmación: Comprobar Respuesta -->
+      <div id="trivia-confirm-bar" class="trivia-confirm-bar">
+        <button type="button" id="btn-check-answer" class="btn-check-answer" disabled>
+          <span id="btn-check-answer-text">Selecciona una respuesta</span>
+        </button>
       </div>
 
       <!-- Panel de Resolución / Feedback (Aparece tras responder) -->
@@ -437,14 +538,173 @@
   <div id="event-modal" class="carrera-modal-overlay hidden">
     <div class="event-modal-card">
       <div id="event-icon" class="event-icon-big">🎁</div>
-      <h2 id="event-title" class="event-title">¡Cofre de la Fortuna!</h2>
-      <p id="event-desc" class="event-desc">Has encontrado una reliquia temporal en el camino.</p>
+      <h2 id="event-title" class="event-title">¡Cofre Abierto!</h2>
+      <p id="event-desc" class="event-desc">Has conseguido un comodín para tu equipo.</p>
       <div id="event-reward-box" class="event-reward-box">
         <!-- Recompensa o reto -->
       </div>
       <button type="button" id="btn-event-confirm" class="btn-event-action">
         ¡Aceptar!
       </button>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE RULETA DE CATEGORÍAS ==================== -->
+  <div id="roulette-modal" class="carrera-modal-overlay hidden">
+    <div class="roulette-modal-card">
+      <div class="roulette-header">
+        <div class="trivia-team-pill" id="roulette-team-pill">
+          <span id="roulette-team-icon">🚀</span>
+          <span id="roulette-team-name">Equipo 1</span>
+        </div>
+        <span id="roulette-badge" class="roulette-badge">🎡 Casilla Ruleta</span>
+      </div>
+
+      <div class="roulette-title-area">
+        <h2 id="roulette-title" class="roulette-title">Ruleta del Saber</h2>
+        <p id="roulette-subtitle" class="roulette-subtitle">Gira la ruleta para definir la categoría de tu desafío:</p>
+      </div>
+
+      <!-- Contenedor de la Ruleta Circular SVG -->
+      <div class="roulette-wheel-wrapper">
+        <div class="roulette-pointer">▼</div>
+        <div id="roulette-wheel-holder" class="roulette-wheel-holder">
+          <!-- SVG generado dinámicamente -->
+        </div>
+        <div class="roulette-center-cap">⭐</div>
+      </div>
+
+      <!-- Cuadro de Resultado de la Ruleta -->
+      <div id="roulette-result-box" class="roulette-result-box hidden">
+        <span id="roulette-result-icon" class="roulette-result-icon">🌍</span>
+        <div>
+          <div class="roulette-result-label">Categoría Seleccionada:</div>
+          <div id="roulette-result-name" class="roulette-result-name">GEOGRAFÍA</div>
+        </div>
+      </div>
+
+      <!-- Acciones de la Ruleta -->
+      <div class="roulette-actions">
+        <button type="button" id="btn-spin-roulette" class="btn-spin-roulette">
+          🎯 ¡Girar Ruleta!
+        </button>
+        <button type="button" id="btn-start-roulette-question" class="btn-start-roulette-question hidden">
+          Responder Pregunta ➔
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE DUELO (1 VS 1) ==================== -->
+  <div id="duel-modal" class="carrera-modal-overlay hidden">
+    <div class="duel-modal-card">
+      
+      <!-- Cabecera del Duelo -->
+      <div class="duel-header">
+        <span class="duel-badge">⚔️ Casilla de Duelo</span>
+        <h2 class="duel-main-title">¡Desafío Cara a Cara!</h2>
+      </div>
+
+      <!-- FASE 1: Selección de Rival (Si hay > 2 equipos) -->
+      <div id="duel-phase-select-rival" class="duel-phase-container">
+        <div class="duel-phase-instruction">
+          <span id="duel-challenger-prompt-avatar" class="duel-prompt-avatar">🚀</span>
+          <div>
+            <h3 id="duel-challenger-prompt-title">¡Elige a tu rival!</h3>
+            <p>Selecciona a qué equipo deseas retar para intentar robarle casillas:</p>
+          </div>
+        </div>
+        <div id="duel-rivals-list" class="duel-rivals-grid">
+          <!-- Tarjetas de rivales inyectadas por JS -->
+        </div>
+      </div>
+
+      <!-- FASE 2: Pantalla de Pregunta del Duelo -->
+      <div id="duel-phase-question" class="duel-phase-container hidden">
+        
+        <!-- Indicador de Turno de Respuesta en el Duelo -->
+        <div class="duel-turn-banner" id="duel-turn-banner">
+          <span id="duel-turn-avatar">🚀</span>
+          <span id="duel-turn-text">Turno de responder: Los Sabelotodo</span>
+        </div>
+
+        <!-- Pantalla de Traspaso / Pantalla de Espera Privada -->
+        <div id="duel-handover-screen" class="duel-handover-card hidden">
+          <div class="duel-handover-icon">📱</div>
+          <h3 id="duel-handover-title">¡Pasa el dispositivo al Rival!</h3>
+          <p>El retador ya confirmó su respuesta en secreto. Ahora es el turno del rival.</p>
+          <button type="button" id="btn-duel-start-rival" class="btn-duel-action">
+            ¡Estoy Listo para Responder! ➔
+          </button>
+        </div>
+
+        <!-- Contenido de la Pregunta del Duelo -->
+        <div id="duel-question-wrapper" class="duel-question-wrapper">
+          <div class="duel-cat-pill">
+            <span id="duel-cat-icon">🏛️</span>
+            <span id="duel-cat-title">Historia</span>
+          </div>
+          <h3 id="duel-question-title" class="duel-question-title">¿En qué año ocurrió este suceso?</h3>
+          <p id="duel-question-desc" class="duel-question-desc"></p>
+
+          <!-- Contenedor Visual para Banderas o Mapas en Duelo -->
+          <div id="duel-media-wrapper" class="trivia-media-wrapper hidden">
+            <div id="duel-media-container" class="trivia-media-container"></div>
+          </div>
+
+          <div id="duel-options-grid" class="trivia-options-grid">
+            <!-- 4 Opciones -->
+          </div>
+
+          <!-- Barra de Confirmar Respuesta del Duelo -->
+          <div class="trivia-confirm-bar" style="margin-top: 1rem;">
+            <button type="button" id="btn-duel-confirm-choice" class="btn-check-answer" disabled>
+              <span id="btn-duel-confirm-text">Selecciona una respuesta</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FASE 3: La Gran Revelación Cara a Cara -->
+      <div id="duel-phase-reveal" class="duel-phase-container hidden">
+        <h3 class="duel-reveal-title">¡RESULTADO DEL DUELO!</h3>
+
+        <div class="duel-versus-stage">
+          <!-- Tarjeta Retador -->
+          <div class="duel-team-box" id="duel-box-challenger">
+            <div class="duel-box-avatar" id="duel-box-avatar-challenger">🚀</div>
+            <div class="duel-box-name" id="duel-box-name-challenger">Equipo 1</div>
+            <div class="duel-box-role">Retador</div>
+            <div class="duel-box-choice" id="duel-choice-challenger">Opción elegida</div>
+            <div class="duel-box-status" id="duel-status-challenger">✅ CORRECTO</div>
+          </div>
+
+          <div class="duel-vs-badge">VS</div>
+
+          <!-- Tarjeta Rival -->
+          <div class="duel-team-box" id="duel-box-rival">
+            <div class="duel-box-avatar" id="duel-box-avatar-rival">🦖</div>
+            <div class="duel-box-name" id="duel-box-name-rival">Equipo 2</div>
+            <div class="duel-box-role">Desafiado</div>
+            <div class="duel-box-choice" id="duel-choice-rival">Opción elegida</div>
+            <div class="duel-box-status" id="duel-status-rival">❌ INCORRECTO</div>
+          </div>
+        </div>
+
+        <div class="duel-verdict-card">
+          <div id="duel-verdict-icon" class="duel-verdict-icon">🎉</div>
+          <div class="duel-verdict-text">
+            <h4 id="duel-verdict-title">¡Victoria del Retador!</h4>
+            <p id="duel-verdict-desc">El retador acierta y el rival falla: ¡le roba 2 casillas al rival!</p>
+            <p id="duel-verdict-answer" style="color: var(--gold-light); font-size: 0.85rem; margin-top: 0.3rem;"></p>
+          </div>
+        </div>
+
+        <button type="button" id="btn-duel-finish" class="btn-continue-trivia" style="margin-top: 1rem; width: 100%;">
+          Continuar Partida ➔
+        </button>
+      </div>
+
     </div>
   </div>
 
@@ -488,23 +748,37 @@
             <p style="margin-bottom: 0.3rem;">Puedes usar tus comodines durante cualquier pregunta activa:</p>
             <ul style="margin: 0 0 0 1.2rem; font-size: 0.9rem; color: var(--text-muted);">
               <li>🔍 <strong>50 / 50:</strong> Descarta automáticamente 2 alternativas erróneas.</li>
-              <li>⏳ <strong>Salto Temporal:</strong> Cambia la pregunta actual por una completamente nueva sin penalización.</li>
-              <li>🛡️ <strong>Escudo Paradoja:</strong> Te protege contra la penalización de un vórtice temporal.</li>
+              <li>🔄 <strong>Cambiar Pregunta:</strong> Descarta la pregunta actual y saca otra nueva sin penalización.</li>
+              <li>🛡️ <strong>Escudo Protector:</strong> Te protege contra la penalización de una casilla trampa.</li>
             </ul>
           </div>
         </div>
         <div class="rule-item">
-          <span class="rule-icon">🌀</span>
+          <span class="rule-icon">⚠️</span>
           <div>
             <strong>5. Casillas Especiales del Tablero:</strong>
-            <p><strong>Atajos Cuánticos (🚀):</strong> Pregunta especial; si aciertas, ¡saltas 3 casillas más hacia adelante!<br>
-            <strong>Vórtices Temporales (🌀):</strong> Si fallas la pregunta, el vórtice te arrastra 2 casillas adicionales hacia atrás.</p>
+            <p><strong>Atajos (🚀):</strong> Si aciertas la pregunta, ¡avanzas 3 casillas adicionales de ventaja!<br>
+            <strong>Casillas Trampa (⚠️):</strong> Si fallas la pregunta, caes en la trampa y retrocedes 2 casillas adicionales hacia atrás.</p>
+          </div>
+        </div>
+        <div class="rule-item">
+          <span class="rule-icon">🔥</span>
+          <div>
+            <strong>6. Apuesta Doble o Nada (2x):</strong>
+            <p>Cada <strong>4 turnos</strong> de cada equipo (comenzando en su <strong>2° tiro</strong>: turnos 2, 6, 10, 14, 18...), aparece una ventana de decisión previa. Puedes arriesgarte con <strong>Doble o Nada</strong>: responderás una pregunta de dificultad alta y, si aciertas, ¡duplicas el avance de tu dado sumando casillas extras! Si prefieres ir a lo seguro, puedes elegir <strong>Normal</strong> para jugar con dificultad estándar.</p>
+          </div>
+        </div>
+        <div class="rule-item">
+          <span class="rule-icon">⚔️</span>
+          <div>
+            <strong>7. Casillas de Duelo (1 vs 1):</strong>
+            <p>Al caer en una casilla de Duelo (⚔️), desafías cara a cara a un equipo rival. Ambos responden en secreto la misma pregunta: si ganas el duelo tomas ventaja y el rival retrocede.</p>
           </div>
         </div>
         <div class="rule-item">
           <span class="rule-icon">👑</span>
           <div>
-            <strong>6. Meta y Victoria:</strong>
+            <strong>8. Meta y Victoria:</strong>
             <p>El primer equipo en llegar a la última casilla y superar con éxito el <strong>Desafío Final del Campeón</strong> se corona vencedor indiscutido de la partida.</p>
           </div>
         </div>
@@ -542,11 +816,13 @@
 
       <div class="victory-actions">
         <button type="button" id="btn-rematch" class="btn-start-epic">🔄 Jugar Otra Partida</button>
-        <a href="index.html" class="mode-btn text-center" style="margin-top: 0.75rem; display: block;">⬅ Volver al Menú Principal</a>
+        <a href="index.html" class="mode-btn text-center" style="margin-top: 0.75rem; display: block;">⬅ Volver a Juegos Stahlgraf</a>
       </div>
     </div>
   </div>
 
+  <!-- Analítica y Medición de Tráfico -->
+  <script src="analytics.js"></script>
   <!-- Carga de la base de datos de cartas existente -->
   <script src="cards.js"></script>
   <!-- Base de datos de Trivia General (Geografía, Química, Biología, Deportes, Arte) -->

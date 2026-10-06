@@ -1,5 +1,6 @@
 /**
  * LÓGICA DEL JUEGO - CRONOLINE
+ * © 2026 Stahlgraf Games. Todos los derechos reservados.
  * 
  * Este archivo gestiona el estado de la partida, los turnos (Pass & Play),
  * la validación cronológica y las actualizaciones de la interfaz.
@@ -29,6 +30,9 @@ let gameState = {
 };
 
 // --- ELEMENTOS DEL DOM ---
+const hubScreen = document.getElementById('hub-screen');
+const btnEnterCronoline = document.getElementById('btn-enter-cronoline');
+const btnBackToHub = document.getElementById('btn-back-to-hub');
 const versionScreen = document.getElementById('version-screen');
 const setupScreen = document.getElementById('setup-screen');
 const gameScreen = document.getElementById('game-screen');
@@ -150,6 +154,49 @@ function selectVersion(version) {
   versionScreen.classList.add('hidden');
   setupScreen.classList.remove('hidden');
 }
+
+// Navegación del Hub de Juegos Stahlgraf
+function showCronolineVersionScreen() {
+  if (hubScreen) hubScreen.classList.add('hidden');
+  if (versionScreen) versionScreen.classList.remove('hidden');
+  if (setupScreen) setupScreen.classList.add('hidden');
+  if (gameScreen) gameScreen.classList.add('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showHubMainScreen() {
+  if (versionScreen) versionScreen.classList.add('hidden');
+  if (setupScreen) setupScreen.classList.add('hidden');
+  if (gameScreen) gameScreen.classList.add('hidden');
+  if (hubScreen) hubScreen.classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+if (btnEnterCronoline) {
+  btnEnterCronoline.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (typeof soundManager !== 'undefined') soundManager?.playClick?.();
+    window.location.hash = '#cronoline';
+    showCronolineVersionScreen();
+  });
+}
+
+if (btnBackToHub) {
+  btnBackToHub.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (typeof soundManager !== 'undefined') soundManager?.playClick?.();
+    window.location.hash = '';
+    showHubMainScreen();
+  });
+}
+
+window.addEventListener('hashchange', () => {
+  if (window.location.hash === '#cronoline') {
+    showCronolineVersionScreen();
+  } else if (!window.location.hash || window.location.hash === '#hub') {
+    showHubMainScreen();
+  }
+});
 
 // Botón de Volver al Selector de Versión
 btnBackToVersions.addEventListener('click', () => {
@@ -303,6 +350,11 @@ btnStartGame.addEventListener('click', () => {
   if (startNewGame()) {
     setupScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
+    window.StahlgrafAnalytics?.trackGameStart('cronoline', {
+      version: currentVersion,
+      mode: gameState.mode,
+      players: gameState.players?.length || 1
+    });
   }
 });
 
@@ -1511,6 +1563,7 @@ function checkAndRestoreCronolineGame() {
     }
 
     // Pasar a pantalla de juego
+    if (hubScreen) hubScreen.classList.add('hidden');
     versionScreen.classList.add('hidden');
     setupScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
@@ -1553,10 +1606,80 @@ window.addEventListener('beforeunload', () => {
   saveCronolineGame();
 });
 
+// ==================== PANEL DE TRÁFICO Y MONETIZACIÓN ====================
+function initTrafficModalListeners() {
+  const btnOpen = document.getElementById('btn-open-traffic-modal');
+  const modal = document.getElementById('traffic-metrics-modal');
+  const btnCloseX = document.getElementById('btn-close-traffic-modal');
+  const btnCloseFooter = document.getElementById('btn-close-traffic-footer');
+  const statsContainer = document.getElementById('traffic-local-stats');
+
+  function updateLocalStatsDisplay() {
+    if (!statsContainer || !window.StahlgrafAnalytics) return;
+    const stats = window.StahlgrafAnalytics.getLocalStats();
+    statsContainer.innerHTML = `
+      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
+        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Visitas al Portal:</span>
+        <strong style="color: #fbbf24; font-size: 1.1rem;">${stats.visitsCount || 1}</strong>
+      </div>
+      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
+        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Eventos Registrados:</span>
+        <strong style="color: #34d399; font-size: 1.1rem;">${stats.eventsLogged || 0}</strong>
+      </div>
+      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
+        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Partidas Cronoline:</span>
+        <strong style="color: #fff; font-size: 0.95rem;">${stats.gamesPlayed?.cronoline || 0}</strong>
+      </div>
+      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
+        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Partidas CronoTrivia:</span>
+        <strong style="color: #fff; font-size: 0.95rem;">${stats.gamesPlayed?.cronotrivia || 0}</strong>
+      </div>
+      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
+        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Partidas ¿Quién Soy?:</span>
+        <strong style="color: #fff; font-size: 0.95rem;">${stats.gamesPlayed?.quiensoy || 0}</strong>
+      </div>
+      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
+        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Partidas El Impostor:</span>
+        <strong style="color: #fff; font-size: 0.95rem;">${stats.gamesPlayed?.impostor || 0}</strong>
+      </div>
+    `;
+  }
+
+  if (btnOpen && modal) {
+    btnOpen.addEventListener('click', () => {
+      updateLocalStatsDisplay();
+      modal.classList.remove('hidden');
+      window.StahlgrafAnalytics?.trackCustomEvent('view_traffic_panel');
+    });
+  }
+
+  if (btnCloseX && modal) {
+    btnCloseX.addEventListener('click', () => modal.classList.add('hidden'));
+  }
+  if (btnCloseFooter && modal) {
+    btnCloseFooter.addEventListener('click', () => modal.classList.add('hidden'));
+  }
+
+  // Tracking de clics en las tarjetas del hub
+  document.querySelectorAll('.hub-play-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const href = btn.getAttribute('href') || 'cronoline';
+      window.StahlgrafAnalytics?.trackHubClick(href);
+    });
+  });
+}
+
 // Comprobar y restaurar partida guardada al iniciar la aplicación
 function initCronolineApp() {
+  initTrafficModalListeners();
   randomizeCronolinePlayerNames(false);
-  checkAndRestoreCronolineGame();
+  const restored = checkAndRestoreCronolineGame();
+  if (!restored) {
+    if (window.location.hash === '#cronoline') {
+      if (hubScreen) hubScreen.classList.add('hidden');
+      if (versionScreen) versionScreen.classList.remove('hidden');
+    }
+  }
 }
 
 if (document.readyState === 'loading') {

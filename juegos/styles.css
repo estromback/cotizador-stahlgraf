@@ -1433,3 +1433,401 @@ h1, h2, h3, .brand {
   background: rgba(239, 68, 68, 0.3);
 }
 
+/* ==================== HUB PRINCIPAL: JUEGOS STAHLGRAF ==================== */
+.hub-container {
+  max-width: 1200px;
+  width: 95%;
+  margin: 1.5rem auto 3rem auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.hub-header {
+  text-align: center;
+  margin-bottom: 2.25rem;
+}
+
+.hub-brand-badge {
+  display: inline-block;
+  padding: 0.35rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--gold);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  text-transform: uppercase;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.15);
+}
+
+.hub-title {
+  font-family: var(--font-title);
+  font-size: clamp(2.2rem, 5.5vw, 3.4rem);
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffffff 15%, #fde047 55%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 40px rgba(251, 191, 36, 0.3);
+  letter-spacing: 2px;
+  margin-bottom: 0.6rem;
+  line-height: 1.15;
+}
+
+.hub-slogan {
+  color: var(--text-muted);
+  font-size: clamp(0.95rem, 2.2vw, 1.15rem);
+  max-width: 620px;
+  margin: 0 auto;
+  line-height: 1.55;
+}
+
+.hub-games-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.75rem;
+  width: 100%;
+  max-width: 1060px;
+  align-items: stretch;
+}
+
+.hub-game-card {
+  position: relative;
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 2.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease;
+  overflow: hidden;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55);
+}
+
+.hub-card-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 180px;
+  background: radial-gradient(circle at 50% 0%, var(--card-glow, rgba(251, 191, 36, 0.15)) 0%, transparent 70%);
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity 0.35s ease;
+}
+
+.hub-game-card:hover {
+  transform: translateY(-6px);
+}
+
+.hub-game-card:hover .hub-card-glow {
+  opacity: 1;
+}
+
+.hub-card-cronoline {
+  --card-glow: rgba(251, 191, 36, 0.22);
+}
+
+.hub-card-cronoline:hover {
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65), 0 0 25px rgba(251, 191, 36, 0.22);
+}
+
+.hub-card-cronotrivia {
+  --card-glow: rgba(168, 85, 247, 0.28);
+}
+
+.hub-card-cronotrivia:hover {
+  border-color: rgba(168, 85, 247, 0.55);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65), 0 0 30px rgba(168, 85, 247, 0.25);
+}
+
+.hub-card-quiensoy {
+  --card-glow: rgba(16, 185, 129, 0.28);
+}
+
+.hub-card-quiensoy:hover {
+  border-color: rgba(16, 185, 129, 0.55);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65), 0 0 30px rgba(16, 185, 129, 0.25);
+}
+
+.hub-card-impostor {
+  --card-glow: rgba(239, 68, 68, 0.28);
+}
+
+.hub-card-impostor:hover {
+  border-color: rgba(239, 68, 68, 0.55);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65), 0 0 30px rgba(239, 68, 68, 0.25);
+}
+
+.hub-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.15rem;
+}
+
+.hub-game-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.hub-badge-cronoline {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--gold);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.hub-badge-trivia {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.hub-badge-quiensoy {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.hub-badge-impostor {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.hub-new-pill {
+  padding: 0.25rem 0.65rem;
+  font-size: 0.68rem;
+  font-weight: 900;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  color: #fff;
+  letter-spacing: 0.8px;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4);
+  animation: pulseBadge 2.2s infinite ease-in-out;
+}
+
+.hub-game-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  margin-bottom: 1.15rem;
+  box-shadow: inset 0 2px 8px rgba(255, 255, 255, 0.08);
+}
+
+.trivia-glow {
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, rgba(15, 23, 42, 0.4) 100%);
+  border-color: rgba(168, 85, 247, 0.35);
+}
+
+.quiensoy-glow {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(15, 23, 42, 0.4) 100%);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.impostor-glow {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.22) 0%, rgba(15, 23, 42, 0.4) 100%);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.hub-game-title {
+  font-family: var(--font-title);
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.4rem;
+}
+
+.hub-game-quote {
+  font-size: 0.88rem;
+  font-style: italic;
+  color: var(--gold-light);
+  margin-bottom: 1.25rem;
+  line-height: 1.45;
+}
+
+.hub-game-desc {
+  font-size: 0.94rem;
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin-bottom: 1.35rem;
+}
+
+.hub-features-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1.35rem;
+}
+
+.hub-feature-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.hub-categories-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1.75rem;
+}
+
+.hub-mini-tag {
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  color: #fde047;
+  border-radius: 6px;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.hub-play-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: none;
+  letter-spacing: 0.5px;
+}
+
+.hub-play-btn .hub-arrow {
+  transition: transform 0.25s ease;
+}
+
+.hub-play-btn:hover .hub-arrow {
+  transform: translateX(5px);
+}
+
+.hub-btn-cronoline {
+  background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%);
+  color: #0a0f1d;
+  box-shadow: 0 4px 18px rgba(251, 191, 36, 0.35);
+}
+
+.hub-btn-cronoline:hover {
+  background: linear-gradient(135deg, #f59e0b 0%, #fde047 100%);
+  box-shadow: 0 6px 24px rgba(251, 191, 36, 0.5);
+  transform: translateY(-2px);
+}
+
+.hub-btn-cronotrivia {
+  background: linear-gradient(135deg, #7c3aed 0%, #9333ea 50%, #f59e0b 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(168, 85, 247, 0.35);
+}
+
+.hub-btn-cronotrivia:hover {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #fbbf24 100%);
+  box-shadow: 0 6px 26px rgba(168, 85, 247, 0.5);
+  transform: translateY(-2px);
+}
+
+.hub-btn-quiensoy {
+  background: linear-gradient(135deg, #059669 0%, #10b981 50%, #f59e0b 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.35);
+}
+
+.hub-btn-quiensoy:hover {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #fbbf24 100%);
+  box-shadow: 0 6px 26px rgba(16, 185, 129, 0.5);
+  transform: translateY(-2px);
+}
+
+.hub-btn-impostor {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f59e0b 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.35);
+}
+
+.hub-btn-impostor:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #f87171 50%, #fbbf24 100%);
+  box-shadow: 0 6px 26px rgba(239, 68, 68, 0.5);
+  transform: translateY(-2px);
+}
+
+.hub-footer {
+  margin-top: 2.75rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+/* Enlace Volver a Menú Superior */
+.back-link-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.back-link-top:hover {
+  color: var(--gold-light);
+  border-color: var(--gold);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+/* Responsivo para móviles y tablets verticales */
+@media (max-width: 768px) {
+  .hub-container {
+    margin-top: 1rem;
+    margin-bottom: 2rem;
+  }
+  .hub-games-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .hub-game-card {
+    padding: 1.5rem 1.25rem;
+  }
+  .hub-title {
+    font-size: 2.1rem;
+  }
+}
+

@@ -1,5 +1,6 @@
 /**
  * BASE DE DATOS DE CARTAS - CRONOLINE (300 CARTAS)
+ * © 2026 Stahlgraf Games. Todos los derechos reservados.
  * 
  * Estructura de cada objeto:
  * - id: Número único identificador.
