@@ -6,6 +6,40 @@
   <title>¿Quién Soy? | Juegos Stahlgraf</title>
   <link rel="stylesheet" href="quiensoy.css">
   <link rel="stylesheet" href="coffee.css">
+  <script>
+    function openRulesModal() {
+      var modal = document.getElementById('rules-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+    }
+    function closeRulesModal() {
+      var modal = document.getElementById('rules-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    }
+    document.addEventListener('click', function(e) {
+      var openTrigger = e.target.closest('.btn-open-rules, #btn-top-rules, #btn-setup-rules, #btn-show-rules');
+      if (openTrigger) {
+        e.preventDefault();
+        openRulesModal();
+        return;
+      }
+      var closeTrigger = e.target.closest('#btn-close-rules, #btn-ack-rules');
+      if (closeTrigger) {
+        e.preventDefault();
+        closeRulesModal();
+        return;
+      }
+      var modal = document.getElementById('rules-modal');
+      if (modal && e.target === modal) {
+        closeRulesModal();
+      }
+    });
+  </script>
 </head>
 <body>
 
@@ -15,7 +49,7 @@
     <section id="setup-screen">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
         <a href="index.html" class="back-link-top" style="margin-bottom: 0;">⬅ Volver a Juegos Stahlgraf</a>
-        <button type="button" id="btn-top-rules" class="back-link-top btn-open-rules" style="margin-bottom: 0; cursor: pointer; color: var(--gold); border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.1);">
+        <button type="button" id="btn-top-rules" class="back-link-top btn-open-rules" onclick="openRulesModal()" style="margin-bottom: 0; cursor: pointer; color: var(--gold); border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.1);">
           ❓ ¿Cómo Jugar? (Reglas)
         </button>
       </div>
@@ -120,7 +154,7 @@
         <button type="button" id="btn-start-game" class="btn-qs-start">
           <span>🚀 ¡Comenzar Partida!</span>
         </button>
-        <button type="button" id="btn-setup-rules" class="btn-rules-setup btn-open-rules" style="margin-top: 0.75rem; width: 100%; padding: 0.75rem; border-radius: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(251, 191, 36, 0.3); color: var(--gold); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+        <button type="button" id="btn-setup-rules" class="btn-rules-setup btn-open-rules" onclick="openRulesModal()" style="margin-top: 0.75rem; width: 100%; padding: 0.75rem; border-radius: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(251, 191, 36, 0.3); color: var(--gold); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
           ❓ ¿Cómo Jugar? (Reglas)
         </button>
 
@@ -262,13 +296,13 @@
   </div>
 
   <!-- MODAL DE REGLAS DE ¿QUIÉN SOY? -->
-  <div id="rules-modal" class="qs-modal-overlay hidden" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;">
-    <div class="qs-rules-card" style="background: #0f172a; border: 1.5px solid rgba(251, 191, 36, 0.35); border-radius: 20px; max-width: 580px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 1.5rem; color: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+  <div id="rules-modal" class="qs-modal-overlay hidden" style="display: none;">
+    <div class="qs-rules-card">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(251, 191, 36, 0.2); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
         <h2 style="font-family: inherit; font-size: 1.35rem; color: #fde047; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
           <span>🎭</span> ¿Cómo Jugar a "¿Quién Soy?"
         </h2>
-        <button type="button" id="btn-close-rules" style="background: rgba(255,255,255,0.1); border: none; color: #cbd5e1; font-size: 1.2rem; width: 32px; height: 32px; border-radius: 50%; cursor: pointer;">✕</button>
+        <button type="button" id="btn-close-rules" onclick="closeRulesModal()" style="background: rgba(255,255,255,0.1); border: none; color: #cbd5e1; font-size: 1.2rem; width: 32px; height: 32px; border-radius: 50%; cursor: pointer;">✕</button>
       </div>
       <div style="font-size: 0.92rem; line-height: 1.6; color: #cbd5e1; display: flex; flex-direction: column; gap: 1rem;">
         <p><strong>¿Quién Soy?</strong> es el divertido juego de adivinanza de frente donde debes descubrir qué personaje, celebridad o concepto eres haciendo preguntas ingeniosas al grupo.</p>
@@ -297,7 +331,7 @@
           <p>Ve de lo general a lo específico: empieza preguntando por realidad (<em>"¿Soy real o ficticio?"</em>), especie (<em>"¿Soy humano?"</em>), género o época, antes de arriesgar nombres propios.</p>
         </div>
       </div>
-      <button type="button" id="btn-ack-rules" style="margin-top: 1.25rem; width: 100%; padding: 0.75rem; border-radius: 12px; background: linear-gradient(135deg, #d97706, #f59e0b); border: none; color: #000; font-weight: 800; cursor: pointer;">
+      <button type="button" id="btn-ack-rules" onclick="closeRulesModal()" style="margin-top: 1.25rem; width: 100%; padding: 0.75rem; border-radius: 12px; background: linear-gradient(135deg, #d97706, #f59e0b); border: none; color: #000; font-weight: 800; cursor: pointer;">
         ¡Entendido, a Jugar!
       </button>
     </div>
@@ -307,6 +341,6 @@
   <script src="analytics.js"></script>
   <script src="coffee.js"></script>
   <script src="quiensoy_data.js"></script>
-  <script src="quiensoy.js"></script>
+  <script src="quiensoy.js?v=2"></script>
 </body>
 </html>

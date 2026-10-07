@@ -40,14 +40,20 @@ const AVATARS = ['🦊', '🐯', '🐼', '🦁', '🦉', '🐨', '🐸', '🦄',
 // ==================== REFERENCIAS AL DOM ====================
 const DOM = {};
 
-document.addEventListener('DOMContentLoaded', () => {
+function initImpostorApp() {
   cacheDOM();
-  loadSession();
   initDefaultPlayers();
+  loadSession();
   renderCategoriesGrid();
   renderPlayersInputs();
   bindEvents();
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initImpostorApp);
+} else {
+  initImpostorApp();
+}
 
 function cacheDOM() {
   DOM.soundToggle = document.getElementById('btn-sound-toggle');
@@ -421,29 +427,46 @@ function bindEvents() {
   const btnCloseRules = document.getElementById('btn-close-rules');
   const btnAckRules = document.getElementById('btn-ack-rules');
 
-  document.querySelectorAll('.btn-open-rules, #btn-top-rules, #btn-setup-rules').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (rulesModal) rulesModal.classList.remove('hidden');
+  const doOpenRules = () => {
+    if (rulesModal) {
+      rulesModal.classList.remove('hidden');
+      rulesModal.style.display = 'flex';
       if (soundManager && soundManager.playTone) soundManager.playTone(520, 'sine', 0.08, 0.15);
+    }
+  };
+
+  const doCloseRules = () => {
+    if (rulesModal) {
+      rulesModal.classList.add('hidden');
+      rulesModal.style.display = 'none';
+    }
+  };
+
+  document.querySelectorAll('.btn-open-rules, #btn-top-rules, #btn-setup-rules').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      doOpenRules();
     });
   });
 
   if (btnCloseRules) {
-    btnCloseRules.addEventListener('click', () => {
-      if (rulesModal) rulesModal.classList.add('hidden');
+    btnCloseRules.addEventListener('click', (e) => {
+      e.preventDefault();
+      doCloseRules();
     });
   }
 
   if (btnAckRules) {
-    btnAckRules.addEventListener('click', () => {
-      if (rulesModal) rulesModal.classList.add('hidden');
+    btnAckRules.addEventListener('click', (e) => {
+      e.preventDefault();
+      doCloseRules();
     });
   }
 
   if (rulesModal) {
     rulesModal.addEventListener('click', (e) => {
       if (e.target === rulesModal) {
-        rulesModal.classList.add('hidden');
+        doCloseRules();
       }
     });
   }

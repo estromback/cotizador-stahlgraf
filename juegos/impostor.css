@@ -1481,3 +1481,50 @@ body {
 .hidden {
   display: none !important;
 }
+
+/* ==================== MODAL DE REGLAS (EL IMPOSTOR) ==================== */
+.imp-rules-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 15, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.imp-rules-overlay.hidden {
+  display: none !important;
+}
+
+.imp-rules-card {
+  background: #0f172a;
+  border: 1.5px solid rgba(251, 191, 36, 0.45);
+  border-radius: 20px;
+  max-width: 580px;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 1.6rem 1.4rem;
+  color: #fff;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+}
+
+.imp-rules-card::-webkit-scrollbar {
+  width: 6px;
+}
+.imp-rules-card::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+}
+.imp-rules-card::-webkit-scrollbar-thumb {
+  background: rgba(251, 191, 36, 0.4);
+  border-radius: 10px;
+}
+.imp-rules-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(251, 191, 36, 0.75);
+}
+

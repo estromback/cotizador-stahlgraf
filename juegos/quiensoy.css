@@ -997,3 +997,50 @@ body::before {
     gap: 0.75rem;
   }
 }
+
+/* ==================== MODAL DE REGLAS (¿CÓMO JUGAR?) ==================== */
+.qs-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 1rem;
+}
+
+.qs-modal-overlay.hidden {
+  display: none !important;
+}
+
+.qs-rules-card {
+  background: #0f172a;
+  border: 1.5px solid rgba(251, 191, 36, 0.45);
+  border-radius: 20px;
+  max-width: 580px;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 1.6rem 1.4rem;
+  color: #fff;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.9);
+}
+
+.qs-rules-card::-webkit-scrollbar {
+  width: 6px;
+}
+.qs-rules-card::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+}
+.qs-rules-card::-webkit-scrollbar-thumb {
+  background: rgba(251, 191, 36, 0.4);
+  border-radius: 10px;
+}
+.qs-rules-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(251, 191, 36, 0.75);
+}
+
