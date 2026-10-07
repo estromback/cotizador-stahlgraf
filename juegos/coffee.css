@@ -212,13 +212,13 @@
 /* CARDS DE MONTOS SUGERIDOS */
 .coffee-tiers-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.65rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.55rem;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 580px) {
   .coffee-tiers-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 

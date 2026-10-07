@@ -14,9 +14,9 @@
   // CONFIGURACIÓN DE DONACIONES Y PAGOS (Actualiza estos valores con tus datos reales)
   const COFFEE_CONFIG = {
     // 1. MERCADO PAGO (WebPay / Débito / Crédito en Chile)
-    // Puedes colocar un link general o links por cada monto ($1.500, $3.000, $6.000)
+    // Tiers con montos predefinidos y defaultUrl para monto manual/libre
     mercadoPago: {
-      defaultUrl: "link.mercadopago.cl/stahlgrafgames",
+      defaultUrl: "https://link.mercadopago.cl/stahlgrafgames", // Link para monto manual / libre
       tiers: {
         1: "https://mpago.la/2YDcqDK", // $1.500 CLP (1 Café)
         2: "https://mpago.la/1DNVPc7", // $3.000 CLP (Cafecito Doble)
@@ -24,25 +24,19 @@
       }
     },
     
-    // 2. PAYPAL (Aportes Internacionales / USD)
+    // 2. PAYPAL (Aportes Internacionales / USD - Donación sin monto preestablecido)
     paypal: {
-      url: "https://www.paypal.com/donate/?hosted_button_id=KS4ZNMY8DHP9Y",
-      tiers: {
-        1: "https://paypal.me/tuUsuario/2USD",
-        2: "https://paypal.me/tuUsuario/4USD",
-        3: "https://paypal.me/tuUsuario/8USD"
-      }
+      url: "https://www.paypal.com/donate/?hosted_button_id=KS4ZNMY8DHP9Y"
     },
 
     // 3. TRANSFERENCIA BANCARIA DIRECTA VÍA MERCADO PAGO (Chile)
-    // Encuentra estos datos en tu App de Mercado Pago > "Ingresar dinero" o "Datos de tu cuenta"
     transfer: {
       banco: "Mercado Pago (Institución Prepago)",
       tipoCuenta: "Cuenta Vista",
       numeroCuenta: "1048358737",
       titular: "Erick Stromback",
-      rut: "153709963",
-      email: "tu-correo@mercadopago.cl"
+      rut: "15.370.996-3",
+      email: "estromback@gmail.com"
     }
   };
 
@@ -54,10 +48,6 @@
     const mpInitialUrl = (COFFEE_CONFIG.mercadoPago.tiers && COFFEE_CONFIG.mercadoPago.tiers[initialTier]) 
       ? COFFEE_CONFIG.mercadoPago.tiers[initialTier] 
       : COFFEE_CONFIG.mercadoPago.defaultUrl;
-
-    const ppInitialUrl = (COFFEE_CONFIG.paypal.tiers && COFFEE_CONFIG.paypal.tiers[initialTier])
-      ? COFFEE_CONFIG.paypal.tiers[initialTier]
-      : COFFEE_CONFIG.paypal.url;
 
     const modalHTML = `
       <div id="coffee-modal-overlay" class="coffee-modal-overlay hidden">
@@ -83,20 +73,25 @@
 
           <!-- Opciones de Aporte Simbólico -->
           <div class="coffee-tiers-grid">
-            <div class="coffee-tier-card" data-tier="1" data-label="$1.500 CLP">
+            <div class="coffee-tier-card" data-tier="1" data-label="$1.500">
               <span class="coffee-tier-icon">☕</span>
-              <span class="coffee-tier-title">1 Café Cortado</span>
+              <span class="coffee-tier-title">1 Café</span>
               <span class="coffee-tier-price">$1.500 CLP</span>
             </div>
-            <div class="coffee-tier-card selected" data-tier="2" data-label="$3.000 CLP">
+            <div class="coffee-tier-card selected" data-tier="2" data-label="$3.000">
               <span class="coffee-tier-icon">☕☕</span>
-              <span class="coffee-tier-title">Cafecito Doble</span>
+              <span class="coffee-tier-title">Café Doble</span>
               <span class="coffee-tier-price">$3.000 CLP</span>
             </div>
-            <div class="coffee-tier-card" data-tier="3" data-label="$6.000 CLP">
+            <div class="coffee-tier-card" data-tier="3" data-label="$6.000">
               <span class="coffee-tier-icon">🍕</span>
-              <span class="coffee-tier-title">Una Pizza / Pack</span>
+              <span class="coffee-tier-title">Pizza / Pack</span>
               <span class="coffee-tier-price">$6.000 CLP</span>
+            </div>
+            <div class="coffee-tier-card" data-tier="custom" data-label="Monto Libre">
+              <span class="coffee-tier-icon">✍️</span>
+              <span class="coffee-tier-title">Monto Libre</span>
+              <span class="coffee-tier-price">Tú decides</span>
             </div>
           </div>
 
@@ -112,11 +107,11 @@
               <span class="coffee-pay-arrow">➔</span>
             </a>
 
-            <!-- 2. PayPal -->
-            <a href="${ppInitialUrl}" target="_blank" rel="noopener noreferrer" class="coffee-pay-link-btn btn-paypal-global" id="link-pay-paypal">
+            <!-- 2. PayPal (Donación abierta sin monto preestablecido) -->
+            <a href="${COFFEE_CONFIG.paypal.url}" target="_blank" rel="noopener noreferrer" class="coffee-pay-link-btn btn-paypal-global" id="link-pay-paypal">
               <div class="coffee-pay-btn-content">
-                <span class="coffee-pay-btn-title">🌎 Donar con PayPal (Internacional / USD)</span>
-                <span class="coffee-pay-btn-subtitle">Para jugadores y amigos fuera de Chile</span>
+                <span class="coffee-pay-btn-title">🌎 Donar con PayPal (Sin monto fijo / USD)</span>
+                <span class="coffee-pay-btn-subtitle">Donación libre para jugadores internacionales</span>
               </div>
               <span class="coffee-pay-arrow">➔</span>
             </a>
@@ -276,23 +271,17 @@ Correo: ${t.email}`;
           mpAmountDisplay.textContent = label;
         }
 
-        // Actualizar link de Mercado Pago según tier (si existe link específico, sino usa el default)
+        // Actualizar link de Mercado Pago según tier
         if (linkMp && COFFEE_CONFIG.mercadoPago) {
-          const tierUrl = (COFFEE_CONFIG.mercadoPago.tiers && COFFEE_CONFIG.mercadoPago.tiers[tier])
-            ? COFFEE_CONFIG.mercadoPago.tiers[tier]
-            : COFFEE_CONFIG.mercadoPago.defaultUrl;
-          if (tierUrl) {
-            linkMp.href = tierUrl;
-          }
-        }
-
-        // Actualizar link de PayPal según tier
-        if (linkPaypal && COFFEE_CONFIG.paypal) {
-          const ppUrl = (COFFEE_CONFIG.paypal.tiers && COFFEE_CONFIG.paypal.tiers[tier])
-            ? COFFEE_CONFIG.paypal.tiers[tier]
-            : COFFEE_CONFIG.paypal.url;
-          if (ppUrl) {
-            linkPaypal.href = ppUrl;
+          if (tier === 'custom') {
+            linkMp.href = COFFEE_CONFIG.mercadoPago.defaultUrl;
+          } else {
+            const tierUrl = (COFFEE_CONFIG.mercadoPago.tiers && COFFEE_CONFIG.mercadoPago.tiers[tier])
+              ? COFFEE_CONFIG.mercadoPago.tiers[tier]
+              : COFFEE_CONFIG.mercadoPago.defaultUrl;
+            if (tierUrl) {
+              linkMp.href = tierUrl;
+            }
           }
         }
       });
