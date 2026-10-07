@@ -409,17 +409,19 @@ inspectOverlay.addEventListener('click', (e) => {
 });
 
 // Listeners para el modal de instrucciones
-btnOpenInstructionsVersions.addEventListener('click', () => {
-  instructionsOverlay.classList.add('active');
+document.querySelectorAll('.btn-open-rules, #btn-open-instructions-versions, #btn-open-instructions-setup, #btn-open-instructions-game').forEach(btn => {
+  btn.addEventListener('click', () => {
+    instructionsOverlay.classList.add('active');
+  });
 });
 
-btnOpenInstructionsSetup.addEventListener('click', () => {
-  instructionsOverlay.classList.add('active');
-});
-
-btnOpenInstructionsGame.addEventListener('click', () => {
-  instructionsOverlay.classList.add('active');
-});
+const btnTopBackToVersions = document.getElementById('btn-top-back-to-versions');
+if (btnTopBackToVersions) {
+  btnTopBackToVersions.addEventListener('click', () => {
+    setupScreen.classList.add('hidden');
+    versionScreen.classList.remove('hidden');
+  });
+}
 
 btnCloseInstructions.addEventListener('click', () => {
   instructionsOverlay.classList.remove('active');
@@ -1606,60 +1608,8 @@ window.addEventListener('beforeunload', () => {
   saveCronolineGame();
 });
 
-// ==================== PANEL DE TRÁFICO Y MONETIZACIÓN ====================
-function initTrafficModalListeners() {
-  const btnOpen = document.getElementById('btn-open-traffic-modal');
-  const modal = document.getElementById('traffic-metrics-modal');
-  const btnCloseX = document.getElementById('btn-close-traffic-modal');
-  const btnCloseFooter = document.getElementById('btn-close-traffic-footer');
-  const statsContainer = document.getElementById('traffic-local-stats');
-
-  function updateLocalStatsDisplay() {
-    if (!statsContainer || !window.StahlgrafAnalytics) return;
-    const stats = window.StahlgrafAnalytics.getLocalStats();
-    statsContainer.innerHTML = `
-      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
-        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Visitas al Portal:</span>
-        <strong style="color: #fbbf24; font-size: 1.1rem;">${stats.visitsCount || 1}</strong>
-      </div>
-      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
-        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Eventos Registrados:</span>
-        <strong style="color: #34d399; font-size: 1.1rem;">${stats.eventsLogged || 0}</strong>
-      </div>
-      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
-        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Partidas Cronoline:</span>
-        <strong style="color: #fff; font-size: 0.95rem;">${stats.gamesPlayed?.cronoline || 0}</strong>
-      </div>
-      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
-        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Partidas CronoTrivia:</span>
-        <strong style="color: #fff; font-size: 0.95rem;">${stats.gamesPlayed?.cronotrivia || 0}</strong>
-      </div>
-      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
-        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Partidas ¿Quién Soy?:</span>
-        <strong style="color: #fff; font-size: 0.95rem;">${stats.gamesPlayed?.quiensoy || 0}</strong>
-      </div>
-      <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">
-        <span style="color: var(--text-muted); display: block; font-size: 0.74rem;">Partidas El Impostor:</span>
-        <strong style="color: #fff; font-size: 0.95rem;">${stats.gamesPlayed?.impostor || 0}</strong>
-      </div>
-    `;
-  }
-
-  if (btnOpen && modal) {
-    btnOpen.addEventListener('click', () => {
-      updateLocalStatsDisplay();
-      modal.classList.remove('hidden');
-      window.StahlgrafAnalytics?.trackCustomEvent('view_traffic_panel');
-    });
-  }
-
-  if (btnCloseX && modal) {
-    btnCloseX.addEventListener('click', () => modal.classList.add('hidden'));
-  }
-  if (btnCloseFooter && modal) {
-    btnCloseFooter.addEventListener('click', () => modal.classList.add('hidden'));
-  }
-
+// ==================== ANALÍTICA DEL HUB ====================
+function initHubAnalytics() {
   // Tracking de clics en las tarjetas del hub
   document.querySelectorAll('.hub-play-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1671,7 +1621,7 @@ function initTrafficModalListeners() {
 
 // Comprobar y restaurar partida guardada al iniciar la aplicación
 function initCronolineApp() {
-  initTrafficModalListeners();
+  initHubAnalytics();
   randomizeCronolinePlayerNames(false);
   const restored = checkAndRestoreCronolineGame();
   if (!restored) {

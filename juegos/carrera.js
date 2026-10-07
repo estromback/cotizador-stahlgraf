@@ -1,5 +1,5 @@
 /**
- * CRONOTRIVIA: LA PISTA DEL SABER
+ * TRIVIÓDROMO: LA PISTA DEL SABER
  * © 2026 Stahlgraf Games. Todos los derechos reservados.
  * Motor de Juego de Tablero & Trivia por Equipos / Parejas
  */
@@ -533,7 +533,7 @@ function startGame() {
   soundManager.init();
 
   if (window.StahlgrafAnalytics) {
-    window.StahlgrafAnalytics.trackGameStart('cronotrivia', {
+    window.StahlgrafAnalytics.trackGameStart('triviodromo', {
       teams_count: gameState.teamsCount,
       board_length: gameState.boardLength,
       dice_mode: gameState.diceMode
@@ -2894,7 +2894,7 @@ function triggerVictory(winnerTeam) {
   soundManager.playVictory();
 
   if (window.StahlgrafAnalytics) {
-    window.StahlgrafAnalytics.trackGameFinish('cronotrivia', {
+    window.StahlgrafAnalytics.trackGameFinish('triviodromo', {
       winner_team: winnerTeam.name,
       board_length: gameState.boardLength,
       correct_answers: winnerTeam.stats?.correct || 0
@@ -3139,7 +3139,7 @@ function checkAndRestoreCronoTriviaGame() {
     updateTurnDisplay();
     setupRollControls();
 
-    showSaveRestoreToast('🔄 ¡Partida de CronoTrivia restaurada!', () => {
+    showSaveRestoreToast('🔄 ¡Partida de Triviódromo restaurada!', () => {
       clearCronoTriviaGame();
       DOM.carreraGame.classList.add('hidden');
       DOM.carreraSetup.classList.remove('hidden');

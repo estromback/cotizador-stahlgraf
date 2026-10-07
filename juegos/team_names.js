@@ -1,5 +1,5 @@
 /**
- * POOL DE NOMBRES DE EQUIPOS - CRONOLINE & CRONOTRIVIA
+ * POOL DE NOMBRES DE EQUIPOS - CRONOLINE & TRIVIÓDROMO
  * ===================================================
  * Lista oficial de 30 nombres de equipos para asignar aleatoriamente al cargar o configurar partidas.
  * Los usuarios pueden editar cualquier nombre manualmente en la pantalla de inicio de ambos juegos.

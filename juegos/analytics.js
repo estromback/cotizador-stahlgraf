@@ -58,7 +58,7 @@
       visitsCount: 0,
       gamesPlayed: {
         cronoline: 0,
-        cronotrivia: 0,
+        triviodromo: 0,
         quiensoy: 0,
         impostor: 0
       },

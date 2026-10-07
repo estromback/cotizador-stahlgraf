@@ -294,6 +294,37 @@ function attachEventListeners() {
   DOM.btnRematch.addEventListener('click', () => {
     rematchGame();
   });
+
+  // Modal de Reglas (¿Cómo Jugar?)
+  const rulesModal = document.getElementById('rules-modal');
+  const btnCloseRules = document.getElementById('btn-close-rules');
+  const btnAckRules = document.getElementById('btn-ack-rules');
+
+  document.querySelectorAll('.btn-open-rules, #btn-top-rules, #btn-setup-rules').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (rulesModal) rulesModal.classList.remove('hidden');
+    });
+  });
+
+  if (btnCloseRules) {
+    btnCloseRules.addEventListener('click', () => {
+      if (rulesModal) rulesModal.classList.add('hidden');
+    });
+  }
+
+  if (btnAckRules) {
+    btnAckRules.addEventListener('click', () => {
+      if (rulesModal) rulesModal.classList.add('hidden');
+    });
+  }
+
+  if (rulesModal) {
+    rulesModal.addEventListener('click', (e) => {
+      if (e.target === rulesModal) {
+        rulesModal.classList.add('hidden');
+      }
+    });
+  }
 }
 
 // ==================== RENDERIZADO DE CONFIGURACIÓN ====================

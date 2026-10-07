@@ -1,5 +1,5 @@
 /**
- * BASE DE DATOS DE TRIVIA GENERAL - CRONOTRIVIA: LA PISTA DEL SABER
+ * BASE DE DATOS DE TRIVIA GENERAL - TRIVIÓDROMO: LA PISTA DEL SABER
  * © 2026 Stahlgraf Games. Todos los derechos reservados.
  * Base de datos enriquecida con 321 preguntas de trivia y contenido visual.
  * Categorías: Geografía, Historia, Biología, Química, Arte, Deportes, Música, Cine, Tecnología, Guerras y Farándula.
