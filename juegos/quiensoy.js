@@ -309,7 +309,8 @@ function attachEventListeners() {
   const doOpenRules = () => {
     if (rulesModal) {
       rulesModal.classList.remove('hidden');
-      rulesModal.style.display = 'flex';
+      rulesModal.style.setProperty('display', 'flex', 'important');
+      document.body.style.overflow = 'hidden';
       soundManager.playTone(520, 'sine', 0.08, 0.15);
     }
   };
@@ -317,7 +318,8 @@ function attachEventListeners() {
   const doCloseRules = () => {
     if (rulesModal) {
       rulesModal.classList.add('hidden');
-      rulesModal.style.display = 'none';
+      rulesModal.style.setProperty('display', 'none', 'important');
+      document.body.style.overflow = '';
     }
   };
 

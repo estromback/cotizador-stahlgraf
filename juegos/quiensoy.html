@@ -4,21 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>¿Quién Soy? | Juegos Stahlgraf</title>
-  <link rel="stylesheet" href="quiensoy.css">
-  <link rel="stylesheet" href="coffee.css">
+  <link rel="stylesheet" href="quiensoy.css?v=3">
+  <link rel="stylesheet" href="coffee.css?v=3">
   <script>
     function openRulesModal() {
       var modal = document.getElementById('rules-modal');
       if (modal) {
         modal.classList.remove('hidden');
-        modal.style.display = 'flex';
+        modal.style.setProperty('display', 'flex', 'important');
+        document.body.style.overflow = 'hidden';
       }
     }
     function closeRulesModal() {
       var modal = document.getElementById('rules-modal');
       if (modal) {
         modal.classList.add('hidden');
-        modal.style.display = 'none';
+        modal.style.setProperty('display', 'none', 'important');
+        document.body.style.overflow = '';
       }
     }
     document.addEventListener('click', function(e) {
@@ -296,44 +298,85 @@
   </div>
 
   <!-- MODAL DE REGLAS DE ¿QUIÉN SOY? -->
-  <div id="rules-modal" class="qs-modal-overlay hidden" style="display: none;">
-    <div class="qs-rules-card">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(251, 191, 36, 0.2); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
-        <h2 style="font-family: inherit; font-size: 1.35rem; color: #fde047; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-          <span>🎭</span> ¿Cómo Jugar a "¿Quién Soy?"
-        </h2>
-        <button type="button" id="btn-close-rules" onclick="closeRulesModal()" style="background: rgba(255,255,255,0.1); border: none; color: #cbd5e1; font-size: 1.2rem; width: 32px; height: 32px; border-radius: 50%; cursor: pointer;">✕</button>
+  <div id="rules-modal" class="qs-modal-overlay hidden" style="display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(3, 7, 18, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 99999; padding: 1rem; box-sizing: border-box; align-items: center; justify-content: center; overflow-y: auto;">
+    <div class="qs-rules-card" style="background: #0f172a; border: 1.5px solid rgba(251, 191, 36, 0.45); border-radius: 22px; max-width: 620px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 1.6rem 1.4rem; color: #fff; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95); margin: auto; box-sizing: border-box;">
+      
+      <!-- Encabezado del Modal -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(251, 191, 36, 0.25); padding-bottom: 0.85rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span style="font-size: 1.6rem;">🎭</span>
+          <div>
+            <h2 style="font-family: inherit; font-size: 1.35rem; color: #fde047; margin: 0; font-weight: 800; letter-spacing: 0.5px;">¿Cómo Jugar a "¿Quién Soy?"</h2>
+            <small style="color: #94a3b8; font-size: 0.78rem;">Reglas oficiales & dinámica de juego</small>
+          </div>
+        </div>
+        <button type="button" id="btn-close-rules" onclick="closeRulesModal()" aria-label="Cerrar reglas" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; font-size: 1.2rem; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">✕</button>
       </div>
-      <div style="font-size: 0.92rem; line-height: 1.6; color: #cbd5e1; display: flex; flex-direction: column; gap: 1rem;">
-        <p><strong>¿Quién Soy?</strong> es el divertido juego de adivinanza de frente donde debes descubrir qué personaje, celebridad o concepto eres haciendo preguntas ingeniosas al grupo.</p>
+
+      <!-- Resumen / Premisa -->
+      <div style="background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: 14px; padding: 0.9rem 1rem; margin-bottom: 1.25rem; font-size: 0.9rem; line-height: 1.45; color: #fef3c7;">
+        💡 <strong>Objetivo del Juego:</strong> Eres el único que <em>no sabe</em> quién es. Colócate el teléfono en la frente o en la mesa frente a tus amigos, haz preguntas ingeniosas de <strong>Sí o No</strong> y adivina tu identidad antes de que se agote el tiempo.
+      </div>
+
+      <!-- Lista de Reglas Estructuradas en Tarjetas -->
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
         
-        <div>
-          <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 0.35rem;">⚡ Dinámica del Turno</h3>
-          <ol style="margin-left: 1.2rem; display: flex; flex-direction: column; gap: 0.4rem;">
-            <li>En tu turno, <strong>colócate el teléfono en la frente</strong> mirando al grupo (o apóyalo en la mesa mirando hacia ellos sin ver la pantalla).</li>
-            <li>Inicia el reloj y haz preguntas rápidas que solo puedan responderse con <strong>"SÍ"</strong> o <strong>"NO"</strong> (ej: <em>"¿Soy una persona real?", "¿Estoy vivo?", "¿Soy cantante?"</em>).</li>
-            <li>Los demás jugadores solo pueden responder <strong>"Sí"</strong>, <strong>"No"</strong> o <strong>"A veces / No se sabe"</strong>.</li>
-            <li>Si crees saber quién eres, ¡di tu nombre en voz alta antes de que termine el tiempo! Si aciertas, presiona <strong>¡Acerté! 🎯</strong>. Si se acaba el tiempo o te rindes, presiona <strong>Fallé / Pasar ❌</strong>.</li>
-          </ol>
+        <!-- Regla 1 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">📱</div>
+          <div>
+            <strong style="color: #fbbf24; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">1. Posición del Teléfono</strong>
+            <p style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; margin: 0;">En tu turno, colócate el celular en la frente mirando hacia el grupo (o apóyalo en la mesa mirando hacia ellos sin ver la pantalla).</p>
+          </div>
         </div>
 
-        <div>
-          <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 0.35rem;">🏆 Modos de Juego</h3>
-          <ul style="margin-left: 1.2rem; display: flex; flex-direction: column; gap: 0.4rem;">
-            <li><strong>🎯 Carrera de Aciertos:</strong> El primer jugador en alcanzar la meta de personajes adivinados (ej: 5 aciertos) gana la partida.</li>
-            <li><strong>💀 Modo Muerte (Vidas):</strong> Cada vez que se te agote el tiempo sin adivinar, pierdes una vida. ¡El último jugador con vidas en pie es el campeón!</li>
-            <li><strong>♾️ Rondas Libres:</strong> Para jugar distendidos en asados, previas y juntas familiares sin presión de eliminación.</li>
-          </ul>
+        <!-- Regla 2 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">❓</div>
+          <div>
+            <strong style="color: #93c5fd; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">2. Preguntas de Sí o No</strong>
+            <p style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; margin: 0;">Haz preguntas rápidas al grupo (ej: <em>"¿Soy una persona real?", "¿Estoy vivo?", "¿Soy cantante?"</em>). Los demás jugadores <strong>solo pueden responder "Sí", "No" o "A veces / No se sabe"</strong>.</p>
+          </div>
         </div>
 
-        <div>
-          <h3 style="color: #fbbf24; font-size: 1rem; margin-bottom: 0.35rem;">💡 Estrategia para Ganar</h3>
-          <p>Ve de lo general a lo específico: empieza preguntando por realidad (<em>"¿Soy real o ficticio?"</em>), especie (<em>"¿Soy humano?"</em>), género o época, antes de arriesgar nombres propios.</p>
+        <!-- Regla 3 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">🎯</div>
+          <div>
+            <strong style="color: #6ee7b7; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">3. Resolución del Turno</strong>
+            <p style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; margin: 0;">Si crees saber quién eres, di tu nombre en voz alta. Si aciertas antes de que se acabe el tiempo, presiona <strong>¡Acerté! 🎯</strong> (+1 punto). Si se acaba el reloj o te rindes, presiona <strong>Fallé / Pasar ❌</strong>.</p>
+          </div>
         </div>
+
+        <!-- Regla 4 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(236, 72, 153, 0.15); border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">🏆</div>
+          <div>
+            <strong style="color: #f472b6; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">4. Modos de Victoria</strong>
+            <ul style="color: #cbd5e1; font-size: 0.86rem; line-height: 1.45; margin: 0.2rem 0 0 1.1rem; padding: 0;">
+              <li><strong>🎯 Carrera de Aciertos:</strong> El primero en alcanzar la meta (ej: 5 aciertos) es el ganador.</li>
+              <li><strong>💀 Modo Muerte (Vidas):</strong> Cada fallo cuesta una vida. ¡El último jugador con vidas gana!</li>
+              <li><strong>♾️ Rondas Libres:</strong> Para jugar relajados en juntas y previas sin eliminación.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Regla 5 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">🧠</div>
+          <div>
+            <strong style="color: #fde047; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">5. Consejo de Estrategia</strong>
+            <p style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; margin: 0;">Ve de lo general a lo específico: empieza por realidad (<em>"¿Soy ficticio?"</em>), especie (<em>"¿Soy humano?"</em>), género o profesión antes de arriesgar nombres propios.</p>
+          </div>
+        </div>
+
       </div>
-      <button type="button" id="btn-ack-rules" onclick="closeRulesModal()" style="margin-top: 1.25rem; width: 100%; padding: 0.75rem; border-radius: 12px; background: linear-gradient(135deg, #d97706, #f59e0b); border: none; color: #000; font-weight: 800; cursor: pointer;">
-        ¡Entendido, a Jugar!
+
+      <!-- Botón de Confirmación -->
+      <button type="button" id="btn-ack-rules" onclick="closeRulesModal()" style="margin-top: 1.35rem; width: 100%; padding: 0.85rem 1rem; border-radius: 12px; background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); border: none; color: #000; font-weight: 800; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35); transition: transform 0.15s ease;">
+        ¡Entendido, a Jugar! 🚀
       </button>
+
     </div>
   </div>
 
