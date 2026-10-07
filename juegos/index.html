@@ -6,6 +6,7 @@
   <title>Juegos Stahlgraf | Cronoline & CronoTrivia</title>
   <!-- Estilos del Juego -->
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="coffee.css">
   <style>
     /* Clases de utilidad rápidas */
     .hidden {
@@ -197,14 +198,23 @@
         <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.45rem; opacity: 0.85;">
           © 2026 Stahlgraf Games. Todos los derechos reservados.
         </p>
-        <div style="margin-top: 0.85rem; display: flex; justify-content: center;">
-          <button type="button" id="btn-open-traffic-modal" class="hub-mini-tag" style="cursor: pointer; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.25); color: var(--gold); display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.85rem; border-radius: 999px;">
-            <span>📊 Medición de Tráfico & Monetización</span>
+        <div style="margin-top: 0.85rem; display: flex; justify-content: center; gap: 0.65rem; flex-wrap: wrap; align-items: center;">
+          <button type="button" id="btn-open-coffee-modal" class="hub-coffee-btn">
+            <span>☕ ¡Invítanos un Café!</span>
+          </button>
+          <button type="button" id="btn-open-traffic-modal" class="hub-mini-tag" style="cursor: pointer; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.25); color: var(--gold); display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.85rem; border-radius: 999px;">
+            <span>📊 Tráfico & Monetización</span>
           </button>
         </div>
       </footer>
     </div>
   </section>
+
+  <!-- Botón Flotante Cafecito -->
+  <button type="button" id="btn-floating-coffee" class="coffee-floating-btn" title="¡Invítale un café al creador!">
+    <span class="coffee-icon-pulse">☕</span>
+    <span class="coffee-btn-text">Invítanos un café</span>
+  </button>
 
   <!-- PANTALLA DE SELECCIÓN DE VERSIÓN DE CRONOLINE -->
   <section id="version-screen" class="screen hidden">
@@ -619,6 +629,7 @@
 
   <!-- Carga de Base de Datos y Scripts -->
   <script src="analytics.js"></script>
+  <script src="coffee.js"></script>
   <script src="cards.js"></script>
   <script src="team_names.js"></script>
   <script src="game.js"></script>

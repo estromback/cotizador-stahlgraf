@@ -1,0 +1,436 @@
+/* ==========================================================================
+   COFFEE.CSS - ESTILOS VISUALES PARA "INVÍTANOS UN CAFÉ" (JUEGOS STAHLGRAF)
+   ========================================================================== */
+
+/* BOTÓN DE CAFÉ EN EL HUB / FOOTERS */
+.hub-coffee-btn {
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #fbbf24 100%);
+  color: #0b0f19;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.88rem;
+  padding: 0.5rem 1.15rem;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+}
+
+.hub-coffee-btn:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #fde047 100%);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.55);
+  color: #000;
+}
+
+/* BOTÓN FLOTANTE DISCRETO (ESQUINA INFERIOR DERECHA) */
+.coffee-floating-btn {
+  position: fixed;
+  bottom: 22px;
+  right: 22px;
+  z-index: 990;
+  background: linear-gradient(135deg, #78350f 0%, #b45309 60%, #f59e0b 100%);
+  color: #fff;
+  border: 1.5px solid rgba(251, 191, 36, 0.45);
+  border-radius: 999px;
+  padding: 0.65rem 1.15rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(245, 158, 11, 0.3);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.coffee-floating-btn:hover {
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.75), 0 0 24px rgba(245, 158, 11, 0.5);
+  border-color: #fde047;
+}
+
+.coffee-icon-pulse {
+  font-size: 1.25rem;
+  display: inline-block;
+  animation: gentleCoffeeWiggle 3.2s infinite ease-in-out;
+}
+
+@keyframes gentleCoffeeWiggle {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  15% { transform: rotate(-10deg) scale(1.15); }
+  25% { transform: rotate(10deg) scale(1.15); }
+  35% { transform: rotate(0deg) scale(1); }
+}
+
+/* TARJETA DISCRETA DE PODIO / FIN DE PARTIDA */
+.coffee-podium-card {
+  width: 100%;
+  max-width: 520px;
+  margin: 1.25rem auto 0;
+  background: linear-gradient(135deg, rgba(180, 83, 9, 0.12) 0%, rgba(15, 23, 42, 0.65) 100%);
+  border: 1.5px dashed rgba(251, 191, 36, 0.35);
+  border-radius: 16px;
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+  animation: fadeIn 0.4s ease;
+}
+
+.coffee-podium-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fde047;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.coffee-podium-desc {
+  font-size: 0.84rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* MODAL DE CAFECITO */
+.coffee-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 15, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 2200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeInModal 0.25s ease;
+}
+
+.coffee-modal-overlay.hidden {
+  display: none !important;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.coffee-modal-card {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #0d121f;
+  border: 2px solid rgba(251, 191, 36, 0.35);
+  border-radius: 22px;
+  padding: 1.85rem 1.6rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(245, 158, 11, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  position: relative;
+  color: #f8fafc;
+}
+
+.coffee-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 1rem;
+}
+
+.coffee-modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.coffee-modal-icon {
+  font-size: 2.2rem;
+}
+
+.coffee-modal-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+.coffee-modal-subtitle {
+  font-size: 0.82rem;
+  color: #fbbf24;
+  margin-top: 0.2rem;
+}
+
+.coffee-modal-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 1.3rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.coffee-modal-close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.coffee-modal-message {
+  font-size: 0.92rem;
+  color: #cbd5e1;
+  line-height: 1.55;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid #fbbf24;
+  padding: 0.85rem 1rem;
+  border-radius: 0 10px 10px 0;
+}
+
+/* CARDS DE MONTOS SUGERIDOS */
+.coffee-tiers-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+}
+
+@media (max-width: 500px) {
+  .coffee-tiers-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.coffee-tier-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 0.9rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.22s ease;
+}
+
+.coffee-tier-card:hover,
+.coffee-tier-card.selected {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.2);
+}
+
+.coffee-tier-icon {
+  font-size: 1.6rem;
+}
+
+.coffee-tier-title {
+  font-weight: 800;
+  font-size: 0.84rem;
+  color: #fff;
+}
+
+.coffee-tier-price {
+  font-size: 0.92rem;
+  font-weight: 900;
+  color: #fde047;
+}
+
+/* OPCIONES DE PAGO / DONACIÓN */
+.coffee-channels-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.coffee-pay-link-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.15rem;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.22s ease;
+  border: 1px solid transparent;
+}
+
+.coffee-pay-btn-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+}
+
+.coffee-pay-btn-title {
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: #fff;
+}
+
+.coffee-pay-btn-subtitle {
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 500;
+}
+
+.coffee-pay-arrow {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #fff;
+}
+
+.btn-mercadopago-chile {
+  background: linear-gradient(135deg, #009ee3 0%, #007ebd 100%);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 158, 227, 0.35);
+}
+
+.btn-mercadopago-chile:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #18b5fa 0%, #009ee3 100%);
+  box-shadow: 0 6px 22px rgba(0, 158, 227, 0.55);
+}
+
+.btn-paypal-global {
+  background: linear-gradient(135deg, #00457c 0%, #0079c1 100%);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px rgba(0, 121, 193, 0.3);
+}
+
+.btn-paypal-global:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #005a9e 0%, #008ee0 100%);
+  box-shadow: 0 6px 20px rgba(0, 121, 193, 0.5);
+}
+
+/* ACORDEÓN DE TRANSFERENCIA DIRECTA CHILE */
+.coffee-transfer-accordion {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.coffee-transfer-toggle {
+  width: 100%;
+  background: none;
+  border: none;
+  color: #e2e8f0;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.coffee-transfer-toggle:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.coffee-transfer-details {
+  padding: 0.85rem 1rem 1rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+  color: #cbd5e1;
+}
+
+.coffee-bank-tip {
+  background: rgba(2, 132, 199, 0.12);
+  border: 1px solid rgba(2, 132, 199, 0.3);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.8rem;
+  color: #bae6fd;
+  line-height: 1.45;
+  margin-bottom: 0.35rem;
+}
+
+.coffee-bank-tip strong {
+  color: #38bdf8;
+}
+
+.coffee-bank-row {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding-bottom: 0.3rem;
+}
+
+.coffee-bank-lbl {
+  color: #94a3b8;
+}
+
+.coffee-bank-val {
+  font-weight: 700;
+  color: #fff;
+}
+
+.coffee-copy-btn {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fde047;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.55rem;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 0.35rem;
+  transition: all 0.2s;
+}
+
+.coffee-copy-btn:hover {
+  background: rgba(251, 191, 36, 0.25);
+}
+
+.coffee-copy-btn.copied {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #34d399;
+}
+
+/* RESPONSIVO */
+@media (max-width: 480px) {
+  .coffee-floating-btn {
+    bottom: 16px;
+    right: 16px;
+    padding: 0.55rem 0.95rem;
+    font-size: 0.8rem;
+  }
+  .coffee-modal-card {
+    padding: 1.4rem 1.15rem;
+  }
+}
