@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Censurado • Juegos Stahlgraf</title>
+  
+  <link rel="stylesheet" href="censurado.css?v=1">
+  <link rel="stylesheet" href="coffee.css?v=3">
+
+  <script>
+    function openRulesModal() {
+      var modal = document.getElementById('rules-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.setProperty('display', 'flex', 'important');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+    function closeRulesModal() {
+      var modal = document.getElementById('rules-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.setProperty('display', 'none', 'important');
+        document.body.style.overflow = '';
+      }
+    }
+
+    function openExitModal() {
+      var modal = document.getElementById('exit-modal');
+      if (modal) {
+        if (window.censuradoGame && typeof window.censuradoGame.pauseGame === 'function') {
+          window.censuradoGame.pauseGame();
+        }
+        modal.classList.remove('hidden');
+        modal.style.setProperty('display', 'flex', 'important');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+    function closeExitModal() {
+      var modal = document.getElementById('exit-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.setProperty('display', 'none', 'important');
+        document.body.style.overflow = '';
+      }
+    }
+
+    document.addEventListener('click', function(e) {
+      var openTrigger = e.target.closest('.btn-open-rules, #btn-top-rules, #btn-setup-rules, #btn-show-rules');
+      if (openTrigger) {
+        e.preventDefault();
+        openRulesModal();
+        return;
+      }
+      var closeTrigger = e.target.closest('#btn-close-rules, #btn-ack-rules');
+      if (closeTrigger) {
+        e.preventDefault();
+        closeRulesModal();
+        return;
+      }
+      var modalRules = document.getElementById('rules-modal');
+      if (modalRules && e.target === modalRules) {
+        closeRulesModal();
+        return;
+      }
+
+      var exitTrigger = e.target.closest('.btn-trigger-exit, .btn-exit-game');
+      if (exitTrigger) {
+        e.preventDefault();
+        openExitModal();
+        return;
+      }
+    });
+  </script>
+</head>
+<body>
+
+  <div class="screen-wrapper">
+
+    <!-- ==================== PANTALLA 1: SETUP ==================== -->
+    <section id="setup-screen">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+        <a href="index.html" class="back-link-top" style="margin-bottom: 0;">⬅ Volver a Juegos Stahlgraf</a>
+        <button type="button" id="btn-top-rules" class="back-link-top btn-open-rules" onclick="openRulesModal()" style="margin-bottom: 0; cursor: pointer; color: var(--gold); border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.1);">
+          ❓ ¿Cómo Jugar? (Reglas)
+        </button>
+      </div>
+
+      <div class="cs-card">
+        <header class="cs-header">
+          <span class="cs-badge">🚫 PALABRA PROHIBIDA & EQUIPOS</span>
+          <h1 class="cs-title">CENSURADO</h1>
+          <p class="cs-slogan">
+            Haz que tu equipo adivine la palabra secreta a contrarreloj <strong>¡sin pronunciar ninguna de las 5 palabras censuradas!</strong>
+          </p>
+        </header>
+
+        <!-- 1. Tiempo por Turno -->
+        <div class="cs-section">
+          <div class="cs-section-title">⏱️ Tiempo por Turno</div>
+          <div class="cs-btn-grid" id="time-selector">
+            <button type="button" class="cs-pill-btn" data-time="45">45 seg</button>
+            <button type="button" class="cs-pill-btn active" data-time="60">60 seg</button>
+            <button type="button" class="cs-pill-btn" data-time="90">90 seg</button>
+            <button type="button" class="cs-pill-btn" data-time="120">120 seg</button>
+          </div>
+        </div>
+
+        <!-- 2. Condición de Victoria -->
+        <div class="cs-section">
+          <div class="cs-section-title">🏆 Meta de Victoria</div>
+          <div class="cs-btn-grid" id="target-selector">
+            <button type="button" class="cs-pill-btn" data-target="10">10 Puntos</button>
+            <button type="button" class="cs-pill-btn active" data-target="15">15 Puntos</button>
+            <button type="button" class="cs-pill-btn" data-target="20">20 Puntos</button>
+            <button type="button" class="cs-pill-btn" data-target="25">25 Puntos</button>
+          </div>
+        </div>
+
+        <!-- 3. Equipos Participantes -->
+        <div class="cs-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+            <div class="cs-section-title" style="margin-bottom: 0;">👥 Equipos en Competencia</div>
+            <div style="display: flex; gap: 0.35rem;" id="teams-count-selector">
+              <button type="button" class="cs-pill-btn active" data-count="2" style="padding: 0.35rem 0.65rem;">2</button>
+              <button type="button" class="cs-pill-btn" data-count="3" style="padding: 0.35rem 0.65rem;">3</button>
+              <button type="button" class="cs-pill-btn" data-count="4" style="padding: 0.35rem 0.65rem;">4</button>
+            </div>
+          </div>
+          <div class="cs-teams-grid" id="teams-inputs-container">
+            <!-- Inputs dinámicos -->
+          </div>
+        </div>
+
+        <!-- 4. Categorías de Tarjetas -->
+        <div class="cs-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+            <div class="cs-section-title" style="margin-bottom: 0;">📚 Categorías de Tarjetas</div>
+            <button type="button" id="btn-toggle-all-cats" style="background: none; border: none; color: var(--gold); font-size: 0.8rem; font-weight: 700; cursor: pointer;">Seleccionar Todas</button>
+          </div>
+          <div class="cs-cats-grid" id="cats-container">
+            <!-- Renderizado dinámico -->
+          </div>
+        </div>
+
+        <!-- Botón Iniciar -->
+        <button type="button" id="btn-start-game" class="btn-cs-start">
+          <span>🚀 ¡Comenzar Partida!</span>
+        </button>
+        <button type="button" id="btn-setup-rules" class="btn-rules-setup btn-open-rules" onclick="openRulesModal()" style="margin-top: 0.75rem; width: 100%; padding: 0.75rem; border-radius: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(251, 191, 36, 0.3); color: var(--gold); font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-family: inherit;">
+          ❓ ¿Cómo Jugar? (Reglas)
+        </button>
+
+        <footer style="margin-top: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.78rem; opacity: 0.85;">
+          © 2026 Stahlgraf Games. Todos los derechos reservados.
+        </footer>
+      </div>
+    </section>
+
+    <!-- ==================== PANTALLA 2: PASE / PREPARACIÓN ==================== -->
+    <section id="pass-screen" class="hidden">
+      <div class="cs-card">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
+          <button type="button" class="btn-exit-game btn-trigger-exit" onclick="openExitModal()">✕ Salir de la partida</button>
+        </div>
+        <div class="cs-pass-hero">
+          <span class="cs-badge">CAMBIO DE TURNO</span>
+          <div class="cs-pass-team-pill" id="pass-team-pill">
+            <span id="pass-team-avatar">🔴</span>
+            <span id="pass-team-name">Equipo Rojo</span>
+          </div>
+          <h2 style="font-family: var(--font-title); font-size: 1.6rem; color: #fff; margin-bottom: 0.5rem;">¡Es su momento de brillar!</h2>
+          
+          <div class="cs-pass-instructions">
+            🗣️ <strong>Un jugador del equipo</strong> tomará el teléfono para explicar las palabras a sus compañeros.<br><br>
+            👀 <strong>Un rival del equipo contrario</strong> debe mirar la pantalla por encima del hombro para vigilar que no se pronuncien las palabras censuradas.<br><br>
+            ¡Cada acierto suma <strong>+1 punto</strong>! Pero cada falta resta <strong>-1 punto</strong>.
+          </div>
+
+          <button type="button" id="btn-ready-turn" class="btn-cs-start" style="margin-top: 0;">
+            <span>⏱️ ¡Comenzar Tiempo!</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PANTALLA 3: JUEGO ACTIVO ==================== -->
+    <section id="game-screen" class="hidden">
+      <div class="cs-card" style="padding: 1.25rem;">
+        
+        <!-- Barra de Control Superior -->
+        <div class="cs-game-top-bar">
+          <div class="cs-turn-badge" id="active-team-badge">
+            <span id="active-team-color-dot" style="width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></span>
+            <span id="active-team-name-label">Equipo Rojo</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div class="cs-round-score-badge">
+              <span>Puntos:</span>
+              <strong id="turn-score-text">+0</strong>
+            </div>
+            <button type="button" class="btn-exit-game btn-trigger-exit" onclick="openExitModal()" title="Salir de la partida">✕ Salir</button>
+          </div>
+        </div>
+
+        <!-- Temporizador con barra -->
+        <div class="cs-timer-wrapper">
+          <div class="cs-timer-header">
+            <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 700;">TIEMPO RESTANTE</span>
+            <span id="timer-display" class="cs-timer-text">60</span>
+          </div>
+          <div class="cs-timer-bar">
+            <div id="timer-fill" class="cs-timer-fill"></div>
+          </div>
+        </div>
+
+        <!-- LA TARJETA CENSURADO HERO -->
+        <div class="cs-hero-card">
+          <div class="cs-card-category-pill" id="card-category-tag">
+            <span id="card-category-icon">🍔</span>
+            <span id="card-category-name">Comidas & Bebidas</span>
+          </div>
+
+          <!-- Palabra a Adivinar -->
+          <div class="cs-target-word-wrap">
+            <div class="cs-target-word" id="target-word-display">COMPLETO</div>
+          </div>
+
+          <!-- Palabras Prohibidas -->
+          <div class="cs-forbidden-label">
+            <span>🚫</span> PALABRAS CENSURADAS (PROHIBIDAS) <span>🚫</span>
+          </div>
+
+          <div class="cs-forbidden-list" id="forbidden-words-list">
+            <div class="cs-forbidden-item"><span>PAN</span> <span>🚫</span></div>
+            <div class="cs-forbidden-item"><span>VIENESA</span> <span>🚫</span></div>
+            <div class="cs-forbidden-item"><span>PALTA</span> <span>🚫</span></div>
+            <div class="cs-forbidden-item"><span>TOMATE</span> <span>🚫</span></div>
+            <div class="cs-forbidden-item"><span>ITALIANO</span> <span>🚫</span></div>
+          </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="cs-actions-grid">
+          <button type="button" id="btn-action-success" class="btn-cs-action btn-cs-success">
+            <span style="font-size: 1.3rem;">🎉</span>
+            <span>¡ACERTÓ! (+1)</span>
+          </button>
+
+          <button type="button" id="btn-action-fail" class="btn-cs-action btn-cs-fail">
+            <span style="font-size: 1.3rem;">🚨</span>
+            <span>¡CENSURADO! (-1)</span>
+          </button>
+
+          <button type="button" id="btn-action-skip" class="btn-cs-action btn-cs-skip">
+            <span style="font-size: 1.3rem;">⏭️</span>
+            <span>PASAR</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== PANTALLA 4: RESUMEN DE RONDA ==================== -->
+    <section id="round-summary-screen" class="hidden">
+      <div class="cs-card">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
+          <button type="button" class="btn-exit-game btn-trigger-exit" onclick="openExitModal()">✕ Salir de la partida</button>
+        </div>
+        <header class="cs-header" style="margin-bottom: 1.25rem;">
+          <span class="cs-badge">FIN DEL TURNO</span>
+          <h2 style="font-family: var(--font-title); font-size: 1.75rem; color: var(--gold-light); margin-bottom: 0.35rem;" id="summary-team-title">Equipo Rojo</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Resumen de puntos obtenidos en este turno</p>
+        </header>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; margin-bottom: 1.5rem; text-align: center;">
+          <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 14px; padding: 0.75rem 0.5rem;">
+            <span style="font-size: 1.4rem; display: block;">🎉</span>
+            <span style="font-size: 0.75rem; color: #a7f3d0; font-weight: 700;">Aciertos</span>
+            <strong id="summary-stat-correct" style="font-size: 1.3rem; color: #10b981; display: block; margin-top: 0.2rem;">0</strong>
+          </div>
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 14px; padding: 0.75rem 0.5rem;">
+            <span style="font-size: 1.4rem; display: block;">🚨</span>
+            <span style="font-size: 0.75rem; color: #fca5a5; font-weight: 700;">Censurados</span>
+            <strong id="summary-stat-fails" style="font-size: 1.3rem; color: #ef4444; display: block; margin-top: 0.2rem;">0</strong>
+          </div>
+          <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 14px; padding: 0.75rem 0.5rem;">
+            <span style="font-size: 1.4rem; display: block;">⭐</span>
+            <span style="font-size: 0.75rem; color: #fde047; font-weight: 700;">Puntos Netos</span>
+            <strong id="summary-stat-net" style="font-size: 1.3rem; color: var(--gold-light); display: block; margin-top: 0.2rem;">+0</strong>
+          </div>
+        </div>
+
+        <!-- Tabla de Posiciones Acumulada -->
+        <div class="cs-leaderboard-box">
+          <div class="cs-leaderboard-title">🏆 Tabla General de Puntos</div>
+          <div id="summary-leaderboard-list">
+            <!-- Filas dinámicas -->
+          </div>
+        </div>
+
+        <button type="button" id="btn-next-turn" class="btn-cs-start">
+          <span>➡️ Turno de <strong id="summary-next-team-name">Siguiente</strong></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== PANTALLA 5: PODIO FINAL ==================== -->
+    <section id="podium-screen" class="hidden">
+      <div class="cs-card" style="text-align: center;">
+        <div style="font-size: 4rem; margin-bottom: 0.5rem;" id="podium-winner-avatar">👑</div>
+        <span class="cs-badge" style="background: rgba(251, 191, 36, 0.15); border-color: rgba(251, 191, 36, 0.35); color: var(--gold);">¡EQUIPO CAMPEÓN!</span>
+        <h2 style="font-family: var(--font-title); font-size: 2.2rem; color: #fff; margin-bottom: 0.4rem;" id="podium-winner-name">Equipo Rojo</h2>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">Maestros de la comunicación y el ingenio sin censura</p>
+
+        <div class="cs-leaderboard-box" style="text-align: left;">
+          <div class="cs-leaderboard-title">🏅 Posiciones Finales</div>
+          <div id="final-leaderboard-list">
+            <!-- Filas finales -->
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" id="btn-rematch" class="btn-cs-start" style="margin-top: 0;">
+            <span>🔄 Jugar Otra Partida</span>
+          </button>
+          <button type="button" class="hub-coffee-btn btn-open-coffee" style="justify-content: center; width: 100%; padding: 0.85rem 1rem;">
+            <span>☕ ¿Se divirtieron con Censurado? ¡Invítale un café al creador!</span>
+          </button>
+          <a href="index.html" class="back-link-top" style="justify-content: center; padding: 0.8rem 1rem;">
+            ⬅️ Volver a Juegos Stahlgraf
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- MODAL DE REGLAS DE CENSURADO (FLOTANTE & CENTRADO) -->
+  <div id="rules-modal" class="cs-rules-overlay hidden" style="display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(3, 7, 18, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 99999; padding: 1rem; box-sizing: border-box; align-items: center; justify-content: center; overflow-y: auto;">
+    <div class="cs-rules-card" style="background: #0f172a; border: 1.5px solid rgba(251, 191, 36, 0.45); border-radius: 22px; max-width: 620px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 1.6rem 1.4rem; color: #fff; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95); margin: auto; box-sizing: border-box;">
+      
+      <!-- Encabezado del Modal -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(251, 191, 36, 0.25); padding-bottom: 0.85rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span style="font-size: 1.6rem;">🤐</span>
+          <div>
+            <h2 style="font-family: inherit; font-size: 1.35rem; color: #fde047; margin: 0; font-weight: 800; letter-spacing: 0.5px;">¿Cómo Jugar a "Censurado"?</h2>
+            <small style="color: #94a3b8; font-size: 0.78rem;">Reglas oficiales de palabra prohibida</small>
+          </div>
+        </div>
+        <button type="button" id="btn-close-rules" onclick="closeRulesModal()" aria-label="Cerrar reglas" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; font-size: 1.2rem; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">✕</button>
+      </div>
+
+      <!-- Resumen / Premisa -->
+      <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 14px; padding: 0.9rem 1rem; margin-bottom: 1.25rem; font-size: 0.9rem; line-height: 1.45; color: #fecaca;">
+        💡 <strong>Objetivo del Juego:</strong> Describe la palabra principal a tu equipo para que la adivinen a contrarreloj. ¡El desafío es que <strong>NUNCA puedes decir ninguna de las 5 palabras censuradas</strong> ni derivados de ellas!
+      </div>
+
+      <!-- Lista de Reglas Estructuradas en Tarjetas -->
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        
+        <!-- Regla 1 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">👥</div>
+          <div>
+            <strong style="color: #fbbf24; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">1. Equipos y Roles en el Turno</strong>
+            <p style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; margin: 0;">Un jugador de tu equipo toma el teléfono y explica. El resto de su equipo intenta adivinar. <strong>Un jugador del equipo rival vigila la pantalla</strong> para fiscalizar que no cometan faltas.</p>
+          </div>
+        </div>
+
+        <!-- Regla 2 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">🚫</div>
+          <div>
+            <strong style="color: #f87171; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">2. Lo que Está CENSURADO</strong>
+            <p style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; margin: 0;">No puedes decir la palabra clave ni las 5 palabras prohibidas. Tampoco rimas (<em>"suena como..."</em>), iniciales, gestos corporales o traducciones directas.</p>
+          </div>
+        </div>
+
+        <!-- Regla 3 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">🎉</div>
+          <div>
+            <strong style="color: #34d399; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">3. Puntuación y Botones</strong>
+            <ul style="color: #cbd5e1; font-size: 0.86rem; line-height: 1.45; margin: 0.2rem 0 0 1.1rem; padding: 0;">
+              <li><strong>¡Acierto! 🎉:</strong> Tu equipo adivinó la palabra. Suma <strong>+1 punto</strong> y sale la siguiente tarjeta.</li>
+              <li><strong>¡Censurado! 🚨:</strong> Si dijiste una palabra prohibida, el rival presiona el botón. Resta <strong>-1 punto</strong> y pierdes la tarjeta.</li>
+              <li><strong>Pasar ⏭️:</strong> Si se quedan trabados, pueden saltar la tarjeta sin sumar ni restar.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Regla 4 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">🏆</div>
+          <div>
+            <strong style="color: #fde047; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">4. Ganador de la Partida</strong>
+            <p style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; margin: 0;">El primer equipo en alcanzar la meta fijada de puntos (ej: 15 o 20 puntos) se corona campeón supremo de Censurado.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Botón de Confirmación -->
+      <button type="button" id="btn-ack-rules" onclick="closeRulesModal()" style="margin-top: 1.35rem; width: 100%; padding: 0.85rem 1rem; border-radius: 12px; background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); border: none; color: #000; font-weight: 800; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35); transition: transform 0.15s ease;">
+        ¡Entendido, a Jugar! 🚀
+      </button>
+
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN DE SALIDA (FLOTANTE & CENTRADO) -->
+  <div id="exit-modal" class="cs-exit-overlay hidden" style="display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(3, 7, 18, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 99999; padding: 1rem; box-sizing: border-box; align-items: center; justify-content: center; overflow-y: auto;">
+    <div class="cs-exit-card">
+      <div style="font-size: 2.6rem; margin-bottom: 0.35rem;">🚪</div>
+      <h3 class="cs-exit-title">¿Abandonar Partida?</h3>
+      <p class="cs-exit-desc">El temporizador se ha detenido. ¿Deseas continuar jugando o salir al menú principal?</p>
+      
+      <div class="cs-exit-actions">
+        <button type="button" id="btn-exit-resume" class="btn-exit-resume" onclick="resumeGameFromExitModal()">
+          ▶️ Continuar Jugando
+        </button>
+        <button type="button" id="btn-exit-restart" class="btn-exit-restart" onclick="restartToSetupFromExitModal()">
+          🔄 Nueva Partida / Ajustes
+        </button>
+        <a href="index.html" class="btn-exit-hub">
+          ⬅️ Salir a Juegos Stahlgraf
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="analytics.js"></script>
+  <script src="coffee.js"></script>
+  <script src="censurado_data.js"></script>
+  <script src="censurado.js"></script>
+</body>
+</html>

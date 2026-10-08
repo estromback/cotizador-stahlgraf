@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Tic-Tac Boom • Juegos Stahlgraf</title>
+  
+  <link rel="stylesheet" href="tictacboom.css?v=1">
+  <link rel="stylesheet" href="coffee.css?v=3">
+
+  <script>
+    function openRulesModal() {
+      var modal = document.getElementById('rules-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.setProperty('display', 'flex', 'important');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+    function closeRulesModal() {
+      var modal = document.getElementById('rules-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.setProperty('display', 'none', 'important');
+        document.body.style.overflow = '';
+      }
+    }
+
+    function openExitModal() {
+      var modal = document.getElementById('exit-modal');
+      if (modal) {
+        if (window.tictacBoomGame && typeof window.tictacBoomGame.pauseGame === 'function') {
+          window.tictacBoomGame.pauseGame();
+        }
+        modal.classList.remove('hidden');
+        modal.style.setProperty('display', 'flex', 'important');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+    function closeExitModal() {
+      var modal = document.getElementById('exit-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.setProperty('display', 'none', 'important');
+        document.body.style.overflow = '';
+      }
+    }
+
+    document.addEventListener('click', function(e) {
+      var openTrigger = e.target.closest('.btn-open-rules, #btn-top-rules, #btn-setup-rules, #btn-show-rules');
+      if (openTrigger) {
+        e.preventDefault();
+        openRulesModal();
+        return;
+      }
+      var closeTrigger = e.target.closest('#btn-close-rules, #btn-ack-rules');
+      if (closeTrigger) {
+        e.preventDefault();
+        closeRulesModal();
+        return;
+      }
+      var modalRules = document.getElementById('rules-modal');
+      if (modalRules && e.target === modalRules) {
+        closeRulesModal();
+        return;
+      }
+
+      var exitTrigger = e.target.closest('.btn-trigger-exit, .btn-exit-game');
+      if (exitTrigger) {
+        e.preventDefault();
+        openExitModal();
+        return;
+      }
+    });
+  </script>
+</head>
+<body>
+
+  <div class="screen-wrapper">
+
+    <!-- ==================== PANTALLA 1: SETUP ==================== -->
+    <section id="setup-screen">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+        <a href="index.html" class="back-link-top" style="margin-bottom: 0;">⬅ Volver a Juegos Stahlgraf</a>
+        <button type="button" id="btn-top-rules" class="back-link-top btn-open-rules" onclick="openRulesModal()" style="margin-bottom: 0; cursor: pointer; color: #fdba74; border-color: rgba(249, 115, 22, 0.4); background: rgba(249, 115, 22, 0.1);">
+          ❓ ¿Cómo Jugar? (Reglas)
+        </button>
+      </div>
+
+      <div class="tb-card">
+        <header class="tb-header">
+          <span class="tb-badge">💣 PASA LA BOMBA & PALABRAS</span>
+          <h1 class="tb-title">TIC-TAC BOOM</h1>
+          <p class="tb-slogan">
+            ¡Di una palabra antes de que la bomba estalle en tus manos! Un juego de adrenalina pura a contrarreloj.
+          </p>
+        </header>
+
+        <!-- 1. Modo de Juego -->
+        <div class="tb-section">
+          <div class="tb-section-title">🎲 Modo de Desafío</div>
+          <div class="tb-btn-grid" id="mode-selector">
+            <button type="button" class="tb-pill-btn active" data-mode="silabas">🔤 Sílabas (Clásico)</button>
+            <button type="button" class="tb-pill-btn" data-mode="categorias">🎭 Categorías Fiesta</button>
+            <button type="button" class="tb-pill-btn" data-mode="mixto">⚡ Mixto Sorpresa</button>
+          </div>
+        </div>
+
+        <!-- 2. Duración de la Mecha -->
+        <div class="tb-section">
+          <div class="tb-section-title">⏱️ Duración de la Mecha (Secreta)</div>
+          <div class="tb-btn-grid" id="duration-selector">
+            <button type="button" class="tb-pill-btn" data-duration="fast">⚡ Rápida (10-25s)</button>
+            <button type="button" class="tb-pill-btn active" data-duration="normal">⏱️ Normal (15-45s)</button>
+            <button type="button" class="tb-pill-btn" data-duration="slow">⏳ Tensa (25-60s)</button>
+          </div>
+        </div>
+
+        <!-- 3. Vidas por Jugador -->
+        <div class="tb-section">
+          <div class="tb-section-title">❤️ Vidas por Jugador</div>
+          <div class="tb-btn-grid" id="lives-selector">
+            <button type="button" class="tb-pill-btn" data-lives="2">2 Vidas ❤️❤️</button>
+            <button type="button" class="tb-pill-btn active" data-lives="3">3 Vidas ❤️❤️❤️</button>
+            <button type="button" class="tb-pill-btn" data-lives="4">4 Vidas ❤️❤️❤️❤️</button>
+          </div>
+        </div>
+
+        <!-- 4. Jugadores Participantes -->
+        <div class="tb-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+            <div class="tb-section-title" style="margin-bottom: 0;">👥 Jugadores en el Círculo</div>
+            <span id="player-count-badge" style="font-size: 0.78rem; font-weight: 800; color: #fdba74; background: rgba(249, 115, 22, 0.15); padding: 0.2rem 0.55rem; border-radius: 999px;">4 Jugadores</span>
+          </div>
+
+          <div class="tb-players-container" id="players-list-container">
+            <!-- Inputs dinámicos -->
+          </div>
+
+          <button type="button" id="btn-add-player" class="tb-btn-add-player">
+            <span>➕ Agregar Otro Jugador</span>
+          </button>
+        </div>
+
+        <!-- Botón Iniciar -->
+        <button type="button" id="btn-start-game" class="btn-tb-start">
+          <span>💣 ¡ACTIVAR BOMBA!</span>
+        </button>
+
+        <button type="button" id="btn-setup-rules" class="btn-rules-setup btn-open-rules" onclick="openRulesModal()" style="margin-top: 0.75rem; width: 100%; padding: 0.75rem; border-radius: 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(249, 115, 22, 0.3); color: #fdba74; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-family: inherit;">
+          ❓ ¿Cómo Jugar? (Reglas)
+        </button>
+
+        <footer style="margin-top: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.78rem; opacity: 0.85;">
+          © 2026 Stahlgraf Games. Todos los derechos reservados.
+        </footer>
+      </div>
+    </section>
+
+    <!-- ==================== PANTALLA 2: BOMBA EN VIVO ==================== -->
+    <section id="game-screen" class="hidden">
+      <div class="tb-card" style="padding: 1.25rem;">
+        
+        <!-- Barra de control superior -->
+        <div class="tb-game-top-bar">
+          <span class="tb-round-badge" id="round-badge">RONDA 1</span>
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <div class="tb-lives-counter-wrap" id="alive-summary-pill">
+              <span>👥 Vivos:</span>
+              <strong id="alive-players-count" style="color: #fdba74;">4</strong>
+            </div>
+            <button type="button" class="btn-exit-game btn-trigger-exit" onclick="openExitModal()" title="Salir de la partida">✕ Salir</button>
+          </div>
+        </div>
+
+        <!-- Turno Actual -->
+        <div class="tb-turn-hero">
+          <div style="font-size: 0.8rem; color: #a8a29e; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.35rem;">
+            ¡LA BOMBA ESTÁ EN MANOS DE!
+          </div>
+          <div class="tb-current-player-pill" id="current-player-pill">
+            <span id="current-player-avatar">💣</span>
+            <span id="current-player-name">Jugador 1</span>
+          </div>
+        </div>
+
+        <!-- Desafío Central -->
+        <div class="tb-challenge-card" id="challenge-card">
+          <!-- Insignias: Nombre de dado + Badge de regla -->
+          <div class="tb-challenge-badges-wrap" id="challenge-badges-wrap">
+            <div class="tb-challenge-dice-badge" id="challenge-dice-badge">
+              <span>🎲 DADO:</span>
+              <strong id="challenge-dice-name">TIC</strong>
+            </div>
+            <div class="tb-challenge-rule-badge" id="challenge-rule-badge">
+              <span id="challenge-rule-badge-text">🚫 NO AL INICIO</span>
+            </div>
+          </div>
+
+          <div class="tb-challenge-main-text" id="challenge-main-text">
+            PAN
+          </div>
+
+          <!-- Píldora de posición válida directa -->
+          <div class="tb-position-tip" id="challenge-position-tip">
+            📍 Válido: <strong id="challenge-position-text">En el medio o al final</strong>
+          </div>
+
+          <div class="tb-challenge-desc" id="challenge-desc">
+            Di una palabra válida según la regla y pasa el teléfono rápidamente.
+          </div>
+        </div>
+
+        <!-- Bomba animada -->
+        <div class="tb-bomb-stage">
+          <div class="tb-bomb-icon-wrap">
+            <div id="bomb-graphic" class="tb-bomb-graphic">💣</div>
+          </div>
+          <span style="font-size: 0.8rem; color: #ef4444; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; animation: pulseUrgent 1s infinite alternate;">
+            🔥 ¡Tic-Tac... Tic-Tac...!
+          </span>
+        </div>
+
+        <!-- BOTÓN GIGANTE PASAR BOMBA -->
+        <button type="button" id="btn-pass-bomb" class="btn-pass-bomb">
+          <span>💣 ¡PASAR BOMBA! ➔</span>
+        </button>
+
+      </div>
+    </section>
+
+    <!-- ==================== PANTALLA 3: EXPLOSIÓN ==================== -->
+    <section id="explosion-screen" class="hidden">
+      <div class="tb-card">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
+          <button type="button" class="btn-exit-game btn-trigger-exit" onclick="openExitModal()">✕ Salir de la partida</button>
+        </div>
+        <div class="tb-explosion-wrap">
+          <div style="font-size: 4.5rem; margin-bottom: 0.2rem;">💥</div>
+          <h2 class="tb-boom-title">¡BOOOOM!</h2>
+          <p style="color: #fca5a5; font-size: 1.05rem; font-weight: 700;">¡La mecha se consumió y la bomba estalló!</p>
+
+          <div class="tb-victim-card">
+            <div style="font-size: 0.82rem; color: #fda4af; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.25rem;">
+              EXPLOSIÓN EN MANOS DE:
+            </div>
+            <div class="tb-victim-name" id="victim-name">
+              Jugador 1
+            </div>
+            <div id="victim-life-change" style="font-size: 1.1rem; margin-top: 0.5rem; font-weight: 800; color: #ef4444;">
+              ❤️❤️❤️ ➔ ❤️❤️ (-1 Vida)
+            </div>
+            <div id="victim-status-msg" style="font-size: 0.85rem; color: #cbd5e1; margin-top: 0.35rem;">
+              ¡Aún sigues con vida en la partida!
+            </div>
+          </div>
+
+          <!-- Estado de todos los jugadores -->
+          <div class="tb-players-status-list" id="round-players-status-list">
+            <!-- Filas dinámicas -->
+          </div>
+
+          <button type="button" id="btn-next-round" class="btn-tb-start" style="margin-top: 1rem;">
+            <span>💣 ¡Siguiente Ronda!</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PANTALLA 4: PODIO FINAL ==================== -->
+    <section id="podium-screen" class="hidden">
+      <div class="tb-card" style="text-align: center;">
+        <div style="font-size: 4.5rem; margin-bottom: 0.3rem;">👑</div>
+        <span class="tb-badge" style="background: rgba(251, 191, 36, 0.15); border-color: rgba(251, 191, 36, 0.4); color: var(--gold);">¡ÚLTIMO SOBREVIVIENTE!</span>
+        <h2 style="font-family: var(--font-title); font-size: 2.2rem; color: #fff; margin-bottom: 0.4rem;" id="podium-winner-name">Jugador 2</h2>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">Logró esquivar todas las explosiones con velocidad e ingenio mental</p>
+
+        <div class="tb-players-status-list" id="final-players-status-list" style="text-align: left;">
+          <!-- Filas finales -->
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" id="btn-rematch" class="btn-tb-start" style="margin-top: 0;">
+            <span>🔄 Jugar Otra Partida</span>
+          </button>
+          <button type="button" class="hub-coffee-btn btn-open-coffee" style="justify-content: center; width: 100%; padding: 0.85rem 1rem;">
+            <span>☕ ¿Te aceleró el corazón? ¡Invítale un café al creador!</span>
+          </button>
+          <a href="index.html" class="back-link-top" style="justify-content: center; padding: 0.8rem 1rem;">
+            ⬅️ Volver a Juegos Stahlgraf
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- MODAL DE REGLAS DE TIC-TAC BOOM (FLOTANTE & CENTRADO) -->
+  <div id="rules-modal" class="tb-rules-overlay hidden" style="display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(3, 7, 18, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 99999; padding: 1rem; box-sizing: border-box; align-items: center; justify-content: center; overflow-y: auto;">
+    <div class="tb-rules-card" style="background: #150d0c; border: 1.5px solid rgba(249, 115, 22, 0.45); border-radius: 22px; max-width: 620px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 1.6rem 1.4rem; color: #fff; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95); margin: auto; box-sizing: border-box;">
+      
+      <!-- Encabezado del Modal -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(249, 115, 22, 0.25); padding-bottom: 0.85rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span style="font-size: 1.6rem;">💣</span>
+          <div>
+            <h2 style="font-family: inherit; font-size: 1.35rem; color: #fdba74; margin: 0; font-weight: 800; letter-spacing: 0.5px;">¿Cómo Jugar a "Tic-Tac Boom"?</h2>
+            <small style="color: #a8a29e; font-size: 0.78rem;">Reglas oficiales de pasa la bomba</small>
+          </div>
+        </div>
+        <button type="button" id="btn-close-rules" onclick="closeRulesModal()" aria-label="Cerrar reglas" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #cbd5e1; font-size: 1.2rem; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">✕</button>
+      </div>
+
+      <!-- Resumen / Premisa -->
+      <div style="background: rgba(249, 115, 22, 0.1); border: 1px solid rgba(249, 115, 22, 0.35); border-radius: 14px; padding: 0.9rem 1rem; margin-bottom: 1.25rem; font-size: 0.9rem; line-height: 1.45; color: #fed7aa;">
+        💡 <strong>Objetivo del Juego:</strong> Los jugadores se sientan en círculo. El jugador con la bomba debe <strong>decir en voz alta una palabra válida</strong> que cumpla el desafío y pasar de inmediato el teléfono al siguiente jugador. ¡Evita que la bomba estalle en tus manos!
+      </div>
+
+      <!-- Lista de Reglas Estructuradas en Tarjetas -->
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        
+        <!-- Regla 1 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(249, 115, 22, 0.15); border: 1px solid rgba(249, 115, 22, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">🔄</div>
+          <div>
+            <strong style="color: #fb923c; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">1. Dinámica del Círculo</strong>
+            <p style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; margin: 0;">Quien tiene el teléfono dice una palabra válida y presiona <strong>¡PASAR BOMBA!</strong> entregando el dispositivo a su compañero de al lado. No se puede demorar el pase a propósito.</p>
+          </div>
+        </div>
+
+        <!-- Regla 2 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">🎲</div>
+          <div>
+            <strong style="color: #60a5fa; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">2. Reglas del Modo Sílabas</strong>
+            <p style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; margin: 0;">El dado determina cómo usar la sílaba:</p>
+            <ul style="color: #cbd5e1; font-size: 0.85rem; line-height: 1.4; margin: 0.25rem 0 0 1.1rem; padding: 0;">
+              <li><strong>TIC 🚫:</strong> NO puede comenzar con la sílaba (debe estar al medio o final).</li>
+              <li><strong>TIC-TAC 🔄:</strong> La sílaba puede estar en cualquier lugar.</li>
+              <li><strong>BOOM 💥:</strong> NO puede terminar con la sílaba (debe estar al inicio o medio).</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Regla 3 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">⏱️</div>
+          <div>
+            <strong style="color: #f87171; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">3. El Temporizador Misterioso</strong>
+            <p style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; margin: 0;">¡Nadie sabe cuándo explotará la bomba! El tiempo es completamente aleatorio. Conforme avanza, el tic-tac se acelera y el pulso se vuelve frenético.</p>
+          </div>
+        </div>
+
+        <!-- Regla 4 -->
+        <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px;">
+          <div style="font-size: 1.35rem; width: 40px; height: 40px; background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">❤️</div>
+          <div>
+            <strong style="color: #fde047; font-size: 0.95rem; display: block; margin-bottom: 0.2rem;">4. Vidas y Eliminación</strong>
+            <p style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.45; margin: 0;">Al explotar la bomba, el jugador que la sostenía pierde <strong>1 vida ❤️</strong>. Quien pierda todas sus vidas queda eliminado. ¡El último jugador con vidas en pie se corona campeón!</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Botón de Confirmación -->
+      <button type="button" id="btn-ack-rules" onclick="closeRulesModal()" style="margin-top: 1.35rem; width: 100%; padding: 0.85rem 1rem; border-radius: 12px; background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); border: none; color: #fff; font-weight: 800; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.35); transition: transform 0.15s ease;">
+        ¡Entendido, a Jugar! 💣
+      </button>
+
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN DE SALIDA (FLOTANTE & CENTRADO) -->
+  <div id="exit-modal" class="tb-exit-overlay hidden" style="display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: rgba(3, 7, 18, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); z-index: 99999; padding: 1rem; box-sizing: border-box; align-items: center; justify-content: center; overflow-y: auto;">
+    <div class="tb-exit-card">
+      <div style="font-size: 2.6rem; margin-bottom: 0.35rem;">🚪</div>
+      <h3 class="tb-exit-title">¿Abandonar Partida?</h3>
+      <p class="tb-exit-desc">La mecha de la bomba se ha detenido. ¿Deseas continuar jugando o salir al menú principal?</p>
+      
+      <div class="tb-exit-actions">
+        <button type="button" id="btn-exit-resume" class="btn-exit-resume" onclick="resumeGameFromExitModal()">
+          ▶️ Continuar Jugando
+        </button>
+        <button type="button" id="btn-exit-restart" class="btn-exit-restart" onclick="restartToSetupFromExitModal()">
+          🔄 Nueva Partida / Ajustes
+        </button>
+        <a href="index.html" class="btn-exit-hub">
+          ⬅️ Salir a Juegos Stahlgraf
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="analytics.js"></script>
+  <script src="coffee.js"></script>
+  <script src="tictacboom_data.js"></script>
+  <script src="tictacboom.js"></script>
+</body>
+</html>

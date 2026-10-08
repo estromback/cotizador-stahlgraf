@@ -1567,6 +1567,24 @@ h1, h2, h3, .brand {
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65), 0 0 30px rgba(239, 68, 68, 0.25);
 }
 
+.hub-card-censurado {
+  --card-glow: rgba(239, 68, 68, 0.32);
+}
+
+.hub-card-censurado:hover {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65), 0 0 30px rgba(239, 68, 68, 0.3);
+}
+
+.hub-card-tictacboom {
+  --card-glow: rgba(249, 115, 22, 0.35);
+}
+
+.hub-card-tictacboom:hover {
+  border-color: rgba(249, 115, 22, 0.65);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65), 0 0 32px rgba(249, 115, 22, 0.35);
+}
+
 .hub-badge-group {
   display: flex;
   align-items: center;
@@ -1610,6 +1628,18 @@ h1, h2, h3, .brand {
   border: 1px solid rgba(239, 68, 68, 0.35);
 }
 
+.hub-badge-censurado {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.hub-badge-tictacboom {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.35);
+}
+
 .hub-new-pill {
   padding: 0.25rem 0.65rem;
   font-size: 0.68rem;
@@ -1649,6 +1679,16 @@ h1, h2, h3, .brand {
 .impostor-glow {
   background: radial-gradient(circle, rgba(239, 68, 68, 0.22) 0%, rgba(15, 23, 42, 0.4) 100%);
   border-color: rgba(239, 68, 68, 0.4);
+}
+
+.censurado-glow {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, rgba(15, 23, 42, 0.4) 100%);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.tictacboom-glow {
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.25) 0%, rgba(15, 23, 42, 0.4) 100%);
+  border-color: rgba(249, 115, 22, 0.4);
 }
 
 .hub-game-title {
@@ -1779,6 +1819,30 @@ h1, h2, h3, .brand {
 .hub-btn-impostor:hover {
   background: linear-gradient(135deg, #ef4444 0%, #f87171 50%, #fbbf24 100%);
   box-shadow: 0 6px 26px rgba(239, 68, 68, 0.5);
+  transform: translateY(-2px);
+}
+
+.hub-btn-censurado {
+  background: linear-gradient(135deg, #b91c1c 0%, #ef4444 50%, #f59e0b 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.35);
+}
+
+.hub-btn-censurado:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #f87171 50%, #fbbf24 100%);
+  box-shadow: 0 6px 26px rgba(239, 68, 68, 0.5);
+  transform: translateY(-2px);
+}
+
+.hub-btn-tictacboom {
+  background: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #ef4444 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.35);
+}
+
+.hub-btn-tictacboom:hover {
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 50%, #ef4444 100%);
+  box-shadow: 0 6px 26px rgba(249, 115, 22, 0.5);
   transform: translateY(-2px);
 }
 

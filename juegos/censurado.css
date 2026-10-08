@@ -1,0 +1,747 @@
+/* ===================================================================
+   CENSURADO.CSS - ESTILOS OFICIALES (JUEGOS STAHLGRAF)
+   © 2026 Stahlgraf Games. Todos los derechos reservados.
+   =================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg-dark: #070a14;
+  --bg-gradient: linear-gradient(135deg, #050811 0%, #0c1222 50%, #070a14 100%);
+  --gold: #fbbf24;
+  --gold-light: #fde047;
+  --gold-glow: rgba(251, 191, 36, 0.4);
+
+  --red-crimson: #ef4444;
+  --red-dark: #b91c1c;
+  --red-glow: rgba(239, 68, 68, 0.45);
+
+  --green-success: #10b981;
+  --green-glow: rgba(16, 185, 129, 0.45);
+
+  --text-white: #f8fafc;
+  --text-muted: #94a3b8;
+  
+  --glass-bg: rgba(15, 23, 42, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  --font-title: 'Cinzel', serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-dark);
+  background-image: var(--bg-gradient);
+  color: var(--text-white);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 15% 20%, rgba(239, 68, 68, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(251, 191, 36, 0.06) 0%, transparent 45%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Enlaces superiores */
+.back-link-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.back-link-top:hover {
+  color: var(--gold-light);
+  border-color: var(--gold);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+/* Contenedor principal de pantallas */
+.screen-wrapper {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 1rem 1rem 2.5rem 1rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ==================== TARJETAS DE PANTALLA ==================== */
+.cs-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 1.75rem 1.5rem;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: relative;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Encabezado */
+.cs-header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.cs-badge {
+  display: inline-block;
+  padding: 0.3rem 0.85rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border-radius: 999px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 0.65rem;
+}
+
+.cs-title {
+  font-family: var(--font-title);
+  font-size: clamp(2rem, 8vw, 2.8rem);
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 40%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.5rem;
+}
+
+.cs-slogan {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+/* Secciones de configuración */
+.cs-section {
+  margin-bottom: 1.5rem;
+}
+
+.cs-section-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--gold-light);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+/* Grillas de botones de selección */
+.cs-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 0.5rem;
+}
+
+.cs-pill-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  color: var(--text-white);
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.cs-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.cs-pill-btn.active {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(251, 191, 36, 0.2) 100%);
+  border-color: var(--red-crimson);
+  color: var(--gold-light);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+}
+
+/* Configuración de equipos */
+.cs-teams-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.cs-team-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  padding: 0.5rem 0.75rem;
+  border-radius: 14px;
+}
+
+.cs-team-color-indicator {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.cs-team-input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  width: 100%;
+  outline: none;
+}
+
+/* Categorías */
+.cs-cats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+  gap: 0.5rem;
+}
+
+.cs-cat-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cs-cat-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cs-cat-card.active {
+  border-color: var(--gold);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.cs-cat-card .cs-cat-icon {
+  font-size: 1.3rem;
+}
+
+.cs-cat-card .cs-cat-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.cs-cat-card.active .cs-cat-name {
+  color: var(--gold-light);
+}
+
+/* Botón comenzar grande */
+.btn-cs-start {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 60%, #f59e0b 100%);
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  box-shadow: 0 6px 25px rgba(239, 68, 68, 0.45);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.btn-cs-start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.6);
+}
+
+/* ==================== PANTALLA DE PASE / PREPARACIÓN ==================== */
+.cs-pass-hero {
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+}
+
+.cs-pass-team-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin-bottom: 1.25rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid var(--glass-border);
+}
+
+.cs-pass-instructions {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+/* ==================== PANTALLA DE JUEGO ACTIVO (LA TARJETA) ==================== */
+.cs-game-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 0.5rem;
+}
+
+.cs-turn-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+}
+
+.cs-round-score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+/* Temporizador */
+.cs-timer-wrapper {
+  margin-bottom: 1.25rem;
+}
+
+.cs-timer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.cs-timer-text {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--gold-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-timer-text.urgent {
+  color: #ef4444;
+  animation: pulseUrgent 0.5s infinite alternate;
+}
+
+@keyframes pulseUrgent {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+
+.cs-timer-bar {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cs-timer-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #f59e0b 60%, #ef4444 100%);
+  border-radius: 999px;
+  transition: width 0.1s linear;
+}
+
+/* LA TARJETA HERO DE CENSURADO */
+.cs-hero-card {
+  background: linear-gradient(180deg, #0f172a 0%, #090e1a 100%);
+  border: 2px solid rgba(251, 191, 36, 0.35);
+  border-radius: 24px;
+  padding: 1.6rem 1.4rem;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8), 0 0 25px rgba(251, 191, 36, 0.1);
+  margin-bottom: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.cs-card-category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--gold-light);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 0.65rem;
+}
+
+.cs-target-word-wrap {
+  text-align: center;
+  padding: 0.75rem 0 1.25rem 0;
+  border-bottom: 2px dashed rgba(251, 191, 36, 0.25);
+  margin-bottom: 1.25rem;
+}
+
+.cs-target-word {
+  font-family: var(--font-title);
+  font-size: clamp(2rem, 8vw, 2.8rem);
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+}
+
+/* Sección de Palabras Prohibidas */
+.cs-forbidden-label {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #f87171;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.cs-forbidden-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cs-forbidden-item {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fca5a5;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+/* Botones de acción durante el juego */
+.cs-actions-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 0.8fr;
+  gap: 0.65rem;
+}
+
+.btn-cs-action {
+  padding: 1rem 0.75rem;
+  border-radius: 16px;
+  border: none;
+  font-weight: 900;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+  letter-spacing: 0.5px;
+}
+
+.btn-cs-action:active {
+  transform: scale(0.96);
+}
+
+.btn-cs-success {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4);
+}
+
+.btn-cs-fail {
+  background: linear-gradient(135deg, #b91c1c 0%, #ef4444 100%);
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(239, 68, 68, 0.45);
+}
+
+.btn-cs-skip {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border);
+  color: #e2e8f0;
+}
+
+/* ==================== RESUMEN DE RONDA & PODIO ==================== */
+.cs-leaderboard-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 1rem;
+  margin: 1.25rem 0;
+}
+
+.cs-leaderboard-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--gold-light);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 0.75rem;
+}
+
+.cs-leaderboard-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  margin-bottom: 0.35rem;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.95rem;
+}
+
+.cs-leaderboard-row.active {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  font-weight: 800;
+  color: var(--gold-light);
+}
+
+/* ==================== MODAL DE REGLAS (FLOTANTE) ==================== */
+.cs-rules-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(3, 7, 18, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.cs-rules-overlay.hidden {
+  display: none !important;
+}
+
+.cs-rules-card {
+  background: #0f172a;
+  border: 1.5px solid rgba(251, 191, 36, 0.45);
+  border-radius: 22px;
+  max-width: 620px;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 1.6rem 1.4rem;
+  color: #fff;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
+  margin: auto;
+}
+
+.cs-rules-card::-webkit-scrollbar {
+  width: 6px;
+}
+.cs-rules-card::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+}
+.cs-rules-card::-webkit-scrollbar-thumb {
+  background: rgba(251, 191, 36, 0.4);
+  border-radius: 10px;
+}
+
+/* ==================== BOTÓN & MODAL DE SALIDA ==================== */
+.btn-exit-game {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.btn-exit-game:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.cs-exit-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(3, 7, 18, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.cs-exit-overlay.hidden {
+  display: none !important;
+}
+
+.cs-exit-card {
+  background: #0f172a;
+  border: 1.5px solid rgba(239, 68, 68, 0.45);
+  border-radius: 22px;
+  max-width: 440px;
+  width: 100%;
+  padding: 1.75rem 1.5rem;
+  color: #fff;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
+  margin: auto;
+  text-align: center;
+}
+
+.cs-exit-title {
+  font-family: var(--font-title);
+  font-size: 1.45rem;
+  color: #f87171;
+  margin-bottom: 0.5rem;
+}
+
+.cs-exit-desc {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #cbd5e1;
+  margin-bottom: 1.4rem;
+}
+
+.cs-exit-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.btn-exit-resume {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-exit-restart {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.1);
+  color: var(--gold-light);
+  font-weight: 800;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-exit-hub {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: block;
+}
