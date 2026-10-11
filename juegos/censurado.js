@@ -16,6 +16,25 @@
     { id: 4, name: 'Equipo Amarillo', color: '#f59e0b', avatar: '🟡', score: 0 }
   ];
 
+  const USED_WORDS_STORAGE_KEY = 'censurado_used_words_v1';
+
+  function loadUsedWords() {
+    try {
+      const raw = localStorage.getItem(USED_WORDS_STORAGE_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return new Set(arr);
+      }
+    } catch (e) {}
+    return new Set();
+  }
+
+  function saveUsedWords(set) {
+    try {
+      localStorage.setItem(USED_WORDS_STORAGE_KEY, JSON.stringify(Array.from(set)));
+    } catch (e) {}
+  }
+
   const state = {
     turnTime: 60,
     targetScore: 15,
@@ -26,6 +45,7 @@
     deck: [],
     deckIndex: 0,
     currentCard: null,
+    usedWords: loadUsedWords(),
     timeLeft: 60,
     timerId: null,
     turnStats: {
@@ -171,12 +191,15 @@
 
     catKeys.forEach(catKey => {
       const cat = CENSURADO_CATEGORIAS[catKey];
+      const count = (typeof CENSURADO_TARJETAS !== 'undefined')
+        ? CENSURADO_TARJETAS.filter(c => c.categoria === catKey).length
+        : 0;
       const card = document.createElement('div');
       card.className = 'cs-cat-card active';
       card.dataset.cat = catKey;
       card.innerHTML = `
         <span class="cs-cat-icon">${cat.icono}</span>
-        <span class="cs-cat-name">${cat.nombre}</span>
+        <span class="cs-cat-name">${cat.nombre}${count ? `<small style="display:block;font-size:0.68rem;opacity:0.75;font-weight:500;margin-top:2px;">${count} palabras</small>` : ''}</span>
       `;
 
       card.addEventListener('click', () => {
@@ -341,7 +364,20 @@
   function buildDeck() {
     if (typeof CENSURADO_TARJETAS === 'undefined') return [];
     const filtered = CENSURADO_TARJETAS.filter(card => state.selectedCategories.has(card.categoria));
-    return shuffleArray(filtered);
+    if (filtered.length === 0) return [];
+
+    // Priorizar tarjetas que aún no se han jugado en partidas recientes
+    const unseen = filtered.filter(card => !state.usedWords.has(card.palabra));
+    const seen = filtered.filter(card => state.usedWords.has(card.palabra));
+
+    if (unseen.length === 0) {
+      // Si ya se vieron todas las de estas categorías, reiniciar el historial de estas categorías
+      filtered.forEach(card => state.usedWords.delete(card.palabra));
+      saveUsedWords(state.usedWords);
+      return shuffleArray(filtered);
+    }
+
+    return [...shuffleArray(unseen), ...shuffleArray(seen)];
   }
 
   function getNextCard() {
@@ -350,12 +386,22 @@
       state.deckIndex = 0;
     }
     if (state.deckIndex >= state.deck.length) {
-      // Barajar de nuevo si se agotan
+      // Si se agotó el mazo completo durante la partida, reiniciar historial de estas categorías y volver a barajar
+      state.deck.forEach(card => state.usedWords.delete(card.palabra));
+      saveUsedWords(state.usedWords);
+      const lastWord = state.currentCard ? state.currentCard.palabra : null;
       state.deck = shuffleArray(state.deck);
+      if (state.deck.length > 1 && lastWord && state.deck[0].palabra === lastWord) {
+        [state.deck[0], state.deck[1]] = [state.deck[1], state.deck[0]];
+      }
       state.deckIndex = 0;
     }
     const card = state.deck[state.deckIndex];
     state.deckIndex++;
+    if (card && card.palabra) {
+      state.usedWords.add(card.palabra);
+      saveUsedWords(state.usedWords);
+    }
     return card;
   }
 

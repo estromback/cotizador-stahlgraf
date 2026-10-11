@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="impostor.css?v=3">
+  <link rel="stylesheet" href="impostor.css?v=4">
   <link rel="stylesheet" href="coffee.css?v=3">
   <script>
     function openRulesModal() {
@@ -212,17 +212,17 @@
           <p class="imp-pass-warning">⚠️ Asegúrate de que nadie más mire la pantalla.</p>
         </div>
 
-        <!-- ÁREA SECRETA INTERACTIVA (PRESIONAR PARA REVELAR) -->
-        <div class="imp-secret-reveal-zone" id="secret-zone">
+        <!-- PANTALLA / VISOR DE CONTENIDO SECRETO (SUPERIOR, LIBRE DEL DEDO) -->
+        <div class="imp-secret-visor" id="secret-visor">
           
           <!-- ESTADO OCULTO (POR DEFECTO) -->
           <div class="imp-secret-hidden-state" id="secret-hidden-state">
-            <div class="imp-fingerprint-icon">👆</div>
-            <div class="imp-hold-label">MANTÉN PRESIONADO PARA VER TU PALABRA</div>
-            <div class="imp-hold-sub">Suelta la pantalla cuando termines de leer</div>
+            <div class="imp-visor-lock-icon">🔒</div>
+            <div class="imp-visor-lock-title">INFORMACIÓN CLASIFICADA</div>
+            <div class="imp-visor-lock-sub">Tu rol y palabra secreta se mostrarán aquí arriba para que tu dedo no tape la lectura.</div>
           </div>
 
-          <!-- ESTADO REVELADO (AL MANTENER PRESIONADO) -->
+          <!-- ESTADO REVELADO (AL MANTENER PRESIONADO EL BOTÓN INFERIOR) -->
           <div class="imp-secret-revealed-state hidden" id="secret-revealed-state">
             
             <!-- VISTA PARA CIUDADANOS -->
@@ -252,6 +252,15 @@
           </div>
 
         </div>
+
+        <!-- BOTÓN DEDICADO INFERIOR (MANTENER PRESIONADO SIN TAPAR EL VISOR) -->
+        <button type="button" class="imp-hold-reveal-btn" id="secret-zone">
+          <span class="imp-fingerprint-icon" id="hold-btn-icon">👆</span>
+          <div class="imp-hold-btn-texts">
+            <span class="imp-hold-label" id="hold-btn-label">MANTÉN PRESIONADO AQUÍ PARA REVELAR</span>
+            <span class="imp-hold-sub" id="hold-btn-sub">Suelta el botón para ocultar tu palabra</span>
+          </div>
+        </button>
 
         <!-- BOTÓN DE CONFIRMACIÓN PARA SIGUIENTE JUGADOR -->
         <div class="imp-pass-footer">
@@ -558,6 +567,6 @@
   <script src="analytics.js"></script>
   <script src="coffee.js"></script>
   <script src="impostor_data.js"></script>
-  <script src="impostor.js?v=3"></script>
+  <script src="impostor.js?v=5"></script>
 </body>
 </html>

@@ -28,6 +28,26 @@ const CATEGORY_META = {
   guerras: { name: "Guerras Mundiales", icon: "🪖", color: "#fb7185", type: "trivia", cardsKey: 'CARDS_GUERRAS' }
 };
 
+// ==================== HISTORIAL PERSISTENTE DE PREGUNTAS USADAS ====================
+const TRIVIA_USED_HISTORY_KEY = 'triviodromo_used_questions_v1';
+
+function loadUsedTriviaHistory() {
+  try {
+    const raw = localStorage.getItem(TRIVIA_USED_HISTORY_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch (e) {}
+  return new Set();
+}
+
+function saveUsedTriviaHistory(set) {
+  try {
+    localStorage.setItem(TRIVIA_USED_HISTORY_KEY, JSON.stringify(Array.from(set || [])));
+  } catch (e) {}
+}
+
 // ==================== ESTADO DEL JUEGO ====================
 const gameState = {
   teamsCount: 2,
@@ -53,7 +73,8 @@ const gameState = {
   currentTile: null,
   soundEnabled: true,
   usedCardIds: new Set(),
-  usedTriviaIds: new Set(),
+  usedTriviaIds: loadUsedTriviaHistory(),
+  lastGeoWasFlag: false,
   hasAnsweredCurrent: false,
   selectedOption: null,
   selectedButton: null,
@@ -589,10 +610,10 @@ function startGame() {
   // 4. Generar Tablero
   generateBoard();
 
-  // 5. Preparar Estado
+  // 5. Preparar Estado (conservando el historial de preguntas ya usadas entre partidas)
   gameState.activeTeamIndex = 0;
   gameState.diceRolling = false;
-  gameState.usedCardIds.clear();
+  gameState.usedTriviaIds = loadUsedTriviaHistory();
 
   // 6. Cambiar a pantalla de juego
   DOM.carreraSetup.classList.add('hidden');
@@ -607,6 +628,15 @@ function startGame() {
 }
 
 // ==================== GENERACIÓN DEL TABLERO ====================
+function shuffleCategoriesCycle(cats) {
+  const arr = [...cats];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function generateBoard() {
   gameState.board = [];
   const total = gameState.boardLength;
@@ -620,7 +650,10 @@ function generateBoard() {
     color: '#10b981'
   });
 
-  const availableCats = gameState.selectedCategories;
+  const baseCats = gameState.selectedCategories.length > 0
+    ? gameState.selectedCategories
+    : Object.keys(CATEGORY_META);
+  let shuffledCats = shuffleCategoriesCycle(baseCats);
   let catIndex = 0;
 
   for (let i = 1; i < total; i++) {
@@ -666,8 +699,15 @@ function generateBoard() {
         color: '#ec4899'
       });
     } else {
-      // Casilla de Categoría de Trivia
-      const catKey = availableCats[catIndex % availableCats.length];
+      // Casilla de Categoría de Trivia (barajada por ciclos para variar el orden en cada partida)
+      if (catIndex > 0 && catIndex % shuffledCats.length === 0) {
+        const prevLast = shuffledCats[shuffledCats.length - 1];
+        shuffledCats = shuffleCategoriesCycle(baseCats);
+        if (shuffledCats.length > 1 && shuffledCats[0] === prevLast) {
+          [shuffledCats[0], shuffledCats[1]] = [shuffledCats[1], shuffledCats[0]];
+        }
+      }
+      const catKey = shuffledCats[catIndex % shuffledCats.length];
       const catMeta = CATEGORY_META[catKey];
       gameState.board.push({
         index: i,
@@ -2171,45 +2211,39 @@ function generateQuestionForTile(tile, chosenCategory = null, forceDifficulty = 
     if (pool.length === 0) pool = allTrivia;
 
     if (pool.length > 0) {
-      let available = pool.filter(q => !gameState.usedTriviaIds.has(q.id));
-      if (available.length === 0) {
-        // Liberar solo las preguntas de esta categoría para que no afecte a las otras
-        pool.forEach(q => gameState.usedTriviaIds.delete(q.id));
-        available = pool;
+      // Seleccionar el subconjunto de dificultad objetivo primero
+      let targetPool = isHardMode
+        ? pool.filter(q => q.dificultad === 'dificil')
+        : pool.filter(q => q.dificultad === 'facil' || q.dificultad === 'media');
+
+      if (targetPool.length === 0) {
+        targetPool = pool;
       }
 
-      let tq = null;
-      if (isHardMode) {
-        // Modo Difícil (Apuesta 2x): Priorizar preguntas marcadas como 'dificil'
-        const hardPool = available.filter(q => q.dificultad === 'dificil');
-        if (hardPool.length > 0) {
-          tq = hardPool[Math.floor(Math.random() * hardPool.length)];
-        } else {
-          // Si no hay difícil, tomar de 'media'
-          const medPool = available.filter(q => q.dificultad === 'media');
-          if (medPool.length > 0) {
-            tq = medPool[Math.floor(Math.random() * medPool.length)];
-          } else {
-            tq = available[Math.floor(Math.random() * available.length)];
-          }
-        }
-      } else {
-        // Modo Normal: Priorizar 'facil' o 'media'
-        const normalPool = available.filter(q => q.dificultad === 'facil');
-        if (normalPool.length > 0) {
-          tq = normalPool[Math.floor(Math.random() * normalPool.length)];
-        } else {
-          const medPool = available.filter(q => q.dificultad === 'media');
-          if (medPool.length > 0) {
-            tq = medPool[Math.floor(Math.random() * medPool.length)];
-          } else {
-            tq = available[Math.floor(Math.random() * available.length)];
-          }
+      let available = targetPool.filter(q => !gameState.usedTriviaIds.has(q.id));
+      if (available.length === 0) {
+        // Si ya se jugaron todas las preguntas de este nivel en esta categoría, liberar solo este subconjunto
+        targetPool.forEach(q => gameState.usedTriviaIds.delete(q.id));
+        saveUsedTriviaHistory(gameState.usedTriviaIds);
+        available = targetPool;
+      }
+
+      // En Geografía, evitar que salgan puras banderas seguidas alternando con preguntas geográficas/mapas
+      if (catKey === 'geografia' && gameState.lastGeoWasFlag) {
+        const nonFlags = available.filter(q => q.tipoImagen !== 'bandera');
+        if (nonFlags.length > 0) {
+          available = nonFlags;
         }
       }
+
+      const tq = available[Math.floor(Math.random() * available.length)];
 
       if (tq) {
         gameState.usedTriviaIds.add(tq.id);
+        saveUsedTriviaHistory(gameState.usedTriviaIds);
+        if (catKey === 'geografia') {
+          gameState.lastGeoWasFlag = (tq.tipoImagen === 'bandera');
+        }
 
         return {
           isGeneralTrivia: true,
@@ -3117,7 +3151,7 @@ function checkAndRestoreCronoTriviaGame() {
     gameState.extraTurnTeamIndex = session.extraTurnTeamIndex !== undefined ? session.extraTurnTeamIndex : null;
     gameState.activeTeamIndex = (typeof session.activeTeamIndex === 'number' && session.activeTeamIndex < session.teams.length) ? session.activeTeamIndex : 0;
     gameState.usedCardIds = new Set(session.usedCardIds || []);
-    gameState.usedTriviaIds = new Set(session.usedTriviaIds || []);
+    gameState.usedTriviaIds = new Set([...loadUsedTriviaHistory(), ...(session.usedTriviaIds || [])]);
     gameState.diceRolling = false;
     gameState.currentQuestion = null;
     gameState.currentTile = null;

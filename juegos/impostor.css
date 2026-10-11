@@ -634,13 +634,13 @@ body {
 .imp-pass-card {
   text-align: center;
   align-items: center;
-  gap: 1.85rem;
+  gap: 1.15rem;
 }
 
 .imp-pass-header {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
   align-items: center;
 }
 
@@ -677,74 +677,133 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.2rem;
 }
 
 .imp-pass-avatar {
-  font-size: 3.5rem;
-  margin-bottom: 0.2rem;
+  font-size: 2.75rem;
+  margin-bottom: 0.1rem;
   animation: gentleBounce 2.5s infinite ease-in-out;
 }
 
 @keyframes gentleBounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  50% { transform: translateY(-5px); }
 }
 
 .imp-pass-instruction {
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   color: var(--text-muted);
 }
 
 .imp-pass-player-name {
   font-family: var(--font-title);
-  font-size: clamp(2rem, 5vw, 2.6rem);
+  font-size: clamp(1.75rem, 4.5vw, 2.3rem);
   font-weight: 900;
   color: var(--gold-light);
   letter-spacing: 1px;
 }
 
 .imp-pass-warning {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: #ef4444;
-  margin-top: 0.2rem;
+  margin-top: 0.1rem;
 }
 
-/* ÁREA DE REVELACIÓN SECRETA */
-.imp-secret-reveal-zone {
+/* VISOR DE REVELACIÓN SECRETA (PANTALLA SUPERIOR LIBRE DEL DEDO) */
+.imp-secret-visor {
   width: 100%;
   max-width: 480px;
-  min-height: 250px;
-  background: rgba(0, 0, 0, 0.45);
-  border: 2px dashed rgba(251, 191, 36, 0.35);
+  min-height: 215px;
+  background: rgba(3, 7, 18, 0.72);
+  border: 2px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-lg);
-  padding: 1.5rem 1.25rem;
+  padding: 1.35rem 1.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.22s ease;
   position: relative;
   overflow: hidden;
   user-select: none;
+  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.65);
 }
 
-.imp-secret-reveal-zone:active,
-.imp-secret-reveal-zone.pressing {
-  border-color: var(--crimson);
-  background: rgba(0, 0, 0, 0.7);
-  box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.3);
+.imp-secret-visor.revealing {
+  border-color: var(--gold);
+  background: rgba(7, 10, 18, 0.94);
+  box-shadow: 0 0 28px rgba(251, 191, 36, 0.22), inset 0 0 32px rgba(251, 191, 36, 0.1);
 }
 
 .imp-secret-hidden-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.55rem;
+  padding: 0.5rem;
+}
+
+.imp-visor-lock-icon {
+  font-size: 2.5rem;
+  opacity: 0.85;
+}
+
+.imp-visor-lock-title {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.imp-visor-lock-sub {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  max-width: 340px;
+  line-height: 1.4;
+}
+
+/* BOTÓN DEDICADO INFERIOR PARA MANTENER PRESIONADO */
+.imp-hold-reveal-btn {
+  width: 100%;
+  max-width: 480px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.14) 0%, rgba(239, 68, 68, 0.16) 100%);
+  border: 2px dashed rgba(251, 191, 36, 0.55);
+  border-radius: var(--radius-md);
+  padding: 1.05rem 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+  color: #fff;
+  font-family: inherit;
+  text-align: left;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+.imp-hold-reveal-btn:hover {
+  border-color: var(--gold-light);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.22) 0%, rgba(239, 68, 68, 0.22) 100%);
+}
+
+.imp-hold-reveal-btn:active,
+.imp-hold-reveal-btn.pressing {
+  border-style: solid;
+  border-color: var(--crimson);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(185, 28, 28, 0.35) 100%);
+  box-shadow: 0 0 24px var(--crimson-glow), inset 0 0 18px rgba(239, 68, 68, 0.25);
+  transform: scale(0.985);
 }
 
 .imp-fingerprint-icon {
-  font-size: 3.2rem;
+  font-size: 2.3rem;
+  flex-shrink: 0;
   animation: pulseScale 1.8s infinite ease-in-out;
 }
 
@@ -753,16 +812,25 @@ body {
   50% { transform: scale(1.1); opacity: 1; }
 }
 
+.imp-hold-btn-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
 .imp-hold-label {
   font-weight: 900;
-  font-size: 1.05rem;
-  color: #fff;
+  font-size: 0.95rem;
+  color: var(--gold-light);
   letter-spacing: 0.5px;
-  text-align: center;
+}
+
+.imp-hold-reveal-btn.pressing .imp-hold-label {
+  color: #fff;
 }
 
 .imp-hold-sub {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
 

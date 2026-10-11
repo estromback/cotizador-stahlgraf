@@ -84,7 +84,11 @@ function cacheDOM() {
   DOM.passProgressText = document.getElementById('pass-progress-text');
   DOM.passPlayerAvatar = document.getElementById('pass-player-avatar');
   DOM.passPlayerName = document.getElementById('pass-player-name');
+  DOM.secretVisor = document.getElementById('secret-visor');
   DOM.secretZone = document.getElementById('secret-zone');
+  DOM.holdBtnIcon = document.getElementById('hold-btn-icon');
+  DOM.holdBtnLabel = document.getElementById('hold-btn-label');
+  DOM.holdBtnSub = document.getElementById('hold-btn-sub');
   DOM.secretHiddenState = document.getElementById('secret-hidden-state');
   DOM.secretRevealedState = document.getElementById('secret-revealed-state');
   DOM.viewCitizen = document.getElementById('view-citizen');
@@ -489,6 +493,8 @@ function bindEvents() {
   DOM.secretZone.addEventListener('pointerup', hideSecret);
   DOM.secretZone.addEventListener('pointerleave', hideSecret);
   DOM.secretZone.addEventListener('pointercancel', hideSecret);
+  DOM.secretZone.addEventListener('contextmenu', (e) => e.preventDefault());
+  window.addEventListener('blur', hideSecret);
 
   // Siguiente jugador en la fase de reparto
   DOM.btnNextPass.addEventListener('click', () => {
@@ -626,12 +632,7 @@ function showPassScreenForCurrentPlayer() {
   DOM.passPlayerName.textContent = currentPlayer.name;
 
   // Resetear estados visuales
-  DOM.secretZone.classList.remove('pressing');
-  DOM.secretHiddenState.classList.remove('hidden');
-  DOM.secretRevealedState.classList.add('hidden');
-  DOM.viewCitizen.classList.add('hidden');
-  DOM.viewBlindImpostor.classList.add('hidden');
-  DOM.viewUndercover.classList.add('hidden');
+  hideSecretWordForActivePlayer();
 
   // El botón siguiente se desactiva hasta que el jugador mantenga presionado al menos una vez
   gameState.hasRevealedPass = false;
@@ -652,20 +653,29 @@ function showSecretWordForActivePlayer() {
   const catMeta = IMPOSTOR_CATEGORIES[gameState.currentPair.categoria];
 
   DOM.secretZone.classList.add('pressing');
+  if (DOM.secretVisor) DOM.secretVisor.classList.add('revealing');
+  if (DOM.holdBtnIcon) DOM.holdBtnIcon.textContent = '👁️';
+  if (DOM.holdBtnLabel) DOM.holdBtnLabel.textContent = 'MOSTRANDO EN EL VISOR SUPERIOR';
+  if (DOM.holdBtnSub) DOM.holdBtnSub.textContent = 'Suelta el botón para volver a ocultar';
+
   DOM.secretHiddenState.classList.add('hidden');
   DOM.secretRevealedState.classList.remove('hidden');
 
   soundManager.playTone(600, 'sine', 0.08, 0.15);
 
-  if (currentPlayer.role === 'citizen') {
-    // VISTA CIUDADANO
-    DOM.citizenCategory.textContent = catMeta ? `${catMeta.icon} ${catMeta.name}` : '';
-    DOM.citizenWord.textContent = currentPlayer.secretWord;
-    DOM.viewCitizen.classList.remove('hidden');
+  if (gameState.mode === 'undercover') {
+    // MODO INFILTRADO: Todos (ciudadanos e infiltrados) ven exactamente la misma interfaz
+    // para que nadie sepa quién tiene la palabra mayoritaria y quién es el infiltrado.
+    DOM.undercoverCategory.textContent = catMeta ? `${catMeta.icon} ${catMeta.name}` : '';
+    DOM.undercoverWord.textContent = currentPlayer.secretWord;
+    DOM.viewUndercover.classList.remove('hidden');
   } else {
-    // VISTA IMPOSTOR
-    if (gameState.mode === 'blind') {
-      // Modo a ciegas
+    // MODO A CIEGAS (CLÁSICO)
+    if (currentPlayer.role === 'citizen') {
+      DOM.citizenCategory.textContent = catMeta ? `${catMeta.icon} ${catMeta.name}` : '';
+      DOM.citizenWord.textContent = currentPlayer.secretWord;
+      DOM.viewCitizen.classList.remove('hidden');
+    } else {
       if (gameState.categoryHint && catMeta) {
         DOM.blindCategoryHint.textContent = `Categoría: ${catMeta.icon} ${catMeta.name}`;
         DOM.blindCategoryHint.classList.remove('hidden');
@@ -673,11 +683,6 @@ function showSecretWordForActivePlayer() {
         DOM.blindCategoryHint.classList.add('hidden');
       }
       DOM.viewBlindImpostor.classList.remove('hidden');
-    } else {
-      // Modo Infiltrado
-      DOM.undercoverCategory.textContent = catMeta ? `${catMeta.icon} ${catMeta.name}` : '';
-      DOM.undercoverWord.textContent = currentPlayer.secretWord;
-      DOM.viewUndercover.classList.remove('hidden');
     }
   }
 
@@ -687,6 +692,11 @@ function showSecretWordForActivePlayer() {
 
 function hideSecretWordForActivePlayer() {
   DOM.secretZone.classList.remove('pressing');
+  if (DOM.secretVisor) DOM.secretVisor.classList.remove('revealing');
+  if (DOM.holdBtnIcon) DOM.holdBtnIcon.textContent = '👆';
+  if (DOM.holdBtnLabel) DOM.holdBtnLabel.textContent = 'MANTÉN PRESIONADO AQUÍ PARA REVELAR';
+  if (DOM.holdBtnSub) DOM.holdBtnSub.textContent = 'Suelta el botón para ocultar tu palabra';
+
   DOM.secretHiddenState.classList.remove('hidden');
   DOM.secretRevealedState.classList.add('hidden');
   DOM.viewCitizen.classList.add('hidden');
