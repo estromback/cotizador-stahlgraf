@@ -478,22 +478,31 @@ function bindEvents() {
   }
 
   // ==================== ZONA SECRETA TÁCTIL (MANTENER PRESIONADO) ====================
+  let isHoldingSecret = false;
+
   const revealSecret = (e) => {
-    if (e) e.preventDefault();
+    if (e && e.cancelable) e.preventDefault();
+    isHoldingSecret = true;
     showSecretWordForActivePlayer();
   };
 
-  const hideSecret = (e) => {
-    if (e) e.preventDefault();
+  const hideSecret = () => {
+    if (!isHoldingSecret) return;
+    isHoldingSecret = false;
     hideSecretWordForActivePlayer();
   };
 
   // Eventos pointer / touch / mouse
   DOM.secretZone.addEventListener('pointerdown', revealSecret);
-  DOM.secretZone.addEventListener('pointerup', hideSecret);
-  DOM.secretZone.addEventListener('pointerleave', hideSecret);
-  DOM.secretZone.addEventListener('pointercancel', hideSecret);
+  DOM.secretZone.addEventListener('touchstart', revealSecret, { passive: false });
+  DOM.secretZone.addEventListener('mousedown', revealSecret);
   DOM.secretZone.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  window.addEventListener('pointerup', hideSecret);
+  window.addEventListener('pointercancel', hideSecret);
+  window.addEventListener('touchend', hideSecret);
+  window.addEventListener('touchcancel', hideSecret);
+  window.addEventListener('mouseup', hideSecret);
   window.addEventListener('blur', hideSecret);
 
   // Siguiente jugador en la fase de reparto
@@ -663,17 +672,24 @@ function showSecretWordForActivePlayer() {
 
   soundManager.playTone(600, 'sine', 0.08, 0.15);
 
+  DOM.viewCitizen.classList.add('hidden');
+  DOM.viewBlindImpostor.classList.add('hidden');
+  DOM.viewUndercover.classList.add('hidden');
+
   if (gameState.mode === 'undercover') {
     // MODO INFILTRADO: Todos (ciudadanos e infiltrados) ven exactamente la misma interfaz
     // para que nadie sepa quién tiene la palabra mayoritaria y quién es el infiltrado.
+    const wordToShow = currentPlayer.role === 'impostor'
+      ? (currentPlayer.secretWord || gameState.undercoverWord)
+      : (currentPlayer.secretWord || gameState.citizenWord);
     DOM.undercoverCategory.textContent = catMeta ? `${catMeta.icon} ${catMeta.name}` : '';
-    DOM.undercoverWord.textContent = currentPlayer.secretWord;
+    DOM.undercoverWord.textContent = wordToShow;
     DOM.viewUndercover.classList.remove('hidden');
   } else {
     // MODO A CIEGAS (CLÁSICO)
     if (currentPlayer.role === 'citizen') {
       DOM.citizenCategory.textContent = catMeta ? `${catMeta.icon} ${catMeta.name}` : '';
-      DOM.citizenWord.textContent = currentPlayer.secretWord;
+      DOM.citizenWord.textContent = currentPlayer.secretWord || gameState.citizenWord;
       DOM.viewCitizen.classList.remove('hidden');
     } else {
       if (gameState.categoryHint && catMeta) {

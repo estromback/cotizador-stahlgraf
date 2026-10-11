@@ -710,19 +710,19 @@ body {
   margin-top: 0.1rem;
 }
 
-/* VISOR DE REVELACIÓN SECRETA (PANTALLA SUPERIOR LIBRE DEL DEDO) */
+/* VISOR DE REVELACIÓN SECRETO (PANTALLA SUPERIOR LIBRE DEL DEDO) */
 .imp-secret-visor {
   width: 100%;
   max-width: 480px;
-  min-height: 215px;
+  min-height: 260px;
   background: rgba(3, 7, 18, 0.72);
   border: 2px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-lg);
-  padding: 1.35rem 1.2rem;
+  padding: 1.25rem 1.15rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.22s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
   user-select: none;
@@ -776,7 +776,7 @@ body {
   justify-content: center;
   gap: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -785,6 +785,10 @@ body {
   font-family: inherit;
   text-align: left;
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+.imp-hold-reveal-btn * {
+  pointer-events: none;
 }
 
 .imp-hold-reveal-btn:hover {
@@ -798,7 +802,6 @@ body {
   border-color: var(--crimson);
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(185, 28, 28, 0.35) 100%);
   box-shadow: 0 0 24px var(--crimson-glow), inset 0 0 18px rgba(239, 68, 68, 0.25);
-  transform: scale(0.985);
 }
 
 .imp-fingerprint-icon {
@@ -843,12 +846,12 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  gap: 0.6rem;
+  animation: popIn 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes popIn {
-  from { opacity: 0; transform: scale(0.92); }
+  from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
 
@@ -891,13 +894,15 @@ body {
 
 .imp-secret-word-display {
   font-family: var(--font-title);
-  font-size: clamp(2.2rem, 6vw, 3.2rem);
+  font-size: clamp(1.75rem, 5vw, 2.6rem);
+  line-height: 1.15;
   font-weight: 900;
   color: #fff;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.35);
-  margin: 0.2rem 0;
+  margin: 0.15rem 0;
   text-transform: uppercase;
+  word-break: break-word;
 }
 
 .imp-blind-title {
