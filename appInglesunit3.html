@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Unit 3 - 4th Grade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #fff7ed; /* Naranja muy suave */
+            background-image: radial-gradient(#ffedd5 2px, transparent 2px);
+            background-size: 30px 30px;
+        }
+        .btn-bouncy {
+            transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-bouncy:active {
+            transform: scale(0.95);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in {
+            animation: popIn 0.3s ease-out forwards;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #fbbf24;
+            animation: fall 2s linear forwards;
+            z-index: 100;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+        /* Estilos para ocultar scrollbars en la zona de repaso pero permitir scroll */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 relative overflow-x-hidden text-slate-800">
+
+    <header class="w-full max-w-3xl flex justify-between items-center bg-white p-4 rounded-3xl shadow-lg border-4 border-orange-400 mb-6 mt-2">
+        <h1 class="text-2xl sm:text-3xl font-black text-orange-500 flex items-center gap-2">
+            🇬🇧 English Unit 3!
+        </h1>
+        <div class="flex items-center gap-2 bg-yellow-100 px-4 py-2 rounded-2xl border-2 border-yellow-400">
+            <span class="text-2xl">🏆</span>
+            <span id="score-display" class="text-2xl font-black text-yellow-600">0</span>
+        </div>
+    </header>
+
+    <!-- MAIN MENU -->
+    <main id="screen-menu" class="w-full max-w-3xl flex-1 flex flex-col items-center justify-center gap-6 pop-in">
+        <h2 class="text-3xl font-bold text-slate-700 text-center mb-4">Are you ready to practice?</h2>
+        
+        <button onclick="showStudyZone()" class="btn-bouncy w-full max-w-md bg-gradient-to-b from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white text-2xl font-black py-6 px-8 rounded-[2rem] shadow-[0_8px_0_#1e3a8a] border-4 border-blue-800 flex items-center justify-center gap-4">
+            <span>📚</span> Study Zone
+        </button>
+
+        <button onclick="startQuiz()" class="btn-bouncy w-full max-w-md bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white text-2xl font-black py-6 px-8 rounded-[2rem] shadow-[0_8px_0_#064e3b] border-4 border-emerald-800 flex items-center justify-center gap-4 mt-2">
+            <span>🎯</span> Start Quiz (30 Qs)
+        </button>
+    </main>
+
+    <!-- STUDY ZONE SCREEN -->
+    <section id="screen-study" class="w-full max-w-3xl hidden flex-col items-center gap-4 pop-in">
+        <div class="w-full flex justify-between items-center bg-white p-4 rounded-2xl border-4 border-blue-400 shadow-md">
+            <button onclick="showMenu()" class="btn-bouncy bg-slate-200 text-slate-700 font-bold py-2 px-6 rounded-xl border-2 border-slate-400">⬅️ Back</button>
+            <div class="text-blue-600 font-black text-2xl">Study Zone 📚</div>
+        </div>
+
+        <div class="w-full bg-white rounded-3xl p-6 shadow-xl border-4 border-blue-400 max-h-[70vh] overflow-y-auto no-scrollbar">
+            
+            <!-- Possessive Adjectives -->
+            <div class="mb-8">
+                <h3 class="text-2xl font-black text-blue-500 mb-4 border-b-4 border-blue-100 pb-2">1. Possessive Adjectives</h3>
+                <p class="mb-3 text-lg">Indican a quién le pertenece algo.</p>
+                <div class="grid grid-cols-2 gap-2 text-lg font-bold">
+                    <div class="bg-slate-50 p-3 rounded-xl border-2">I ➡️ <span class="text-blue-600">my</span> (mi)</div>
+                    <div class="bg-slate-50 p-3 rounded-xl border-2">You ➡️ <span class="text-blue-600">your</span> (tu)</div>
+                    <div class="bg-slate-50 p-3 rounded-xl border-2">He ➡️ <span class="text-blue-600">his</span> (su, de él)</div>
+                    <div class="bg-slate-50 p-3 rounded-xl border-2">She ➡️ <span class="text-blue-600">her</span> (su, de ella)</div>
+                    <div class="bg-slate-50 p-3 rounded-xl border-2">It ➡️ <span class="text-blue-600">its</span> (su, de animal/cosa)</div>
+                    <div class="bg-slate-50 p-3 rounded-xl border-2">We ➡️ <span class="text-blue-600">our</span> (nuestro)</div>
+                    <div class="bg-slate-50 p-3 rounded-xl border-2 col-span-2 text-center">They ➡️ <span class="text-blue-600">their</span> (su, de ellos)</div>
+                </div>
+            </div>
+
+            <!-- Demonstrative Pronouns -->
+            <div class="mb-8">
+                <h3 class="text-2xl font-black text-purple-500 mb-4 border-b-4 border-purple-100 pb-2">2. Demonstrative Pronouns</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-lg">
+                    <div class="bg-purple-50 p-4 rounded-2xl border-2 border-purple-200">
+                        <p class="font-black text-center mb-2">Cerca ⬇️</p>
+                        <ul class="list-disc pl-5">
+                            <li><span class="text-purple-600 font-bold">This:</span> Este/Esta (1 cosa)</li>
+                            <li><span class="text-purple-600 font-bold">These:</span> Estos/Estas (Varias)</li>
+                        </ul>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-2xl border-2 border-purple-200">
+                        <p class="font-black text-center mb-2">Lejos ➡️</p>
+                        <ul class="list-disc pl-5">
+                            <li><span class="text-purple-600 font-bold">That:</span> Ese/Esa (1 cosa)</li>
+                            <li><span class="text-purple-600 font-bold">Those:</span> Esos/Esas (Varias)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Routines -->
+            <div class="mb-8">
+                <h3 class="text-2xl font-black text-emerald-500 mb-4 border-b-4 border-emerald-100 pb-2">3. Daily Routines</h3>
+                <div class="flex flex-wrap gap-3">
+                    <span class="bg-emerald-100 px-3 py-1 rounded-full font-bold">Wake up ☀️</span>
+                    <span class="bg-emerald-100 px-3 py-1 rounded-full font-bold">Brush teeth 🪥</span>
+                    <span class="bg-emerald-100 px-3 py-1 rounded-full font-bold">Have breakfast 🥞</span>
+                    <span class="bg-emerald-100 px-3 py-1 rounded-full font-bold">Go to school 🎒</span>
+                    <span class="bg-emerald-100 px-3 py-1 rounded-full font-bold">Have lunch 🥗</span>
+                    <span class="bg-emerald-100 px-3 py-1 rounded-full font-bold">Do homework 📚</span>
+                    <span class="bg-emerald-100 px-3 py-1 rounded-full font-bold">Have dinner 🍝</span>
+                    <span class="bg-emerald-100 px-3 py-1 rounded-full font-bold">Go to bed 🌙</span>
+                </div>
+            </div>
+
+            <!-- Frequency Adverbs -->
+            <div class="mb-8">
+                <h3 class="text-2xl font-black text-orange-500 mb-4 border-b-4 border-orange-100 pb-2">4. Frequency Adverbs</h3>
+                <div class="space-y-2 font-bold text-lg">
+                    <div class="flex justify-between items-center bg-orange-50 p-2 rounded-lg"><span>100% 🟩🟩🟩🟩</span> <span class="text-orange-600">Always</span></div>
+                    <div class="flex justify-between items-center bg-orange-50 p-2 rounded-lg"><span>80% 🟩🟩🟩⬜</span> <span class="text-orange-600">Usually</span></div>
+                    <div class="flex justify-between items-center bg-orange-50 p-2 rounded-lg"><span>70% 🟩🟩⬜⬜</span> <span class="text-orange-600">Often</span></div>
+                    <div class="flex justify-between items-center bg-orange-50 p-2 rounded-lg"><span>50% 🟩⬜⬜⬜</span> <span class="text-orange-600">Sometimes</span></div>
+                    <div class="flex justify-between items-center bg-orange-50 p-2 rounded-lg"><span>10% 🟨⬜⬜⬜</span> <span class="text-orange-600">Hardly ever</span></div>
+                    <div class="flex justify-between items-center bg-orange-50 p-2 rounded-lg"><span>0% 🟥⬜⬜⬜</span> <span class="text-orange-600">Never</span></div>
+                </div>
+            </div>
+
+            <!-- Present Simple -->
+            <div>
+                <h3 class="text-2xl font-black text-red-500 mb-4 border-b-4 border-red-100 pb-2">5. Present Simple</h3>
+                <div class="bg-red-50 p-4 rounded-2xl border-2 border-red-200 space-y-4">
+                    <div>
+                        <p class="font-black text-green-600">(+) Afirmativo:</p>
+                        <p>I / You / We / They ➡️ <span class="font-bold">play</span></p>
+                        <p>He / She / It ➡️ <span class="font-bold">plays</span> (¡Ojo con la "S"!)</p>
+                    </div>
+                    <div>
+                        <p class="font-black text-red-600">(-) Negativo:</p>
+                        <p>I / You / We / They ➡️ <span class="font-bold">don't</span> play</p>
+                        <p>He / She / It ➡️ <span class="font-bold">doesn't</span> play</p>
+                    </div>
+                    <div>
+                        <p class="font-black text-blue-600">(?) Interrogativo:</p>
+                        <p><span class="font-bold">Do</span> you play?</p>
+                        <p><span class="font-bold">Does</span> she play?</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- QUIZ SCREEN -->
+    <section id="screen-quiz" class="w-full max-w-3xl hidden flex-col items-center gap-6 pop-in">
+        <div class="w-full flex justify-between items-center bg-white p-4 rounded-2xl border-4 border-emerald-400 shadow-md">
+            <button onclick="showMenu()" class="btn-bouncy bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl border-2 border-slate-400">⬅️ Exit</button>
+            <div class="text-emerald-600 font-black text-xl">Question <span id="q-current">1</span>/30</div>
+        </div>
+
+        <div class="w-full bg-slate-200 h-4 rounded-full overflow-hidden">
+            <div id="progress-bar" class="bg-emerald-500 h-full w-0 transition-all duration-300"></div>
+        </div>
+
+        <div class="bg-white w-full p-6 sm:p-10 rounded-3xl shadow-xl border-4 border-emerald-400">
+            <p id="quiz-topic" class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2 text-center"></p>
+            <p id="quiz-question" class="text-2xl sm:text-3xl font-black text-slate-700 mb-8 leading-relaxed text-center"></p>
+            
+            <div id="quiz-options" class="flex flex-col gap-4">
+                <!-- Botones generados por JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- RESULT SCREEN -->
+    <section id="screen-result" class="w-full max-w-2xl hidden flex-col items-center justify-center gap-6 pop-in text-center mt-10">
+        <div class="text-8xl mb-4">🏆</div>
+        <h2 class="text-4xl font-black text-slate-800">Quiz Complete!</h2>
+        <p class="text-2xl font-bold text-slate-600">You scored:</p>
+        <div class="text-6xl font-black text-emerald-500 bg-white px-10 py-6 rounded-3xl border-8 border-emerald-200 shadow-xl">
+            <span id="final-score">0</span> / 30
+        </div>
+        <button onclick="showMenu()" class="btn-bouncy mt-8 bg-gradient-to-b from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white text-2xl font-black py-4 px-10 rounded-2xl shadow-[0_6px_0_#1e3a8a] border-4 border-blue-800">
+            Back to Menu
+        </button>
+    </section>
+
+    <!-- CUSTOM MODAL -->
+    <div id="modal-overlay" class="fixed inset-0 bg-slate-900 bg-opacity-60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div id="modal-content" class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center border-8 transform scale-90 transition-transform duration-300">
+            <div id="modal-icon" class="text-7xl mb-4"></div>
+            <h3 id="modal-title" class="text-3xl font-black mb-2"></h3>
+            <p id="modal-message" class="text-xl font-bold text-slate-600 mb-8"></p>
+            <button onclick="closeModal()" class="btn-bouncy w-full bg-slate-800 text-white text-xl font-bold py-4 rounded-2xl border-b-4 border-slate-950">
+                Continue ➡️
+            </button>
+        </div>
+    </div>
+
+    <!-- LOGIC -->
+    <script>
+        // Array de 30 preguntas que cubren todos los temas
+        const allQuestions = [
+            // Possessive Adjectives (6)
+            { topic: "Possessive Adjectives", q: "I have a new dog. ___ dog is very playful.", options: ["My", "Your", "His"], ans: "My" },
+            { topic: "Possessive Adjectives", q: "She likes apples. ___ favorite fruit is the apple.", options: ["His", "Her", "Its"], ans: "Her" },
+            { topic: "Possessive Adjectives", q: "We are in 4th grade. ___ teacher is the best!", options: ["Our", "Their", "Your"], ans: "Our" },
+            { topic: "Possessive Adjectives", q: "The cat is sleeping in ___ bed.", options: ["his", "its", "her"], ans: "its" },
+            { topic: "Possessive Adjectives", q: "Tom and Jerry are here. ___ house is near.", options: ["Our", "Your", "Their"], ans: "Their" },
+            { topic: "Possessive Adjectives", q: "You are very smart. ___ grades are excellent.", options: ["My", "His", "Your"], ans: "Your" },
+
+            // Demonstrative Pronouns (6)
+            { topic: "Demonstrative Pronouns", q: "(Cerca / 1 cosa) ___ is my favorite pencil.", options: ["This", "That", "These"], ans: "This" },
+            { topic: "Demonstrative Pronouns", q: "(Lejos / 1 cosa) Look at ___ bird in the sky!", options: ["This", "Those", "That"], ans: "That" },
+            { topic: "Demonstrative Pronouns", q: "(Cerca / Varias) ___ cookies here are delicious!", options: ["These", "Those", "That"], ans: "These" },
+            { topic: "Demonstrative Pronouns", q: "(Lejos / Varias) Are ___ children playing in the park?", options: ["These", "This", "Those"], ans: "Those" },
+            { topic: "Demonstrative Pronouns", q: "What is ___? (Apuntando a un auto a lo lejos)", options: ["these", "this", "that"], ans: "that" },
+            { topic: "Demonstrative Pronouns", q: "I love ___ shoes I am wearing right now.", options: ["those", "these", "that"], ans: "these" },
+
+            // Daily Routines (6)
+            { topic: "Daily Routines", q: "I ___ my teeth every morning.", options: ["brush", "wake", "have"], ans: "brush" },
+            { topic: "Daily Routines", q: "She ___ breakfast at 7:00 am.", options: ["have", "has", "haves"], ans: "has" },
+            { topic: "Daily Routines", q: "I ___ to school by bus.", options: ["go", "do", "wake"], ans: "go" },
+            { topic: "Daily Routines", q: "He ___ his homework after lunch.", options: ["does", "makes", "do"], ans: "does" },
+            { topic: "Daily Routines", q: "We ___ up at 6:30 am.", options: ["sleep", "go", "wake"], ans: "wake" },
+            { topic: "Daily Routines", q: "They ___ to bed at 9:00 pm.", options: ["have", "do", "go"], ans: "go" },
+
+            // Frequency Adverbs (6)
+            { topic: "Frequency Adverbs", q: "(100% del tiempo) I ___ do my homework.", options: ["always", "never", "sometimes"], ans: "always" },
+            { topic: "Frequency Adverbs", q: "(0% del tiempo) I ___ eat spiders.", options: ["usually", "often", "never"], ans: "never" },
+            { topic: "Frequency Adverbs", q: "(50% del tiempo) I ___ play video games.", options: ["hardly ever", "sometimes", "always"], ans: "sometimes" },
+            { topic: "Frequency Adverbs", q: "(Casi nunca) She ___ watches TV in the morning.", options: ["hardly ever", "usually", "often"], ans: "hardly ever" },
+            { topic: "Frequency Adverbs", q: "(80% del tiempo) I ___ read before bed.", options: ["never", "always", "usually"], ans: "usually" },
+            { topic: "Frequency Adverbs", q: "(70% del tiempo) They ___ go to the park.", options: ["often", "never", "hardly ever"], ans: "often" },
+
+            // Present Simple (6)
+            { topic: "Present Simple (+)", q: "He ___ football on Saturdays.", options: ["play", "plays", "playing"], ans: "plays" },
+            { topic: "Present Simple (+)", q: "They ___ pizza.", options: ["likes", "like", "liking"], ans: "like" },
+            { topic: "Present Simple (-)", q: "I ___ like vegetables.", options: ["doesn't", "isn't", "don't"], ans: "don't" },
+            { topic: "Present Simple (-)", q: "She ___ play tennis.", options: ["don't", "doesn't", "aren't"], ans: "doesn't" },
+            { topic: "Present Simple (?)", q: "___ you like chocolate?", options: ["Does", "Are", "Do"], ans: "Do" },
+            { topic: "Present Simple (?)", q: "___ he play the guitar?", options: ["Do", "Does", "Is"], ans: "Does" }
+        ];
+
+        // Variables de estado
+        let quizPool = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let correctAnswersCount = 0;
+        let modalCallback = null;
+
+        function hideAllScreens() {
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-study').classList.add('hidden');
+            document.getElementById('screen-quiz').classList.add('hidden');
+            document.getElementById('screen-result').classList.add('hidden');
+        }
+
+        function showMenu() {
+            hideAllScreens();
+            document.getElementById('screen-menu').classList.remove('hidden');
+        }
+
+        function showStudyZone() {
+            hideAllScreens();
+            document.getElementById('screen-study').classList.remove('hidden');
+        }
+
+        function startQuiz() {
+            hideAllScreens();
+            document.getElementById('screen-quiz').classList.remove('hidden');
+            
+            // Preparar el test
+            quizPool = [...allQuestions].sort(() => Math.random() - 0.5); // Mezclar preguntas
+            currentQuestionIndex = 0;
+            correctAnswersCount = 0;
+            
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= quizPool.length) {
+                endQuiz();
+                return;
+            }
+
+            const qObj = quizPool[currentQuestionIndex];
+            
+            // Actualizar UI
+            document.getElementById('q-current').innerText = currentQuestionIndex + 1;
+            document.getElementById('quiz-topic').innerText = qObj.topic;
+            document.getElementById('quiz-question').innerText = qObj.q;
+            
+            // Barra de progreso
+            const progress = ((currentQuestionIndex) / quizPool.length) * 100;
+            document.getElementById('progress-bar').style.width = progress + '%';
+
+            // Mezclar opciones
+            const shuffledOptions = [...qObj.options].sort(() => Math.random() - 0.5);
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = ''; 
+
+            shuffledOptions.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-bouncy w-full bg-slate-100 hover:bg-emerald-100 text-slate-700 font-bold py-5 px-6 rounded-2xl border-4 border-slate-300 hover:border-emerald-400 text-xl transition-colors';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt, qObj.ans);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected, correct) {
+            if (selected === correct) {
+                shootConfetti();
+                correctAnswersCount++;
+                updateScore(10);
+                showModal('Excellent!', '¡Respuesta correcta! Muy bien hecho.', '🌟', 'border-emerald-400', nextQuestion);
+            } else {
+                showModal('Oops!', `La respuesta correcta era: "${correct}". ¡Acuérdate para la próxima!`, '👀', 'border-orange-400', nextQuestion);
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        function endQuiz() {
+            hideAllScreens();
+            document.getElementById('screen-result').classList.remove('hidden');
+            document.getElementById('screen-result').classList.add('flex');
+            document.getElementById('final-score').innerText = correctAnswersCount;
+            document.getElementById('progress-bar').style.width = '100%';
+        }
+
+        function updateScore(points) {
+            score += points;
+            const display = document.getElementById('score-display');
+            display.innerText = score;
+            display.classList.add('pop-in');
+            setTimeout(() => display.classList.remove('pop-in'), 300);
+        }
+
+        function showModal(title, message, icon, borderClass, callback = null) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            
+            const content = document.getElementById('modal-content');
+            content.className = `bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center border-8 transform scale-100 transition-transform duration-300 ${borderClass}`;
+            
+            document.getElementById('modal-overlay').classList.remove('hidden');
+            document.getElementById('modal-overlay').classList.add('flex');
+            
+            modalCallback = callback;
+        }
+
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.add('hidden');
+            document.getElementById('modal-overlay').classList.remove('flex');
+            if (modalCallback) {
+                modalCallback();
+                modalCallback = null;
+            }
+        }
+
+        function shootConfetti() {
+            for (let i = 0; i < 30; i++) {
+                const conf = document.createElement('div');
+                conf.classList.add('confetti');
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.backgroundColor = ['#fbbf24', '#34d399', '#60a5fa', '#f87171', '#c084fc'][Math.floor(Math.random() * 5)];
+                conf.style.animationDuration = (Math.random() * 1 + 1) + 's';
+                document.body.appendChild(conf);
+                
+                setTimeout(() => {
+                    conf.remove();
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>
