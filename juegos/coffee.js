@@ -59,7 +59,7 @@
               <span class="coffee-modal-icon">☕</span>
               <div>
                 <h3 class="coffee-modal-title">¡Invítanos un Café!</h3>
-                <div class="coffee-modal-subtitle">Apoya el desarrollo de Juegos Stahlgraf</div>
+                <div class="coffee-modal-subtitle">Apoya el desarrollo de JuntaJuegos</div>
               </div>
             </div>
             <button type="button" id="btn-close-coffee-modal" class="coffee-modal-close" title="Cerrar">✕</button>
@@ -215,7 +215,7 @@
     if (btnCopyTransfer) {
       btnCopyTransfer.addEventListener('click', () => {
         const t = COFFEE_CONFIG.transfer;
-        const textToCopy = `Datos de Transferencia Juegos Stahlgraf:
+        const textToCopy = `Datos de Transferencia JuntaJuegos:
 Banco: ${t.banco}
 Tipo de Cuenta: ${t.tipoCuenta}
 N° de Cuenta: ${t.numeroCuenta}
