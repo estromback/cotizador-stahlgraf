@@ -1,0 +1,44 @@
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /contacto.html
+Allow: /logo.png
+Allow: /hero-bg.webp
+Allow: /hero-bg.jpg
+Allow: /styles.css
+
+# Proteger paneles internos, módulos administrativos y apps privadas
+Disallow: /hub.html
+Disallow: /hub.js
+Disallow: /crm.html
+Disallow: /crm.js
+Disallow: /cotizador.html
+Disallow: /clientes.html
+Disallow: /clientes.js
+Disallow: /finanzas.html
+Disallow: /finanzas.js
+Disallow: /finanzas.css
+Disallow: /exportador.html
+Disallow: /exportador.js
+Disallow: /exportador.css
+Disallow: /informador.html
+Disallow: /informador.js
+Disallow: /informador.css
+Disallow: /trazabilidad.html
+Disallow: /trazabilidad.js
+Disallow: /evaluar.html
+Disallow: /satisfaccion.html
+Disallow: /satisfaccion.js
+Disallow: /appCivilizaciones.html
+Disallow: /appIngles.html
+Disallow: /appInglesunit3.html
+Disallow: /appLenguajeMati.html
+Disallow: /appLocomotor.html
+Disallow: /appMacMicrobio.html
+Disallow: /appMatSegundo.html
+Disallow: /uizapp.html
+Disallow: /juegos/
+Disallow: /*.log
+Disallow: /*.py
+
+Sitemap: https://stahlgraf.cl/sitemap.xml
