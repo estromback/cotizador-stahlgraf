@@ -3,6 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) - Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-X0X7E48C64"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-X0X7E48C64');
+    </script>
+    
+    <!-- Tracking de Conversiones en GA4 -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        // Clics en WhatsApp
+        document.querySelectorAll('a[href*="wa.me"]').forEach(el => {
+          el.addEventListener('click', () => {
+            if (typeof gtag === 'function') {
+              gtag('event', 'contact', {
+                method: 'WhatsApp',
+                event_category: 'engagement',
+                event_label: 'Click WhatsApp'
+              });
+            }
+          });
+        });
+        // Clics en Solicitud de Cotización
+        document.querySelectorAll('a[href*="contacto.html"]').forEach(el => {
+          el.addEventListener('click', () => {
+            if (typeof gtag === 'function') {
+              gtag('event', 'begin_checkout', {
+                event_category: 'lead',
+                event_label: 'Click Cotizar Online'
+              });
+            }
+          });
+        });
+      });
+    </script>
+
     <title>Stahlgraf | Control de Plagas, Fumigación & Desratización en Los Ángeles y Biobío</title>
     <meta name="description" content="Control profesional de plagas, fumigación de insectos y desratización en Los Ángeles y Región del Biobío. Certificación Seremi de Salud, productos SAG y monitoreo digital en tiempo real. Cotiza online en 2 minutos.">
     <meta name="keywords" content="control de plagas los angeles, fumigacion los angeles chile, desratizacion los angeles, control de plagas biobio, fumigacion de casas, eliminacion de avispas, control de termitas, desratizacion empresas, resolucion sanitaria seremi, stahlgraf">

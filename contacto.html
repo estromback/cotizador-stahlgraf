@@ -3,6 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google tag (gtag.js) - Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-X0X7E48C64"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-X0X7E48C64');
+    </script>
+
     <title>Cotizar Control de Plagas y Fumigación | Stahlgraf Los Ángeles</title>
     <meta name="description" content="Solicita tu cotización de fumigación, control de insectos o desratización en Los Ángeles y Biobío. Atención rápida para empresas y particulares con certificación sanitaria.">
     <link rel="canonical" href="https://stahlgraf.cl/contacto.html">
@@ -648,6 +658,15 @@
                     btn.disabled = false;
                     btn.innerText = 'Enviar Solicitud de Cotización';
                     return;
+                }
+
+                // Disparar evento de conversión en Google Analytics (GA4)
+                if (typeof gtag === 'function') {
+                    gtag('event', 'generate_lead', {
+                        event_category: 'form',
+                        event_label: 'Cotización Enviada',
+                        value: 1
+                    });
                 }
 
                 // Render beautiful success view
