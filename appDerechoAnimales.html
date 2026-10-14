@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Los Derechos de los Animales - Héctor Hidalgo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Fredoka+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .title-font {
+            font-family: 'Fredoka One', cursive;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Sombras para las tarjetas */
+        .story-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .story-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        /* Canvas contenedor */
+        #quizCanvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body class="relative min-h-screen bg-green-50 overflow-x-hidden text-gray-800">
+
+    <canvas id="bgCanvas" class="fixed top-0 left-0 w-full h-full z-0 pointer-events-none"></canvas>
+
+    <div class="relative z-10 container mx-auto px-4 py-8 max-w-5xl">
+        <header class="text-center mb-10 bg-white/80 backdrop-blur-md py-6 px-4 rounded-3xl shadow-sm border border-green-100">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-green-700 mb-2 title-font tracking-wide drop-shadow-sm">
+                <i class="fa-solid fa-paw mr-2"></i>Los Derechos de los Animales
+            </h1>
+            <p class="text-xl text-green-600 font-semibold mb-2">Libro de Héctor Hidalgo</p>
+            <span class="inline-block bg-green-100 text-green-800 text-sm px-4 py-1 rounded-full font-bold">
+                Lectura Obligatoria - 4° Básico (Chile)
+            </span>
+        </header>
+
+        <div class="flex flex-wrap justify-center gap-3 mb-8">
+            <button onclick="showTab('resumen')" id="tab-resumen" class="px-6 py-3 rounded-full bg-green-600 text-white font-bold shadow-md hover:bg-green-700 transition transform hover:scale-105 active:scale-95 border-2 border-green-600">
+                <i class="fa-solid fa-book-open mr-2"></i>Resumen
+            </button>
+            <button onclick="showTab('repaso')" id="tab-repaso" class="px-6 py-3 rounded-full bg-white text-green-700 font-bold shadow-md hover:bg-green-100 transition transform hover:scale-105 active:scale-95 border-2 border-green-200">
+                <i class="fa-solid fa-magnifying-glass mr-2"></i>Zona de Repaso
+            </button>
+            <button onclick="showTab('quiz')" id="tab-quiz" class="px-6 py-3 rounded-full bg-white text-green-700 font-bold shadow-md hover:bg-green-100 transition transform hover:scale-105 active:scale-95 border-2 border-green-200">
+                <i class="fa-solid fa-gamepad mr-2"></i>Quiz Interactivo
+            </button>
+        </div>
+
+        <section id="resumen" class="tab-content active bg-white rounded-3xl shadow-lg p-6 md:p-10 border border-green-100">
+            <h2 class="text-3xl font-bold text-green-800 mb-6 title-font border-b-4 border-green-200 pb-2 inline-block">Resumen del Libro</h2>
+            
+            <div class="space-y-6 text-lg leading-relaxed text-gray-700">
+                <p>
+                    <span class="font-bold text-green-700 text-xl">"Los derechos de los animales"</span> es una hermosa colección de 10 cuentos escrita por el autor chileno <strong>Héctor Hidalgo</strong>. El factor común de todas estas emocionantes historias radica en el resguardo, la protección y el respeto hacia los animales, así como en su interacción con los seres humanos.
+                </p>
+                <div class="bg-blue-50 p-6 rounded-2xl border-l-4 border-blue-400">
+                    <h3 class="font-bold text-blue-800 mb-2"><i class="fa-solid fa-circle-info mr-2"></i>Idea Principal</h3>
+                    <p class="text-blue-900">
+                        Cada cuento nos enseña una lección valiosa vinculada a un artículo de la <em>Declaración Universal de los Derechos de los Animales</em>. El libro nos demuestra que los animales (ya sean mascotas, de carga, salvajes o de laboratorio) sienten, sufren y merecen vivir en paz, libertad y con dignidad, sin ser explotados ni maltratados por diversión o comercio.
+                    </p>
+                </div>
+                <p>
+                    A lo largo del libro conoceremos personajes inolvidables: el perrito Morgan, que a pesar de ser cojo y callejero salva a un zapatero; la mula Aurora; la elefanta Micaela obligada a actuar en un circo; las valientes ratitas de laboratorio Max y Betsy, y muchos otros que te robarán el corazón.
+                </p>
+            </div>
+        </section>
+
+        <section id="repaso" class="tab-content">
+            <div class="bg-white rounded-3xl shadow-lg p-6 md:p-10 border border-green-100 mb-8">
+                <h2 class="text-3xl font-bold text-green-800 mb-2 title-font border-b-4 border-green-200 pb-2 inline-block">Repaso por Capítulos</h2>
+                <p class="text-gray-600 mb-8">Conoce de qué trata cada uno de los 10 cuentos del libro y qué derecho defienden.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Cuento 1 -->
+                    <div class="story-card bg-teal-50 rounded-2xl p-5 border border-teal-100 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-6xl text-teal-200 opacity-50"><i class="fa-solid fa-fish-fins"></i></div>
+                        <h3 class="font-bold text-teal-800 text-xl mb-2">1. Las toninas</h3>
+                        <p class="text-sm text-teal-900 mb-2">Cinco toninas juguetonas avistan extrañas luces en el cielo y descubren un barco hundiéndose que derrama una sustancia tóxica. Arriesgando sus propias vidas y casi ahogándose en el agua contaminada, las valientes toninas nadan desesperadas para alertar a los demás peces y lobos marinos del peligro letal, demostrando el valor de la existencia.</p>
+                        <span class="text-xs font-bold text-white bg-teal-600 px-2 py-1 rounded-md">Art. 1: Derecho a la existencia</span>
+                    </div>
+
+                    <!-- Cuento 2 -->
+                    <div class="story-card bg-orange-50 rounded-2xl p-5 border border-orange-100 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-6xl text-orange-200 opacity-50"><i class="fa-solid fa-dog"></i></div>
+                        <h3 class="font-bold text-orange-800 text-xl mb-2">2. Morgan, un perro callejero</h3>
+                        <p class="text-sm text-orange-900 mb-2">Morgan es un perro callejero y cojo, despreciado y golpeado por la gente del barrio. Un día, observa que el malhumorado zapatero José cae desmayado en su taller. Morgan busca ayuda desesperadamente hasta lograr que unos niños lo sigan y salven a José. En agradecimiento, el zapatero se arrepiente de su antiguo maltrato y lo adopta con amor.</p>
+                        <span class="text-xs font-bold text-white bg-orange-600 px-2 py-1 rounded-md">Art. 2: Derecho al respeto y cuidado</span>
+                    </div>
+
+                    <!-- Cuento 3 -->
+                    <div class="story-card bg-stone-50 rounded-2xl p-5 border border-stone-200 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-6xl text-stone-200 opacity-50"><i class="fa-solid fa-horse-head"></i></div>
+                        <h3 class="font-bold text-stone-800 text-xl mb-2">3. Las mulas de Nicolás Palermo</h3>
+                        <p class="text-sm text-stone-900 mb-2">Nicolás Palermo es un arriero que adora a sus mulas y conversa con ellas. Durante un viaje por la montaña, su mula Aurora resbala y cae por un profundo barranco, fracturándose las patas y sufriendo horriblemente. Con el corazón roto, Nicolás debe tomar la difícil y compasiva decisión de sacrificarla para evitar que siga padeciendo.</p>
+                        <span class="text-xs font-bold text-white bg-stone-600 px-2 py-1 rounded-md">Art. 3: Muerte indolora (sin sufrimiento)</span>
+                    </div>
+
+                    <!-- Cuento 4 -->
+                    <div class="story-card bg-yellow-50 rounded-2xl p-5 border border-yellow-200 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-6xl text-yellow-200 opacity-50"><i class="fa-solid fa-hippo"></i></div>
+                        <h3 class="font-bold text-yellow-800 text-xl mb-2">4. Rebelión en el zoológico</h3>
+                        <p class="text-sm text-yellow-900 mb-2">En pleno verano, los animales del zoológico mágicamente comienzan a comunicarse. La jirafa y el mono planean una gran rebelión para abrir sus jaulas y escapar rumbo a las selvas de África para ser libres. Sin embargo, todo resulta ser el hermoso sueño de un monito, que despierta tristemente en su encierro al recibir maní de un niño.</p>
+                        <span class="text-xs font-bold text-white bg-yellow-600 px-2 py-1 rounded-md">Art. 4: Derecho a la libertad natural</span>
+                    </div>
+
+                    <!-- Cuento 5 -->
+                    <div class="story-card bg-gray-50 rounded-2xl p-5 border border-gray-200 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-6xl text-gray-200 opacity-50"><i class="fa-solid fa-building"></i></div>
+                        <h3 class="font-bold text-gray-800 text-xl mb-2">5. El misterioso caso del piso 21</h3>
+                        <p class="text-sm text-gray-900 mb-2">A través del diario de vida de un niño, conocemos cómo él y su amigo Leo investigan a un vecino apodado "el Chino". Tras escuchar ruidos y maullidos desde el piso 21, descubren que el hombre se dedica al cruel tráfico ilegal de especies, manteniendo encerrados a monos exóticos que finalmente logran escapar y son rescatados.</p>
+                        <span class="text-xs font-bold text-white bg-gray-600 px-2 py-1 rounded-md">Art. 5: No al tráfico mercantil</span>
+                    </div>
+
+                    <!-- Cuento 6 -->
+                    <div class="story-card bg-purple-50 rounded-2xl p-5 border border-purple-200 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-6xl text-purple-200 opacity-50"><i class="fa-solid fa-cat"></i></div>
+                        <h3 class="font-bold text-purple-800 text-xl mb-2">6. La bruja de los cien gatos</h3>
+                        <p class="text-sm text-purple-900 mb-2">Rosalía es una mujer bondadosa a la que los niños apodan "la bruja". En una noche de fuerte temporal, ella rescata a un viejo y empapado gato callejero, al que llama Pellejín. Al llevarlo a su enorme casona, Pellejín descubre un cálido refugio junto a decenas de otros gatos rescatados, quienes cantan felices por su llegada.</p>
+                        <span class="text-xs font-bold text-white bg-purple-600 px-2 py-1 rounded-md">Art. 6: Contra el abandono</span>
+                    </div>
+
+                    <!-- Cuento 7 -->
+                    <div class="story-card bg-amber-50 rounded-2xl p-5 border border-amber-200 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-6xl text-amber-200 opacity-50"><i class="fa-solid fa-horse"></i></div>
+                        <h3 class="font-bold text-amber-800 text-xl mb-2">7. El caballo Manolo</h3>
+                        <p class="text-sm text-amber-900 mb-2">Manolo es un caballo que sufre hambre, sed y cansancio tirando de un carretón de verduras en la feria bajo las órdenes de un hombre silencioso. Un día, una vendedora se apiada y le ofrece agua. Este gesto hace reflexionar a su dueño, quien por primera vez lo acaricia y le entrega alimento, cambiando por fin la vida del animal.</p>
+                        <span class="text-xs font-bold text-white bg-amber-600 px-2 py-1 rounded-md">Art. 7: Límite de trabajo, alimento y reposo</span>
+                    </div>
+
+                    <!-- Cuento 8 -->
+                    <div class="story-card bg-indigo-50 rounded-2xl p-5 border border-indigo-200 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-6xl text-indigo-200 opacity-50"><i class="fa-solid fa-flask"></i></div>
+                        <h3 class="font-bold text-indigo-800 text-xl mb-2">8. Max y Betsy, dos ratas de laboratorio</h3>
+                        <p class="text-sm text-indigo-900 mb-2">Max es un ratoncito blanco que vive enfermo en una caja de cristal debido a inyecciones. Al lugar llega una nueva compañera, MX-12. Frente a los asustados ojos de ambos, el científico de blanco vuelve a experimentar con ellos, inyectando a la nueva ratita y cambiándole el nombre a Betsy, condenándolos a la ciencia.</p>
+                        <span class="text-xs font-bold text-white bg-indigo-600 px-2 py-1 rounded-md">Art. 8: Contra la experimentación dolorosa</span>
+                    </div>
+
+                    <!-- Cuento 9 -->
+                    <div class="story-card bg-red-50 rounded-2xl p-5 border border-red-200 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-6xl text-red-200 opacity-50"><i class="fa-solid fa-feather-pointed"></i></div>
+                        <h3 class="font-bold text-red-800 text-xl mb-2">9. El pavo Jacinto</h3>
+                        <p class="text-sm text-red-900 mb-2">Jacinto es un pavo menospreciado por las aves del corral, quienes misteriosamente actúan amables al llegar diciembre. Un pato le revela la verdad: el granjero lo alimenta tanto para que sea el plato de Navidad. Aterrorizado, Jacinto aprovecha un forado que un caballo abre en la cerca y huye hacia la libertad del campo.</p>
+                        <span class="text-xs font-bold text-white bg-red-600 px-2 py-1 rounded-md">Art. 9: Sacrificio sin dolor ni ansiedad</span>
+                    </div>
+
+                    <!-- Cuento 10 -->
+                    <div class="story-card bg-pink-50 rounded-2xl p-5 border border-pink-200 relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 text-6xl text-pink-200 opacity-50"><i class="fa-solid fa-tent-arrow-down-to-line"></i></div>
+                        <h3 class="font-bold text-pink-800 text-xl mb-2">10. ¡Llegó el circo!</h3>
+                        <p class="text-sm text-pink-900 mb-2">El niño Daniel asiste emocionado a la función del famoso circo de los hermanos Temple. Sin embargo, su alegría se transforma en tristeza al ver cómo el domador pincha cruelmente con acero a la elefanta Micaela para obligarla a pararse en un diminuto taburete, y cómo ridiculizan a un poni poniéndole bototos para hacer reír a la gente.</p>
+                        <span class="text-xs font-bold text-white bg-pink-600 px-2 py-1 rounded-md">Art. 10: No explotación para diversión</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="quiz" class="tab-content text-center">
+            <h2 class="text-3xl font-bold text-green-800 mb-4 title-font drop-shadow-sm">Prueba de Comprensión</h2>
+            <p class="text-gray-600 mb-6">Demuestra cuánto aprendiste sobre el libro con este juego interactivo.</p>
+            <div class="flex justify-center">
+                <!-- Se dibuja el juego completamente con Javascript 2D Canvas -->
+                <canvas id="quizCanvas"></canvas>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // --- Lógica de Pestañas (Tabs) ---
+        function showTab(tabId) {
+            // Ocultar todos los contenidos
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            // Restablecer estilos de botones
+            document.querySelectorAll('button[id^="tab-"]').forEach(btn => {
+                btn.classList.remove('bg-green-600', 'text-white', 'border-green-600');
+                btn.classList.add('bg-white', 'text-green-700', 'border-green-200');
+            });
+            
+            // Mostrar contenido activo
+            document.getElementById(tabId).classList.add('active');
+            // Estilo al botón activo
+            const activeBtn = document.getElementById('tab-' + tabId);
+            activeBtn.classList.remove('bg-white', 'text-green-700', 'border-green-200');
+            activeBtn.classList.add('bg-green-600', 'text-white', 'border-green-600');
+
+            // Resetear y activar juego si se abre la pestaña Quiz
+            if (tabId === 'quiz' && quizState === 'not_started') {
+                quizState = 'start';
+                buildUI(); // <-- Agregamos esta línea para que dibuje el botón
+            }
+        }
+
+        // --- Lógica del Canvas de Fondo (Partículas/Hojas) ---
+        const bgCanvas = document.getElementById('bgCanvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        let particles = [];
+
+        function resizeBgCanvas() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeBgCanvas);
+        resizeBgCanvas();
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * bgCanvas.width;
+                this.y = Math.random() * bgCanvas.height - bgCanvas.height;
+                this.size = Math.random() * 5 + 3;
+                this.speedY = Math.random() * 1 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 1;
+                this.opacity = Math.random() * 0.4 + 0.1;
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                if (this.y > bgCanvas.height) {
+                    this.reset();
+                    this.y = -10;
+                }
+            }
+            draw() {
+                bgCtx.beginPath();
+                bgCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                bgCtx.fillStyle = `rgba(134, 239, 172, ${this.opacity})`; // Color verde claro
+                bgCtx.fill();
+            }
+        }
+
+        for (let i = 0; i < 40; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateBg() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateBg);
+        }
+        animateBg();
+
+        // --- Lógica del Canvas del Quiz Interactivo ---
+        const qCanvas = document.getElementById('quizCanvas');
+        const qCtx = qCanvas.getContext('2d');
+        
+        // Resolución lógica fija, el CSS lo hace responsive
+        const CANV_W = 800;
+        const CANV_H = 600;
+        qCanvas.width = CANV_W;
+        qCanvas.height = CANV_H;
+
+        let quizState = 'not_started'; // not_started, start, playing, end
+        let currentQuestionIdx = 0;
+        let score = 0;
+        let mouseX = 0;
+        let mouseY = 0;
+        let hoverElement = null; // Guarda qué elemento está en hover
+        let feedbackTimer = 0; // Para mostrar "Correcto" / "Incorrecto"
+        let feedbackMsg = "";
+        let isCorrect = false;
+
+        // Preguntas extraídas para nivel de 4to básico según búsquedas
+        const questions = [
+            {
+                q: '¿Quién es el autor del libro "Los derechos de los animales"?',
+                opts: ['Héctor Hidalgo', 'Hernán Rivera Letelier', 'Marcela Paz', 'Héctor Higardo'],
+                ans: 0
+            },
+            {
+                q: '¿Cuál es la idea principal del libro?',
+                opts: ['La vida salvaje en los zoológicos.', 'Dar a conocer el resguardo y protección de animales e interacción con humanos.', 'Aprender trucos de magia y adiestramiento.', 'Conocer la alimentación de las mascotas.'],
+                ans: 1
+            },
+            {
+                q: '¿Qué tipo de animal son las toninas del primer cuento?',
+                opts: ['Ballenas gigantes.', 'Peces voladores.', 'Delfines chilenos.', 'Tiburones pequeños.'],
+                ans: 2
+            },
+            {
+                q: '¿Qué peligro letal enfrentaron las valientes toninas en el mar?',
+                opts: ['Un barco hundiéndose que derramaba líquido venenoso.', 'Cazadores persiguiéndolas en botes veloces.', 'Una tormenta gigante y olas enormes.', 'Una gigantesca red de pesca comercial.'],
+                ans: 0
+            },
+            {
+                q: 'Morgan sentía agrado con tal apelativo. ¿Por qué palabra se puede reemplazar "apelativo"?',
+                opts: ['Comida', 'Juguete', 'Nombre', 'Hueso'],
+                ans: 2
+            },
+            {
+                q: 'En "Morgan, un perro callejero", ¿por qué cojeaba el protagonista?',
+                opts: ['Fue atropellado por un camión.', 'Nació así, contrahecho.', 'Se enterró un vidrio en la calle.', 'Lo golpearon en la feria persa.'],
+                ans: 1
+            },
+            {
+                q: '¿A quién salvó Morgan de una muerte segura pidiendo ayuda a los niños?',
+                opts: ['Al carnicero Ramiro.', 'Al vendedor de helados.', 'Al malhumorado zapatero José.', 'A otro perrito callejero.'],
+                ans: 2
+            },
+            {
+                q: '¿Cuál capítulo trata el derecho a "la limitación razonable del tiempo y al reposo"?',
+                opts: ['El caballo Manolo.', 'Las mulas de Nicolás Palermo.', 'Max y Betsy, dos ratas de laboratorio.', '¡Llegó el circo!'],
+                ans: 0
+            },
+            {
+                q: '¿Qué le sucedió a la mula Aurora en el camino estrecho y gredoso?',
+                opts: ['Escapó galopando hacia el bosque.', 'Quedó atrapada en el barro.', 'Resbaló por un barranco y se fracturó las patas.', 'Fue atacada por un puma montañés.'],
+                ans: 2
+            },
+            {
+                q: '¿Cómo se sentía Nicolás Palermo después de haber sacrificado a su mula?',
+                opts: ['Tranquilo, porque tenía más mulas.', 'Se quedó sentado, paralizado y triste a su lado.', 'Feliz, porque el animal ya no sufriría.', 'Siguió su camino rápidamente sin mirar atrás.'],
+                ans: 1
+            },
+            {
+                q: 'En "Rebelión en el zoológico", ¿hacia dónde planeaban escapar los animales?',
+                opts: ['A las calles de la ciudad.', 'A un parque de diversiones.', 'A las selvas de África o Brasil.', 'A las montañas de la cordillera.'],
+                ans: 2
+            },
+            {
+                q: '¿Qué descubrimos al final del cuento sobre la fuga del zoológico?',
+                opts: ['Que lograron huir en un barco.', 'Que los guardias los atraparon.', 'Que el león se arrepintió de escapar.', 'Que todo era el sueño deseado de un monito.'],
+                ans: 3
+            },
+            {
+                q: '¿Qué delito cometía el misterioso vecino apodado "Chino" en el piso 21?',
+                opts: ['Mantenía animales enfermos en su casa.', 'Traficaba especies exóticas (monos) ilegalmente.', 'Robaba mascotas del vecindario.', 'Fabricaba abrigos con pieles de animales.'],
+                ans: 1
+            },
+            {
+                q: '¿Por qué a Rosalía le decían "La bruja de los cien gatos"?',
+                opts: ['Porque volaba en las noches frías.', 'Porque preparaba pociones mágicas.', 'Porque era un invento de los niños burlones.', 'Porque vivía en una casa abandonada.'],
+                ans: 2
+            },
+            {
+                q: '¿Qué hecho mágico ocurrió cuando Pellejín llegó a casa de Rosalía?',
+                opts: ['Comenzó a llover muchísimo más fuerte.', 'Rosalía pudo hablar y entender perfectamente a los gatos.', 'Los gatos se convirtieron en leones.', 'La casa se llenó mágicamente de leche.'],
+                ans: 1
+            },
+            {
+                q: '¿En qué trabajaba duramente el caballo Manolo todos los días?',
+                opts: ['En carreras del hipódromo.', 'Tirando un carretón de verduras en la feria.', 'Paseando turistas por la plaza.', 'Llevando madera en el campo.'],
+                ans: 1
+            },
+            {
+                q: '¿Qué gesto del "hombre silencioso" cambió la actitud y vida del caballo Manolo?',
+                opts: ['Le compró una herradura nueva.', 'Lo vendió a una buena persona.', 'Lo acarició por primera vez y le dio agua y lechugas.', 'Le quitó el carretón para siempre.'],
+                ans: 2
+            },
+            {
+                q: 'Según la lectura, ¿para qué era utilizada la ratita MX12?',
+                opts: ['Para que los niños jugaran con ella.', 'Para atrapar insectos en el hospital.', 'Para enseñarle acrobacias en un laberinto.', 'Para realizar dolorosos experimentos científicos y pruebas.'],
+                ans: 3
+            },
+            {
+                q: '¿Qué derecho defienden las ratitas Max y Betsy?',
+                opts: ['Derecho a la buena alimentación.', 'Derecho contra la experimentación dolorosa en laboratorios.', 'Derecho al respeto en la granja.', 'Derecho a la libertad de movimiento.'],
+                ans: 1
+            },
+            {
+                q: '¿Por qué las demás aves trataban con amabilidad al pavo Jacinto en diciembre?',
+                opts: ['Porque iba a ser trasladado de granja.', 'Porque era el líder indiscutido del corral.', 'Porque sabían que lo engordaban para sacrificarlo en Navidad.', 'Porque lo estaban preparando para un concurso.'],
+                ans: 2
+            },
+            {
+                q: '¿Quién convenció al asustado pavo Jacinto de huir hacia la libertad del campo?',
+                opts: ['Un pequeño gorrión.', 'El señor Gallo.', 'El pato de cuello blanco.', 'El perro pastor.'],
+                ans: 2
+            },
+            {
+                q: 'En "¡Llegó el circo!", ¿qué le ponían los payasos al pequeño poni para que la gente se riera?',
+                opts: ['Un sombrero de copa gigante.', 'Unos ridículos y pesados bototos.', 'Una nariz roja de plástico.', 'Un traje de bailarina.'],
+                ans: 1
+            },
+            {
+                q: '¿Qué animal del circo era cruelmente obligado a pararse en un taburete diminuto?',
+                opts: ['La elefanta Micaela.', 'Un león africano.', 'Un tigre siberiano.', 'Un mono tití.'],
+                ans: 0
+            },
+            {
+                q: '¿Qué utilizaba a escondidas el domador para obligar a la elefanta a realizar el truco?',
+                opts: ['Un sonido muy agudo.', 'Un látigo de cuero.', 'Un ruido de tambores.', 'Un palo con un punzón de acero.'],
+                ans: 3
+            },
+            {
+                q: '¿Cuál es la lección principal del capítulo del circo (Artículo 10)?',
+                opts: ['Los animales deben ganar su propia comida.', 'Ningún animal debe ser explotado para esparcimiento y diversión humana.', 'Los elefantes son los mejores acróbatas.', 'Los zoológicos son mejores que los circos.'],
+                ans: 1
+            }
+        ];
+
+        // Definición de Botones y Áreas Interactivos
+        let uiElements = [];
+
+        function buildUI() {
+            uiElements = [];
+            if (quizState === 'start') {
+                uiElements.push({
+                    id: 'btn-start',
+                    x: CANV_W/2 - 120, y: CANV_H/2 + 50, w: 240, h: 60,
+                    text: 'Comenzar Prueba', bg: '#16a34a', bgHover: '#15803d', color: '#fff'
+                });
+            } else if (quizState === 'playing') {
+                const startY = 220;
+                const gap = 80;
+                questions[currentQuestionIdx].opts.forEach((opt, idx) => {
+                    uiElements.push({
+                        id: `btn-opt-${idx}`,
+                        idx: idx,
+                        x: CANV_W/2 - 300, y: startY + (idx * gap), w: 600, h: 65,
+                        text: String.fromCharCode(65 + idx) + ". " + opt, 
+                        bg: '#ffffff', bgHover: '#dcfce7', color: '#166534', stroke: '#86efac'
+                    });
+                });
+            } else if (quizState === 'end') {
+                uiElements.push({
+                    id: 'btn-restart',
+                    x: CANV_W/2 - 120, y: CANV_H/2 + 100, w: 240, h: 60,
+                    text: 'Volver a Jugar', bg: '#2563eb', bgHover: '#1d4ed8', color: '#fff'
+                });
+            }
+        }
+
+        // Listener de Mouse para Hover
+        qCanvas.addEventListener('mousemove', (e) => {
+            const rect = qCanvas.getBoundingClientRect();
+            const scaleX = qCanvas.width / rect.width;
+            const scaleY = qCanvas.height / rect.height;
+            mouseX = (e.clientX - rect.left) * scaleX;
+            mouseY = (e.clientY - rect.top) * scaleY;
+
+            hoverElement = null;
+            uiElements.forEach(el => {
+                if (mouseX >= el.x && mouseX <= el.x + el.w && mouseY >= el.y && mouseY <= el.y + el.h) {
+                    hoverElement = el.id;
+                }
+            });
+            
+            if(hoverElement) qCanvas.style.cursor = 'pointer';
+            else qCanvas.style.cursor = 'default';
+        });
+
+        // Listener de Clicks
+        qCanvas.addEventListener('click', (e) => {
+            if (feedbackTimer > 0) return; // Bloquear clicks mientras muestra feedback
+
+            if (hoverElement === 'btn-start') {
+                quizState = 'playing';
+                currentQuestionIdx = 0;
+                score = 0;
+                buildUI();
+            } else if (hoverElement && hoverElement.startsWith('btn-opt-')) {
+                const optIdx = parseInt(hoverElement.split('-')[2]);
+                const correctIdx = questions[currentQuestionIdx].ans;
+                
+                if (optIdx === correctIdx) {
+                    score++;
+                    feedbackMsg = "¡Correcto!";
+                    isCorrect = true;
+                } else {
+                    feedbackMsg = "Incorrecto. La respuesta era: " + String.fromCharCode(65 + correctIdx);
+                    isCorrect = false;
+                }
+                
+                feedbackTimer = 90; // Mostrar feedback por 90 frames (~1.5s)
+            } else if (hoverElement === 'btn-restart') {
+                quizState = 'start';
+                buildUI();
+            }
+        });
+
+        // Helper para dibujar rectángulos redondeados
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            if (fill) {
+                ctx.fillStyle = fill;
+                ctx.fill();
+            }
+            if (stroke) {
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = stroke;
+                ctx.stroke();
+            }
+        }
+
+        // Helper para envolver texto (Word Wrap)
+        function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let currentY = y;
+            for(let n = 0; n < words.length; n++) {
+                let testLine = line + words[n] + ' ';
+                let metrics = ctx.measureText(testLine);
+                let testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    ctx.fillText(line, x, currentY);
+                    line = words[n] + ' ';
+                    currentY += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            ctx.fillText(line, x, currentY);
+        }
+
+        // Loop principal del minijuego
+        function drawQuiz() {
+            // Fondo
+            qCtx.fillStyle = '#f0fdf4'; // green-50
+            qCtx.fillRect(0, 0, CANV_W, CANV_H);
+            
+            // Decoración
+            qCtx.fillStyle = '#bbf7d0'; // green-200
+            qCtx.beginPath();
+            qCtx.arc(CANV_W, 0, 150, 0, Math.PI * 2);
+            qCtx.fill();
+            qCtx.beginPath();
+            qCtx.arc(0, CANV_H, 100, 0, Math.PI * 2);
+            qCtx.fill();
+
+            if (quizState === 'start') {
+                qCtx.fillStyle = '#166534'; // green-800
+                qCtx.font = 'bold 40px Inter, sans-serif';
+                qCtx.textAlign = 'center';
+                qCtx.fillText('¡Pon a prueba tus conocimientos!', CANV_W/2, CANV_H/2 - 40);
+                
+                qCtx.font = '20px Inter, sans-serif';
+                qCtx.fillStyle = '#15803d';
+                qCtx.fillText(`Consta de ${questions.length} preguntas de opción múltiple.`, CANV_W/2, CANV_H/2);
+            } 
+            else if (quizState === 'playing') {
+                if (feedbackTimer > 0) {
+                    // Pantalla de Feedback
+                    qCtx.fillStyle = isCorrect ? '#16a34a' : '#dc2626';
+                    qCtx.font = 'bold 50px Inter, sans-serif';
+                    qCtx.textAlign = 'center';
+                    qCtx.fillText(isCorrect ? '¡Excelente!' : '¡Ups!', CANV_W/2, CANV_H/2 - 30);
+                    
+                    qCtx.font = '24px Inter, sans-serif';
+                    qCtx.fillStyle = '#374151';
+                    qCtx.fillText(feedbackMsg, CANV_W/2, CANV_H/2 + 20);
+
+                    feedbackTimer--;
+                    if (feedbackTimer === 0) {
+                        currentQuestionIdx++;
+                        if (currentQuestionIdx >= questions.length) {
+                            quizState = 'end';
+                        }
+                        buildUI();
+                    }
+                } else {
+                    // Indicador de pregunta
+                    qCtx.fillStyle = '#15803d'; // green-700
+                    qCtx.font = 'bold 20px Inter, sans-serif';
+                    qCtx.textAlign = 'left';
+                    qCtx.fillText(`Pregunta ${currentQuestionIdx + 1} de ${questions.length}`, 40, 50);
+                    
+                    // Puntaje
+                    qCtx.textAlign = 'right';
+                    qCtx.fillText(`Puntaje: ${score}`, CANV_W - 40, 50);
+
+                    // Pregunta
+                    qCtx.fillStyle = '#111827'; // gray-900
+                    qCtx.font = 'bold 28px Inter, sans-serif';
+                    qCtx.textAlign = 'center';
+                    wrapText(qCtx, questions[currentQuestionIdx].q, CANV_W/2, 110, 700, 35);
+                }
+            }
+            else if (quizState === 'end') {
+                qCtx.fillStyle = '#166534';
+                qCtx.font = 'bold 50px Inter, sans-serif';
+                qCtx.textAlign = 'center';
+                qCtx.fillText('¡Prueba Finalizada!', CANV_W/2, CANV_H/2 - 60);
+
+                qCtx.fillStyle = '#1f2937';
+                qCtx.font = 'bold 36px Inter, sans-serif';
+                let notaFinal = (score === questions.length) ? '¡Excelente puntaje!' : '¡Sigue practicando!';
+                qCtx.fillText(`Obtuviste ${score} de ${questions.length} correctas.`, CANV_W/2, CANV_H/2);
+                
+                qCtx.font = '24px Inter, sans-serif';
+                qCtx.fillStyle = '#047857';
+                qCtx.fillText(notaFinal, CANV_W/2, CANV_H/2 + 40);
+            }
+
+            // Dibujar Botones si no hay feedback
+            if (feedbackTimer === 0) {
+                uiElements.forEach(btn => {
+                    const isHover = hoverElement === btn.id;
+                    const fillColor = isHover ? btn.bgHover : btn.bg;
+                    
+                    roundRect(qCtx, btn.x, btn.y, btn.w, btn.h, 15, fillColor, btn.stroke || null);
+                    
+                    qCtx.fillStyle = btn.color;
+                    qCtx.font = 'bold 20px Inter, sans-serif';
+                    qCtx.textAlign = 'center';
+                    qCtx.textBaseline = 'middle';
+                    qCtx.fillText(btn.text, btn.x + btn.w/2, btn.y + btn.h/2);
+                    qCtx.textBaseline = 'alphabetic'; // Reset
+                });
+            }
+
+            requestAnimationFrame(drawQuiz);
+        }
+
+        // Inicializar UI al cargar
+        buildUI();
+        drawQuiz();
+
+    </script>
+</body>
+</html>
