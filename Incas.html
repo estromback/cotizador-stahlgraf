@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aventura Inca - 4° Básico</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #fdf6ec;
+      background-image: radial-gradient(#ecd5b5 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+    }
+    h1, h2, h3, .font-title {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1ebd9;
+      border-radius: 10px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #d4a373;
+      border-radius: 10px;
+    }
+    .inca-card {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .inca-card:hover {
+      transform: translateY(-4px);
+    }
+    @keyframes pulse-gold {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.6); }
+      50% { box-shadow: 0 0 0 14px rgba(234, 179, 8, 0); }
+    }
+    .pulse-sun {
+      animation: pulse-gold 2.5s infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-stone-800 flex flex-col justify-between">
+
+  <!-- BARRA DE NAVEGACIÓN SUPERIOR -->
+  <header class="bg-amber-600 text-white shadow-lg sticky top-0 z-50 border-b-4 border-amber-800">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="navigate('home')">
+        <div class="w-11 h-11 bg-yellow-400 text-amber-950 rounded-full flex items-center justify-center font-bold text-2xl shadow-inner border-2 border-amber-700 pulse-sun">
+          ☀️
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold tracking-wide leading-none">Aventura Inca</h1>
+          <span class="text-xs text-amber-200 font-bold uppercase tracking-wider">Historia para 4° Básico</span>
+        </div>
+      </div>
+      
+      <!-- BOTONES DE SECCIÓN -->
+      <nav class="flex items-center space-x-2">
+        <button onclick="navigate('home')" class="px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-bold text-sm bg-amber-700 hover:bg-amber-800 transition flex items-center space-x-1.5 shadow">
+          <i class="fa-solid fa-house"></i>
+          <span class="hidden sm:inline">Inicio</span>
+        </button>
+        <button onclick="navigate('repaso')" class="px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 transition flex items-center space-x-1.5 shadow">
+          <i class="fa-solid fa-book-open"></i>
+          <span>Repaso</span>
+        </button>
+        <div class="relative group">
+          <button class="px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-bold text-sm bg-yellow-500 hover:bg-yellow-600 text-amber-950 transition flex items-center space-x-1.5 shadow">
+            <i class="fa-solid fa-trophy"></i>
+            <span>Cuestionarios</span>
+            <i class="fa-solid fa-chevron-down text-xs ml-1"></i>
+          </button>
+          <div class="absolute right-0 mt-1 w-48 bg-white text-stone-800 rounded-2xl shadow-xl py-2 hidden group-hover:block border-2 border-amber-200 z-50">
+            <button onclick="startQuiz(1)" class="w-full text-left px-4 py-2 hover:bg-amber-100 font-bold flex items-center space-x-2 text-sm text-stone-700">
+              <span class="bg-amber-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">1</span>
+              <span>Quiz 1: Manco Cápac</span>
+            </button>
+            <button onclick="startQuiz(2)" class="w-full text-left px-4 py-2 hover:bg-amber-100 font-bold flex items-center space-x-2 text-sm text-stone-700">
+              <span class="bg-orange-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">2</span>
+              <span>Quiz 2: Pachacútec</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main class="max-w-6xl w-full mx-auto p-4 md:p-6 flex-grow">
+
+    <!-- VISTA: INICIO -->
+    <div id="view-home" class="space-y-8 py-4">
+      <!-- Banner de Bienvenida -->
+      <div class="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-6 md:p-10 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden border-4 border-yellow-300">
+        <div class="z-10 max-w-xl text-center md:text-left">
+          <span class="inline-block bg-amber-900 bg-opacity-40 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-3 text-yellow-200 border border-yellow-300/40">
+            ¡Aprende y diviértete!
+          </span>
+          <h2 class="text-3xl md:text-5xl font-black mb-3 leading-tight drop-shadow">¡Explora el Fabuloso Imperio Inca!</h2>
+          <p class="text-amber-100 text-base md:text-lg mb-6 leading-relaxed font-semibold">
+            Descubre cómo vivían, sus peinados de moda, el sagrado Sapa Inca, las terrazas de cultivo, el misterioso quipu y mucho más.
+          </p>
+          <div class="flex flex-wrap gap-3 justify-center md:justify-start">
+            <button onclick="navigate('repaso')" class="px-6 py-3 bg-white text-amber-700 hover:bg-yellow-50 rounded-2xl font-black text-lg shadow-lg transform transition active:scale-95 flex items-center gap-2">
+              <i class="fa-solid fa-graduation-cap text-xl"></i>
+              Comenzar Repaso
+            </button>
+            <button onclick="startQuiz(1)" class="px-6 py-3 bg-yellow-400 hover:bg-yellow-300 text-amber-950 rounded-2xl font-black text-lg shadow-lg transform transition active:scale-95 flex items-center gap-2">
+              <i class="fa-solid fa-play"></i>
+              Hacer Quiz 1 (30 Preguntas)
+            </button>
+          </div>
+        </div>
+        <div class="z-10 flex-shrink-0">
+          <div class="w-48 h-48 md:w-56 md:h-56 bg-amber-100/20 backdrop-blur rounded-full flex flex-col items-center justify-center border-4 border-dashed border-yellow-300 text-center p-4">
+            <span class="text-6xl md:text-7xl mb-2">🏔️</span>
+            <span class="font-black text-xl text-yellow-200">Machu Picchu</span>
+            <span class="text-xs text-amber-100">Cuzco, Perú</span>
+          </div>
+        </div>
+        <!-- Decoraciones de fondo -->
+        <div class="absolute -right-8 -bottom-8 text-9xl text-white opacity-10 select-none">☀️</div>
+        <div class="absolute left-1/3 -top-10 text-9xl text-white opacity-5 select-none">🌽</div>
+      </div>
+
+      <!-- Tarjetas de Acceso Rápido -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Tarjeta 1: Repaso -->
+        <div onclick="navigate('repaso')" class="inca-card bg-white rounded-3xl p-6 shadow-md border-3 border-emerald-400 cursor-pointer flex flex-col justify-between">
+          <div>
+            <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-3xl mb-4">
+              📖
+            </div>
+            <h3 class="text-2xl font-bold text-stone-800 mb-2">Módulo de Repaso</h3>
+            <p class="text-stone-600 text-sm leading-relaxed mb-4">
+              Revisa todos los temas clave: la sociedad, el Sapa Inca, la escuela, el dios Inti, los quipus y Machu Picchu con resúmenes claros.
+            </p>
+          </div>
+          <span class="inline-flex items-center text-emerald-600 font-bold text-sm gap-1">
+            Estudiar temas <i class="fa-solid fa-arrow-right text-xs"></i>
+          </span>
+        </div>
+
+        <!-- Tarjeta 2: Quiz 1 -->
+        <div onclick="startQuiz(1)" class="inca-card bg-white rounded-3xl p-6 shadow-md border-3 border-amber-400 cursor-pointer flex flex-col justify-between">
+          <div>
+            <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl mb-4">
+              🎯
+            </div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-2xl font-bold text-stone-800">Quiz 1: Reto Sol</h3>
+              <span class="bg-amber-100 text-amber-800 text-xs font-extrabold px-2.5 py-1 rounded-full">30 preguntas</span>
+            </div>
+            <p class="text-stone-600 text-sm leading-relaxed mb-4">
+              Preguntas variadas sobre el origen, la realeza, los plebeyos, la agricultura en terrazas y los increíbles puentes y caminos.
+            </p>
+          </div>
+          <span class="inline-flex items-center text-amber-600 font-bold text-sm gap-1">
+            Jugar Quiz 1 <i class="fa-solid fa-play text-xs"></i>
+          </span>
+        </div>
+
+        <!-- Tarjeta 3: Quiz 2 -->
+        <div onclick="startQuiz(2)" class="inca-card bg-white rounded-3xl p-6 shadow-md border-3 border-orange-400 cursor-pointer flex flex-col justify-between">
+          <div>
+            <div class="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-3xl mb-4">
+              👑
+            </div>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-2xl font-bold text-stone-800">Quiz 2: Gran Imperio</h3>
+              <span class="bg-orange-100 text-orange-800 text-xs font-extrabold px-2.5 py-1 rounded-full">30 preguntas</span>
+            </div>
+            <p class="text-stone-600 text-sm leading-relaxed mb-4">
+              ¡Otro cuestionario diferente! Pon a prueba lo que sabes del dios Inti, el quipu, la llegada de los españoles y datos asombrosos.
+            </p>
+          </div>
+          <span class="inline-flex items-center text-orange-600 font-bold text-sm gap-1">
+            Jugar Quiz 2 <i class="fa-solid fa-play text-xs"></i>
+          </span>
+        </div>
+      </div>
+
+      <!-- Datos Rápidos Curiosos -->
+      <div class="bg-amber-100/70 border-2 border-amber-300 rounded-3xl p-6">
+        <h3 class="text-xl font-bold text-amber-900 mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-lightbulb text-yellow-600"></i> ¿Sabías qué? (Datos de tu presentación)
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-stone-700">
+          <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-amber-200">
+            <span class="font-bold text-amber-800 block mb-1">🏃‍♂️ Sistema de Correos</span>
+            No tenían escritura. Enviaban mensajes de boca en boca corriendo por los caminos, ¡como el juego del teléfono!
+          </div>
+          <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-amber-200">
+            <span class="font-bold text-amber-800 block mb-1">🛣️ 30.000 Kilómetros</span>
+            Construyeron casi 30 mil km de carreteras y puentes, aunque a los campesinos les prohibían usarlos.
+          </div>
+          <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-amber-200">
+            <span class="font-bold text-amber-800 block mb-1">👂 Orejas Estiradas</span>
+            Los nobles usaban aros muy pesados para alargar sus orejas a la moda y peinados especiales por familia.
+          </div>
+          <div class="bg-white p-3.5 rounded-2xl shadow-sm border border-amber-200">
+            <span class="font-bold text-amber-800 block mb-1">🗣️ 8 Millones</span>
+            Hoy en día, casi 8 millones de personas todavía hablan quechua, el idioma original de los incas.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA: REPASO -->
+    <div id="view-repaso" class="hidden space-y-6 py-2">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl shadow-sm border-2 border-amber-200">
+        <div>
+          <span class="text-xs uppercase font-extrabold text-amber-600 bg-amber-100 px-3 py-1 rounded-full">Guía de Estudio</span>
+          <h2 class="text-3xl font-black text-stone-800 mt-2">Módulo de Repaso Interactivo</h2>
+          <p class="text-stone-600 text-sm mt-1">Haz clic en cada tema para leer los puntos más importantes que saldrán en las preguntas.</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="startQuiz(1)" class="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-sm shadow transition flex items-center gap-2">
+            <i class="fa-solid fa-play"></i> Dar Quiz 1
+          </button>
+          <button onclick="startQuiz(2)" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-sm shadow transition flex items-center gap-2">
+            <i class="fa-solid fa-play"></i> Dar Quiz 2
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjetas de Repaso Accordion / Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        
+        <!-- Tema 1 -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border-2 border-stone-200 hover:border-amber-400 transition">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-3xl p-2 bg-amber-100 rounded-2xl">🏛️</span>
+            <div>
+              <h3 class="text-xl font-bold text-amber-900">1. ¿Quiénes fueron y su origen?</h3>
+              <span class="text-xs text-amber-700 font-semibold">1400 a 1533 d.C.</span>
+            </div>
+          </div>
+          <ul class="space-y-2 text-stone-700 text-sm list-disc list-inside">
+            <li>Eran el <strong>imperio más importante</strong> de los pueblos nativos de Sudamérica.</li>
+            <li>Al principio eran una pequeña tribu de <strong>Cuzco (en Perú)</strong>.</li>
+            <li>En 1400 conquistaron una tribu vecina y luego se expandieron de norte a sur.</li>
+            <li>Hablaban su propio idioma: el <strong>quechua</strong>.</li>
+            <li>Practicaron la <strong>neurocirugía</strong> y construyeron asombrosas carreteras y puentes.</li>
+          </ul>
+        </div>
+
+        <!-- Tema 2 -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border-2 border-stone-200 hover:border-amber-400 transition">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-3xl p-2 bg-yellow-100 rounded-2xl">👑</span>
+            <div>
+              <h3 class="text-xl font-bold text-amber-900">2. El Sapa Inca (El Emperador)</h3>
+              <span class="text-xs text-yellow-700 font-semibold">Considerado un dios</span>
+            </div>
+          </div>
+          <ul class="space-y-2 text-stone-700 text-sm list-disc list-inside">
+            <li><strong>Sapa Inca</strong> significa <em>"hijo del sol"</em>. Dueño de todo y hacía las leyes.</li>
+            <li>Todo lo que tocaba era <strong>sagrado</strong>: usaba un traje una sola vez y luego se quemaba.</li>
+            <li>Llevaba un tocado de <strong>oro puro y plumas</strong>. Su cara se cubría con tela traslúcida.</li>
+            <li>Lo transportaban en una <strong>silla reclinable</strong>.</li>
+            <li>Al morir era <strong>momificado</strong> y permanecía en su palacio. El nuevo emperador construía un palacio nuevo.</li>
+          </ul>
+        </div>
+
+        <!-- Tema 3 -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border-2 border-stone-200 hover:border-amber-400 transition">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-3xl p-2 bg-purple-100 rounded-2xl">💎</span>
+            <div>
+              <h3 class="text-xl font-bold text-amber-900">3. La Sociedad: Nobles y Plebeyos</h3>
+              <span class="text-xs text-purple-700 font-semibold">Desigualdad social</span>
+            </div>
+          </div>
+          <ul class="space-y-2 text-stone-700 text-sm list-disc list-inside">
+            <li><strong>La Realeza (Nobles):</strong> Vida lujosa, dueños de tierras. Usaban peinados distintos por familia y <em>aretes pesados que alargaban el lóbulo</em>.</li>
+            <li><strong>Los Plebeyos:</strong> Mayoría campesina. Tenían muy poca libertad (solo tiempo para comer, asearse y dormir).</li>
+            <li>Los campesinos debían entregar gran parte de su comida a los nobles y al emperador.</li>
+            <li><strong>Las Carreteras:</strong> Los campesinos las construían, pero ¡la ley les prohibía caminar por ellas!</li>
+          </ul>
+        </div>
+
+        <!-- Tema 4 -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border-2 border-stone-200 hover:border-amber-400 transition">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-3xl p-2 bg-blue-100 rounded-2xl">🏫</span>
+            <div>
+              <h3 class="text-xl font-bold text-amber-900">4. Escuelas y Educación</h3>
+              <span class="text-xs text-blue-700 font-semibold">¿Quiénes iban a la escuela?</span>
+            </div>
+          </div>
+          <ul class="space-y-2 text-stone-700 text-sm list-disc list-inside">
+            <li>Se crearon para capacitar a personas para gobernar aldeas y cobrar impuestos.</li>
+            <li><strong>¡Solo los hijos de familias nobles podían ir!</strong></li>
+            <li>Hacían un <strong>test de inteligencia</strong> para elegir qué niños nobles entraban.</li>
+            <li>Los hijos de los plebeyos no iban a la escuela: aprendían en casa a cultivar, cocinar, limpiar y coser.</li>
+          </ul>
+        </div>
+
+        <!-- Tema 5 -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border-2 border-stone-200 hover:border-amber-400 transition">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-3xl p-2 bg-red-100 rounded-2xl">☀️</span>
+            <div>
+              <h3 class="text-xl font-bold text-amber-900">5. Religión y el Dios Inti</h3>
+              <span class="text-xs text-red-700 font-semibold">El Sol como deidad suprema</span>
+            </div>
+          </div>
+          <ul class="space-y-2 text-stone-700 text-sm list-disc list-inside">
+            <li>Eran politeístas (adoraban a muchos dioses y diosas).</li>
+            <li>El más importante era <strong>Inti, el dios del sol</strong>.</li>
+            <li>El festival de Inti se celebraba en <strong>junio y duraba 9 días</strong> con bailes y sacrificios de animales.</li>
+            <li>Al cuarto día, todos levantaban los brazos al sol y hacían un <strong>sonido de beso</strong> en señal de agradecimiento.</li>
+          </ul>
+        </div>
+
+        <!-- Tema 6 -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border-2 border-stone-200 hover:border-amber-400 transition">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-3xl p-2 bg-green-100 rounded-2xl">🌽</span>
+            <div>
+              <h3 class="text-xl font-bold text-amber-900">6. Agricultura e Inventos</h3>
+              <span class="text-xs text-green-700 font-semibold">Cultivo en terrazas y el Quipu</span>
+            </div>
+          </div>
+          <ul class="space-y-2 text-stone-700 text-sm list-disc list-inside">
+            <li><strong>Cultivo en terrazas:</strong> Escalones en laderas de montañas con acueductos.</li>
+            <li>3 alimentos principales: <strong>maíz, patatas y quinoa</strong> (también tomates, aguacates y plátanos).</li>
+            <li>Secaban y almacenaban comida para el frío invierno.</li>
+            <li><strong>El Quipu:</strong> Cuerdas de colores con nudos para llevar cuentas y registros, ya que no tenían escritura.</li>
+            <li><strong>Calendario:</strong> Llamado <em>"observador del tiempo"</em> para las fiestas religiosas.</li>
+            <li>Instrumentos: la <strong>flauta</strong> y la <strong>zampoña</strong>.</li>
+          </ul>
+        </div>
+
+        <!-- Tema 7 -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border-2 border-stone-200 hover:border-amber-400 transition md:col-span-2">
+          <div class="flex items-center gap-3 mb-3">
+            <span class="text-3xl p-2 bg-stone-200 rounded-2xl">⚔️</span>
+            <div>
+              <h3 class="text-xl font-bold text-amber-900">7. Caída del Imperio y Datos Asombrosos</h3>
+              <span class="text-xs text-stone-600 font-semibold">1528 a 1572 d.C. y legado actual</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-stone-700 text-sm">
+            <ul class="space-y-2 list-disc list-inside">
+              <li>En 1528 hubo una <strong>guerra civil de 5 años</strong> por el trono inca que los debilitó.</li>
+              <li>Llegó el conquistador <strong>Francisco Pizarro</strong> atraído por el oro y las joyas.</li>
+              <li>Enfermedades como la <strong>viruela</strong> diezmaron a la población.</li>
+              <li>En <strong>1572</strong> fue ejecutado el último emperador inca.</li>
+            </ul>
+            <ul class="space-y-2 list-disc list-inside">
+              <li>Construían con piedras que encajaban perfecto y resistían terremotos.</li>
+              <li>Los nobles vendaban con tablas la cabeza de sus bebés para tener <strong>cráneos alargados</strong> como signo de belleza.</li>
+              <li>Hoy en día <strong>Machu Picchu</strong> sigue maravillando al mundo.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- VISTA: QUIZ INTERACTIVO -->
+    <div id="view-quiz" class="hidden">
+      <!-- Tarjeta del Quiz -->
+      <div class="bg-white rounded-3xl shadow-xl border-3 border-amber-300 overflow-hidden max-w-3xl mx-auto">
+        
+        <!-- Header del Quiz -->
+        <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 text-white flex items-center justify-between">
+          <div>
+            <span id="quiz-badge" class="bg-amber-900/40 text-yellow-200 text-xs font-black uppercase px-2.5 py-1 rounded-full border border-yellow-200/40">
+              Quiz 1
+            </span>
+            <h2 id="quiz-title-header" class="text-2xl font-bold mt-1">Cuestionario Inca</h2>
+          </div>
+          <div class="text-right">
+            <div class="text-xs uppercase tracking-wider text-amber-200 font-bold">Progreso</div>
+            <div class="text-2xl font-black"><span id="q-current">1</span><span class="text-amber-200 text-lg"> / 30</span></div>
+          </div>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="w-full bg-amber-100 h-2.5">
+          <div id="quiz-progress-bar" class="bg-yellow-400 h-2.5 transition-all duration-300" style="width: 3.33%;"></div>
+        </div>
+
+        <!-- Contenido de la Pregunta -->
+        <div class="p-6 md:p-8 space-y-6">
+          <div class="flex items-start gap-3">
+            <span id="q-number-pill" class="bg-amber-100 text-amber-800 font-black rounded-2xl w-10 h-10 flex-shrink-0 flex items-center justify-center text-lg border-2 border-amber-300">
+              1
+            </span>
+            <p id="q-text" class="text-xl md:text-2xl font-bold text-stone-800 leading-snug">
+              Cargando pregunta...
+            </p>
+          </div>
+
+          <!-- Opciones Aleatorias -->
+          <div id="q-options" class="grid grid-cols-1 gap-3">
+            <!-- Las opciones se inyectan dinámicamente con JavaScript -->
+          </div>
+
+          <!-- Retroalimentación inmediata -->
+          <div id="q-feedback" class="hidden p-4 rounded-2xl text-sm font-semibold flex items-center gap-3">
+            <!-- Mensaje de correcto / incorrecto -->
+          </div>
+
+          <!-- Botón de Siguiente Pregunta -->
+          <div class="flex justify-end pt-2">
+            <button id="btn-next" onclick="nextQuestion()" disabled class="px-6 py-3 bg-stone-300 text-stone-500 cursor-not-allowed font-black rounded-2xl transition shadow-md flex items-center gap-2">
+              <span>Siguiente Pregunta</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA: RESULTADOS Y REVISIÓN DE ERRORES -->
+    <div id="view-results" class="hidden space-y-6 max-w-4xl mx-auto py-2">
+      <!-- Tarjeta de Puntaje y Felicitación -->
+      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-xl border-4 border-amber-400 text-center relative overflow-hidden">
+        <div id="result-emoji" class="text-6xl mb-2">🎉</div>
+        <h2 id="result-title" class="text-3xl md:text-4xl font-black text-amber-900 mb-2">¡Excelente Trabajo!</h2>
+        <p id="result-message" class="text-stone-600 font-bold max-w-md mx-auto mb-6">
+          Has completado las 30 preguntas de este cuestionario.
+        </p>
+
+        <!-- Estadísticas -->
+        <div class="grid grid-cols-3 gap-3 max-w-lg mx-auto mb-6">
+          <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200">
+            <span class="text-xs uppercase font-extrabold text-stone-500 block">Puntaje</span>
+            <span id="score-points" class="text-3xl md:text-4xl font-black text-amber-700">0 / 30</span>
+          </div>
+          <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
+            <span class="text-xs uppercase font-extrabold text-emerald-600 block">Correctas</span>
+            <span id="score-correct" class="text-3xl md:text-4xl font-black text-emerald-600">0</span>
+          </div>
+          <div class="bg-rose-50 p-4 rounded-2xl border border-rose-200">
+            <span class="text-xs uppercase font-extrabold text-rose-600 block">A Mejorar</span>
+            <span id="score-wrong" class="text-3xl md:text-4xl font-black text-rose-600">0</span>
+          </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="flex flex-wrap gap-3 justify-center">
+          <button id="btn-retry-same" onclick="retryCurrentQuiz()" class="px-5 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black text-base shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-rotate-right"></i> Repetir este Quiz
+          </button>
+          <button id="btn-switch-quiz" onclick="switchQuizAction()" class="px-5 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black text-base shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-forward"></i> <span id="switch-quiz-label">Probar el Quiz 2</span>
+          </button>
+          <button onclick="navigate('repaso')" class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-base shadow-md transition flex items-center gap-2">
+            <i class="fa-solid fa-book-open"></i> Volver a Repasar
+          </button>
+        </div>
+      </div>
+
+      <!-- SECCIÓN: REVISIÓN DE RESPUESTAS (Especial énfasis en las malas) -->
+      <div class="bg-white rounded-3xl p-6 md:p-8 shadow-md border-2 border-stone-200">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 mb-6">
+          <div>
+            <h3 class="text-2xl font-black text-stone-800 flex items-center gap-2">
+              <i class="fa-solid fa-magnifying-glass text-amber-600"></i> Revisión de Preguntas
+            </h3>
+            <p class="text-stone-500 text-sm mt-0.5">Revisa en qué acertaste y aprende de los errores para la próxima vez.</p>
+          </div>
+          
+          <!-- Filtro: Todas o Solo Errores -->
+          <div class="flex bg-stone-100 p-1 rounded-2xl border border-stone-300">
+            <button id="filter-all" onclick="filterReview('all')" class="px-3 py-1.5 rounded-xl font-bold text-xs bg-white text-stone-800 shadow">
+              Todas (30)
+            </button>
+            <button id="filter-wrong" onclick="filterReview('wrong')" class="px-3 py-1.5 rounded-xl font-bold text-xs text-stone-600 hover:text-stone-900">
+              Solo Errores (<span id="filter-wrong-count">0</span>)
+            </button>
+          </div>
+        </div>
+
+        <!-- Lista de Respuestas Revisadas -->
+        <div id="review-list" class="space-y-4">
+          <!-- Se inyecta dinámicamente -->
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- PIE DE PÁGINA -->
+  <footer class="bg-stone-800 text-stone-400 py-6 text-center text-sm border-t-4 border-amber-600 mt-8">
+    <div class="max-w-6xl mx-auto px-4 space-y-1">
+      <p class="font-bold text-stone-300">Aplicación Educativa Interactiva: Los Incas</p>
+      <p class="text-xs text-stone-500">Diseñado especialmente para estudiantes de 4° básico basado en el material del Imperio Inca.</p>
+    </div>
+  </footer>
+
+  <!-- SCRIPT CON DATOS Y LÓGICA -->
+  <script>
+    /* =====================================================================
+       BANCO DE PREGUNTAS (Basado estrictamente en la PPT)
+       ===================================================================== */
+    
+    // QUIZ 1 (30 preguntas)
+    const questionsQuiz1 = [
+      {
+        q: "¿Entre qué años existió la gran civilización de los incas?",
+        correct: "Entre 1400 y 1533",
+        wrong: ["Entre 1800 y 1950", "Entre 500 y 800", "Entre 2000 y 2020"],
+        exp: "La civilización inca floreció entre los años 1400 y 1533, cuando crearon su gran imperio."
+      },
+      {
+        q: "¿De qué lugar eran originarios los incas antes de expandirse?",
+        correct: "Eran una pequeña tribu de Cuzco, en Perú",
+        wrong: ["Venían de una isla en el océano Atlántico", "Eran una tribu de Santiago de Chile", "Venían de las playas de Brasil"],
+        exp: "Los incas comenzaron como una pequeña tribu en Cuzco (Perú) y luego conquistaron a las tribus vecinas."
+      },
+      {
+        q: "¿Qué idioma propio hablaban los incas?",
+        correct: "El quechua",
+        wrong: ["El español", "El inglés", "El mapudungún"],
+        exp: "El idioma oficial del imperio era el quechua, el cual todavía se habla hoy."
+      },
+      {
+        q: "¿Qué significa el nombre 'Sapa Inca'?",
+        correct: "Hijo del sol",
+        wrong: ["Rey de la montaña", "Guerrero valiente", "Constructor de puentes"],
+        exp: "Sapa Inca significa 'hijo del sol' y era considerado una figura sagrada y un dios."
+      },
+      {
+        q: "¿Quién era la persona más importante en el imperio que todos debían obedecer?",
+        correct: "El Sapa Inca (el emperador)",
+        wrong: ["Los sacerdotes españoles", "El campesino más anciano", "El jefe de los carteros"],
+        exp: "El Sapa Inca era la máxima autoridad: el dueño de todo y el creador de las leyes."
+      },
+      {
+        q: "¿Qué hacían con la ropa del Sapa Inca después de que la usaba una sola vez?",
+        correct: "Se quemaba en una ceremonia especial",
+        wrong: ["Se la regalaban a los campesinos", "La lavaban y la guardaban en el museo", "La vendían a tribus vecinas"],
+        exp: "Como todo lo que el emperador tocaba era considerado sagrado, solo usaba cada traje una vez y luego se quemaba."
+      },
+      {
+        q: "¿Cómo se transportaba el Sapa Inca cuando salía de su palacio?",
+        correct: "Sus sirvientes lo llevaban en una silla reclinable",
+        wrong: ["Iba montado a caballo", "Caminaba descalzo sobre piedras", "Viajaba en carruajes con ruedas"],
+        exp: "El emperador era llevado en andas o en una silla reclinable cargada por sus sirvientes."
+      },
+      {
+        q: "¿Por qué el Sapa Inca se cubría la cara con una tela traslúcida?",
+        correct: "Porque era considerado tan especial que nadie podía mirarlo directamente",
+        wrong: ["Para protegerse de los mosquitos de la selva", "Porque tenía vergüenza de su barba", "Para no sentir frío en la montaña"],
+        exp: "Al ser considerado sagrado y un dios viviente, nadie tenía permitido mirarlo fijamente al rostro."
+      },
+      {
+        q: "¿Qué ocurría con el cuerpo del Sapa Inca cuando moría?",
+        correct: "Era momificado y permanecía en su palacio",
+        wrong: ["Era enterrado en el mar profundo", "Se quemaba por completo", "Era llevado a una cueva secreta fuera del imperio"],
+        exp: "El cuerpo del Sapa Inca era momificado y su familia seguía viviendo con él en el palacio."
+      },
+      {
+        q: "¿Qué hacía el nuevo emperador tras la muerte de su padre?",
+        correct: "Se mudaba a un nuevo palacio construido solo para él",
+        wrong: ["Dormía en el mismo cuarto de la momia", "Se iba a vivir al campo con los campesinos", "Destruía todas las ciudades"],
+        exp: "El hijo elegido del Sapa Inca mandaba a construir un palacio completamente nuevo para él y su familia."
+      },
+      {
+        q: "¿Qué usaban los hombres de la realeza en sus orejas para estar a la moda?",
+        correct: "Pendientes grandes y pesados para estirar el lóbulo",
+        wrong: ["Plumas de colores dentro de la oreja", "Campanitas de plata que sonaban al caminar", "Aretes diminutos e invisibles"],
+        exp: "Los nobles usaban aretes pesados para estirarse las orejas, lo que consideraban elegante y de alta jerarquía."
+      },
+      {
+        q: "¿Cómo se diferenciaban los hombres de distintas familias nobles?",
+        correct: "Cada familia noble llevaba un peinado diferente",
+        wrong: ["Pintándose la cara de color azul", "Usando sombreros de paja idénticos", "Llevando un tatuaje en la frente"],
+        exp: "Los hombres de una misma familia real compartían el mismo peinado para mostrar su estatus y linaje."
+      },
+      {
+        q: "¿A qué grupo social pertenecía la gran mayoría de los habitantes del imperio?",
+        correct: "A los plebeyos (campesinos y agricultores)",
+        wrong: ["A la realeza y los nobles", "A los soldados conquistadores", "A los sacerdotes del templo"],
+        exp: "Casi toda la población inca estaba formada por plebeyos que trabajaban arduamente la tierra."
+      },
+      {
+        q: "¿Qué prohibición tenían los plebeyos a pesar de haber construido las carreteras?",
+        correct: "La ley les prohibía caminar por esas carreteras",
+        wrong: ["Les prohibían mirar las montañas", "Les prohibían comer papas y maíz", "Les prohibían hablar quechua"],
+        exp: "Aunque los plebeyos construían y arreglaban las carreteras, la ley les impedía transitar libremente por ellas."
+      },
+      {
+        q: "¿Qué hacían los plebeyos con la comida que cultivaban?",
+        correct: "Guardaban solo lo necesario para su familia y el resto se lo daban a los nobles y al emperador",
+        wrong: ["Vendían todo en ferias libres", "Se comían absolutamente todo sin pagar nada", "La tiraban al río sagrado"],
+        exp: "Los campesinos debían tributar la mayor parte de su producción agrícola al Sapa Inca y a los nobles."
+      },
+      {
+        q: "¿Quiénes eran los ÚNICOS niños que podían asistir a la escuela inca?",
+        correct: "Solo los hijos de las familias nobles",
+        wrong: ["Todos los niños del imperio por igual", "Solo los hijos de los campesinos más fuertes", "Solo las niñas de Cuzco"],
+        exp: "La educación formal en las escuelas estaba reservada exclusivamente para los hijos de la realeza y la nobleza."
+      },
+      {
+        q: "¿Qué prueba utilizaban los incas para decidir qué niños nobles podían ir a la escuela?",
+        correct: "Un test de inteligencia",
+        wrong: ["Una carrera de 10 kilómetros", "Una pelea con espadas de madera", "Un sorteo con dados"],
+        exp: "Los incas aplicaban una prueba o test de inteligencia para seleccionar a los estudiantes nobles."
+      },
+      {
+        q: "¿Qué aprendían en casa los hijos de los plebeyos al no poder ir a la escuela?",
+        correct: "A cultivar, limpiar, cocinar y coser",
+        wrong: ["A escribir libros en latín", "A navegar barcos gigantes", "A fabricar relojes de arena"],
+        exp: "Los hijos de los campesinos recibían educación práctica de sus padres para las labores diarias del hogar y el campo."
+      },
+      {
+        q: "¿Quién era el dios más importante para los incas?",
+        correct: "Inti, el dios del sol",
+        wrong: ["El dios del viento", "La diosa del mar", "El dios del trueno"],
+        exp: "Inti era la deidad principal y se consideraba que el Sapa Inca era su hijo directo en la tierra."
+      },
+      {
+        q: "¿En qué mes se celebraba el festival más importante en honor al dios Inti?",
+        correct: "En el mes de junio",
+        wrong: ["En diciembre", "En febrero", "En septiembre"],
+        exp: "El magno festival del sol se celebraba en junio, coincidiendo con el solsticio."
+      },
+      {
+        q: "¿Cuántos días duraba el gran festival en honor al dios del sol Inti?",
+        correct: "9 días",
+        wrong: ["1 día", "30 días", "3 meses"],
+        exp: "Durante 9 días el pueblo bailaba, rezaba y ofrecía sacrificios al dios Inti."
+      },
+      {
+        q: "¿Qué gesto hacían los habitantes al sol en el cuarto día del festival?",
+        correct: "Alzaban los brazos y hacían un sonido de beso para agradecer su calor",
+        wrong: ["Se tapaban los ojos y no miraban por 24 horas", "Saltaban en un pie hacia el río", "Gritaban con todas sus fuerzas palabras secretas"],
+        exp: "Los cronistas señalan que levantaban las manos y enviaban un sonido de beso al sol en señal de amor y gratitud."
+      },
+      {
+        q: "¿Qué técnica inventaron los incas para poder cultivar en las empinadas laderas de las montañas?",
+        correct: "El cultivo en terrazas (escalones de tierra)",
+        wrong: ["Los invernaderos de plástico", "Los huertos colgantes en globos", "Los túneles subterráneos oscuros"],
+        exp: "Construyeron terrazas o andenes escalonados en los cerros para ganar terreno plano y fértil."
+      },
+      {
+        q: "¿Cuáles eran los tres alimentos principales de la dieta inca?",
+        correct: "El maíz, las patatas y la quinoa",
+        wrong: ["El arroz, el trigo y la carne de vaca", "Las manzanas, el pan y el queso", "El azúcar, el café y los chocolates"],
+        exp: "El maíz, las papas (patatas) y la quinoa formaban la base fundamental de su alimentación."
+      },
+      {
+        q: "¿Qué utilizaban los incas para llevar agua a sus cultivos en las montañas?",
+        correct: "Conductos o acueductos",
+        wrong: ["Baldes que cargaban a caballo", "Mangueras de goma modernas", "Esperaban únicamente que lloviera"],
+        exp: "Eran grandes ingenieros hidráulicos y crearon acueductos para canalizar el agua de las cumbres."
+      },
+      {
+        q: "¿Qué invento de cuerdas de colores y nudos usaban los incas para llevar cuentas?",
+        correct: "El quipu",
+        wrong: ["El ábaco de madera", "La calculadora de piedra", "La regla graduada"],
+        exp: "El quipu era un sofisticado sistema de cuerdas anudadas para registrar cantidades, impuestos y datos."
+      },
+      {
+        q: "¿Cómo llamaban los incas a su calendario?",
+        correct: "'Observador del tiempo'",
+        wrong: ["'Reloj de las estrellas'", "'Contador de soles'", "'Mapa de la luna'"],
+        exp: "Le decían 'observador del tiempo' y les permitía coordinar las cosechas y festivales religiosos."
+      },
+      {
+        q: "¿Cómo funcionaba el sistema postal o de correos de los incas si no tenían escritura?",
+        correct: "Se pasaban mensajes orales de persona a persona corriendo, como el 'juego del teléfono'",
+        wrong: ["Enviaban palomas mensajeras con cartas escritas", "Encendían señales de humo gigantes", "Usaban botellas lanzadas a los ríos"],
+        exp: "Los mensajeros (chasquis) memorizaban los recados y se los transmitían oralmente en relevos continuos."
+      },
+      {
+        q: "¿Quién fue el explorador español que llegó a Cuzco atraído por el oro inca?",
+        correct: "Francisco Pizarro",
+        wrong: ["Cristóbal Colón", "Hernán Cortés", "Fernando de Magallanes"],
+        exp: "Francisco Pizarro y sus huestes llegaron al Cuzco en busca de riquezas doradas."
+      },
+      {
+        q: "¿Qué famosa ciudad inca construida en piedra aún se puede visitar en el Perú actual?",
+        correct: "Machu Picchu",
+        wrong: ["Tenochtitlán", "Chichén Itzá", "Rapa Nui"],
+        exp: "Machu Picchu es una de las construcciones incas más impresionantes y famosas del mundo."
+      }
+    ];
+
+    // QUIZ 2 (30 preguntas diferentes y complementarias)
+    const questionsQuiz2 = [
+      {
+        q: "¿Alrededor de cuántos kilómetros de carreteras lograron construir los incas?",
+        correct: "Casi 30.000 kilómetros",
+        wrong: ["Solo 100 kilómetros", "Aproximadamente 500 kilómetros", "Más de un millón de kilómetros"],
+        exp: "Construyeron una red vial colosal de casi 30.000 km que conectaba todo su vasto imperio."
+      },
+      {
+        q: "¿Tenían los incas un sistema de idioma escrito en papel o libros?",
+        correct: "No tenían idioma escrito; usaban los quipus para registrar información",
+        wrong: ["Sí, escribían con tinta en hojas de palma", "Escribían en jeroglíficos sobre láminas de oro", "Tenían una imprenta moderna"],
+        exp: "El quechua no era un idioma escrito; para registrar números e historias utilizaban los quipus."
+      },
+      {
+        q: "¿Por qué los edificios incas podían resistir los terremotos?",
+        correct: "Porque encajaban bloques de piedra con tanta perfección que no se caían",
+        wrong: ["Porque los hacían de goma y madera elástica", "Porque los pegaban con cemento moderno", "Porque eran carpas de tela liviana"],
+        exp: "Tallaban y pulían las piedras de tal forma que encajaban milimétricamente sin pegamento, resistiendo fuertes sismos."
+      },
+      {
+        q: "¿Qué extraña costumbre de belleza realizaban los nobles incas en la cabeza de sus bebés?",
+        correct: "Les vendaban la cabeza con tablas para que el cráneo creciera alargado",
+        wrong: ["Les afeitaban todo el pelo para siempre", "Les pintaban el cráneo de color amarillo oro", "Les colocaban coronas de hierro muy ajustadas"],
+        exp: "Consideraban los cráneos alargados un símbolo de belleza y nobleza, usando tablas de madera durante el crecimiento."
+      },
+      {
+        q: "¿Qué tipo de medicina avanzada practicaron los incas con gran destreza en el cráneo?",
+        correct: "La neurocirugía (operaciones en la cabeza)",
+        wrong: ["Cirugía con láser", "Trasplantes de corazón artificial", "Vacunas en inyecciones"],
+        exp: "Eran pioneros en realizar trepanaciones y cirugías complejas en la cabeza (neurocirugía)."
+      },
+      {
+        q: "¿Qué instrumentos musicales de viento inventaron y tocaron los incas?",
+        correct: "La flauta y la zampoña",
+        wrong: ["El piano y la guitarra eléctrica", "La trompeta de metal y la batería", "El acordeón y el violín"],
+        exp: "Fabricaban instrumentos musicales tradicionales como flautas de caña y zampoñas de múltiples tubos."
+      },
+      {
+        q: "¿Qué frutas y vegetales, además de los tres principales, cultivaban los incas?",
+        correct: "Plátanos, tomates y aguacates",
+        wrong: ["Sandías, kiwis y lechugas europeas", "Naranjas, manzanas y uvas", "Trigo, cebada y avena"],
+        exp: "La presentación señala que también cosechaban plátanos, tomates y deliciosos aguacates (paltas)."
+      },
+      {
+        q: "¿Cómo se aseguraban los incas de tener alimento durante los fríos meses de invierno?",
+        correct: "Secaban y almacenaban la comida",
+        wrong: ["Compraban comida en supermercados vecinos", "Se iban a vivir a la selva en invierno", "Cazaban dinosaurios congelados"],
+        exp: "Deshidrataban y secaban productos como la papa (chuño) y la carne para guardarlos en depósitos."
+      },
+      {
+        q: "¿Qué persona especializada se encargaba de interpretar y contar con los quipus?",
+        correct: "Un especialista en quipus (quipucamayoc)",
+        wrong: ["Cualquier campesino sin entrenamiento", "Solo los exploradores españoles", "Los niños menores de 5 años"],
+        exp: "Solo los expertos sabían leer el significado exacto de los colores, nudos y distancias en las cuerdas."
+      },
+      {
+        q: "¿De qué materiales estaba hecho el impresionante tocado que llevaba el Sapa Inca?",
+        correct: "Oro puro y plumas",
+        wrong: ["Hierro oxidado y cuero de vaca", "Plástico brillante y diamantes", "Paja común y espinas"],
+        exp: "El emperador lucía una corona o tocado confeccionado con oro puro y vistosas plumas de aves seleccionadas."
+      },
+      {
+        q: "¿Cómo era la ropa del Sapa Inca?",
+        correct: "Estaba cubierta de finas joyas y bordados",
+        wrong: ["Era una túnica vieja y rota para no llamar la atención", "Era una armadura de acero pesado", "Llevaba solo una camisa blanca sencilla"],
+        exp: "Sus prendas estaban ricamente decoradas con piedras preciosas, oro y los más finos tejidos bordados."
+      },
+      {
+        q: "¿Qué ocurrió en el año 1400 con la pequeña tribu inca de Cuzco?",
+        correct: "Se hicieron con el control de una tribu vecina y comenzó su gran expansión",
+        wrong: ["Perdieron todas sus tierras y tuvieron que huir", "Llegaron los españoles inmediatamente", "Dejaron de cultivar y abandonaron las montañas"],
+        exp: "En 1400 iniciaron su era de conquistas sometiendo a una tribu vecina para forjar su gran imperio."
+      },
+      {
+        q: "¿Qué pasaba con los pueblos que los incas conquistaban?",
+        correct: "Los obligaban a convertirse en incas y a trabajar para el imperio",
+        wrong: ["Los enviaban en barcos a otros continentes", "Les permitían no pagar ningún tributo", "Los dejaban completamente libres e independientes"],
+        exp: "Al conquistar tribus, los incas las integraban a su cultura y exigían trabajo y tributos para el imperio."
+      },
+      {
+        q: "¿Cómo era la vida cotidiana de los plebeyos incas?",
+        correct: "Tenían muy poca libertad y trabajaban casi todo el tiempo",
+        wrong: ["Se pasaban el día entero descansando y jugando", "Viajaban de vacaciones por las carreteras", "Iban a palacios a comer con el rey"],
+        exp: "Apenas disponían de tiempo para asearse, alimentarse y descansar; el resto de la jornada trabajaban duro."
+      },
+      {
+        q: "¿En qué trabajaban los plebeyos cuando no estaban en el campo cosechando?",
+        correct: "Construyendo carreteras, en templos o como sirvientes de los nobles",
+        wrong: ["Fabricando aviones de madera", "Pintando cuadros en Europa", "Vendiendo oro en el extranjero"],
+        exp: "Realizaban obras públicas como caminos, puentes, templos o servían en los palacios de la nobleza."
+      },
+      {
+        q: "¿Los miembros de la realeza inca necesitaban trabajar la tierra como los campesinos?",
+        correct: "No, llevaban una vida de lujo y no tenían necesidad de trabajar en el campo",
+        wrong: ["Sí, debían arar la tierra todos los días", "Trabajaban más duro que los plebeyos", "Solo descansaban una hora a la semana"],
+        exp: "Los nobles eran dueños de la tierra pero no la cultivaban; realizaban labores de administración o disfrutaban del lujo."
+      },
+      {
+        q: "¿A qué tareas se dedicaban los nobles si tenían que cumplir una función en el imperio?",
+        correct: "A tareas administrativas, como la recaudación de impuestos",
+        wrong: ["A limpiar los corrales de los campesinos", "A cargar las piedras más pesadas de los templos", "A pescar en botes de junco todo el año"],
+        exp: "Ayudaban al emperador en la administración del estado y el cobro de tributos e impuestos."
+      },
+      {
+        q: "¿Por qué el gobierno inca creó escuelas para los jóvenes nobles?",
+        correct: "Porque el imperio crecía y necesitaban gente preparada para gobernar aldeas y cobrar impuestos",
+        wrong: ["Para enseñarles a jugar videojuegos antiguos", "Para que los nobles aprendieran a cosechar papas", "Para preparar a exploradores para ir a Asia"],
+        exp: "Al expandirse tanto el territorio, requerían administradores preparados para guiar las aldeas."
+      },
+      {
+        q: "¿Qué creían los incas sobre el origen divino del Sapa Inca?",
+        correct: "Creían que era el hijo de Inti, el dios del sol",
+        wrong: ["Creían que venía de las estrellas del sur", "Creían que era un hombre común sin poderes", "Pensaban que era un espíritu del agua"],
+        exp: "Para la cosmovisión inca, el emperador encarnaba al hijo directo del dios Inti."
+      },
+      {
+        q: "¿Qué ofrecían los incas al dios sol durante los nueve días de su festival?",
+        correct: "Bailes, comida y sacrificios de animales en su honor",
+        wrong: ["Dinero en billetes y monedas de plata", "Coches de madera con ruedas", "Castillos de arena en la playa"],
+        exp: "Rendían tributo al sol con ofrendas agrícolas, animales y alegres danzas tradicionales."
+      },
+      {
+        q: "¿Por qué fue fundamental el invento del cultivo en terrazas para los incas?",
+        correct: "Porque vivían en montañas y era muy difícil encontrar terreno plano para sembrar",
+        wrong: ["Porque querían que las plantas estuvieran más cerca de las nubes", "Porque no les gustaba caminar en plano", "Para que los animales no se comieran las flores"],
+        exp: "En las cordilleras abruptas, las terrazas creaban superficies planas aptas para la siembra."
+      },
+      {
+        q: "¿Para qué servía principalmente el calendario 'observador del tiempo'?",
+        correct: "Para saber con exactitud cuándo realizar sus festivales religiosos y cosechas",
+        wrong: ["Para contar los cumpleaños de los sirvientes", "Para saber la hora exacta del almuerzo", "Para planear viajes en tren"],
+        exp: "El calendario astronómico ordenaba la vida ritual, sagrada y agrícola de todo el pueblo."
+      },
+      {
+        q: "¿Qué grave conflicto interno dividió al Imperio inca en el año 1528?",
+        correct: "Una guerra civil para decidir quién sería el próximo emperador",
+        wrong: ["Una pelea entre campesinos por las semillas de maíz", "Un torneo de juegos con pelota", "Una discusión sobre qué ropa quemar"],
+        exp: "En 1528 estalló una sangrienta guerra civil de 5 años por la sucesión al trono del Sapa Inca."
+      },
+      {
+        q: "¿Qué efecto provocó la guerra civil de 5 años en los habitantes del imperio?",
+        correct: "Muchos murieron y los sobrevivientes quedaron agotados y debilitados",
+        wrong: ["Hizo que el imperio fuera más rico y poderoso que nunca", "Todos los soldados se volvieron amigos de inmediato", "No cambió nada en la vida inca"],
+        exp: "La guerra fratricida dejó al imperio diezmado, facilitando la invasión extranjera."
+      },
+      {
+        q: "¿Qué enfermedad traída por los exploradores españoles mató a casi toda la población inca?",
+        correct: "La viruela",
+        wrong: ["La gripe común", "El dolor de muelas", "La alergia al maíz"],
+        exp: "Las epidemias desconocidas en América, como la viruela, causaron estragos masivos entre los nativos."
+      },
+      {
+        q: "¿En qué año mataron los conquistadores españoles al último emperador inca?",
+        correct: "En 1572",
+        wrong: ["En 1400", "En 1810", "En 1999"],
+        exp: "En 1572 cayó el último foco de resistencia y fue ejecutado el último Sapa Inca."
+      },
+      {
+        q: "¿Cuántas personas aproximadamente hablan todavía el idioma quechua en la actualidad?",
+        correct: "Unos 8 millones de personas (especialmente en Perú)",
+        wrong: ["Solo 50 personas ancianas", "Nadie en el mundo", "Más de mil millones de personas"],
+        exp: "Aproximadamente 8 millones de descendientes continúan hablando la hermosa lengua quechua."
+      },
+      {
+        q: "¿Qué ocurría con las posesiones y la comida de las tribus cuando los incas las conquistaban?",
+        correct: "Los incas les quitaban sus bienes y necesitaban el quipu para llevar el registro",
+        wrong: ["Se las devolvían dobladas como regalo", "Las quemaban todas en el río", "Las enviaban a otros países lejanos"],
+        exp: "Para inventariar y controlar los recursos de los pueblos sometidos, perfeccionaron el uso del quipu."
+      },
+      {
+        q: "¿Quiénes continuaban viviendo en el palacio junto a la momia del Sapa Inca fallecido?",
+        correct: "Su familia y sus sirvientes",
+        wrong: ["Los campesinos más pobres de la aldea", "Los soldados enemigos", "Nadie, el palacio se cerraba con llave para siempre"],
+        exp: "El linaje y servidores del emperador difunto continuaban atendiéndolo y habitando su palacio."
+      },
+      {
+        q: "¿Por qué los incas son considerados una de las civilizaciones más asombrosas de Sudamérica?",
+        correct: "Por sus carreteras, puentes, acueductos, medicina y organización sin tener escritura moderna",
+        wrong: ["Porque tenían barcos a vapor gigantes", "Porque compraban todo en otros continentes", "Porque no construyeron nada de piedra"],
+        exp: "Lograron un imperio colosal con asombrosos avances arquitectónicos y agrícolas en la difícil cordillera."
+      }
+    ];
+
+    /* =====================================================================
+       ESTADO DE LA APLICACIÓN
+       ===================================================================== */
+    let currentQuizId = 1;
+    let currentQuestions = [];
+    let currentQuestionIndex = 0;
+    let userAnswers = []; // { qIndex, questionObj, selectedOption, isCorrect, optionsShuffled }
+    let selectedOptionForCurrent = null;
+
+    /* =====================================================================
+       FUNCIONES DE NAVEGACIÓN Y VISTAS
+       ===================================================================== */
+    function navigate(viewName) {
+      document.getElementById('view-home').classList.add('hidden');
+      document.getElementById('view-repaso').classList.add('hidden');
+      document.getElementById('view-quiz').classList.add('hidden');
+      document.getElementById('view-results').classList.add('hidden');
+
+      if (viewName === 'home') {
+        document.getElementById('view-home').classList.remove('hidden');
+      } else if (viewName === 'repaso') {
+        document.getElementById('view-repaso').classList.remove('hidden');
+      } else if (viewName === 'quiz') {
+        document.getElementById('view-quiz').classList.remove('hidden');
+      } else if (viewName === 'results') {
+        document.getElementById('view-results').classList.remove('hidden');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* =====================================================================
+       LÓGICA DEL QUIZ (ALEATORIEDAD Y 30 PREGUNTAS)
+       ===================================================================== */
+    // Función auxiliar para barajar arreglos (Fisher-Yates)
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function startQuiz(quizNum) {
+      currentQuizId = quizNum;
+      const baseQuestions = (quizNum === 1) ? questionsQuiz1 : questionsQuiz2;
+      
+      // Barajamos también el orden de las preguntas para que cada intento sea fresco
+      currentQuestions = shuffleArray(baseQuestions).slice(0, 30);
+      currentQuestionIndex = 0;
+      userAnswers = [];
+      selectedOptionForCurrent = null;
+
+      // Actualizar cabecera del Quiz
+      document.getElementById('quiz-badge').innerText = (quizNum === 1) ? 'Quiz 1: Manco Cápac' : 'Quiz 2: Pachacútec';
+      document.getElementById('quiz-title-header').innerText = (quizNum === 1) ? 'Desafío del Sol Naciente' : 'Desafío del Gran Imperio';
+      document.getElementById('switch-quiz-label').innerText = (quizNum === 1) ? 'Probar el Quiz 2' : 'Probar el Quiz 1';
+
+      navigate('quiz');
+      renderCurrentQuestion();
+    }
+
+    function renderCurrentQuestion() {
+      const qData = currentQuestions[currentQuestionIndex];
+      selectedOptionForCurrent = null;
+
+      // Actualizar número y progreso
+      const numDisplay = currentQuestionIndex + 1;
+      document.getElementById('q-current').innerText = numDisplay;
+      document.getElementById('q-number-pill').innerText = numDisplay;
+      const progressPercent = (numDisplay / 30) * 100;
+      document.getElementById('quiz-progress-bar').style.width = `${progressPercent}%`;
+
+      // Texto de la pregunta
+      document.getElementById('q-text').innerText = qData.q;
+
+      // Preparar opciones BARAJADAS ALEATORIAMENTE (para que nunca sea la misma letra)
+      const allOptions = [qData.correct, ...qData.wrong];
+      const shuffledOptions = shuffleArray(allOptions);
+      qData._lastShuffledOptions = shuffledOptions; // Guardamos para auditoría
+
+      // Generar botones de opciones
+      const optionsContainer = document.getElementById('q-options');
+      optionsContainer.innerHTML = '';
+
+      const letters = ['A', 'B', 'C', 'D'];
+      shuffledOptions.forEach((optionText, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `opt-btn w-full text-left p-4 rounded-2xl border-2 border-stone-200 bg-stone-50 hover:bg-amber-50 hover:border-amber-300 font-bold text-stone-700 flex items-center gap-3 transition transform active:scale-98`;
+        btn.onclick = () => selectOption(optionText, btn, qData);
+        btn.innerHTML = `
+          <span class="w-8 h-8 rounded-xl bg-white border border-stone-300 text-stone-600 font-black flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+            ${letters[idx]}
+          </span>
+          <span class="text-base leading-snug">${optionText}</span>
+        `;
+        optionsContainer.appendChild(btn);
+      });
+
+      // Resetear feedback y botón siguiente
+      const feedbackEl = document.getElementById('q-feedback');
+      feedbackEl.className = 'hidden';
+      feedbackEl.innerHTML = '';
+
+      const btnNext = document.getElementById('btn-next');
+      btnNext.disabled = true;
+      btnNext.className = 'px-6 py-3 bg-stone-200 text-stone-400 cursor-not-allowed font-black rounded-2xl transition shadow-none flex items-center gap-2';
+    }
+
+    function selectOption(chosenText, buttonElement, qData) {
+      if (selectedOptionForCurrent !== null) return; // Ya eligió en esta pregunta
+      selectedOptionForCurrent = chosenText;
+
+      const isCorrect = (chosenText === qData.correct);
+
+      // Guardar registro
+      userAnswers.push({
+        questionIndex: currentQuestionIndex,
+        qData: qData,
+        selected: chosenText,
+        isCorrect: isCorrect,
+        options: qData._lastShuffledOptions
+      });
+
+      // Deshabilitar todos los botones y colorear
+      const buttons = document.querySelectorAll('.opt-btn');
+      buttons.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.remove('hover:bg-amber-50', 'hover:border-amber-300');
+        
+        const textSpan = btn.querySelector('span:nth-child(2)').innerText;
+        if (textSpan === qData.correct) {
+          btn.classList.add('bg-emerald-100', 'border-emerald-500', 'text-emerald-900');
+          btn.querySelector('span:nth-child(1)').classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
+        } else if (textSpan === chosenText && !isCorrect) {
+          btn.classList.add('bg-rose-100', 'border-rose-500', 'text-rose-900');
+          btn.querySelector('span:nth-child(1)').classList.add('bg-rose-500', 'text-white', 'border-rose-600');
+        }
+      });
+
+      // Mostrar feedback amigable de 4° básico
+      const feedbackEl = document.getElementById('q-feedback');
+      feedbackEl.classList.remove('hidden');
+      if (isCorrect) {
+        feedbackEl.className = 'p-4 rounded-2xl bg-emerald-100 border-2 border-emerald-300 text-emerald-900 text-sm font-bold flex items-center gap-3 animate-bounce-short';
+        feedbackEl.innerHTML = `<span class="text-2xl">🌟</span> <div><strong>¡Excelente! Respuesta correcta.</strong><div class="text-xs text-emerald-700 font-normal mt-0.5">${qData.exp}</div></div>`;
+      } else {
+        feedbackEl.className = 'p-4 rounded-2xl bg-rose-100 border-2 border-rose-300 text-rose-900 text-sm font-bold flex items-center gap-3';
+        feedbackEl.innerHTML = `<span class="text-2xl">💡</span> <div><strong>¡Casi! No te preocupes, aprendemos de los errores.</strong><div class="text-xs text-rose-700 font-normal mt-0.5">${qData.exp}</div></div>`;
+      }
+
+      // Habilitar botón de siguiente
+      const btnNext = document.getElementById('btn-next');
+      btnNext.disabled = false;
+      btnNext.className = 'px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white cursor-pointer font-black rounded-2xl transition shadow-lg transform active:scale-95 flex items-center gap-2';
+    }
+
+    function nextQuestion() {
+      if (currentQuestionIndex < 29) {
+        currentQuestionIndex++;
+        renderCurrentQuestion();
+      } else {
+        showResults();
+      }
+    }
+
+    /* =====================================================================
+       MOSTRAR RESULTADOS Y REVISIÓN DETALLADA
+       ===================================================================== */
+    function showResults() {
+      navigate('results');
+
+      const correctCount = userAnswers.filter(a => a.isCorrect).length;
+      const wrongCount = 30 - correctCount;
+
+      document.getElementById('score-points').innerText = `${correctCount} / 30`;
+      document.getElementById('score-correct').innerText = correctCount;
+      document.getElementById('score-wrong').innerText = wrongCount;
+      document.getElementById('filter-wrong-count').innerText = wrongCount;
+
+      const emojiEl = document.getElementById('result-emoji');
+      const titleEl = document.getElementById('result-title');
+      const msgEl = document.getElementById('result-message');
+
+      if (correctCount >= 26) {
+        emojiEl.innerText = '👑';
+        titleEl.innerText = '¡Nivel Sapa Inca Supremo!';
+        msgEl.innerText = '¡Increíble! Dominas la historia del imperio como un auténtico emperador inca.';
+        triggerConfetti();
+      } else if (correctCount >= 20) {
+        emojiEl.innerText = '🌟';
+        titleEl.innerText = '¡Muy Buen Trabajo!';
+        msgEl.innerText = '¡Tienes excelentes conocimientos sobre los incas! Revisa los detalles abajo para lograr el puntaje perfecto.';
+      } else if (correctCount >= 14) {
+        emojiEl.innerText = '📚';
+        titleEl.innerText = '¡Buen Esfuerzo!';
+        msgEl.innerText = 'Vas por buen camino. Te recomendamos volver a leer el módulo de repaso y volver a intentarlo.';
+      } else {
+        emojiEl.innerText = '💪';
+        titleEl.innerText = '¡A seguir practicando!';
+        msgEl.innerText = 'No te rindas. Revisa cada una de las respuestas incorrectas explicadas abajo para aprenderlo todo.';
+      }
+
+      // Renderizar la lista de revisión
+      renderReviewList('all');
+    }
+
+    function renderReviewList(filterType) {
+      const container = document.getElementById('review-list');
+      container.innerHTML = '';
+
+      let items = userAnswers;
+      if (filterType === 'wrong') {
+        items = userAnswers.filter(item => !item.isCorrect);
+      }
+
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-stone-500 bg-stone-50 rounded-2xl border border-stone-200">
+            <span class="text-4xl block mb-2">🎉</span>
+            <p class="font-bold">¡No tienes respuestas incorrectas para mostrar!</p>
+            <p class="text-xs">¡Todas tus respuestas fueron acertadas!</p>
+          </div>
+        `;
+        return;
+      }
+
+      items.forEach((item, index) => {
+        const card = document.createElement('div');
+        const isOk = item.isCorrect;
+        
+        card.className = `p-5 rounded-2xl border-2 transition ${
+          isOk 
+            ? 'bg-emerald-50/60 border-emerald-200' 
+            : 'bg-rose-50/70 border-rose-300 shadow-sm'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl font-black text-sm flex items-center justify-center flex-shrink-0 ${
+              isOk ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+            }">
+              ${isOk ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}
+            </div>
+            <div class="flex-grow space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-black uppercase tracking-wider ${isOk ? 'text-emerald-700' : 'text-rose-700'}">
+                  Pregunta #${item.questionIndex + 1}
+                </span>
+                <span class="text-xs font-bold px-2 py-0.5 rounded-full ${
+                  isOk ? 'bg-emerald-200 text-emerald-800' : 'bg-rose-200 text-rose-800'
+                }">
+                  ${isOk ? 'Correcta' : 'Para Mejorar'}
+                </span>
+              </div>
+              <p class="font-bold text-stone-800 text-base leading-snug">
+                ${item.qData.q}
+              </p>
+
+              <!-- Comparativa de respuestas -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-sm">
+                <div class="p-2.5 rounded-xl ${isOk ? 'bg-emerald-100/70 text-emerald-900 font-bold border border-emerald-300' : 'bg-rose-100 text-rose-900 border border-rose-200'}">
+                  <span class="text-xs block font-extrabold uppercase ${isOk ? 'text-emerald-700' : 'text-rose-600'}">Tu Respuesta:</span>
+                  ${item.selected}
+                </div>
+                ${!isOk ? `
+                <div class="p-2.5 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold">
+                  <span class="text-xs block font-extrabold uppercase text-emerald-700">Respuesta Correcta:</span>
+                  ${item.qData.correct}
+                </div>
+                ` : ''}
+              </div>
+
+              <!-- Explicación pedagógica -->
+              <div class="text-xs text-stone-600 bg-white/80 p-2.5 rounded-xl border border-stone-200 mt-2">
+                <strong class="text-amber-800 font-bold"><i class="fa-solid fa-info-circle"></i> Explicación:</strong> ${item.qData.exp}
+              </div>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function filterReview(type) {
+      const btnAll = document.getElementById('filter-all');
+      const btnWrong = document.getElementById('filter-wrong');
+
+      if (type === 'all') {
+        btnAll.className = 'px-3 py-1.5 rounded-xl font-bold text-xs bg-white text-stone-800 shadow';
+        btnWrong.className = 'px-3 py-1.5 rounded-xl font-bold text-xs text-stone-600 hover:text-stone-900';
+        renderReviewList('all');
+      } else {
+        btnWrong.className = 'px-3 py-1.5 rounded-xl font-bold text-xs bg-white text-rose-700 shadow';
+        btnAll.className = 'px-3 py-1.5 rounded-xl font-bold text-xs text-stone-600 hover:text-stone-900';
+        renderReviewList('wrong');
+      }
+    }
+
+    function retryCurrentQuiz() {
+      startQuiz(currentQuizId);
+    }
+
+    function switchQuizAction() {
+      const nextId = (currentQuizId === 1) ? 2 : 1;
+      startQuiz(nextId);
+    }
+
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+    }
+
+    // Inicialización por defecto en Home
+    document.addEventListener('DOMContentLoaded', () => {
+      navigate('home');
+    });
+  </script>
+</body>
+</html>
+```eof
+
+He preparado una aplicación interactiva en un solo archivo con diseño adaptado para una niña de **4° básico** basada en la presentación de los Incas.
+
+### ¿Qué incluye la aplicación?
+1. **Módulo de Repaso Dinámico:** Dividido en tarjetas temáticas claras (origen, el Sapa Inca, la realeza y plebeyos, las escuelas, religión/Inti, agricultura e inventos, y caída del imperio).
+2. **Dos Cuestionarios Completos de 30 Preguntas Cada Uno:** 
+   - **Quiz 1 (Reto Sol - Manco Cápac):** 30 preguntas que abarcan toda la materia.
+   - **Quiz 2 (Reto Imperio - Pachacútec):** 30 preguntas alternativas y complementarias para seguir practicando.
+3. **Alternativas 100% Aleatorias:** Cada vez que se muestra una pregunta, las alternativas se mezclan al azar (Fisher-Yates) para que la respuesta correcta nunca quede siempre en la misma letra o posición.
+4. **Revisión de Respuestas y Errores:**
+   - Explicación inmediata al responder.
+   - Al finalizar las 30 preguntas, muestra el puntaje total, felicitación temática y un panel de **Revisión** con filtro para ver **"Solo Errores"**, donde se contrasta la opción elegida con la correcta y se incluye la explicación pedagógica.
+5. **Autocontenido y Listo para Usar:** No requiere instalar nada adicional; solo guardas el archivo `.html` y lo abres con doble clic en cualquier navegador web, tablet o computador.
