@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Aprende con Matilda!</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #ffc3a0 0%, #ffafbd 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .bubbly-button {
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        
+        .bubbly-button:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 20px rgba(0,0,0,0.2);
+        }
+        
+        .bubbly-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.15);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .topic-card {
+            transition: transform 0.3s ease;
+        }
+        
+        .topic-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Ocultar scrollbar para un look más limpio en los repasos */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .correct-answer {
+            background-color: #a7f3d0 !important;
+            border-color: #34d399 !important;
+            color: #065f46 !important;
+            transform: scale(1.02);
+        }
+
+        .wrong-answer {
+            background-color: #fecaca !important;
+            border-color: #f87171 !important;
+            color: #991b1b !important;
+            transform: scale(0.98);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-4 sm:p-8">
+
+    <!-- PANTALLA DE INICIO -->
+    <div id="screen-home" class="card w-full max-w-2xl p-8 text-center fade-in">
+        <h1 class="text-4xl md:text-5xl font-black text-pink-500 mb-4 drop-shadow-md">¡Hola, Matilda! 🌟</h1>
+        <p class="text-xl font-semibold text-gray-600 mb-8">¿Qué aventura de aprendizaje elegiremos hoy?</p>
+        
+        <div class="flex flex-col sm:flex-row gap-6 justify-center">
+            <button onclick="showScreen('screen-repaso')" class="bubbly-button bg-gradient-to-r from-blue-400 to-teal-400 text-white font-bold text-2xl py-6 px-10 rounded-full flex items-center justify-center gap-3 w-full sm:w-auto">
+                <span class="text-4xl">📚</span> Repasar Materia
+            </button>
+            <button onclick="showScreen('screen-pre-quiz')" class="bubbly-button bg-gradient-to-r from-purple-400 to-pink-500 text-white font-bold text-2xl py-6 px-10 rounded-full flex items-center justify-center gap-3 w-full sm:w-auto">
+                <span class="text-4xl">🎮</span> Jugar Quiz
+            </button>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE REPASO -->
+    <div id="screen-repaso" class="card w-full max-w-4xl p-6 sm:p-8 hidden fade-in max-h-[90vh] overflow-y-auto no-scrollbar">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl sm:text-4xl font-black text-blue-500">📚 Zona de Repaso</h2>
+            <button onclick="showScreen('screen-home')" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-full transition-colors">
+                ⬅️ Volver
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Infografía -->
+            <div class="topic-card bg-yellow-50 border-4 border-yellow-300 p-5 rounded-3xl">
+                <h3 class="text-2xl font-bold text-yellow-600 mb-3">🖼️ La Infografía</h3>
+                <p class="mb-2">Es un <strong>texto no literario informativo y discontinuo</strong> (se puede leer desde cualquier parte).</p>
+                <p class="mb-2">Combina <strong>textos breves y elementos visuales</strong> (imágenes, íconos) para explicar un tema de forma sencilla.</p>
+                <p class="mb-2">💡 <strong>Regla de oro:</strong> La información debe ser <strong>100% real</strong>.</p>
+                <div class="bg-white p-3 rounded-xl mt-3">
+                    <p class="font-bold text-sm text-gray-500">Partes principales:</p>
+                    <ul class="list-disc pl-5 text-sm">
+                        <li><strong>Título principal:</strong> Llamativo, breve y claro.</li>
+                        <li><strong>Subtítulos:</strong> Para ordenar la información.</li>
+                        <li><strong>Elementos gráficos:</strong> Imágenes, dibujos y colores.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Adverbios -->
+            <div class="topic-card bg-blue-50 border-4 border-blue-300 p-5 rounded-3xl">
+                <h3 class="text-2xl font-bold text-blue-600 mb-3">🏃‍♀️ Los Adverbios</h3>
+                <p class="mb-2">Son palabras que nos dan más información sobre <strong>cómo, cuándo o dónde</strong> ocurre una acción.</p>
+                <p class="mb-2">Pueden acompañar a <strong>verbos, adjetivos u otros adverbios</strong>.</p>
+                <div class="bg-white p-3 rounded-xl mt-3 text-sm">
+                    <p>🕒 <strong>De Tiempo (¿Cuándo?):</strong> ahora, ayer, mañana, hoy, temprano, después, luego.</p>
+                    <p class="text-gray-500 italic mb-2">Ej: Llegamos <u>temprano</u>.</p>
+                    
+                    <p>📍 <strong>De Lugar (¿Dónde?):</strong> aquí, allá, cerca, lejos, dentro, fuera, arriba.</p>
+                    <p class="text-gray-500 italic mb-2">Ej: El capitán caminaba <u>cerca</u> del lago.</p>
+                    
+                    <p>🛠️ <strong>De Modo (¿Cómo?):</strong> bien, mal, despacio, rápido, amablemente, fácilmente.</p>
+                    <p class="text-gray-500 italic">Ej: Camina <u>despacio</u>.</p>
+                </div>
+            </div>
+
+            <!-- Familias Léxicas -->
+            <div class="topic-card bg-green-50 border-4 border-green-300 p-5 rounded-3xl">
+                <h3 class="text-2xl font-bold text-green-600 mb-3">🌳 Familias Léxicas</h3>
+                <p class="mb-2">Una <strong>familia de palabras</strong> es un grupo de palabras que comparten la misma <strong>raíz</strong> (la parte que no cambia y tiene el significado central).</p>
+                <div class="bg-white p-3 rounded-xl mt-3 text-sm">
+                    <p>🌱 <strong>Palabra Primitiva:</strong> Es la palabra original (no viene de otra). Ej: <strong>FLOR</strong>.</p>
+                    <p>🍃 <strong>Palabras Derivadas:</strong> Se forman a partir de la primitiva añadiendo prefijos o sufijos.</p>
+                    <ul class="list-disc pl-5 mt-2 text-green-700 font-semibold">
+                        <li>Florero</li>
+                        <li>Florista</li>
+                        <li>Florecer</li>
+                        <li>Floral</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Prefijos -->
+            <div class="topic-card bg-purple-50 border-4 border-purple-300 p-5 rounded-3xl">
+                <h3 class="text-2xl font-bold text-purple-600 mb-3">🧩 Los Prefijos</h3>
+                <p class="mb-2">Son pequeñas partes que se agregan <strong>al principio (antes) de la raíz</strong> de una palabra para cambiar su significado.</p>
+                <div class="bg-white p-3 rounded-xl mt-3 text-sm grid grid-cols-2 gap-2">
+                    <p><strong>in-:</strong> no / lo contrario <em>(invisible)</em></p>
+                    <p><strong>des-:</strong> quita / separa <em>(deshacer)</em></p>
+                    <p><strong>pre-:</strong> antes de <em>(prehistoria)</em></p>
+                    <p><strong>multi-:</strong> muchos <em>(multicolor)</em></p>
+                    <p><strong>bio-:</strong> vida <em>(biología)</em></p>
+                    <p><strong>re-:</strong> otra vez <em>(reciclar)</em></p>
+                    <p><strong>auto-:</strong> por sí mismo <em>(automóvil)</em></p>
+                    <p><strong>sub-:</strong> debajo de <em>(submarino)</em></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-8 text-center">
+            <button onclick="showScreen('screen-pre-quiz')" class="bubbly-button bg-pink-500 text-white font-bold text-xl py-4 px-8 rounded-full">
+                ¡Estoy lista para el Quiz! 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- PANTALLA PRE-QUIZ -->
+    <div id="screen-pre-quiz" class="card w-full max-w-xl p-8 text-center hidden fade-in">
+        <h2 class="text-4xl font-black text-purple-600 mb-4">🎮 El Gran Quiz</h2>
+        <p class="text-lg text-gray-700 mb-6">Tendrás que responder <strong>35 preguntas</strong> al azar sobre todo lo que has aprendido.</p>
+        <p class="text-lg text-gray-700 mb-8 font-bold">¡Lee bien cada pregunta y confía en ti, Matilda!</p>
+        
+        <div class="flex flex-col gap-4">
+            <button onclick="startQuiz()" class="bubbly-button bg-green-500 text-white font-bold text-2xl py-5 px-8 rounded-full">
+                ✅ ¡Iniciar Quiz!
+            </button>
+            <button onclick="showScreen('screen-home')" class="text-gray-500 font-bold hover:text-gray-700 mt-2">
+                Volver al inicio
+            </button>
+        </div>
+    </div>
+
+    <!-- PANTALLA DE QUIZ -->
+    <div id="screen-quiz" class="card w-full max-w-2xl p-6 sm:p-8 hidden fade-in">
+        <div class="flex justify-between items-center mb-6">
+            <span id="question-counter" class="text-xl font-black text-pink-500 bg-pink-100 py-1 px-4 rounded-full">Pregunta 1/35</span>
+            <span class="text-sm font-bold text-gray-400 cursor-pointer hover:text-red-400 transition" onclick="if(confirm('¿Segura que quieres salir? Perderás tu progreso.')) showScreen('screen-home')">Salir ❌</span>
+        </div>
+        
+        <!-- Progress bar -->
+        <div class="w-full bg-gray-200 rounded-full h-4 mb-8 overflow-hidden">
+            <div id="progress-bar" class="bg-gradient-to-r from-pink-400 to-purple-500 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <h3 id="question-text" class="text-2xl sm:text-3xl font-bold text-gray-800 mb-8 text-center min-h-[80px]">
+            ¿Pregunta?
+        </h3>
+
+        <div id="options-container" class="flex flex-col gap-4">
+            <!-- Botones de opciones generados por JS -->
+        </div>
+        
+        <button id="next-btn" onclick="nextQuestion()" class="mt-8 w-full bubbly-button bg-blue-500 text-white font-bold text-xl py-4 rounded-xl hidden">
+            Siguiente Pregunta ➡️
+        </button>
+    </div>
+
+    <!-- PANTALLA DE RESULTADOS -->
+    <div id="screen-result" class="card w-full max-w-2xl p-8 text-center hidden fade-in">
+        <h2 class="text-4xl font-black text-gray-800 mb-2">¡Terminaste, Matilda! 🎉</h2>
+        <div class="my-8">
+            <p class="text-lg text-gray-600 font-bold mb-2">Tu puntaje final es:</p>
+            <p id="score-text" class="text-3xl font-black text-purple-600 mb-4">35 / 35 correctas</p>
+            
+            <div class="bg-blue-50 rounded-3xl p-6 inline-block shadow-inner border-2 border-blue-200">
+                <p class="text-xl text-gray-700 font-bold mb-1">Nota Final (Escala 0-7):</p>
+                <p id="grade-text" class="text-6xl font-black text-blue-600">7.0</p>
+            </div>
+        </div>
+
+        <p id="feedback-message" class="text-2xl font-bold text-pink-500 mb-10 px-4">
+            ¡Mensaje!
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <button onclick="startQuiz()" class="bubbly-button bg-purple-500 text-white font-bold text-xl py-4 px-8 rounded-full flex items-center justify-center gap-2">
+                🔄 Repetir Quiz
+            </button>
+            <button onclick="showScreen('screen-home')" class="bubbly-button bg-gray-200 text-gray-700 font-bold text-xl py-4 px-8 rounded-full flex items-center justify-center gap-2">
+                🏠 Ir al Inicio
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // BANCO DE PREGUNTAS (47 Preguntas variadas)
+        const allQuestions = [
+            // INFOGRAFÍA
+            { q: "¿Qué es una infografía?", options: ["Un texto informativo discontinuo con imágenes", "Un cuento literario de hadas", "Un poema con muchas rimas"], ans: 0 },
+            { q: "¿Cuál es el propósito principal de una infografía?", options: ["Hacer reír al lector", "Entregar información real sobre un tema", "Contar una historia inventada"], ans: 1 },
+            { q: "¿Qué tipo de texto es una infografía?", options: ["Texto literario", "Texto poético", "Texto no literario"], ans: 2 },
+            { q: "¿Cómo se lee una infografía?", options: ["De arriba a abajo obligatoriamente", "Se puede leer desde cualquier parte", "Solo se leen las imágenes grandes"], ans: 1 },
+            { q: "¿Qué elemento NO pertenece a la estructura de una infografía?", options: ["Título y subtítulos", "Elementos gráficos (imágenes)", "Moraleja final"], ans: 2 },
+            { q: "¿Qué característica tiene la información en una infografía?", options: ["Es 100% real", "Es inventada y mágica", "Son opiniones sin verificar"], ans: 0 },
+            { q: "¿Para qué sirven las imágenes en una infografía?", options: ["Para decorar solamente", "Para ejemplificar y facilitar la lectura", "Para ocultar las letras"], ans: 1 },
+            { q: "El título de una infografía debe ser...", options: ["Llamativo, breve y claro", "Muy largo y con letras pequeñas", "Imposible de entender"], ans: 0 },
+            { q: "¿Qué son los elementos gráficos en una infografía?", options: ["Solo las letras mayúsculas", "Imágenes, íconos y dibujos", "El nombre del autor"], ans: 1 },
+            { q: "¿Por qué es importante el diseño de una infografía?", options: ["Para que sea intuitivo y fácil de entender", "Para gastar más colores al imprimir", "Para que el texto sea más largo"], ans: 0 },
+            
+            // ADVERBIOS
+            { q: "¿Qué información entregan los adverbios?", options: ["Nombres de lugares y personas", "Lugar, tiempo y modo de una acción", "El color y tamaño de las cosas"], ans: 1 },
+            { q: "¿A qué tipo de palabras determinan o modifican los adverbios?", options: ["Solo a los sustantivos propios", "A los artículos y pronombres", "A verbos, adjetivos y otros adverbios"], ans: 2 },
+            { q: "En la oración 'Llegamos temprano', ¿qué tipo de adverbio es 'temprano'?", options: ["Adverbio de Tiempo", "Adverbio de Lugar", "Adverbio de Modo"], ans: 0 },
+            { q: "'El niño se porta muy bien'. ¿Qué adverbio de MODO hay en la oración?", options: ["niño", "muy", "bien"], ans: 2 },
+            { q: "¿Qué pregunta responde un adverbio de lugar?", options: ["¿Cuándo?", "¿Dónde?", "¿Cómo?"], ans: 1 },
+            { q: "¿Qué pregunta responde un adverbio de tiempo?", options: ["¿Cuándo?", "¿Dónde?", "¿Cómo?"], ans: 0 },
+            { q: "¿Qué pregunta responde un adverbio de modo?", options: ["¿Cuándo?", "¿Dónde?", "¿Cómo?"], ans: 2 },
+            { q: "'La escuela está aquí'. La palabra 'aquí' es un adverbio de...", options: ["Modo", "Lugar", "Tiempo"], ans: 1 },
+            { q: "Selecciona el adverbio de tiempo:", options: ["Lejos", "Ayer", "Despacio"], ans: 1 },
+            { q: "Selecciona el adverbio de modo:", options: ["Mañana", "Cerca", "Rápidamente"], ans: 2 },
+            { q: "Selecciona el adverbio de lugar:", options: ["Hoy", "Amablemente", "Allá"], ans: 2 },
+            { q: "'Luisa hizo un trabajo MUY importante'. La palabra 'muy' determina a...", options: ["Un verbo", "Un adjetivo", "Un sustantivo"], ans: 1 },
+            
+            // FAMILIAS LÉXICAS
+            { q: "¿Qué es una familia léxica o de palabras?", options: ["Palabras que tienen las mismas vocales", "Conjunto de palabras que comparten la misma raíz", "Palabras que significan exactamente lo mismo"], ans: 1 },
+            { q: "¿Qué es la raíz de una palabra?", options: ["La parte principal que no cambia", "La última letra de la palabra", "El prefijo que se agrega al inicio"], ans: 0 },
+            { q: "¿Qué es una palabra primitiva?", options: ["Una palabra escrita hace mil años", "La palabra que da origen a otras palabras", "Una palabra derivada de otra"], ans: 1 },
+            { q: "¿Qué es una palabra derivada?", options: ["Una palabra formada a partir de una primitiva", "La raíz pura de una palabra", "Una palabra que no tiene familia"], ans: 0 },
+            { q: "¿Cuál de estas palabras es la primitiva?", options: ["Panadero", "Panadería", "Pan"], ans: 2 },
+            { q: "¿Qué palabra NO pertenece a la familia de 'flor'?", options: ["Florero", "Flotador", "Florista"], ans: 1 },
+            { q: "¿Cuál es la raíz compartida en: marinero, marea, maremoto?", options: ["mar-", "ma-", "mari-"], ans: 0 },
+            { q: "¿Qué palabra pertenece a la familia de 'libro'?", options: ["Liebre", "Librería", "Libertad"], ans: 1 },
+            { q: "¿Qué palabra es un INTRUSO en la casita de la familia 'color'?", options: ["Colorido", "Colorear", "Cólera"], ans: 2 },
+            { q: "¿Qué se añade a la raíz para formar palabras derivadas?", options: ["Prefijos y sufijos", "Solo otros verbos", "Signos de exclamación"], ans: 0 },
+            { q: "Identifica la palabra derivada de la palabra primitiva 'sol'.", options: ["Soldado", "Solo", "Soleado"], ans: 2 },
+            { q: "En la familia (zapato, zapatero, zapatería), ¿cuál es la palabra primitiva?", options: ["Zapato", "Zapatero", "Zapatería"], ans: 0 },
+            
+            // PREFIJOS Y VOCABULARIO
+            { q: "¿Qué es un prefijo?", options: ["Una letra que va al final de la oración", "Una parte que se agrega al principio de la raíz", "La raíz misma de la palabra"], ans: 1 },
+            { q: "¿Qué significa el prefijo 'in-' (ej: invisible)?", options: ["Que no, o lo contrario de", "Muchos o varios", "Vida o ser vivo"], ans: 0 },
+            { q: "¿Qué significa el prefijo 'des-' (ej: desorden)?", options: ["Por sí mismo", "Antes de", "Quita o separa"], ans: 2 },
+            { q: "¿Qué significa el prefijo 'pre-' (ej: prehistoria)?", options: ["Antes de", "Después de", "Muchos"], ans: 0 },
+            { q: "¿Qué prefijo significa 'muchos o varios'?", options: ["bio-", "re-", "multi-"], ans: 2 },
+            { q: "¿Qué prefijo significa 'vida o ser vivo'?", options: ["auto-", "in-", "bio-"], ans: 2 },
+            { q: "¿Qué significa el prefijo 're-' (ej: reciclar, repetir)?", options: ["Que no", "Otra vez, de nuevo", "Vida"], ans: 1 },
+            { q: "¿Qué prefijo significa 'por sí mismo'?", options: ["auto-", "des-", "multi-"], ans: 0 },
+            { q: "Si un vestido tiene 'muchos colores', es...", options: ["Incoloro", "Precolor", "Multicolor"], ans: 2 },
+            { q: "Si vuelves a hacer una tarea que te equivocaste, tú la...", options: ["Autohaces", "Rehaces", "Deshaces"], ans: 1 },
+            { q: "¿Qué palabra tiene un prefijo que significa 'vida'?", options: ["Biología", "Automóvil", "Incompleto"], ans: 0 },
+            { q: "Si un trabajo está 'incompleto', significa que...", options: ["Está muy completo", "Se completó antes", "No está completo"], ans: 2 },
+            { q: "¿Qué significa la palabra 'autosuficiente'?", options: ["Que se basta a sí mismo", "Que tiene muchos autos veloces", "Que necesita mucha ayuda"], ans: 0 }
+        ];
+
+        // Variables de estado
+        let quizQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        // Función para cambiar de pantalla
+        function showScreen(screenId) {
+            document.querySelectorAll('body > div').forEach(div => div.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+            window.scrollTo(0,0);
+        }
+
+        // Seleccionar 35 preguntas aleatorias
+        function getRandomQuestions(array, num) {
+            let shuffled = [...array].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, num);
+        }
+
+        // Iniciar Quiz
+        function startQuiz() {
+            quizQuestions = getRandomQuestions(allQuestions, 35);
+            currentQuestionIndex = 0;
+            score = 0;
+            updateProgressBar();
+            showScreen('screen-quiz');
+            renderQuestion();
+        }
+
+        function updateProgressBar() {
+            const progress = (currentQuestionIndex / 35) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            document.getElementById('question-counter').innerText = `Pregunta ${currentQuestionIndex + 1}/35`;
+        }
+
+        function renderQuestion() {
+            answered = false;
+            document.getElementById('next-btn').classList.add('hidden');
+            
+            const qData = quizQuestions[currentQuestionIndex];
+            document.getElementById('question-text').innerText = qData.q;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            qData.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left bg-white border-4 border-gray-200 p-5 rounded-2xl text-xl font-bold text-gray-700 transition-all hover:border-pink-300 hover:bg-pink-50';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(index, btn);
+                optionsContainer.appendChild(btn);
+            });
+            
+            updateProgressBar();
+        }
+
+        function checkAnswer(selectedIndex, btnElement) {
+            if (answered) return; // Evitar multiples clicks
+            answered = true;
+            
+            const qData = quizQuestions[currentQuestionIndex];
+            const buttons = document.getElementById('options-container').children;
+            
+            // Mostrar correcta e incorrecta
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                if (i === qData.ans) {
+                    buttons[i].classList.add('correct-answer');
+                } else if (i === selectedIndex) {
+                    buttons[i].classList.add('wrong-answer');
+                }
+            }
+
+            if (selectedIndex === qData.ans) {
+                score++;
+            }
+
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < 35) {
+                renderQuestion();
+            } else {
+                finishQuiz();
+            }
+        }
+
+        function finishQuiz() {
+            // Calcular nota (Fórmula estricta: (correctas / 35) * 7)
+            let nota = (score / 35) * 7;
+            
+            // Redondear a un decimal
+            nota = nota.toFixed(1);
+
+            document.getElementById('score-text').innerText = `${score} / 35 correctas`;
+            document.getElementById('grade-text').innerText = nota;
+
+            const feedbackEl = document.getElementById('feedback-message');
+            const notaFloat = parseFloat(nota);
+
+            if (notaFloat >= 6.0) {
+                feedbackEl.innerText = "¡Espectacular Matilda! 🌟 Eres una superestrella y dominas la materia a la perfección. ¡Sigue así!";
+                feedbackEl.className = "text-2xl font-black text-green-500 mb-10 px-4";
+            } else if (notaFloat >= 5.0) {
+                feedbackEl.innerText = "¡Muy bien Matilda! 👍 Has aprendido muchísimo. Un poquitito más de repaso y serás perfecta.";
+                feedbackEl.className = "text-2xl font-black text-blue-500 mb-10 px-4";
+            } else if (notaFloat >= 4.0) {
+                feedbackEl.innerText = "¡Buen esfuerzo Matilda! 💪 Aprobaste, pero sé que eres capaz de hacerlo aún mejor. ¡Sigue practicando!";
+                feedbackEl.className = "text-2xl font-black text-yellow-500 mb-10 px-4";
+            } else {
+                feedbackEl.innerText = "¡No te rindas Matilda! ❤️ Revisa con calma la sección de 'Repaso' y vuelve a intentarlo. ¡Tú eres muy inteligente y lo lograrás!";
+                feedbackEl.className = "text-2xl font-black text-pink-500 mb-10 px-4";
+            }
+
+            showScreen('screen-result');
+        }
+
+        // Iniciar en pantalla principal
+        showScreen('screen-home');
+    </script>
+</body>
+</html>
