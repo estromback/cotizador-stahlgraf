@@ -93,6 +93,7 @@ function initApp() {
     document.getElementById('doc-date').innerText = new Date().toLocaleDateString('es-ES', dateOpts);
     
     calculateQuote();
+    if (typeof updateFormModeUI === 'function') updateFormModeUI();
 
     // Intercept CRM Form prefill parameters
     const urlParams = new URLSearchParams(window.location.search);
@@ -240,18 +241,20 @@ function updateSettingsUI() {
 }
 
 function saveData() {
+    appData.lastModified = Date.now();
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
     const activeUid = getActiveUid();
     if (activeUid && db) {
-        db.collection('users').doc(activeUid).set(appData, { merge: true })
+        return db.collection('users').doc(activeUid).set(appData, { merge: true })
             .catch(err => console.error("Error saving data to Firebase:", err));
     }
+    return Promise.resolve();
 }
 
 function syncFromFirebase() {
     const activeUid = getActiveUid();
     if (!activeUid || !db) return;
-    db.collection('users').doc(activeUid).get().then(doc => {
+    db.collection('users').doc(activeUid).get().then(async doc => {
         if (doc.exists) {
             const cloudData = doc.data();
             if (typeof mergeAppData === 'function') {
@@ -260,6 +263,26 @@ function syncFromFirebase() {
                 appData = { ...appData, ...cloudData };
             }
             
+            // Auto-guard: auditar cotizaciones existentes en Firestore para no repetir correlativo
+            try {
+                const snap = await db.collection('users').doc(activeUid).collection('quotes')
+                    .orderBy('timestamp', 'desc').limit(50).get();
+                let maxFoundCorr = 0;
+                snap.forEach(qDoc => {
+                    const qData = qDoc.data();
+                    const num = parseInt(qData.correlative) || 0;
+                    if (num > maxFoundCorr) maxFoundCorr = num;
+                });
+                if (maxFoundCorr >= (appData.correlative || 1)) {
+                    console.log(`[Sync] Correlativo ajustado de ${appData.correlative} a ${maxFoundCorr + 1} para superar cotizaciones ya guardadas.`);
+                    appData.correlative = maxFoundCorr + 1;
+                    appData.lastModified = Date.now();
+                    saveData();
+                }
+            } catch (errQuotes) {
+                console.warn("No se pudo auditar correlativos existentes:", errQuotes);
+            }
+
             // Save to local cache
             localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
             
@@ -268,6 +291,7 @@ function syncFromFirebase() {
             renderChemicalsList();
             if(typeof renderClientsList === 'function') renderClientsList();
             calculateQuote();
+            if (typeof updateFormModeUI === 'function') updateFormModeUI();
             console.log("Datos sincronizados desde Firebase.");
         } else {
             // No data in cloud yet, initialize user document with local data
@@ -1133,19 +1157,38 @@ function downloadBlob(blob, filename) {
 // PDF Generation & Web Share
 async function generatePDF(isShare = false) {
     const shouldShare = isShare === true;
-    const name = document.getElementById('client-name').value;
+    const name = document.getElementById('client-name').value.trim();
     if(!name) {
         alert("Por favor ingresa al menos el nombre del cliente para exportar.");
         return;
     }
 
-    // Consumir correlativo localmente si es una cotización nueva, incluso si la nube falla
-    if (!currentQuoteId && loadedCorrelative === null) {
-        loadedCorrelative = appData.correlative;
-        appData.correlative++;
+    const isEditingExisting = Boolean(currentQuoteId);
+    let quoteCorrelative;
+
+    if (isEditingExisting) {
+        // En modo edición de cotización existente, preservamos su correlativo original
+        quoteCorrelative = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
+    } else {
+        // En cotización NUEVA: fijamos el correlativo para este documento
+        quoteCorrelative = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
+        loadedCorrelative = quoteCorrelative;
+        
+        // Avanzamos inmediatamente el correlativo para la siguiente cotización
+        appData.correlative = quoteCorrelative + 1;
+        appData.lastModified = Date.now();
         const corrEl = document.getElementById('setting-correlative');
         if (corrEl) corrEl.value = appData.correlative;
+        
+        // Persistir inmediatamente en localStorage y en Firestore
         saveData();
+        const activeUid = getActiveUid();
+        if (activeUid && db) {
+            db.collection('users').doc(activeUid).set({
+                correlative: appData.correlative,
+                lastModified: appData.lastModified
+            }, { merge: true }).catch(e => console.warn("Error actualizando correlativo en Firestore:", e));
+        }
     }
 
     // Actualizar siempre la vista previa del documento antes de exportar
@@ -1162,7 +1205,7 @@ async function generatePDF(isShare = false) {
 
         const opt = {
             margin:       [10, 0, 15, 0],
-            filename:     `COTIZACION_DE_SERVICIOS_${loadedCorrelative !== null ? loadedCorrelative : appData.correlative}.pdf`,
+            filename:     `COTIZACION_DE_SERVICIOS_${quoteCorrelative}.pdf`,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -1206,44 +1249,67 @@ async function generatePDF(isShare = false) {
             downloadBlob(pdfBlob, opt.filename);
         }
 
-        // Save to cloud and upload to storage asynchronously in the background
+        // Guardar cotización en Firebase y subir archivo a Storage
+        let savedDocId = null;
         if (currentUser && db) {
-            saveQuote(true).then(saved => {
-                if (saved && storage && currentQuoteId) {
-                    const uploadQuoteId = currentQuoteId;
-                    const uploadUid = getActiveUid();
-                    storage.ref().child(`users/${uploadUid}/quotes/${uploadQuoteId}.pdf`).put(pdfBlob)
-                        .then(snapshot => snapshot.ref.getDownloadURL())
-                        .then(downloadUrl => {
-                            return db.collection('users').doc(uploadUid).collection('quotes').doc(uploadQuoteId).update({
-                                pdfUrl: downloadUrl
-                            });
-                        })
-                        .then(() => {
-                            console.log("PDF archived in Firebase Storage asynchronously in background.");
-                        })
-                        .catch(storageErr => {
-                            console.warn("Could not archive PDF in Firebase Storage, falling back to inline base64: ", storageErr);
-                            const reader = new FileReader();
-                            reader.readAsDataURL(pdfBlob);
-                            reader.onloadend = function() {
-                                const base64data = reader.result;
-                                db.collection('users').doc(uploadUid).collection('quotes').doc(uploadQuoteId).update({
-                                    pdfUrl: base64data
-                                }).then(() => {
-                                    console.log("PDF archived as inline base64 in Firestore successfully in background.");
-                                }).catch(dbErr => {
-                                    console.error("Failed to archive PDF as base64 in Firestore: ", dbErr);
+            try {
+                const saveResult = await saveQuote(true, quoteCorrelative);
+                if (saveResult && saveResult.success && saveResult.quoteId) {
+                    savedDocId = saveResult.quoteId;
+                    if (storage) {
+                        const uploadQuoteId = savedDocId;
+                        const uploadUid = getActiveUid();
+                        storage.ref().child(`users/${uploadUid}/quotes/${uploadQuoteId}.pdf`).put(pdfBlob)
+                            .then(snapshot => snapshot.ref.getDownloadURL())
+                            .then(downloadUrl => {
+                                return db.collection('users').doc(uploadUid).collection('quotes').doc(uploadQuoteId).update({
+                                    pdfUrl: downloadUrl
                                 });
-                            };
-                        });
+                            })
+                            .then(() => {
+                                console.log("PDF archivado en Firebase Storage.");
+                            })
+                            .catch(storageErr => {
+                                console.warn("Storage falló, guardando como base64:", storageErr);
+                                const reader = new FileReader();
+                                reader.readAsDataURL(pdfBlob);
+                                reader.onloadend = function() {
+                                    const base64data = reader.result;
+                                    db.collection('users').doc(uploadUid).collection('quotes').doc(uploadQuoteId).update({
+                                        pdfUrl: base64data
+                                    }).catch(dbErr => console.error("Error guardando base64:", dbErr));
+                                };
+                            });
+                    }
                 }
-            }).catch(saveErr => {
-                console.error("Background saveQuote error: ", saveErr);
-            });
+            } catch (saveErr) {
+                console.error("Error guardando cotización en Firestore:", saveErr);
+            }
         }
+
+        // Estado posterior a la exportación
+        if (!isEditingExisting) {
+            // Desbloquear para que la próxima cotización sea NUEVA con correlativo limpio
+            currentQuoteId = null;
+            loadedCorrelative = null;
+
+            const nextCorr = appData.correlative;
+            const wantClean = confirm(`✅ Cotización #${quoteCorrelative} guardada y exportada con éxito.\n\n¿Deseas limpiar el formulario para comenzar la cotización #${nextCorr}?`);
+            if (wantClean) {
+                resetFormSilently();
+            } else {
+                updateFormModeUI();
+                calculateQuote();
+            }
+        } else {
+            alert(`✅ Cotización #${quoteCorrelative} actualizada y exportada con éxito.`);
+            updateFormModeUI();
+            calculateQuote();
+        }
+
     } catch(err) {
         console.error("PDF generation error: ", err);
+        alert("Ocurrió un error al generar el PDF: " + err.message);
     } finally {
         btn.innerText = oldText;
         btn.disabled = false;
@@ -1252,20 +1318,52 @@ async function generatePDF(isShare = false) {
 
 // Quote History & Save Flow
 function resetForm() {
+    resetFormSilently();
+    alert("Formulario limpiado. Listo para una nueva cotización.");
+}
+
+function resetFormSilently() {
     document.getElementById('quote-form').reset();
     const gsContainer = document.getElementById('general-services-container');
     if(gsContainer) gsContainer.innerHTML = '';
     currentQuoteId = null;
     loadedCorrelative = null;
+    updateFormModeUI();
     calculateQuote();
-    alert("Formulario limpiado. Listo para una nueva cotización.");
 }
 
-async function saveQuote(silent = false) {
+function updateFormModeUI() {
+    const titleEl = document.getElementById('form-mode-title');
+    const badgeEl = document.getElementById('editing-mode-badge');
+    const btnCancel = document.getElementById('btn-cancel-edit');
+    if (currentQuoteId) {
+        if (titleEl) titleEl.innerText = `Editando Cotización #${loadedCorrelative || ''}`;
+        if (badgeEl) {
+            badgeEl.style.display = 'inline-flex';
+            const numSpan = document.getElementById('editing-corr-num');
+            if (numSpan) numSpan.innerText = loadedCorrelative || '';
+        }
+        if (btnCancel) btnCancel.style.display = 'inline-flex';
+    } else {
+        if (titleEl) titleEl.innerText = 'Nueva Cotización';
+        if (badgeEl) badgeEl.style.display = 'none';
+        if (btnCancel) btnCancel.style.display = 'none';
+    }
+}
+
+window.exitEditMode = function() {
+    currentQuoteId = null;
+    loadedCorrelative = null;
+    updateFormModeUI();
+    calculateQuote();
+    alert("Modo edición cancelado. Ahora puedes guardar estos datos como una nueva cotización con folio nuevo.");
+};
+
+async function saveQuote(silent = false, explicitCorrelative = null) {
     const activeUid = getActiveUid();
     if (!activeUid || !db) {
-        alert("Atención: No has iniciado sesión con Google. La cotización NO se guardará en la nube, pero el PDF sí se generará.");
-        return false;
+        if (!silent) alert("Atención: No has iniciado sesión con Google. La cotización NO se guardará en la nube, pero el PDF sí se generará.");
+        return { success: false };
     }
     
     const inputs = document.querySelectorAll('#quote-form input, #quote-form select, #quote-form textarea');
@@ -1294,6 +1392,13 @@ async function saveQuote(silent = false) {
     });
     quoteData.generalServices = genServices;
     
+    const isNew = !currentQuoteId;
+    const finalCorrelative = explicitCorrelative !== null 
+        ? explicitCorrelative 
+        : (loadedCorrelative !== null ? loadedCorrelative : appData.correlative);
+    
+    quoteData.correlative = finalCorrelative;
+
     const btn = document.getElementById('btn-save-quote');
     let oldText = "";
     if (btn) {
@@ -1303,7 +1408,6 @@ async function saveQuote(silent = false) {
     }
 
     try {
-        const isNew = !currentQuoteId;
         const userInfo = typeof window.getCurrentUserInfo === 'function' ? window.getCurrentUserInfo() : null;
         if (userInfo) {
             if (isNew) {
@@ -1316,21 +1420,21 @@ async function saveQuote(silent = false) {
             quoteData.updatedByRole = userInfo.role;
         }
 
-        if (!currentQuoteId) {
-            // Lock correlative if not already locked
-            if (loadedCorrelative === null) {
-                loadedCorrelative = appData.correlative;
-                appData.correlative++;
-                const corrEl = document.getElementById('setting-correlative');
-                if (corrEl) corrEl.value = appData.correlative;
-                saveData();
-            }
-            quoteData.correlative = loadedCorrelative;
-            
+        let savedDocId = currentQuoteId;
+        if (isNew) {
             const ref = await db.collection('users').doc(activeUid).collection('quotes').add(quoteData);
-            currentQuoteId = ref.id;
+            savedDocId = ref.id;
+            // Asegurarse de que el correlativo en users quede actualizado
+            if (appData.correlative <= finalCorrelative) {
+                appData.correlative = finalCorrelative + 1;
+            }
+            appData.lastModified = Date.now();
+            saveData();
+            db.collection('users').doc(activeUid).set({
+                correlative: appData.correlative,
+                lastModified: appData.lastModified
+            }, { merge: true }).catch(e => console.warn("Error sync correlative:", e));
         } else {
-            quoteData.correlative = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
             await db.collection('users').doc(activeUid).collection('quotes').doc(currentQuoteId).set(quoteData, { merge: true });
         }
 
@@ -1342,7 +1446,7 @@ async function saveQuote(silent = false) {
                 summary: `${isNew ? 'Generó' : 'Actualizó'} cotización #${quoteData.correlative} ($${(quoteData.total || 0).toLocaleString('es-CL')}) para "${quoteData.clientName}"`,
                 details: { correlative: quoteData.correlative, total: quoteData.total, clientName: quoteData.clientName },
                 clientName: quoteData.clientName,
-                quoteId: currentQuoteId
+                quoteId: savedDocId
             });
         }
         
@@ -1352,14 +1456,13 @@ async function saveQuote(silent = false) {
         if(typeof saveClientToDirectory === 'function') saveClientToDirectory(true);
         
         // Sync quote to our own CRM
-        await syncToCRM(quoteData, currentQuoteId);
+        await syncToCRM(quoteData, savedDocId);
         
-        calculateQuote();
-        return true;
+        return { success: true, quoteId: savedDocId, correlative: finalCorrelative };
     } catch(err) {
-        console.error(err);
-        alert("Error de Firebase al guardar la cotización: " + err.message + "\n(Puede que las reglas de la base de datos hayan expirado o haya un problema de conexión)");
-        return false;
+        console.error("saveQuote error:", err);
+        if (!silent) alert("Error de Firebase al guardar la cotización: " + err.message + "\n(Puede que las reglas de la base de datos hayan expirado o haya un problema de conexión)");
+        return { success: false, error: err };
     } finally {
         if (btn) {
             btn.innerText = oldText;
@@ -1502,10 +1605,11 @@ window.loadQuoteFromDB = function(id, silent = false) {
     
     currentQuoteId = id;
     loadedCorrelative = data.correlative || null;
+    updateFormModeUI();
     calculateQuote();
     
     document.getElementById('history-modal').classList.remove('active');
-    if (!silent) alert("Cotización restaurada. Cualquier cambio y nueva guardada sobrescribirá el archivo original sin gastar un número de folio nuevo.");
+    if (!silent) alert(`Cotización #${loadedCorrelative || '?'} restaurada en modo edición.\nCualquier cambio que guardes sobrescribirá este archivo sin gastar un número de folio nuevo.`);
 };
 
 window.deleteQuoteFromDB = async function(id) {
@@ -1535,7 +1639,7 @@ window.deleteQuoteFromDB = async function(id) {
             });
         }
 
-        if (currentQuoteId === id) resetForm(); // If it was loaded, reset UI
+        if (currentQuoteId === id) { resetFormSilently(); }
         loadHistoryUI();
     } catch(err) {
         console.error(err);

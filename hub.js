@@ -114,6 +114,7 @@ function loadData() {
 }
 
 function saveData() {
+    appData.lastModified = Date.now();
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
     if (currentUser && db) {
         db.collection('users').doc(getActiveUid()).set(appData, { merge: true })

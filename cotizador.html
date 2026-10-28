@@ -17,7 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.4.1"></script>
+    <script src="core-sync.js?v=v4.4.2"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
@@ -54,7 +54,13 @@
         
         <!-- Application Form Area -->
         <div class="glass-panel form-panel">
-            <h2 class="section-title">Nueva Cotización</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <h2 class="section-title" id="form-mode-title" style="margin: 0;">Nueva Cotización</h2>
+                    <span id="editing-mode-badge" style="display: none; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">Editando Folio #<span id="editing-corr-num"></span></span>
+                </div>
+                <button type="button" id="btn-cancel-edit" onclick="exitEditMode()" class="btn btn-secondary btn-sm" style="display: none; padding: 5px 12px; font-size: 0.8rem;">➕ Usar como Nueva Cotización</button>
+            </div>
             
             <form id="quote-form">
                 <!-- Cliente Info -->
@@ -472,6 +478,6 @@
     </div>
 
     <!-- Script Application -->
-    <script src="app.js?v=v4.4.1"></script>
+    <script src="app.js?v=v4.4.2"></script>
 </body>
 </html>

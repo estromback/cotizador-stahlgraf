@@ -2,7 +2,7 @@
 // Handles intelligent merging of appData arrays (clients, services, chemicals, etc.)
 // Prevents offline data loss during synchronization
 
-const STAHLGRAF_VERSION = "v4.4.1";
+const STAHLGRAF_VERSION = "v4.4.2";
 
 if (typeof window !== 'undefined') {
     window.STAHLGRAF_VERSION = STAHLGRAF_VERSION;
@@ -134,6 +134,19 @@ function mergeAppData(localData, cloudData) {
                 merged[k] = localData[k];
             }
         });
+    }
+
+    // Monotonically increasing counters must NEVER roll back
+    const localCorr = parseInt(localData.correlative) || 0;
+    const cloudCorr = parseInt(cloudData.correlative) || 0;
+    if (localCorr > 0 || cloudCorr > 0) {
+        merged.correlative = Math.max(localCorr, cloudCorr);
+    }
+
+    const localReportCorr = parseInt(localData.reportCorrelative) || 0;
+    const cloudReportCorr = parseInt(cloudData.reportCorrelative) || 0;
+    if (localReportCorr > 0 || cloudReportCorr > 0) {
+        merged.reportCorrelative = Math.max(localReportCorr, cloudReportCorr);
     }
 
     return merged;
