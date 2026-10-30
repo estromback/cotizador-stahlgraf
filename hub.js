@@ -808,8 +808,8 @@ function updateSettingsUI() {
         document.getElementById('setting-gcal-client-id').value = appData.googleClientId || '';
     }
     if (document.getElementById('setting-gcal-calendar-id')) {
-        appData.googleCalendarId = 'estromback@gmail.com';
-        document.getElementById('setting-gcal-calendar-id').value = 'estromback@gmail.com';
+        const opsId = appData.googleOperationsCalendarId || localStorage.getItem('stahlgraf_ops_calendar_id') || '';
+        document.getElementById('setting-gcal-calendar-id').value = opsId ? `Stahlgraf Operaciones (${opsId})` : 'Stahlgraf Operaciones (estromback@gmail.com)';
     }
     if (document.getElementById('setting-gcal-auto-sync')) {
         document.getElementById('setting-gcal-auto-sync').checked = appData.googleAutoSync !== false;
@@ -1156,8 +1156,10 @@ function syncFromFirebase() {
                 }
             }
 
-            // Enforce estromback@gmail.com rule for calendar ID
-            appData.googleCalendarId = 'estromback@gmail.com';
+            if (cloudData.googleOperationsCalendarId) {
+                appData.googleOperationsCalendarId = cloudData.googleOperationsCalendarId;
+                localStorage.setItem('stahlgraf_ops_calendar_id', cloudData.googleOperationsCalendarId);
+            }
             
             // Save to local cache
             localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
@@ -1779,17 +1781,33 @@ window.syncICalFeedToStorage = syncICalFeedToStorage;
 window.openCardInGoogleCalendar = openCardInGoogleCalendar;
 
 // ==========================================
-// GOOGLE CALENDAR API (REAL-TIME CENTRALIZED SYNC: estromback@gmail.com)
+// GOOGLE CALENDAR API (SINCRONIZACIÓN UNIDIRECCIONAL A "Stahlgraf Operaciones" EN estromback@gmail.com)
 // ==========================================
 
 const STAHLGRAF_CENTRAL_CALENDAR_ID = 'estromback@gmail.com';
+const STAHLGRAF_TARGET_CALENDAR_NAME = 'stahlgraf operaciones';
+const GCAL_TOKEN_SCOPE_VERSION = 'v2_ops_cal';
 
 function getTargetCalendarId() {
-    // Regla central inquebrantable:
-    // Toda la agenda de Stahlgraf se sincroniza única y exclusivamente hacia estromback@gmail.com,
-    // jamás hacia el calendario de otro usuario.
+    // Retorna el ID del sub-calendario "Stahlgraf Operaciones" dentro de estromback@gmail.com
+    const cachedOpsId = (appData && appData.googleOperationsCalendarId) || localStorage.getItem('stahlgraf_ops_calendar_id');
+    if (cachedOpsId && cachedOpsId.includes('@')) {
+        return cachedOpsId.trim();
+    }
+    if (appData && appData.googleCalendarId && appData.googleCalendarId.includes('@group.calendar.google.com')) {
+        return appData.googleCalendarId.trim();
+    }
     return STAHLGRAF_CENTRAL_CALENDAR_ID;
 }
+
+function getTargetCalendarDisplayLabel() {
+    const id = getTargetCalendarId();
+    if (id !== STAHLGRAF_CENTRAL_CALENDAR_ID) {
+        return `Stahlgraf Operaciones (${STAHLGRAF_CENTRAL_OWNER_LABEL})`;
+    }
+    return `Stahlgraf Operaciones [Pendiente detectar ID en ${STAHLGRAF_CENTRAL_CALENDAR_ID}]`;
+}
+const STAHLGRAF_CENTRAL_OWNER_LABEL = 'estromback@gmail.com';
 
 let tokenClient = null;
 let gapiInited = false;
@@ -1797,6 +1815,160 @@ let gisInited = false;
 let gcalAccessToken = null;
 let gapiCalendarLoadPromise = null;
 let pendingFullSyncAfterAuth = false;
+
+function normalizeCalendarName(str) {
+    return (str || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ');
+}
+
+async function ensureTargetCalendarId() {
+    const existing = (appData && appData.googleOperationsCalendarId) || localStorage.getItem('stahlgraf_ops_calendar_id');
+    if (existing && existing.includes('@') && existing !== STAHLGRAF_CENTRAL_CALENDAR_ID) {
+        return existing.trim();
+    }
+
+    // Intentar leer desde Firestore si otro navegador ya lo resolvió
+    const activeUid = getActiveUid();
+    if (db && activeUid) {
+        try {
+            const doc = await db.collection('users').doc(activeUid).collection('config').doc('gcal_token').get();
+            if (doc.exists) {
+                const data = doc.data();
+                if (data && data.operationsCalendarId && data.operationsCalendarId.includes('@')) {
+                    const resolvedId = data.operationsCalendarId.trim();
+                    localStorage.setItem('stahlgraf_ops_calendar_id', resolvedId);
+                    if (appData) {
+                        appData.googleOperationsCalendarId = resolvedId;
+                        appData.googleCalendarId = resolvedId;
+                    }
+                    updateGcalAuthUI();
+                    return resolvedId;
+                }
+            }
+        } catch (e) {
+            console.warn("No se pudo consultar operationsCalendarId en Firestore:", e);
+        }
+    }
+
+    // Buscar el calendario "stahlgraf operaciones" en la cuenta de estromback@gmail.com vía CalendarList.list
+    if (!gcalAccessToken) return getTargetCalendarId();
+    const gapiReady = await ensureGapiCalendarReady();
+    if (!gapiReady) return getTargetCalendarId();
+
+    try {
+        const listResp = await gapi.client.calendar.calendarList.list({
+            maxResults: 250
+        });
+        const items = (listResp && listResp.result && Array.isArray(listResp.result.items)) ? listResp.result.items : [];
+        const targetNorm = normalizeCalendarName(STAHLGRAF_TARGET_CALENDAR_NAME);
+
+        // 1. Coincidencia exacta con "stahlgraf operaciones"
+        let match = items.find(cal =>
+            normalizeCalendarName(cal.summary) === targetNorm ||
+            normalizeCalendarName(cal.summaryOverride) === targetNorm
+        );
+
+        // 2. Coincidencia parcial que contenga "stahlgraf operaciones"
+        if (!match) {
+            match = items.find(cal =>
+                normalizeCalendarName(cal.summary).includes(targetNorm) ||
+                normalizeCalendarName(cal.summaryOverride).includes(targetNorm)
+            );
+        }
+
+        // 3. Coincidencia con cualquier sub-calendario secundario que contenga "stahlgraf"
+        if (!match) {
+            match = items.find(cal =>
+                !cal.primary &&
+                cal.id !== STAHLGRAF_CENTRAL_CALENDAR_ID &&
+                (normalizeCalendarName(cal.summary).includes('stahlgraf') ||
+                 normalizeCalendarName(cal.summaryOverride).includes('stahlgraf'))
+            );
+        }
+
+        if (match && match.id) {
+            const resolvedId = match.id.trim();
+            console.log(`[Google Calendar] Calendario "${match.summary}" detectado con ID: ${resolvedId}`);
+            localStorage.setItem('stahlgraf_ops_calendar_id', resolvedId);
+            if (appData) {
+                appData.googleOperationsCalendarId = resolvedId;
+                appData.googleCalendarId = resolvedId;
+                localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
+            }
+            const calInput = document.getElementById('setting-gcal-calendar-id');
+            if (calInput) {
+                calInput.value = `${match.summary} (${resolvedId})`;
+            }
+            if (db && activeUid) {
+                db.collection('users').doc(activeUid).set({
+                    googleOperationsCalendarId: resolvedId,
+                    googleCalendarId: resolvedId
+                }, { merge: true }).catch(e => console.warn(e));
+                db.collection('users').doc(activeUid).collection('config').doc('gcal_token').set({
+                    operationsCalendarId: resolvedId,
+                    operationsCalendarName: match.summary || 'Stahlgraf Operaciones'
+                }, { merge: true }).catch(e => console.warn(e));
+            }
+            updateGcalAuthUI();
+            return resolvedId;
+        } else {
+            console.warn("[Google Calendar] No se encontró un sub-calendario llamado 'Stahlgraf Operaciones' en la lista:", items.map(i => i.summary));
+        }
+    } catch (err) {
+        console.warn("[Google Calendar] Error buscando calendario 'Stahlgraf Operaciones':", err);
+        const errCode = err.status || (err.result && err.result.error && err.result.error.code);
+        if (errCode === 401 || errCode === 403) {
+            clearInvalidGcalToken();
+        }
+    }
+
+    return getTargetCalendarId();
+}
+
+async function cleanupPrimaryCalendarStahlgrafEvents(opsCalendarId) {
+    if (!opsCalendarId || opsCalendarId === STAHLGRAF_CENTRAL_CALENDAR_ID) return 0;
+    let removedFromPrimary = 0;
+    try {
+        const minDate = new Date();
+        minDate.setFullYear(minDate.getFullYear() - 1);
+        const resp = await gapi.client.calendar.events.list({
+            calendarId: STAHLGRAF_CENTRAL_CALENDAR_ID,
+            timeMin: minDate.toISOString(),
+            q: 'Stahlgraf:',
+            maxResults: 2500,
+            singleEvents: true,
+            showDeleted: false
+        });
+        const items = (resp && resp.result && Array.isArray(resp.result.items)) ? resp.result.items : [];
+        for (const ev of items) {
+            if (!ev || !ev.id || ev.status === 'cancelled') continue;
+            const summary = ev.summary || '';
+            const desc = ev.description || '';
+            if (summary.startsWith('Stahlgraf:') && (desc.includes('Card ID:') || desc.includes('Stahlgraf'))) {
+                try {
+                    await gapi.client.calendar.events.delete({
+                        calendarId: STAHLGRAF_CENTRAL_CALENDAR_ID,
+                        eventId: ev.id
+                    });
+                    removedFromPrimary++;
+                    await new Promise(r => setTimeout(r, 120));
+                } catch (delErr) {
+                    console.warn("No se pudo limpiar evento antiguo del calendario principal:", delErr);
+                }
+            }
+        }
+        if (removedFromPrimary > 0) {
+            console.log(`[Google Calendar] Se limpiaron ${removedFromPrimary} evento(s) antiguos de Stahlgraf del calendario principal para que queden solo en Stahlgraf Operaciones.`);
+        }
+    } catch (e) {
+        console.warn("Advertencia limpiando eventos de Stahlgraf del calendario principal:", e);
+    }
+    return removedFromPrimary;
+}
 
 function initGisTokenClient() {
     const clientId = (appData.googleClientId || '').trim();
@@ -1806,7 +1978,7 @@ function initGisTokenClient() {
     try {
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: clientId,
-            scope: 'https://www.googleapis.com/auth/calendar.events',
+            scope: 'https://www.googleapis.com/auth/calendar',
             callback: async (resp) => {
                 if (resp.error) {
                     console.error("Google Auth error:", resp);
@@ -1822,32 +1994,39 @@ function initGisTokenClient() {
                     token: gcalAccessToken,
                     expiresAt: expiresAt,
                     authorizedBy: authEmail,
+                    scopeVersion: GCAL_TOKEN_SCOPE_VERSION,
                     updatedAt: Date.now()
                 };
                 
-                // 1. Guardar en almacenamiento local
-                localStorage.setItem('stahlgraf_gcal_token', JSON.stringify(tokenRecord));
                 if (typeof gapi !== 'undefined' && gapi.client) {
                     gapi.client.setToken({ access_token: gcalAccessToken });
                 }
+
+                // Detectar automáticamente el ID del calendario "Stahlgraf Operaciones"
+                const resolvedCalId = await ensureTargetCalendarId();
+                tokenRecord.operationsCalendarId = resolvedCalId;
+
+                // 1. Guardar en almacenamiento local
+                localStorage.setItem('stahlgraf_gcal_token', JSON.stringify(tokenRecord));
                 updateGcalAuthUI(true);
 
-                // 2. Compartir token en Firestore si es la cuenta titular (estromback@gmail.com)
+                // 2. Compartir token y calendario de destino en Firestore si es la cuenta titular (estromback@gmail.com)
                 const targetUid = getActiveUid();
                 if (db && targetUid && authEmail === STAHLGRAF_CENTRAL_CALENDAR_ID) {
-                    db.collection('users').doc(targetUid).collection('config').doc('gcal_token').set(tokenRecord)
+                    db.collection('users').doc(targetUid).collection('config').doc('gcal_token').set(tokenRecord, { merge: true })
                         .catch(e => console.warn("No se pudo guardar gcal_token en config:", e));
                     db.collection('users').doc(targetUid).set({
-                        gcalSharedToken: tokenRecord
+                        gcalSharedToken: tokenRecord,
+                        googleOperationsCalendarId: resolvedCalId
                     }, { merge: true }).catch(e => console.warn("No se pudo actualizar gcalSharedToken en appData:", e));
                 }
 
-                // 3. Si el usuario venía de presionar "Enviar a Google Calendar", ejecutar la sincronización completa de inmediato
+                // 3. Ejecutar sincronización completa o automática hacia "Stahlgraf Operaciones"
                 if (pendingFullSyncAfterAuth) {
                     pendingFullSyncAfterAuth = false;
                     await syncAllEventsToGoogleCalendar();
                 } else {
-                    alert(`✅ Google Calendar conectado y autorizado para "${getTargetCalendarId()}". Sincronizando eventos...`);
+                    alert(`✅ Conectado con el calendario "Stahlgraf Operaciones" (${STAHLGRAF_CENTRAL_CALENDAR_ID}). Sincronizando eventos...`);
                     await autoSyncPendingGoogleCalendarEvents();
                 }
             }
@@ -1907,6 +2086,7 @@ async function ensureGapiCalendarReady() {
 function isTokenRecordValidForCentralCalendar(record) {
     if (!record || !record.token || !record.expiresAt) return false;
     if (record.expiresAt <= (Date.now() + 10000)) return false;
+    if (record.scopeVersion !== GCAL_TOKEN_SCOPE_VERSION) return false;
     if (record.authorizedBy && record.authorizedBy.toLowerCase() !== STAHLGRAF_CENTRAL_CALENDAR_ID) {
         return false;
     }
@@ -1926,6 +2106,10 @@ function restoreGcalToken() {
         const saved = localStorage.getItem('stahlgraf_gcal_token');
         if (saved) {
             const parsed = JSON.parse(saved);
+            if (parsed && parsed.operationsCalendarId && parsed.operationsCalendarId.includes('@')) {
+                localStorage.setItem('stahlgraf_ops_calendar_id', parsed.operationsCalendarId);
+                if (appData) appData.googleOperationsCalendarId = parsed.operationsCalendarId;
+            }
             if (isTokenRecordValidForCentralCalendar(parsed)) {
                 gcalAccessToken = parsed.token;
                 if (typeof gapi !== 'undefined' && gapi.client) {
@@ -1940,13 +2124,19 @@ function restoreGcalToken() {
         }
 
         // 2. Verificar token compartido en appData (traído de Firestore)
-        if (appData && appData.gcalSharedToken && isTokenRecordValidForCentralCalendar(appData.gcalSharedToken)) {
-            gcalAccessToken = appData.gcalSharedToken.token;
-            if (typeof gapi !== 'undefined' && gapi.client) {
-                gapi.client.setToken({ access_token: gcalAccessToken });
+        if (appData && appData.gcalSharedToken) {
+            if (appData.gcalSharedToken.operationsCalendarId && appData.gcalSharedToken.operationsCalendarId.includes('@')) {
+                localStorage.setItem('stahlgraf_ops_calendar_id', appData.gcalSharedToken.operationsCalendarId);
+                appData.googleOperationsCalendarId = appData.gcalSharedToken.operationsCalendarId;
             }
-            updateGcalAuthUI(true);
-            return true;
+            if (isTokenRecordValidForCentralCalendar(appData.gcalSharedToken)) {
+                gcalAccessToken = appData.gcalSharedToken.token;
+                if (typeof gapi !== 'undefined' && gapi.client) {
+                    gapi.client.setToken({ access_token: gcalAccessToken });
+                }
+                updateGcalAuthUI(true);
+                return true;
+            }
         }
     } catch (e) {
         console.warn("Error restoring GCal token:", e);
@@ -1963,6 +2153,10 @@ async function restoreGcalTokenAsync() {
             const doc = await db.collection('users').doc(targetUid).collection('config').doc('gcal_token').get();
             if (doc.exists) {
                 const data = doc.data();
+                if (data && data.operationsCalendarId && data.operationsCalendarId.includes('@')) {
+                    localStorage.setItem('stahlgraf_ops_calendar_id', data.operationsCalendarId);
+                    if (appData) appData.googleOperationsCalendarId = data.operationsCalendarId;
+                }
                 if (isTokenRecordValidForCentralCalendar(data)) {
                     gcalAccessToken = data.token;
                     if (appData) appData.gcalSharedToken = data;
@@ -1992,22 +2186,22 @@ function updateGcalAuthUI(isConnected = null) {
         isConnected = checkGcalAuthStatus();
     }
 
-    const targetCal = getTargetCalendarId();
+    const targetLabel = getTargetCalendarDisplayLabel();
     const statusEl = document.getElementById('gcal-auth-status');
     const authBtn = document.getElementById('btn-auth-gcal');
     const calHeaderSyncBtn = document.getElementById('cal-btn-sync-to-gcal');
 
     if (calHeaderSyncBtn && !calHeaderSyncBtn.disabled) {
         if (isConnected) {
-            calHeaderSyncBtn.innerHTML = '<span>🟢📤</span> Sincronizar a Google Calendar';
+            calHeaderSyncBtn.innerHTML = '<span>🟢📤</span> Sincronizar a "Stahlgraf Operaciones"';
             calHeaderSyncBtn.style.borderColor = 'rgba(16, 185, 129, 0.5)';
             calHeaderSyncBtn.style.color = '#34d399';
-            calHeaderSyncBtn.title = `Conectado con ${targetCal} (Unidireccional Stahlgraf ➔ Google Calendar)`;
+            calHeaderSyncBtn.title = `Conectado con ${targetLabel} (Unidireccional Stahlgraf ➔ Google Calendar)`;
         } else {
-            calHeaderSyncBtn.innerHTML = '<span>🔑📤</span> Conectar y Enviar a Google Calendar';
+            calHeaderSyncBtn.innerHTML = '<span>🔑📤</span> Conectar y Enviar a "Stahlgraf Operaciones"';
             calHeaderSyncBtn.style.borderColor = 'rgba(245, 158, 11, 0.6)';
             calHeaderSyncBtn.style.color = '#fcd34d';
-            calHeaderSyncBtn.title = `Haz clic para autorizar y enviar toda la agenda a ${targetCal}`;
+            calHeaderSyncBtn.title = `Haz clic para autorizar y enviar toda la agenda al calendario "Stahlgraf Operaciones" (${STAHLGRAF_CENTRAL_CALENDAR_ID})`;
         }
     }
 
@@ -2016,7 +2210,7 @@ function updateGcalAuthUI(isConnected = null) {
     if (isConnected) {
         statusEl.innerHTML = `
             <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
-            <span style="color: #34d399; font-weight: 500;">🟢 Conectado con Google Calendar (${targetCal})</span>
+            <span style="color: #34d399; font-weight: 500;">🟢 Conectado con Google Calendar: ${targetLabel}</span>
         `;
         if (authBtn) {
             authBtn.innerHTML = '<span>🔄</span> Re-autorizar / Actualizar sesión';
@@ -2026,10 +2220,10 @@ function updateGcalAuthUI(isConnected = null) {
     } else {
         statusEl.innerHTML = `
             <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #e74c3c;"></span>
-            <span style="color: #f87171;">🔴 Sin autorización activa para ${targetCal}</span>
+            <span style="color: #f87171;">🔴 Sin autorización activa para ${targetLabel}</span>
         `;
         if (authBtn) {
-            authBtn.innerHTML = '<span>🔑</span> Conectar / Autorizar Google Calendar';
+            authBtn.innerHTML = '<span>🔑</span> Conectar con "Stahlgraf Operaciones"';
             authBtn.style.background = '#2563eb';
             authBtn.style.color = '#fff';
         }
@@ -2123,7 +2317,7 @@ function buildGoogleCalendarEventResource(card) {
             descLines.push(`🎯 Área a tratar: ${areaStr}`);
         }
     }
-    descLines.push(`\n🔗 Sincronizado centralizadamente hacia Google Calendar (${getTargetCalendarId()}) | Card ID: ${card.id || 'nuevo'}`);
+    descLines.push(`\n🔗 Sincronizado hacia Google Calendar (Stahlgraf Operaciones - ${STAHLGRAF_CENTRAL_CALENDAR_ID}) | Card ID: ${card.id || 'nuevo'}`);
 
     const resource = {
         summary: `Stahlgraf: ${cardClient} [${card.column || 'Cita'}]`,
@@ -2174,15 +2368,13 @@ function buildGoogleCalendarEventResource(card) {
 }
 
 // ==========================================
-// LECTURA DE VERIFICACIÓN (SOLO LECTURA) EN estromback@gmail.com
-// Para detectar eventos de Stahlgraf que falten en Google Calendar
+// LECTURA DE VERIFICACIÓN (SOLO LECTURA) EN "Stahlgraf Operaciones"
 // NUNCA modifica Stahlgraf desde Google Calendar.
 // ==========================================
 async function fetchActiveGoogleCalendarEventsMap(calendarId) {
     const activeById = new Map();
     const activeByCardId = new Map();
 
-    // Calcular fecha mínima: el menor entre hace 1 año o la fecha más antigua de las tarjetas (hasta 2 años atrás)
     const minDate = new Date();
     minDate.setFullYear(minDate.getFullYear() - 1);
     minDate.setHours(0, 0, 0, 0);
@@ -2249,7 +2441,6 @@ function doesRemoteGcalEventMatchCard(remoteEv, card) {
             }
         }
     } else {
-        // Si en Stahlgraf es de día completo pero en Google tenía hora, actualizar
         if (remoteEv.start && remoteEv.start.dateTime) {
             return false;
         }
@@ -2265,7 +2456,7 @@ function doesRemoteGcalEventMatchCard(remoteEv, card) {
 
 // ==========================================
 // AUTO-SYNC COLA DE PENDIENTES Y VERIFICACIÓN DE EVENTOS FALTANTES
-// (UNIDIRECCIONAL: STAHLGRAF -> GOOGLE CALENDAR DE estromback@gmail.com)
+// (UNIDIRECCIONAL: STAHLGRAF -> "Stahlgraf Operaciones" EN estromback@gmail.com)
 // ==========================================
 let isAutoSyncingPending = false;
 let autoSyncPendingTimeout = null;
@@ -2287,14 +2478,14 @@ async function autoSyncPendingGoogleCalendarEvents() {
 
     if (!checkGcalAuthStatus()) {
         const restored = await restoreGcalTokenAsync();
-        if (!restored) return; // Se ejecutará apenas estromback tenga token activo
+        if (!restored) return;
     }
 
     isAutoSyncingPending = true;
 
     try {
         const activeUid = getActiveUid();
-        const targetCalId = getTargetCalendarId();
+        const targetCalId = await ensureTargetCalendarId();
 
         // 1. Procesar eliminaciones pendientes
         try {
@@ -2307,12 +2498,15 @@ async function autoSyncPendingGoogleCalendarEvents() {
                             calendarId: targetCalId,
                             eventId: eventId
                         });
-                        console.log(`[Auto-Sync GCal] Eliminado evento pendiente ${eventId} de ${targetCalId}`);
-                    } catch (delErr) {
-                        const delCode = delErr.status || (delErr.result && delErr.result.error && delErr.result.error.code);
-                        if (delCode !== 404 && delCode !== 410) {
-                            console.warn("No se pudo eliminar evento pendiente en Google:", delErr);
-                        }
+                    } catch (delErr) {}
+                    // También intentar eliminar del calendario principal por si era un ID antiguo
+                    if (targetCalId !== STAHLGRAF_CENTRAL_CALENDAR_ID) {
+                        try {
+                            await gapi.client.calendar.events.delete({
+                                calendarId: STAHLGRAF_CENTRAL_CALENDAR_ID,
+                                eventId: eventId
+                            });
+                        } catch (e) {}
                     }
                     await d.ref.delete().catch(e => console.warn(e));
                 }
@@ -2321,7 +2515,7 @@ async function autoSyncPendingGoogleCalendarEvents() {
             console.warn("Error procesando eliminaciones pendientes en GCal:", delCatchErr);
         }
 
-        // 2. Verificar en modo SOLO LECTURA qué eventos están realmente presentes en estromback@gmail.com
+        // 2. Verificar en modo SOLO LECTURA qué eventos están presentes en "Stahlgraf Operaciones"
         let activeById = new Map();
         let activeByCardId = new Map();
         let minDateStr = '1970-01-01';
@@ -2342,7 +2536,7 @@ async function autoSyncPendingGoogleCalendarEvents() {
             }
         }
 
-        // 3. Detectar todas las tarjetas de Stahlgraf con fecha que falten o estén desactualizadas en estromback@gmail.com
+        // 3. Detectar todas las tarjetas de Stahlgraf con fecha que falten o estén desactualizadas en "Stahlgraf Operaciones"
         const cardsToSync = crmCards.filter(c => {
             if (!c || !c.id) return false;
             const cleanDate = normalizeCardDateStr(c.date);
@@ -2351,7 +2545,6 @@ async function autoSyncPendingGoogleCalendarEvents() {
             if (listSucceeded && cleanDate >= minDateStr) {
                 const remoteEv = c.googleEventId ? activeById.get(c.googleEventId) : null;
                 if (!remoteEv) {
-                    // El evento NO existe en estromback@gmail.com (estaba en otro calendario, fue borrado o nunca se subió)
                     const byCardId = activeByCardId.get(c.id);
                     c.googleEventId = byCardId ? byCardId.id : null;
                     return true;
@@ -2366,15 +2559,19 @@ async function autoSyncPendingGoogleCalendarEvents() {
         });
 
         if (cardsToSync.length > 0) {
-            console.log(`[Auto-Sync GCal] Sincronizando ${cardsToSync.length} cita(s) de Stahlgraf hacia ${targetCalId}...`);
+            console.log(`[Auto-Sync GCal] Sincronizando ${cardsToSync.length} cita(s) hacia Stahlgraf Operaciones (${targetCalId})...`);
             for (const card of cardsToSync) {
                 try {
                     const res = await syncCardToGoogleCalendar(card, { silent: true });
-                    if (!res && !gcalAccessToken) break; // Si el token expiró a mitad del lote, detener
+                    if (!res && !gcalAccessToken) break;
                     await new Promise(r => setTimeout(r, 180));
                 } catch (cardErr) {
                     console.error("[Auto-Sync GCal] Error sincronizando tarjeta:", card.client, cardErr);
                 }
+            }
+            // Si ya estamos en el sub-calendario Stahlgraf Operaciones, limpiar duplicados antiguos del calendario principal
+            if (targetCalId !== STAHLGRAF_CENTRAL_CALENDAR_ID) {
+                await cleanupPrimaryCalendarStahlgrafEvents(targetCalId);
             }
         }
     } finally {
@@ -2396,11 +2593,9 @@ async function syncCardToGoogleCalendar(card, options = {}) {
         await restoreGcalTokenAsync();
     }
 
-    const calendarId = getTargetCalendarId();
     const activeUid = getActiveUid();
 
     if (!gcalAccessToken) {
-        // Sin token disponible en este momento: marcar needsGoogleSync para que se suba apenas haya conexión
         if (card.id && currentUser && db) {
             await db.collection('users').doc(activeUid).collection('crm').doc(card.id).set({
                 needsGoogleSync: true
@@ -2412,9 +2607,9 @@ async function syncCardToGoogleCalendar(card, options = {}) {
         return null;
     }
 
+    const calendarId = await ensureTargetCalendarId();
     const cleanDate = normalizeCardDateStr(card.date);
 
-    // Si la tarjeta no tiene fecha válida, eliminar cualquier evento previo en Google Calendar
     if (!cleanDate) {
         if (card.googleEventId) {
             await deleteCardFromGoogleCalendar(card);
@@ -2440,7 +2635,6 @@ async function syncCardToGoogleCalendar(card, options = {}) {
                     eventId: card.googleEventId,
                     resource: eventResource
                 });
-                // Si el evento estaba cancelado en la papelera de Google Calendar, re-insertarlo como evento nuevo y activo
                 if (resp && resp.result && resp.result.status === 'cancelled') {
                     resp = await gapi.client.calendar.events.insert({
                         calendarId: calendarId,
@@ -2449,7 +2643,6 @@ async function syncCardToGoogleCalendar(card, options = {}) {
                 }
             } catch (patchErr) {
                 const patchCode = patchErr.status || (patchErr.result && patchErr.result.error && patchErr.result.error.code);
-                // Si da 404, 410, 403 o 400 (ej. ID pertenecía al calendario de otro usuario o fue eliminado), insertar como nuevo en estromback@gmail.com
                 if (patchCode === 404 || patchCode === 410 || patchCode === 403 || patchCode === 400) {
                     resp = await gapi.client.calendar.events.insert({
                         calendarId: calendarId,
@@ -2471,7 +2664,6 @@ async function syncCardToGoogleCalendar(card, options = {}) {
             card.googleEventId = eventId;
             card.needsGoogleSync = false;
 
-            // Persistir googleEventId y limpiar flag needsGoogleSync en Firestore
             if (card.id && currentUser && db) {
                 await db.collection('users').doc(activeUid).collection('crm').doc(card.id).set({
                     googleEventId: eventId,
@@ -2479,7 +2671,7 @@ async function syncCardToGoogleCalendar(card, options = {}) {
                     lastGoogleSyncedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
             }
-            console.log(`[Google Calendar Sync] Evento "${card.client}" (${cleanDate}) sincronizado en ${calendarId} -> ID: ${eventId}`);
+            console.log(`[Google Calendar Sync] Evento "${card.client}" (${cleanDate}) sincronizado en Stahlgraf Operaciones (${calendarId}) -> ID: ${eventId}`);
         }
 
         debouncedSyncICalFeed();
@@ -2488,7 +2680,6 @@ async function syncCardToGoogleCalendar(card, options = {}) {
         console.error("[Google Calendar Sync] Error al sincronizar evento:", card.client, err);
         const errCode = err.status || (err.result && err.result.error && err.result.error.code);
 
-        // Siempre dejar marcada la tarjeta como pendiente de sincronización ante cualquier fallo
         if (card.id && currentUser && db) {
             await db.collection('users').doc(activeUid).collection('crm').doc(card.id).set({
                 needsGoogleSync: true
@@ -2518,10 +2709,8 @@ async function deleteCardFromGoogleCalendar(card) {
     }
 
     const activeUid = getActiveUid();
-    const calendarId = getTargetCalendarId();
 
     if (!gcalAccessToken) {
-        // Encolar eliminación para cuando haya sesión autorizada
         if (db && activeUid && card.googleEventId) {
             try {
                 await db.collection('users').doc(activeUid).collection('gcal_pending_deletions').doc(card.googleEventId).set({
@@ -2534,6 +2723,8 @@ async function deleteCardFromGoogleCalendar(card) {
         }
         return;
     }
+
+    const calendarId = await ensureTargetCalendarId();
 
     try {
         await gapi.client.calendar.events.delete({
@@ -2585,7 +2776,6 @@ async function syncAllEventsToGoogleCalendar() {
         return alert("No hay citas o servicios con fecha asignada en el calendario de Stahlgraf.");
     }
 
-    const targetCal = getTargetCalendarId();
     const btnSettings = document.getElementById('btn-sync-all-gcal');
     const btnCalHeader = document.getElementById('cal-btn-sync-to-gcal');
     const origSettingsHtml = btnSettings ? btnSettings.innerHTML : '';
@@ -2614,14 +2804,22 @@ async function syncAllEventsToGoogleCalendar() {
         updateGcalAuthUI();
     };
 
-    setButtonsProgress(`⏳ Verificando ${targetCal}...`);
+    setButtonsProgress('⏳ Buscando calendario "Stahlgraf Operaciones"...');
+    const targetCal = await ensureTargetCalendarId();
+    if (!gcalAccessToken) {
+        restoreButtons();
+        pendingFullSyncAfterAuth = true;
+        handleAuthGcalClick();
+        return;
+    }
 
-    // 1. Verificar qué eventos existen realmente activos en estromback@gmail.com
+    setButtonsProgress('⏳ Verificando eventos en "Stahlgraf Operaciones"...');
+
+    // 1. Verificar qué eventos existen realmente activos en "Stahlgraf Operaciones"
     try {
         const { activeById, activeByCardId } = await fetchActiveGoogleCalendarEventsMap(targetCal);
         for (const card of cardsWithDate) {
             if (card.googleEventId && !activeById.has(card.googleEventId)) {
-                // El googleEventId antiguo no está activo en estromback@gmail.com (fue borrado o pertenecía a otro calendario)
                 const existingMatch = activeByCardId.get(card.id);
                 card.googleEventId = existingMatch ? existingMatch.id : null;
             } else if (!card.googleEventId && activeByCardId.has(card.id)) {
@@ -2645,14 +2843,13 @@ async function syncAllEventsToGoogleCalendar() {
 
     for (let i = 0; i < cardsWithDate.length; i++) {
         const card = cardsWithDate[i];
-        setButtonsProgress(`⏳ Sincronizando (${i + 1}/${cardsWithDate.length})...`);
+        setButtonsProgress(`⏳ Subiendo a Stahlgraf Operaciones (${i + 1}/${cardsWithDate.length})...`);
         try {
             const res = await syncCardToGoogleCalendar(card, { silent: true });
             if (res) {
                 successCount++;
             } else {
                 failCount++;
-                // Si el token expiró durante la sincronización, pedir autorización y reanudar automáticamente
                 if (!gcalAccessToken) {
                     restoreButtons();
                     pendingFullSyncAfterAuth = true;
@@ -2667,9 +2864,16 @@ async function syncAllEventsToGoogleCalendar() {
         await new Promise(r => setTimeout(r, 150));
     }
 
+    // 2. Limpiar eventos antiguos de Stahlgraf que hayan quedado en el calendario principal de estromback@gmail.com
+    let cleanedFromPrimary = 0;
+    if (targetCal !== STAHLGRAF_CENTRAL_CALENDAR_ID) {
+        setButtonsProgress('⏳ Limpiando duplicados del calendario principal...');
+        cleanedFromPrimary = await cleanupPrimaryCalendarStahlgrafEvents(targetCal);
+    }
+
     restoreButtons();
 
-    alert(`✅ Sincronización unidireccional completada (Stahlgraf ➔ ${targetCal}).\n\nEventos en el calendario de Stahlgraf enviados/actualizados en ${targetCal}: ${successCount}${failCount > 0 ? `\nNo sincronizados: ${failCount}` : ''}`);
+    alert(`✅ Sincronización completada hacia el calendario "Stahlgraf Operaciones" (${STAHLGRAF_CENTRAL_CALENDAR_ID}).\n\nEventos enviados/actualizados en Stahlgraf Operaciones: ${successCount}${cleanedFromPrimary > 0 ? `\nEventos antiguos removidos del calendario principal: ${cleanedFromPrimary}` : ''}${failCount > 0 ? `\nNo sincronizados: ${failCount}` : ''}`);
 }
 
 // ==========================================
@@ -2688,6 +2892,7 @@ async function syncFromGoogleCalendarToHub(options = { silent: true }) {
 
 window.STAHLGRAF_CENTRAL_CALENDAR_ID = STAHLGRAF_CENTRAL_CALENDAR_ID;
 window.getTargetCalendarId = getTargetCalendarId;
+window.ensureTargetCalendarId = ensureTargetCalendarId;
 window.autoSyncPendingGoogleCalendarEvents = autoSyncPendingGoogleCalendarEvents;
 window.debouncedAutoSyncPendingGcal = debouncedAutoSyncPendingGcal;
 window.initGisTokenClient = initGisTokenClient;
