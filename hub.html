@@ -448,7 +448,7 @@
                     <button id="cal-btn-prev" class="btn btn-secondary btn-sm">⬅️ Anterior</button>
                     <button id="cal-btn-today" class="btn btn-secondary btn-sm">Hoy</button>
                     <button id="cal-btn-next" class="btn btn-secondary btn-sm">Siguiente ➡️</button>
-                    <button id="cal-btn-restore-agenda" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 5px; border-color: rgba(234, 179, 8, 0.5); color: #fde047; background: rgba(234, 179, 8, 0.1);" title="Recuperar fechas previas de la agenda desde el historial de auditoría">
+                    <button id="cal-btn-restore-agenda" type="button" onclick="openRestoreAgendaModal(event)" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 5px; border-color: rgba(234, 179, 8, 0.5); color: #fde047; background: rgba(234, 179, 8, 0.1); cursor: pointer;" title="Recuperar fechas previas de la agenda desde el historial de auditoría">
                         <span>⏪</span> Recuperar Agenda
                     </button>
                     <button id="cal-btn-sync-to-gcal" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 5px; border-color: rgba(66, 133, 244, 0.4); color: #93c5fd;" title="Enviar todas las citas de Stahlgraf hacia Google Calendar (Unidireccional)">
@@ -1099,6 +1099,321 @@
             }
         }
 
+        let pendingRestoreCandidates = [];
+
+        function closeRestoreAgendaModal(e) {
+            if (e) {
+                if (typeof e.preventDefault === 'function') e.preventDefault();
+                if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            }
+            const modal = document.getElementById('restore-agenda-modal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function toggleAllRestoreChecks(isChecked) {
+            document.querySelectorAll('.restore-item-check').forEach(chk => {
+                chk.checked = isChecked;
+            });
+        }
+
+        async function openRestoreAgendaModal(e) {
+            if (e) {
+                if (typeof e.preventDefault === 'function') e.preventDefault();
+                if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            }
+            
+            const modal = document.getElementById('restore-agenda-modal');
+            if (!modal) {
+                return alert("No se encontró la ventana de recuperación en la página.");
+            }
+            modal.classList.add('active');
+
+            const statusBanner = document.getElementById('restore-status-banner');
+            const tbody = document.getElementById('restore-table-body');
+            const btnExecute = document.getElementById('btn-execute-restore');
+
+            if (statusBanner) {
+                statusBanner.style.background = 'rgba(234, 179, 8, 0.15)';
+                statusBanner.style.borderColor = 'rgba(234, 179, 8, 0.3)';
+                statusBanner.style.color = '#fef08a';
+                statusBanner.innerHTML = '⏳ Escaneando historial de auditoría y copias en la nube...';
+            }
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" style="padding: 25px; text-align: center; color: #94a3b8;">Consultando historial de auditoría y registros previos...</td></tr>';
+            }
+            if (btnExecute) btnExecute.disabled = true;
+            pendingRestoreCandidates = [];
+
+            try {
+                const ownerUid = (typeof getActiveUid === 'function' ? getActiveUid() : null) || 
+                                 localStorage.getItem('stahlgraf_target_uid') || 
+                                 (typeof currentUser !== 'undefined' && currentUser ? currentUser.uid : null) ||
+                                 (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser ? firebase.auth().currentUser.uid : null);
+                
+                const dbInstance = (typeof db !== 'undefined' && db) || 
+                                   (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+
+                if (!ownerUid || !dbInstance) {
+                    if (statusBanner) {
+                        statusBanner.innerHTML = '⚠️ Debes iniciar sesión con tu cuenta de Google para consultar el historial en la nube.';
+                    }
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #f87171;">Sin sesión activa. Inicia sesión para recuperar tu agenda.</td></tr>';
+                    }
+                    return;
+                }
+
+                // 1. Obtener todas las tarjetas actuales directo de Firestore
+                let allCards = [];
+                try {
+                    const snapCrm = await dbInstance.collection('users').doc(ownerUid).collection('crm').get();
+                    snapCrm.forEach(d => allCards.push({ id: d.id, ...d.data() }));
+                } catch(e) {
+                    allCards = (typeof crmCards !== 'undefined' && crmCards) ? [...crmCards] : [];
+                }
+
+                // 2. Obtener registros de auditoría de actividad
+                let logs = [];
+                try {
+                    const snapLogs = await dbInstance.collection('users').doc(ownerUid).collection('activity_logs')
+                        .orderBy('clientTimestamp', 'desc')
+                        .limit(300)
+                        .get();
+                    snapLogs.forEach(d => logs.push({ id: d.id, ...d.data() }));
+                } catch (e) {
+                    try {
+                        const snapLogs = await dbInstance.collection('users').doc(ownerUid).collection('activity_logs').limit(300).get();
+                        snapLogs.forEach(d => logs.push({ id: d.id, ...d.data() }));
+                        logs.sort((a,b) => (b.clientTimestamp || 0) - (a.clientTimestamp || 0));
+                    } catch (err2) {
+                        console.warn("No se pudo leer activity_logs:", err2);
+                    }
+                }
+
+                // 3. Obtener servicios para contrastar
+                let servicesList = [];
+                try {
+                    const srvSnap = await dbInstance.collection('users').doc(ownerUid).collection('services').limit(200).get();
+                    srvSnap.forEach(d => servicesList.push({ id: d.id, ...d.data() }));
+                } catch(e) {}
+
+                // 4. Obtener cotizaciones
+                let quotesList = [];
+                try {
+                    const qSnap = await dbInstance.collection('users').doc(ownerUid).collection('quotes').limit(200).get();
+                    qSnap.forEach(d => quotesList.push({ id: d.id, ...d.data() }));
+                } catch(e) {}
+
+                // 5. Comparar cada tarjeta
+                allCards.forEach(card => {
+                    let recoveredDate = null;
+                    let recoveredTime = card.time || '';
+                    let source = '';
+
+                    const cardLogs = logs.filter(l => 
+                        (l.cardId && l.cardId === card.id) ||
+                        (l.clientName && card.client && l.clientName.trim().toLowerCase() === card.client.trim().toLowerCase())
+                    );
+
+                    for (const log of cardLogs) {
+                        if (log.actionType === 'date_changed' && log.details) {
+                            if (log.details.newDate && log.details.newDate !== 'Sin fecha' && log.details.newDate.includes('-') && log.details.newDate !== card.date) {
+                                recoveredDate = log.details.newDate;
+                                source = 'Historial de auditoría (Última fecha asignada)';
+                                break;
+                            }
+                            if (log.details.previousDate && log.details.previousDate !== 'Sin fecha' && log.details.previousDate.includes('-') && log.details.previousDate !== card.date) {
+                                recoveredDate = log.details.previousDate;
+                                source = 'Historial de auditoría (Fecha antes de alterarse)';
+                                break;
+                            }
+                        }
+                        if (log.actionType === 'crm_created' && log.details && log.details.date && log.details.date.includes('-') && log.details.date !== card.date) {
+                            recoveredDate = log.details.date;
+                            source = 'Historial de creación de la cita';
+                            break;
+                        }
+                    }
+
+                    if (!recoveredDate && card.client) {
+                        const srv = servicesList.find(s => s.clientName && s.clientName.trim().toLowerCase() === card.client.trim().toLowerCase() && s.date && s.date !== card.date);
+                        if (srv) {
+                            recoveredDate = srv.date;
+                            source = `Servicio registrado (${srv.type || 'Servicio'})`;
+                        }
+                    }
+
+                    if (!recoveredDate && card.client) {
+                        const q = quotesList.find(q => q.clientName && q.clientName.trim().toLowerCase() === card.client.trim().toLowerCase() && q.date && q.date !== card.date);
+                        if (q) {
+                            recoveredDate = q.date;
+                            source = 'Fecha de cotización';
+                        }
+                    }
+
+                    if (!recoveredDate && card.comments && Array.isArray(card.comments)) {
+                        for (const cm of card.comments) {
+                            const text = cm.text || '';
+                            const match = text.match(/\b(202\d-\d{2}-\d{2})\b/);
+                            if (match && match[1] !== card.date) {
+                                recoveredDate = match[1];
+                                source = 'Nota en comentarios internos';
+                                break;
+                            }
+                        }
+                    }
+
+                    // Si no tiene fecha actualmente, permitir asignarle una hoy o la encontrada
+                    if (recoveredDate && recoveredDate !== card.date) {
+                        pendingRestoreCandidates.push({
+                            id: card.id,
+                            client: card.client || 'Cliente sin nombre',
+                            column: card.column || 'Cita',
+                            currentDate: card.date || 'Sin fecha (Borrada)',
+                            recoveredDate: recoveredDate,
+                            recoveredTime: recoveredTime,
+                            source: source
+                        });
+                    } else if (!card.date || card.date.trim() === '') {
+                        pendingRestoreCandidates.push({
+                            id: card.id,
+                            client: card.client || 'Cliente sin nombre',
+                            column: card.column || 'Cita',
+                            currentDate: 'Sin fecha (Borrada)',
+                            recoveredDate: new Date().toISOString().split('T')[0],
+                            recoveredTime: card.time || '10:00',
+                            source: 'Cita desasendada (Lista para re-agendar)'
+                        });
+                    }
+                });
+
+                if (pendingRestoreCandidates.length === 0) {
+                    if (statusBanner) {
+                        statusBanner.style.background = 'rgba(59, 130, 246, 0.15)';
+                        statusBanner.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                        statusBanner.style.color = '#93c5fd';
+                        statusBanner.innerHTML = 'ℹ️ No se detectaron citas sin fecha ni alteraciones en el historial. Todas las citas en Stahlgraf conservan su fecha.';
+                    }
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #94a3b8;">No hay citas alteradas pendientes por restaurar.</td></tr>';
+                    }
+                    if (btnExecute) btnExecute.disabled = true;
+                    return;
+                }
+
+                if (statusBanner) {
+                    statusBanner.style.background = 'rgba(16, 185, 129, 0.15)';
+                    statusBanner.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                    statusBanner.style.color = '#34d399';
+                    statusBanner.innerHTML = `✅ Se encontraron <strong>${pendingRestoreCandidates.length}</strong> cita(s) listas para restaurar. Puedes ajustar las fechas directamente en la tabla si lo deseas:`;
+                }
+                if (btnExecute) btnExecute.disabled = false;
+
+                if (tbody) {
+                    tbody.innerHTML = pendingRestoreCandidates.map((c, idx) => `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                            <td style="padding: 10px; text-align: center;">
+                                <input type="checkbox" class="restore-item-check" data-idx="${idx}" checked style="cursor: pointer;">
+                            </td>
+                            <td style="padding: 10px; font-weight: 500; color: #f1f5f9;">${c.client}</td>
+                            <td style="padding: 10px;"><span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: rgba(59, 130, 246, 0.2); color: #93c5fd;">${c.column}</span></td>
+                            <td style="padding: 10px; color: #f87171; font-family: monospace;">${c.currentDate}</td>
+                            <td style="padding: 10px;">
+                                <input type="date" class="restore-date-input" data-idx="${idx}" value="${c.recoveredDate}" style="background: rgba(0,0,0,0.5); border: 1px solid #10b981; color: #4ade80; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; font-weight: 600;">
+                                <input type="time" class="restore-time-input" data-idx="${idx}" value="${c.recoveredTime || ''}" style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: #f1f5f9; padding: 4px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; width: 85px; margin-left: 4px;">
+                            </td>
+                            <td style="padding: 10px; color: #94a3b8; font-size: 0.8rem;">${c.source}</td>
+                        </tr>
+                    `).join('');
+                }
+
+            } catch (err) {
+                console.error("Error analyzing agenda restore:", err);
+                if (statusBanner) {
+                    statusBanner.style.background = 'rgba(239, 68, 68, 0.15)';
+                    statusBanner.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                    statusBanner.style.color = '#f87171';
+                    statusBanner.innerHTML = '❌ Error al consultar el historial: ' + (err.message || err);
+                }
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #f87171;">Ocurrió un error. Revisa la consola o intenta nuevamente.</td></tr>';
+                }
+            }
+        }
+
+        async function executeRestoreAgenda() {
+            const checks = document.querySelectorAll('.restore-item-check:checked');
+            if (checks.length === 0) return alert("Selecciona al menos una cita para restaurar.");
+
+            const btn = document.getElementById('btn-execute-restore');
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '⏳ Restaurando fechas...';
+            }
+
+            const ownerUid = (typeof getActiveUid === 'function' ? getActiveUid() : null) || 
+                             localStorage.getItem('stahlgraf_target_uid') || 
+                             (typeof currentUser !== 'undefined' && currentUser ? currentUser.uid : null);
+            
+            const dbInstance = (typeof db !== 'undefined' && db) || 
+                               (typeof firebase !== 'undefined' && firebase.firestore ? firebase.firestore() : null);
+
+            if (!ownerUid || !dbInstance) return alert("No se pudo obtener la sesión activa para guardar.");
+
+            let restoredCount = 0;
+
+            for (const chk of checks) {
+                const idx = parseInt(chk.dataset.idx, 10);
+                const item = pendingRestoreCandidates[idx];
+                if (!item) continue;
+
+                const dateInput = document.querySelector(`.restore-date-input[data-idx="${idx}"]`);
+                const timeInput = document.querySelector(`.restore-time-input[data-idx="${idx}"]`);
+                const chosenDate = (dateInput ? dateInput.value : item.recoveredDate) || item.recoveredDate;
+                const chosenTime = (timeInput ? timeInput.value : item.recoveredTime) || item.recoveredTime || '';
+
+                if (!chosenDate) continue;
+
+                try {
+                    await dbInstance.collection('users').doc(ownerUid).collection('crm').doc(item.id).update({
+                        date: chosenDate,
+                        time: chosenTime,
+                        needsGoogleSync: true,
+                        updatedAt: (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue) ? firebase.firestore.FieldValue.serverTimestamp() : new Date()
+                    });
+
+                    if (typeof crmCards !== 'undefined' && Array.isArray(crmCards)) {
+                        const inMem = crmCards.find(c => c.id === item.id);
+                        if (inMem) {
+                            inMem.date = chosenDate;
+                            inMem.time = chosenTime;
+                            inMem.needsGoogleSync = true;
+                        }
+                    }
+
+                    restoredCount++;
+                } catch(e) {
+                    console.error("Error restaurando tarjeta:", item, e);
+                }
+            }
+
+            if (typeof renderCalendar === 'function') {
+                renderCalendar(currentMonth, currentYear);
+            }
+            closeRestoreAgendaModal();
+            alert(`🎉 ¡Agenda restaurada con éxito!\n\nSe restablecieron ${restoredCount} cita(s) en el calendario de Stahlgraf.`);
+
+            if (typeof debouncedAutoSyncPendingGcal === 'function') {
+                debouncedAutoSyncPendingGcal();
+            }
+        }
+
+        window.openRestoreAgendaModal = openRestoreAgendaModal;
+        window.closeRestoreAgendaModal = closeRestoreAgendaModal;
+        window.executeRestoreAgenda = executeRestoreAgenda;
+        window.toggleAllRestoreChecks = toggleAllRestoreChecks;
+
         function openSyncCalendarModal(e) {
             if (e) {
                 if (typeof e.preventDefault === 'function') e.preventDefault();
@@ -1132,6 +1447,6 @@
             }
         }
     </script>
-    <script src="hub.js?v=v4.4.2"></script>
+    <script src="hub.js?v=4.4.5&t=202610292250"></script>
 </body>
 </html>
