@@ -42,6 +42,8 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 
 let appData = { crmColumns: 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos' };
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
 let crmCards = [];
 let draggingCardId = null;
 let clientsList = [];
@@ -191,6 +193,44 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Calendar Navigation Controls
+    if (document.getElementById('cal-btn-prev')) {
+        document.getElementById('cal-btn-prev').addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar(currentMonth, currentYear);
+        });
+    }
+    if (document.getElementById('cal-btn-next')) {
+        document.getElementById('cal-btn-next').addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar(currentMonth, currentYear);
+        });
+    }
+    if (document.getElementById('cal-btn-today')) {
+        document.getElementById('cal-btn-today').addEventListener('click', () => {
+            const today = new Date();
+            currentMonth = today.getMonth();
+            currentYear = today.getFullYear();
+            renderCalendar(currentMonth, currentYear);
+        });
+    }
+    if (document.getElementById('cal-btn-add')) {
+        document.getElementById('cal-btn-add').addEventListener('click', () => {
+            const todayStr = formatDateStr(new Date());
+            openCardModal(null, todayStr);
+        });
+    }
+
+    renderCalendar(currentMonth, currentYear);
 });
 
 function getColumns() {
@@ -279,6 +319,7 @@ async function loadCardsFromFirebase() {
             renderBoardSkeleton(); // Redraw board dynamically to draw any new columns
             renderCards();
             renderSidebar();
+            renderCalendar(currentMonth, currentYear);
             syncCrmClientsToDirectory();
         });
 }
@@ -334,8 +375,9 @@ function renderCards() {
             `;
 
             // Drag Events
-            cardEl.addEventListener('dragstart', () => {
+            cardEl.addEventListener('dragstart', (e) => {
                 draggingCardId = card.id;
+                if (e.dataTransfer) e.dataTransfer.setData('text/plain', card.id);
                 setTimeout(() => cardEl.classList.add('dragging'), 0);
             });
             cardEl.addEventListener('dragend', () => {
@@ -402,7 +444,187 @@ function renderSidebar() {
     });
 }
 
-function openCardModal(card = null) {
+// ==========================================
+// CALENDAR VIEW (DUPLICATED FROM HUB)
+// ==========================================
+
+function formatDateStr(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function getChipClass(column) {
+    if (!column) return 'event-default';
+    const normalized = column.toLowerCase().trim();
+    if (normalized.includes('cotizado')) return 'event-cotizados';
+    if (normalized.includes('vendido')) return 'event-vendidos';
+    if (normalized.includes('pago') || normalized.includes('pendiente')) return 'event-pago-pendiente';
+    if (normalized.includes('contacto') || normalized.includes('futuro')) return 'event-contacto-futuro';
+    if (normalized.includes('perdido')) return 'event-perdidos';
+    return 'event-default';
+}
+
+function renderCalendar(month, year) {
+    if (month === undefined || month === null) month = currentMonth;
+    if (year === undefined || year === null) year = currentYear;
+    
+    const grid = document.getElementById('calendar-days');
+    const title = document.getElementById('cal-month-title');
+    if (!grid || !title) return;
+    
+    const monthNames = [
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
+    ];
+    title.innerText = `${monthNames[month]} ${year}`;
+    grid.innerHTML = '';
+    
+    let firstDayIndex = new Date(year, month, 1).getDay();
+    firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+    
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const prevTotalDays = new Date(year, month, 0).getDate();
+    
+    const today = new Date();
+    const todayDay = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear = today.getFullYear();
+    
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+        const d = prevTotalDays - i;
+        const cellDate = new Date(year, month - 1, d);
+        const cellDateStr = formatDateStr(cellDate);
+        createCell(d, true, cellDateStr, grid);
+    }
+    
+    for (let d = 1; d <= totalDays; d++) {
+        const cellDate = new Date(year, month, d);
+        const isToday = (d === todayDay && month === todayMonth && year === todayYear);
+        const cellDateStr = formatDateStr(cellDate);
+        createCell(d, false, cellDateStr, grid, isToday);
+    }
+    
+    const currentCells = firstDayIndex + totalDays;
+    const extraCells = 42 - currentCells;
+    for (let d = 1; d <= extraCells; d++) {
+        const cellDate = new Date(year, month + 1, d);
+        const cellDateStr = formatDateStr(cellDate);
+        createCell(d, true, cellDateStr, grid);
+    }
+}
+
+function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
+    const cell = document.createElement('div');
+    cell.className = 'calendar-day-cell';
+    if (isOtherMonth) cell.classList.add('other-month');
+    if (isToday) cell.classList.add('today-cell');
+    
+    cell.innerHTML = `
+        <div class="day-header">
+            <span class="day-number">${dayNum}</span>
+        </div>
+        <div class="day-events"></div>
+    `;
+    
+    cell.addEventListener('click', () => {
+        if (draggingCardId) return;
+        openCardModal(null, dateStr);
+    });
+
+    cell.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        cell.classList.add('drag-over');
+    });
+
+    cell.addEventListener('dragleave', () => {
+        cell.classList.remove('drag-over');
+    });
+
+    cell.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        cell.classList.remove('drag-over');
+        const cardId = (e.dataTransfer && e.dataTransfer.getData('text/plain')) || draggingCardId;
+        if (cardId) {
+            await moveCardDate(cardId, dateStr);
+        }
+    });
+    
+    const dayEvents = crmCards.filter(c => c.date === dateStr);
+    const eventsContainer = cell.querySelector('.day-events');
+    
+    dayEvents.forEach(event => {
+        const chip = document.createElement('div');
+        chip.className = `event-chip ${getChipClass(event.column)}`;
+        chip.innerText = (event.time ? `${event.time} | ` : '') + event.client;
+        chip.title = `${event.client} (${event.column})`;
+        chip.setAttribute('draggable', 'true');
+        
+        chip.addEventListener('dragstart', (e) => {
+            draggingCardId = event.id;
+            chip.style.opacity = '0.5';
+            if (e.dataTransfer) e.dataTransfer.setData('text/plain', event.id);
+        });
+
+        chip.addEventListener('dragend', () => {
+            chip.style.opacity = '1';
+            setTimeout(() => {
+                draggingCardId = null;
+            }, 100);
+        });
+
+        chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openCardModal(event);
+        });
+        
+        eventsContainer.appendChild(chip);
+    });
+    
+    container.appendChild(cell);
+}
+
+async function moveCardDate(cardId, newDate) {
+    const activeUid = getActiveUid();
+    if (!currentUser || !db || !activeUid) return;
+    const card = crmCards.find(c => c.id === cardId);
+    if (!card || card.date === newDate) return;
+    
+    const oldDate = card.date;
+
+    card.date = newDate;
+    card.needsGoogleSync = true;
+    card.updatedByEmail = (currentUser && currentUser.email) || 'tech';
+    renderCards();
+    renderSidebar();
+    renderCalendar(currentMonth, currentYear);
+    
+    try {
+        await db.collection('users').doc(activeUid).collection('crm').doc(cardId).update({
+            date: newDate,
+            needsGoogleSync: true,
+            updatedByEmail: (currentUser && currentUser.email) || 'tech',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        if (typeof window.logSystemActivity === 'function') {
+            window.logSystemActivity({
+                actionType: 'date_changed',
+                category: 'dates',
+                summary: `Reprogramó la fecha de seguimiento a ${newDate || 'Sin fecha'} para "${card.client}"`,
+                details: { previousDate: oldDate || 'Sin fecha', newDate: newDate || 'Sin fecha' },
+                clientName: card.client,
+                cardId: card.id
+            });
+        }
+    } catch (e) {
+        console.error("Error updating card date in Firebase: ", e);
+        loadCardsFromFirebase();
+    }
+}
+
+function openCardModal(card = null, defaultDate = '') {
     document.getElementById('card-modal').classList.add('active');
     
     const commentsList = document.getElementById('card-comments-list');
@@ -546,7 +768,7 @@ function openCardModal(card = null) {
         document.getElementById('card-email').value = '';
         document.getElementById('card-column').selectedIndex = 0;
         document.getElementById('card-balance-due').value = '';
-        document.getElementById('card-date').value = '';
+        document.getElementById('card-date').value = defaultDate || '';
         document.getElementById('card-time').value = '';
         document.getElementById('card-desc').value = '';
         document.getElementById('btn-delete-card').style.display = 'none';
