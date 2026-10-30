@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.4.6"></script>
+    <script src="core-sync.js?v=v4.4.7"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
@@ -448,9 +448,6 @@
                     <button id="cal-btn-prev" class="btn btn-secondary btn-sm">⬅️ Anterior</button>
                     <button id="cal-btn-today" class="btn btn-secondary btn-sm">Hoy</button>
                     <button id="cal-btn-next" class="btn btn-secondary btn-sm">Siguiente ➡️</button>
-                    <button id="cal-btn-restore-agenda" type="button" onclick="openRestoreAgendaModal(event)" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 5px; border-color: rgba(234, 179, 8, 0.5); color: #fde047; background: rgba(234, 179, 8, 0.1); cursor: pointer;" title="Recuperar fechas previas de la agenda desde el historial de auditoría">
-                        <span>⏪</span> Recuperar Agenda
-                    </button>
                     <button id="cal-btn-sync-to-gcal" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 5px; border-color: rgba(66, 133, 244, 0.4); color: #93c5fd;" title="Enviar todas las citas de Stahlgraf hacia Google Calendar (Unidireccional)">
                         <span>📤</span> Enviar a Google Calendar
                     </button>
@@ -1027,55 +1024,6 @@
         </div>
     </div>
 
-    <!-- Restore Agenda Modal -->
-    <div id="restore-agenda-modal" class="modal">
-        <div class="modal-content glass-panel" style="max-width: 820px; max-height: 90vh; display: flex; flex-direction: column;">
-            <div class="modal-header" style="align-items: center; justify-content: space-between;">
-                <h2 style="display: flex; align-items: center; gap: 8px; font-size: 1.25rem; margin: 0; color: #fde047;">
-                    <span>⏪</span> Recuperación de Fechas en la Agenda
-                </h2>
-                <button type="button" onclick="closeRestoreAgendaModal()" class="close-btn">&times;</button>
-            </div>
-            
-            <div class="modal-body" style="padding-top: 10px; overflow-y: auto;">
-                <p style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 12px;">
-                    Esta herramienta examina automáticamente el <strong>historial de auditoría y actividades</strong> en la nube para identificar las fechas originales de tus citas antes de que la sincronización con Google Calendar las alterara o borrara.
-                </p>
-
-                <div id="restore-status-banner" style="background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 15px; font-size: 0.88rem; color: #fef08a;">
-                    ⏳ Analizando historial de cambios...
-                </div>
-
-                <div style="max-height: 320px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 15px; background: rgba(0,0,0,0.25);">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
-                        <thead>
-                            <tr style="background: rgba(255,255,255,0.06); color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.1); position: sticky; top: 0; z-index: 2;">
-                                <th style="padding: 10px; width: 40px; text-align: center;">
-                                    <input type="checkbox" id="restore-check-all" checked onchange="toggleAllRestoreChecks(this.checked)" style="cursor: pointer;">
-                                </th>
-                                <th style="padding: 10px;">Cliente</th>
-                                <th style="padding: 10px;">Etapa CRM</th>
-                                <th style="padding: 10px; color: #f87171;">Fecha Actual</th>
-                                <th style="padding: 10px; color: #4ade80;">Fecha a Recuperar</th>
-                                <th style="padding: 10px;">Evidencia / Origen</th>
-                            </tr>
-                        </thead>
-                        <tbody id="restore-table-body">
-                            <tr><td colspan="6" style="padding: 20px; text-align: center; color: #94a3b8;">Cargando registros...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div style="display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
-                    <button type="button" class="btn btn-secondary" onclick="closeRestoreAgendaModal()">Cancelar</button>
-                    <button type="button" id="btn-execute-restore" class="btn btn-primary" onclick="executeRestoreAgenda()" disabled style="background: #eab308; color: #000; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                        <span>✅</span> Restaurar Fechas Seleccionadas en la Agenda
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
         function openInspectionRoundModal(e) {
             if (e) {
@@ -1096,35 +1044,6 @@
             }
             if (typeof renderClientsSelect === 'function') {
                 renderClientsSelect();
-            }
-        }
-
-        function closeRestoreAgendaModal(e) {
-            if (typeof window._hubCloseRestoreAgendaModal === 'function') {
-                return window._hubCloseRestoreAgendaModal(e);
-            }
-            const modal = document.getElementById('restore-agenda-modal');
-            if (modal) modal.classList.remove('active');
-        }
-
-        function toggleAllRestoreChecks(isChecked) {
-            if (typeof window._hubToggleAllRestoreChecks === 'function') {
-                return window._hubToggleAllRestoreChecks(isChecked);
-            }
-            document.querySelectorAll('.restore-item-check').forEach(chk => {
-                chk.checked = isChecked;
-            });
-        }
-
-        function openRestoreAgendaModal(e) {
-            if (typeof window._hubOpenRestoreAgendaModal === 'function') {
-                return window._hubOpenRestoreAgendaModal(e);
-            }
-        }
-
-        function executeRestoreAgenda(e) {
-            if (typeof window._hubExecuteRestoreAgenda === 'function') {
-                return window._hubExecuteRestoreAgenda(e);
             }
         }
 
@@ -1161,6 +1080,6 @@
             }
         }
     </script>
-    <script src="hub.js?v=4.4.6&t=202610292308"></script>
+    <script src="hub.js?v=4.4.7&t=202610292320"></script>
 </body>
 </html>
