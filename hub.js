@@ -110,9 +110,7 @@ function loadData() {
             console.error("Error parsing local data", e);
         }
     }
-    if (!appData.googleCalendarId || appData.googleCalendarId.toLowerCase() === 'primary') {
-        appData.googleCalendarId = 'estromback@gmail.com';
-    }
+    appData.googleCalendarId = 'estromback@gmail.com';
     clientsList = appData.clients || [];
 }
 
@@ -815,8 +813,8 @@ function updateSettingsUI() {
         document.getElementById('setting-gcal-client-id').value = appData.googleClientId || '';
     }
     if (document.getElementById('setting-gcal-calendar-id')) {
-        const calVal = (appData.googleCalendarId && appData.googleCalendarId.toLowerCase() !== 'primary') ? appData.googleCalendarId : 'estromback@gmail.com';
-        document.getElementById('setting-gcal-calendar-id').value = calVal;
+        appData.googleCalendarId = 'estromback@gmail.com';
+        document.getElementById('setting-gcal-calendar-id').value = 'estromback@gmail.com';
     }
     if (document.getElementById('setting-gcal-auto-sync')) {
         document.getElementById('setting-gcal-auto-sync').checked = appData.googleAutoSync !== false;
@@ -945,8 +943,7 @@ function saveSettingsFromUI() {
         }
     }
     if (document.getElementById('setting-gcal-calendar-id')) {
-        const calVal = document.getElementById('setting-gcal-calendar-id').value.trim();
-        appData.googleCalendarId = (!calVal || calVal.toLowerCase() === 'primary') ? 'estromback@gmail.com' : calVal;
+        appData.googleCalendarId = 'estromback@gmail.com';
     }
     if (document.getElementById('setting-gcal-auto-sync')) {
         appData.googleAutoSync = document.getElementById('setting-gcal-auto-sync').checked;
@@ -1165,9 +1162,7 @@ function syncFromFirebase() {
             }
 
             // Enforce estromback@gmail.com rule for calendar ID
-            if (!appData.googleCalendarId || appData.googleCalendarId.toLowerCase() === 'primary') {
-                appData.googleCalendarId = 'estromback@gmail.com';
-            }
+            appData.googleCalendarId = 'estromback@gmail.com';
             
             // Save to local cache
             localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
@@ -1795,21 +1790,18 @@ window.openCardInGoogleCalendar = openCardInGoogleCalendar;
 const STAHLGRAF_CENTRAL_CALENDAR_ID = 'estromback@gmail.com';
 
 function getTargetCalendarId() {
-    const configured = (appData && appData.googleCalendarId ? appData.googleCalendarId.trim() : '');
     // Regla central inquebrantable:
-    // El calendario de destino central es siempre estromback@gmail.com.
-    // Si la configuración está vacía o dice 'primary', se redirige forzosamente a estromback@gmail.com
-    // para evitar que otros usuarios (ej. rloayza1212@gmail.com) sincronicen a su propio calendario primario.
-    if (!configured || configured.toLowerCase() === 'primary') {
-        return STAHLGRAF_CENTRAL_CALENDAR_ID;
-    }
-    return configured;
+    // Toda la agenda de Stahlgraf se sincroniza única y exclusivamente hacia estromback@gmail.com,
+    // jamás hacia el calendario de otro usuario.
+    return STAHLGRAF_CENTRAL_CALENDAR_ID;
 }
 
 let tokenClient = null;
 let gapiInited = false;
 let gisInited = false;
 let gcalAccessToken = null;
+let gapiCalendarLoadPromise = null;
+let pendingFullSyncAfterAuth = false;
 
 function initGisTokenClient() {
     const clientId = (appData.googleClientId || '').trim();
@@ -1820,19 +1812,21 @@ function initGisTokenClient() {
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: clientId,
             scope: 'https://www.googleapis.com/auth/calendar.events',
-            callback: (resp) => {
+            callback: async (resp) => {
                 if (resp.error) {
                     console.error("Google Auth error:", resp);
+                    pendingFullSyncAfterAuth = false;
                     alert("⚠️ Error en autorización de Google: " + (resp.error_description || resp.error));
                     return;
                 }
                 gcalAccessToken = resp.access_token;
                 const expiresInSec = parseInt(resp.expires_in, 10) || 3600;
                 const expiresAt = Date.now() + (expiresInSec * 1000);
+                const authEmail = currentUser && currentUser.email ? currentUser.email.toLowerCase() : STAHLGRAF_CENTRAL_CALENDAR_ID;
                 const tokenRecord = {
                     token: gcalAccessToken,
                     expiresAt: expiresAt,
-                    authorizedBy: currentUser ? currentUser.email : STAHLGRAF_CENTRAL_CALENDAR_ID,
+                    authorizedBy: authEmail,
                     updatedAt: Date.now()
                 };
                 
@@ -1843,9 +1837,9 @@ function initGisTokenClient() {
                 }
                 updateGcalAuthUI(true);
 
-                // 2. Compartir token en Firestore para que otros usuarios (ej. rloayza1212) sincronicen directamente
+                // 2. Compartir token en Firestore si es la cuenta titular (estromback@gmail.com)
                 const targetUid = getActiveUid();
-                if (db && targetUid) {
+                if (db && targetUid && authEmail === STAHLGRAF_CENTRAL_CALENDAR_ID) {
                     db.collection('users').doc(targetUid).collection('config').doc('gcal_token').set(tokenRecord)
                         .catch(e => console.warn("No se pudo guardar gcal_token en config:", e));
                     db.collection('users').doc(targetUid).set({
@@ -1853,11 +1847,13 @@ function initGisTokenClient() {
                     }, { merge: true }).catch(e => console.warn("No se pudo actualizar gcalSharedToken en appData:", e));
                 }
 
-                alert(`✅ Google Calendar conectado y autorizado para "${getTargetCalendarId()}".`);
-
-                // 3. Ejecutar de inmediato la sincronización de citas pendientes
-                if (typeof debouncedAutoSyncPendingGcal === 'function') {
-                    debouncedAutoSyncPendingGcal();
+                // 3. Si el usuario venía de presionar "Enviar a Google Calendar", ejecutar la sincronización completa de inmediato
+                if (pendingFullSyncAfterAuth) {
+                    pendingFullSyncAfterAuth = false;
+                    await syncAllEventsToGoogleCalendar();
+                } else {
+                    alert(`✅ Google Calendar conectado y autorizado para "${getTargetCalendarId()}". Sincronizando eventos...`);
+                    await autoSyncPendingGoogleCalendarEvents();
                 }
             }
         });
@@ -1868,16 +1864,65 @@ function initGisTokenClient() {
 }
 
 function initializeGapiClient() {
-    if (typeof gapi === 'undefined' || !gapi.load) return;
-    gapi.load('client', async () => {
-        try {
-            await gapi.client.load('calendar', 'v3');
-            gapiInited = true;
-            restoreGcalToken();
-        } catch (e) {
-            console.error("Error loading gapi calendar v3:", e);
+    ensureGapiCalendarReady();
+}
+
+async function ensureGapiCalendarReady() {
+    if (gapiInited && typeof gapi !== 'undefined' && gapi.client && gapi.client.calendar) {
+        if (gcalAccessToken) {
+            gapi.client.setToken({ access_token: gcalAccessToken });
         }
+        return true;
+    }
+    if (gapiCalendarLoadPromise) {
+        return gapiCalendarLoadPromise;
+    }
+    gapiCalendarLoadPromise = new Promise((resolve) => {
+        let attempts = 0;
+        const tryLoad = () => {
+            if (typeof gapi !== 'undefined' && gapi.load) {
+                gapi.load('client', async () => {
+                    try {
+                        await gapi.client.load('calendar', 'v3');
+                        gapiInited = true;
+                        restoreGcalToken();
+                        if (gcalAccessToken) {
+                            gapi.client.setToken({ access_token: gcalAccessToken });
+                        }
+                        resolve(true);
+                    } catch (e) {
+                        console.error("Error loading gapi calendar v3:", e);
+                        gapiCalendarLoadPromise = null;
+                        resolve(false);
+                    }
+                });
+            } else if (attempts < 40) {
+                attempts++;
+                setTimeout(tryLoad, 250);
+            } else {
+                gapiCalendarLoadPromise = null;
+                resolve(false);
+            }
+        };
+        tryLoad();
     });
+    return gapiCalendarLoadPromise;
+}
+
+function isTokenRecordValidForCentralCalendar(record) {
+    if (!record || !record.token || !record.expiresAt) return false;
+    if (record.expiresAt <= (Date.now() + 10000)) return false;
+    if (record.authorizedBy && record.authorizedBy.toLowerCase() !== STAHLGRAF_CENTRAL_CALENDAR_ID) {
+        return false;
+    }
+    return true;
+}
+
+function clearInvalidGcalToken() {
+    localStorage.removeItem('stahlgraf_gcal_token');
+    if (appData && appData.gcalSharedToken) appData.gcalSharedToken = null;
+    gcalAccessToken = null;
+    updateGcalAuthUI(false);
 }
 
 function restoreGcalToken() {
@@ -1886,7 +1931,7 @@ function restoreGcalToken() {
         const saved = localStorage.getItem('stahlgraf_gcal_token');
         if (saved) {
             const parsed = JSON.parse(saved);
-            if (parsed.token && parsed.expiresAt && parsed.expiresAt > (Date.now() + 10000)) {
+            if (isTokenRecordValidForCentralCalendar(parsed)) {
                 gcalAccessToken = parsed.token;
                 if (typeof gapi !== 'undefined' && gapi.client) {
                     gapi.client.setToken({ access_token: gcalAccessToken });
@@ -1900,16 +1945,13 @@ function restoreGcalToken() {
         }
 
         // 2. Verificar token compartido en appData (traído de Firestore)
-        if (appData && appData.gcalSharedToken && appData.gcalSharedToken.token) {
-            const shared = appData.gcalSharedToken;
-            if (shared.expiresAt && shared.expiresAt > (Date.now() + 10000)) {
-                gcalAccessToken = shared.token;
-                if (typeof gapi !== 'undefined' && gapi.client) {
-                    gapi.client.setToken({ access_token: gcalAccessToken });
-                }
-                updateGcalAuthUI(true);
-                return true;
+        if (appData && appData.gcalSharedToken && isTokenRecordValidForCentralCalendar(appData.gcalSharedToken)) {
+            gcalAccessToken = appData.gcalSharedToken.token;
+            if (typeof gapi !== 'undefined' && gapi.client) {
+                gapi.client.setToken({ access_token: gcalAccessToken });
             }
+            updateGcalAuthUI(true);
+            return true;
         }
     } catch (e) {
         console.warn("Error restoring GCal token:", e);
@@ -1926,7 +1968,7 @@ async function restoreGcalTokenAsync() {
             const doc = await db.collection('users').doc(targetUid).collection('config').doc('gcal_token').get();
             if (doc.exists) {
                 const data = doc.data();
-                if (data && data.token && data.expiresAt && data.expiresAt > (Date.now() + 10000)) {
+                if (isTokenRecordValidForCentralCalendar(data)) {
                     gcalAccessToken = data.token;
                     if (appData) appData.gcalSharedToken = data;
                     if (typeof gapi !== 'undefined' && gapi.client) {
@@ -1951,15 +1993,30 @@ function checkGcalAuthStatus() {
 }
 
 function updateGcalAuthUI(isConnected = null) {
-    const statusEl = document.getElementById('gcal-auth-status');
-    const authBtn = document.getElementById('btn-auth-gcal');
-    if (!statusEl) return;
-
     if (isConnected === null) {
         isConnected = checkGcalAuthStatus();
     }
 
     const targetCal = getTargetCalendarId();
+    const statusEl = document.getElementById('gcal-auth-status');
+    const authBtn = document.getElementById('btn-auth-gcal');
+    const calHeaderSyncBtn = document.getElementById('cal-btn-sync-to-gcal');
+
+    if (calHeaderSyncBtn && !calHeaderSyncBtn.disabled) {
+        if (isConnected) {
+            calHeaderSyncBtn.innerHTML = '<span>🟢📤</span> Sincronizar a Google Calendar';
+            calHeaderSyncBtn.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+            calHeaderSyncBtn.style.color = '#34d399';
+            calHeaderSyncBtn.title = `Conectado con ${targetCal} (Unidireccional Stahlgraf ➔ Google Calendar)`;
+        } else {
+            calHeaderSyncBtn.innerHTML = '<span>🔑📤</span> Conectar y Enviar a Google Calendar';
+            calHeaderSyncBtn.style.borderColor = 'rgba(245, 158, 11, 0.6)';
+            calHeaderSyncBtn.style.color = '#fcd34d';
+            calHeaderSyncBtn.title = `Haz clic para autorizar y enviar toda la agenda a ${targetCal}`;
+        }
+    }
+
+    if (!statusEl) return;
 
     if (isConnected) {
         statusEl.innerHTML = `
@@ -1967,7 +2024,7 @@ function updateGcalAuthUI(isConnected = null) {
             <span style="color: #34d399; font-weight: 500;">🟢 Conectado con Google Calendar (${targetCal})</span>
         `;
         if (authBtn) {
-            authBtn.innerHTML = '<span>🔄</span> Re-autorizar / Cambiar cuenta';
+            authBtn.innerHTML = '<span>🔄</span> Re-autorizar / Actualizar sesión';
             authBtn.style.background = 'rgba(59, 130, 246, 0.2)';
             authBtn.style.color = '#93c5fd';
         }
@@ -1987,17 +2044,32 @@ function updateGcalAuthUI(isConnected = null) {
 function handleAuthGcalClick() {
     const clientId = (appData.googleClientId || '').trim();
     if (!clientId) {
-        alert("Primero ingresa tu 'ID de Cliente OAuth 2.0' en el campo de arriba y presiona 'Guardar Configuración'.");
+        pendingFullSyncAfterAuth = false;
+        alert("Primero ingresa tu 'ID de Cliente OAuth 2.0' en Ajustes & BD Global y presiona 'Guardar Configuración'.");
         return;
     }
     if (!tokenClient) {
         initGisTokenClient();
     }
     if (!tokenClient) {
-        alert("La librería de Google aún está cargando. Espera un momento y vuelve a intentarlo.");
+        pendingFullSyncAfterAuth = false;
+        alert("La librería de Google aún está cargando. Espera un segundo y vuelve a intentarlo.");
         return;
     }
-    tokenClient.requestAccessToken({ prompt: 'consent' });
+    tokenClient.requestAccessToken({ prompt: '', hint: STAHLGRAF_CENTRAL_CALENDAR_ID });
+}
+
+function normalizeCardDateStr(rawDate) {
+    if (!rawDate || typeof rawDate !== 'string') return '';
+    const trimmed = rawDate.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    const dmy = trimmed.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+    if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+    const ymdSlash = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+    if (ymdSlash) {
+        return `${ymdSlash[1]}-${String(ymdSlash[2]).padStart(2, '0')}-${String(ymdSlash[3]).padStart(2, '0')}`;
+    }
+    return '';
 }
 
 function getSantiagoOffsetString(dateStr) {
@@ -2024,8 +2096,9 @@ function getSantiagoOffsetString(dateStr) {
 }
 
 function buildGoogleCalendarEventResource(card) {
-    const cardClient = card.client || 'Servicio';
-    const clientObj = (clientsList || []).find(cl => cl && cl.name && cl.name.trim().toLowerCase() === cardClient.trim().toLowerCase());
+    const cleanDate = normalizeCardDateStr(card.date);
+    const cardClient = (card.client || 'Servicio').trim();
+    const clientObj = (clientsList || []).find(cl => cl && cl.name && cl.name.trim().toLowerCase() === cardClient.toLowerCase());
     
     const address = (card.formDetails && card.formDetails.clientAddress) ? card.formDetails.clientAddress : (clientObj && clientObj.address ? clientObj.address : '');
     const phone = card.phone || (clientObj && clientObj.phone) || '';
@@ -2059,36 +2132,45 @@ function buildGoogleCalendarEventResource(card) {
 
     const resource = {
         summary: `Stahlgraf: ${cardClient} [${card.column || 'Cita'}]`,
-        description: descLines.join('\n')
+        description: descLines.join('\n'),
+        status: 'confirmed'
     };
 
     if (address) {
         resource.location = address;
     }
 
-    const offsetStr = getSantiagoOffsetString(card.date);
+    const offsetStr = getSantiagoOffsetString(cleanDate);
 
-    if (card.time && card.time.includes(':')) {
-        const [h, min] = card.time.split(':').map(Number);
-        const startH = String(h).padStart(2, '0');
-        const startM = String(min).padStart(2, '0');
-        const startDateTime = `${card.date}T${startH}:${startM}:00${offsetStr}`;
+    let hasValidTime = false;
+    if (card.time && typeof card.time === 'string' && card.time.includes(':')) {
+        const timeParts = card.time.trim().split(':');
+        const h = parseInt(timeParts[0], 10);
+        const min = parseInt(timeParts[1], 10);
+        if (!isNaN(h) && !isNaN(min) && h >= 0 && h < 24 && min >= 0 && min < 60) {
+            hasValidTime = true;
+            const startH = String(h).padStart(2, '0');
+            const startM = String(min).padStart(2, '0');
+            const startDateTime = `${cleanDate}T${startH}:${startM}:00${offsetStr}`;
 
-        let endH = h + 1;
-        let endDate = card.date;
-        if (endH >= 24) {
-            endH = endH - 24;
-            const dObj = new Date(card.date + 'T00:00:00');
-            dObj.setDate(dObj.getDate() + 1);
-            endDate = formatDateStr(dObj);
+            let endH = h + 1;
+            let endDate = cleanDate;
+            if (endH >= 24) {
+                endH = endH - 24;
+                const dObj = new Date(cleanDate + 'T00:00:00');
+                dObj.setDate(dObj.getDate() + 1);
+                endDate = formatDateStr(dObj);
+            }
+            const endDateTime = `${endDate}T${String(endH).padStart(2, '0')}:${startM}:00${offsetStr}`;
+
+            resource.start = { dateTime: startDateTime, timeZone: 'America/Santiago' };
+            resource.end = { dateTime: endDateTime, timeZone: 'America/Santiago' };
         }
-        const endDateTime = `${endDate}T${String(endH).padStart(2, '0')}:${startM}:00${offsetStr}`;
+    }
 
-        resource.start = { dateTime: startDateTime, timeZone: 'America/Santiago' };
-        resource.end = { dateTime: endDateTime, timeZone: 'America/Santiago' };
-    } else {
-        resource.start = { date: card.date };
-        const nextDay = new Date(card.date + 'T00:00:00');
+    if (!hasValidTime) {
+        resource.start = { date: cleanDate };
+        const nextDay = new Date(cleanDate + 'T00:00:00');
         nextDay.setDate(nextDay.getDate() + 1);
         resource.end = { date: formatDateStr(nextDay) };
     }
@@ -2097,7 +2179,98 @@ function buildGoogleCalendarEventResource(card) {
 }
 
 // ==========================================
-// AUTO-SYNC COLA DE PENDIENTES
+// LECTURA DE VERIFICACIÓN (SOLO LECTURA) EN estromback@gmail.com
+// Para detectar eventos de Stahlgraf que falten en Google Calendar
+// NUNCA modifica Stahlgraf desde Google Calendar.
+// ==========================================
+async function fetchActiveGoogleCalendarEventsMap(calendarId) {
+    const activeById = new Map();
+    const activeByCardId = new Map();
+
+    // Calcular fecha mínima: el menor entre hace 1 año o la fecha más antigua de las tarjetas (hasta 2 años atrás)
+    const minDate = new Date();
+    minDate.setFullYear(minDate.getFullYear() - 1);
+    minDate.setHours(0, 0, 0, 0);
+
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+    const twoYearsAgoStr = formatDateStr(twoYearsAgo);
+
+    let minDateStr = formatDateStr(minDate);
+    for (const c of (crmCards || [])) {
+        const dStr = normalizeCardDateStr(c && c.date);
+        if (dStr && dStr >= twoYearsAgoStr && dStr < minDateStr) {
+            minDateStr = dStr;
+        }
+    }
+    const timeMinIso = new Date(minDateStr + 'T00:00:00Z').toISOString();
+
+    let pageToken = undefined;
+    let pagesFetched = 0;
+
+    do {
+        const resp = await gapi.client.calendar.events.list({
+            calendarId: calendarId,
+            timeMin: timeMinIso,
+            maxResults: 2500,
+            singleEvents: true,
+            showDeleted: false,
+            pageToken: pageToken
+        });
+        const items = (resp && resp.result && Array.isArray(resp.result.items)) ? resp.result.items : [];
+        for (const ev of items) {
+            if (!ev || !ev.id || ev.status === 'cancelled') continue;
+            activeById.set(ev.id, ev);
+            const desc = ev.description || '';
+            const m = desc.match(/Card ID:\s*([a-zA-Z0-9_-]+)/);
+            if (m && m[1] && m[1] !== 'nuevo') {
+                activeByCardId.set(m[1], ev);
+            }
+        }
+        pageToken = (resp && resp.result) ? resp.result.nextPageToken : undefined;
+        pagesFetched++;
+    } while (pageToken && pagesFetched < 3);
+
+    return { activeById, activeByCardId, minDateStr };
+}
+
+function doesRemoteGcalEventMatchCard(remoteEv, card) {
+    if (!remoteEv || remoteEv.status === 'cancelled') return false;
+    const cleanDate = normalizeCardDateStr(card.date);
+    if (!cleanDate) return true;
+
+    const startVal = (remoteEv.start && (remoteEv.start.dateTime || remoteEv.start.date)) || '';
+    const remoteDate = startVal.substring(0, 10);
+    if (remoteDate !== cleanDate) return false;
+
+    if (card.time && typeof card.time === 'string' && card.time.includes(':')) {
+        const timeParts = card.time.trim().split(':');
+        const h = parseInt(timeParts[0], 10);
+        const min = parseInt(timeParts[1], 10);
+        if (!isNaN(h) && !isNaN(min)) {
+            const expectedTimePrefix = `T${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+            if (!remoteEv.start || !remoteEv.start.dateTime || !remoteEv.start.dateTime.includes(expectedTimePrefix)) {
+                return false;
+            }
+        }
+    } else {
+        // Si en Stahlgraf es de día completo pero en Google tenía hora, actualizar
+        if (remoteEv.start && remoteEv.start.dateTime) {
+            return false;
+        }
+    }
+
+    const expectedSummary = `Stahlgraf: ${(card.client || 'Servicio').trim()} [${card.column || 'Cita'}]`;
+    if ((remoteEv.summary || '').trim() !== expectedSummary) {
+        return false;
+    }
+
+    return true;
+}
+
+// ==========================================
+// AUTO-SYNC COLA DE PENDIENTES Y VERIFICACIÓN DE EVENTOS FALTANTES
+// (UNIDIRECCIONAL: STAHLGRAF -> GOOGLE CALENDAR DE estromback@gmail.com)
 // ==========================================
 let isAutoSyncingPending = false;
 let autoSyncPendingTimeout = null;
@@ -2114,9 +2287,12 @@ async function autoSyncPendingGoogleCalendarEvents() {
     if (!currentUser || !db) return;
     if (!appData || !appData.googleAutoSync || !appData.googleClientId) return;
 
+    const gapiReady = await ensureGapiCalendarReady();
+    if (!gapiReady) return;
+
     if (!checkGcalAuthStatus()) {
         const restored = await restoreGcalTokenAsync();
-        if (!restored) return; // Se ejecutará cuando estromback o alguien con token active la sesión
+        if (!restored) return; // Se ejecutará apenas estromback tenga token activo
     }
 
     isAutoSyncingPending = true;
@@ -2138,7 +2314,8 @@ async function autoSyncPendingGoogleCalendarEvents() {
                         });
                         console.log(`[Auto-Sync GCal] Eliminado evento pendiente ${eventId} de ${targetCalId}`);
                     } catch (delErr) {
-                        if (delErr.status !== 404 && delErr.status !== 410) {
+                        const delCode = delErr.status || (delErr.result && delErr.result.error && delErr.result.error.code);
+                        if (delCode !== 404 && delCode !== 410) {
                             console.warn("No se pudo eliminar evento pendiente en Google:", delErr);
                         }
                     }
@@ -2149,18 +2326,57 @@ async function autoSyncPendingGoogleCalendarEvents() {
             console.warn("Error procesando eliminaciones pendientes en GCal:", delCatchErr);
         }
 
-        // 2. Sincronizar tarjetas que tengan fecha y que no tengan googleEventId o tengan needsGoogleSync === true
+        // 2. Verificar en modo SOLO LECTURA qué eventos están realmente presentes en estromback@gmail.com
+        let activeById = new Map();
+        let activeByCardId = new Map();
+        let minDateStr = '1970-01-01';
+        let listSucceeded = false;
+
+        try {
+            const mapData = await fetchActiveGoogleCalendarEventsMap(targetCalId);
+            activeById = mapData.activeById;
+            activeByCardId = mapData.activeByCardId;
+            minDateStr = mapData.minDateStr;
+            listSucceeded = true;
+        } catch (listErr) {
+            const errCode = listErr.status || (listErr.result && listErr.result.error && listErr.result.error.code);
+            console.warn("[Auto-Sync GCal] No se pudo verificar lista de eventos en GCal:", listErr);
+            if (errCode === 401 || errCode === 403) {
+                clearInvalidGcalToken();
+                return;
+            }
+        }
+
+        // 3. Detectar todas las tarjetas de Stahlgraf con fecha que falten o estén desactualizadas en estromback@gmail.com
         const cardsToSync = crmCards.filter(c => {
-            if (!c || !c.id || !c.date || c.date.trim() === '') return false;
+            if (!c || !c.id) return false;
+            const cleanDate = normalizeCardDateStr(c.date);
+            if (!cleanDate) return false;
+
+            if (listSucceeded && cleanDate >= minDateStr) {
+                const remoteEv = c.googleEventId ? activeById.get(c.googleEventId) : null;
+                if (!remoteEv) {
+                    // El evento NO existe en estromback@gmail.com (estaba en otro calendario, fue borrado o nunca se subió)
+                    const byCardId = activeByCardId.get(c.id);
+                    c.googleEventId = byCardId ? byCardId.id : null;
+                    return true;
+                }
+                if (c.needsGoogleSync === true || !doesRemoteGcalEventMatchCard(remoteEv, c)) {
+                    return true;
+                }
+                return false;
+            }
+
             return !c.googleEventId || c.needsGoogleSync === true;
         });
 
         if (cardsToSync.length > 0) {
-            console.log(`[Auto-Sync GCal] Sincronizando ${cardsToSync.length} cita(s) pendiente(s) hacia ${targetCalId}...`);
+            console.log(`[Auto-Sync GCal] Sincronizando ${cardsToSync.length} cita(s) de Stahlgraf hacia ${targetCalId}...`);
             for (const card of cardsToSync) {
                 try {
-                    await syncCardToGoogleCalendar(card, { silent: true });
-                    await new Promise(r => setTimeout(r, 200));
+                    const res = await syncCardToGoogleCalendar(card, { silent: true });
+                    if (!res && !gcalAccessToken) break; // Si el token expiró a mitad del lote, detener
+                    await new Promise(r => setTimeout(r, 180));
                 } catch (cardErr) {
                     console.error("[Auto-Sync GCal] Error sincronizando tarjeta:", card.client, cardErr);
                 }
@@ -2175,9 +2391,9 @@ async function syncCardToGoogleCalendar(card, options = {}) {
     if (!card) return null;
     if (!appData.googleClientId) return null;
 
-    if (!gapiInited) {
-        initializeGapiClient();
-    }
+    const gapiReady = await ensureGapiCalendarReady();
+    if (!gapiReady) return null;
+
     if (!gcalAccessToken) {
         restoreGcalToken();
     }
@@ -2189,12 +2405,11 @@ async function syncCardToGoogleCalendar(card, options = {}) {
     const activeUid = getActiveUid();
 
     if (!gcalAccessToken) {
-        // No hay token disponible en este navegador en este momento (ej. técnico rloayza1212 sin sesión GCal)
-        // Dejamos marcada la tarjeta con needsGoogleSync para que la sesión de estromback la suba automáticamente
+        // Sin token disponible en este momento: marcar needsGoogleSync para que se suba apenas haya conexión
         if (card.id && currentUser && db) {
             await db.collection('users').doc(activeUid).collection('crm').doc(card.id).set({
                 needsGoogleSync: true
-            }, { merge: true });
+            }, { merge: true }).catch(e => console.warn(e));
         }
         if (!options.silent) {
             handleAuthGcalClick();
@@ -2202,15 +2417,17 @@ async function syncCardToGoogleCalendar(card, options = {}) {
         return null;
     }
 
-    // Si la tarjeta no tiene fecha, eliminar cualquier evento previo en Google Calendar
-    if (!card.date || card.date.trim() === '') {
+    const cleanDate = normalizeCardDateStr(card.date);
+
+    // Si la tarjeta no tiene fecha válida, eliminar cualquier evento previo en Google Calendar
+    if (!cleanDate) {
         if (card.googleEventId) {
             await deleteCardFromGoogleCalendar(card);
             if (card.id && currentUser && db) {
                 await db.collection('users').doc(activeUid).collection('crm').doc(card.id).set({
                     googleEventId: null,
                     needsGoogleSync: false
-                }, { merge: true });
+                }, { merge: true }).catch(e => console.warn(e));
             }
         }
         return null;
@@ -2228,9 +2445,17 @@ async function syncCardToGoogleCalendar(card, options = {}) {
                     eventId: card.googleEventId,
                     resource: eventResource
                 });
+                // Si el evento estaba cancelado en la papelera de Google Calendar, re-insertarlo como evento nuevo y activo
+                if (resp && resp.result && resp.result.status === 'cancelled') {
+                    resp = await gapi.client.calendar.events.insert({
+                        calendarId: calendarId,
+                        resource: eventResource
+                    });
+                }
             } catch (patchErr) {
-                // Si da 404 Not Found, el evento fue borrado en Google Calendar, re-insertamos
-                if (patchErr.status === 404 || (patchErr.result && patchErr.result.error && patchErr.result.error.code === 404)) {
+                const patchCode = patchErr.status || (patchErr.result && patchErr.result.error && patchErr.result.error.code);
+                // Si da 404, 410, 403 o 400 (ej. ID pertenecía al calendario de otro usuario o fue eliminado), insertar como nuevo en estromback@gmail.com
+                if (patchCode === 404 || patchCode === 410 || patchCode === 403 || patchCode === 400) {
                     resp = await gapi.client.calendar.events.insert({
                         calendarId: calendarId,
                         resource: eventResource
@@ -2259,25 +2484,25 @@ async function syncCardToGoogleCalendar(card, options = {}) {
                     lastGoogleSyncedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
             }
-            console.log(`[Google Calendar Sync] Evento sincronizado exitosamente (${eventId}) en ${calendarId}`);
+            console.log(`[Google Calendar Sync] Evento "${card.client}" (${cleanDate}) sincronizado en ${calendarId} -> ID: ${eventId}`);
         }
 
         debouncedSyncICalFeed();
         return resp;
     } catch (err) {
-        console.error("[Google Calendar Sync] Error al sincronizar evento:", err);
-        if (err.status === 401 || (err.result && err.result.error && err.result.error.code === 401)) {
-            localStorage.removeItem('stahlgraf_gcal_token');
-            if (appData && appData.gcalSharedToken) appData.gcalSharedToken = null;
-            gcalAccessToken = null;
-            updateGcalAuthUI(false);
-            if (card.id && currentUser && db) {
-                await db.collection('users').doc(activeUid).collection('crm').doc(card.id).set({
-                    needsGoogleSync: true
-                }, { merge: true });
-            }
+        console.error("[Google Calendar Sync] Error al sincronizar evento:", card.client, err);
+        const errCode = err.status || (err.result && err.result.error && err.result.error.code);
+
+        // Siempre dejar marcada la tarjeta como pendiente de sincronización ante cualquier fallo
+        if (card.id && currentUser && db) {
+            await db.collection('users').doc(activeUid).collection('crm').doc(card.id).set({
+                needsGoogleSync: true
+            }, { merge: true }).catch(e => console.warn(e));
+        }
+
+        if (errCode === 401 || errCode === 403) {
+            clearInvalidGcalToken();
             if (!options.silent) {
-                alert("Tu sesión de Google Calendar ha expirado. Por favor conéctate nuevamente.");
                 handleAuthGcalClick();
             }
         }
@@ -2287,6 +2512,9 @@ async function syncCardToGoogleCalendar(card, options = {}) {
 
 async function deleteCardFromGoogleCalendar(card) {
     if (!card || !card.googleEventId) return;
+    const gapiReady = await ensureGapiCalendarReady();
+    if (!gapiReady) return;
+
     if (!gcalAccessToken) {
         restoreGcalToken();
     }
@@ -2320,7 +2548,8 @@ async function deleteCardFromGoogleCalendar(card) {
         console.log(`[Google Calendar Sync] Evento ${card.googleEventId} eliminado en ${calendarId}.`);
         card.googleEventId = null;
     } catch (err) {
-        if (err.status !== 404 && err.status !== 410) {
+        const errCode = err.status || (err.result && err.result.error && err.result.error.code);
+        if (errCode !== 404 && errCode !== 410) {
             console.warn("[Google Calendar Sync] Error eliminando evento:", err);
             if (db && activeUid && card.googleEventId) {
                 try {
@@ -2336,31 +2565,84 @@ async function deleteCardFromGoogleCalendar(card) {
 }
 
 async function syncAllEventsToGoogleCalendar() {
-    if (!currentUser) return alert("Debes iniciar sesión con tu cuenta de Google.");
+    if (!currentUser) return alert("Debes iniciar sesión con tu cuenta de Google primero.");
     const clientId = (appData.googleClientId || '').trim();
     if (!clientId) {
-        return alert("Por favor ingresa primero tu ID de Cliente OAuth 2.0 en los Ajustes.");
+        return alert("Por favor ingresa primero tu ID de Cliente OAuth 2.0 en Ajustes & BD Global.");
     }
+
+    const gapiReady = await ensureGapiCalendarReady();
+    if (!gapiReady) {
+        return alert("La librería de Google Calendar aún se está inicializando. Intenta de nuevo en un par de segundos.");
+    }
+
     if (!checkGcalAuthStatus()) {
         const restored = await restoreGcalTokenAsync();
         if (!restored) {
+            pendingFullSyncAfterAuth = true;
             handleAuthGcalClick();
-            alert("Por favor autoriza el acceso a Google Calendar en la ventana emergente y luego vuelve a presionar 'Sincronizar todos los eventos'.");
             return;
         }
     }
 
-    const cardsWithDate = crmCards.filter(c => c && c.date && c.date.trim() !== '');
+    const cardsWithDate = crmCards.filter(c => c && normalizeCardDateStr(c.date) !== '');
     if (cardsWithDate.length === 0) {
-        return alert("No hay citas o servicios con fecha asignada en el calendario.");
+        return alert("No hay citas o servicios con fecha asignada en el calendario de Stahlgraf.");
     }
 
     const targetCal = getTargetCalendarId();
-    const btn = document.getElementById('btn-sync-all-gcal');
-    const originalText = btn ? btn.innerHTML : '';
-    if (btn) {
-        btn.disabled = true;
-        btn.innerText = `⏳ Sincronizando (0/${cardsWithDate.length})...`;
+    const btnSettings = document.getElementById('btn-sync-all-gcal');
+    const btnCalHeader = document.getElementById('cal-btn-sync-to-gcal');
+    const origSettingsHtml = btnSettings ? btnSettings.innerHTML : '';
+    const origHeaderHtml = btnCalHeader ? btnCalHeader.innerHTML : '';
+
+    const setButtonsProgress = (text) => {
+        if (btnSettings) {
+            btnSettings.disabled = true;
+            btnSettings.innerText = text;
+        }
+        if (btnCalHeader) {
+            btnCalHeader.disabled = true;
+            btnCalHeader.innerText = text;
+        }
+    };
+
+    const restoreButtons = () => {
+        if (btnSettings) {
+            btnSettings.disabled = false;
+            btnSettings.innerHTML = origSettingsHtml;
+        }
+        if (btnCalHeader) {
+            btnCalHeader.disabled = false;
+            btnCalHeader.innerHTML = origHeaderHtml;
+        }
+        updateGcalAuthUI();
+    };
+
+    setButtonsProgress(`⏳ Verificando ${targetCal}...`);
+
+    // 1. Verificar qué eventos existen realmente activos en estromback@gmail.com
+    try {
+        const { activeById, activeByCardId } = await fetchActiveGoogleCalendarEventsMap(targetCal);
+        for (const card of cardsWithDate) {
+            if (card.googleEventId && !activeById.has(card.googleEventId)) {
+                // El googleEventId antiguo no está activo en estromback@gmail.com (fue borrado o pertenecía a otro calendario)
+                const existingMatch = activeByCardId.get(card.id);
+                card.googleEventId = existingMatch ? existingMatch.id : null;
+            } else if (!card.googleEventId && activeByCardId.has(card.id)) {
+                card.googleEventId = activeByCardId.get(card.id).id;
+            }
+        }
+    } catch (listErr) {
+        const errCode = listErr.status || (listErr.result && listErr.result.error && listErr.result.error.code);
+        if (errCode === 401 || errCode === 403) {
+            clearInvalidGcalToken();
+            restoreButtons();
+            pendingFullSyncAfterAuth = true;
+            handleAuthGcalClick();
+            return;
+        }
+        console.warn("Advertencia al listar eventos previos en Google Calendar:", listErr);
     }
 
     let successCount = 0;
@@ -2368,11 +2650,21 @@ async function syncAllEventsToGoogleCalendar() {
 
     for (let i = 0; i < cardsWithDate.length; i++) {
         const card = cardsWithDate[i];
-        if (btn) btn.innerText = `⏳ Sincronizando (${i + 1}/${cardsWithDate.length})...`;
+        setButtonsProgress(`⏳ Sincronizando (${i + 1}/${cardsWithDate.length})...`);
         try {
             const res = await syncCardToGoogleCalendar(card, { silent: true });
-            if (res) successCount++;
-            else failCount++;
+            if (res) {
+                successCount++;
+            } else {
+                failCount++;
+                // Si el token expiró durante la sincronización, pedir autorización y reanudar automáticamente
+                if (!gcalAccessToken) {
+                    restoreButtons();
+                    pendingFullSyncAfterAuth = true;
+                    handleAuthGcalClick();
+                    return;
+                }
+            }
         } catch (e) {
             console.error("Error batch syncing card:", card, e);
             failCount++;
@@ -2380,15 +2672,11 @@ async function syncAllEventsToGoogleCalendar() {
         await new Promise(r => setTimeout(r, 150));
     }
 
-    if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-    }
+    restoreButtons();
 
-    alert(`✅ Sincronización con Google Calendar (${targetCal}) finalizada.\n\nEventos sincronizados: ${successCount}\nFallidos/Omitidos: ${failCount}`);
+    alert(`✅ Sincronización unidireccional completada (Stahlgraf ➔ ${targetCal}).\n\nEventos en el calendario de Stahlgraf enviados/actualizados en ${targetCal}: ${successCount}${failCount > 0 ? `\nNo sincronizados: ${failCount}` : ''}`);
 }
 
-// ==========================================
 // ==========================================
 // SINCRONIZACIÓN UNIDIRECCIONAL ESTRICTA: STAHLGRAF -> GOOGLE CALENDAR
 // Google Calendar NUNCA modifica ni borra citas en Stahlgraf
@@ -2399,7 +2687,7 @@ function debouncedSyncFromGoogleCalendar() {
 }
 
 async function syncFromGoogleCalendarToHub(options = { silent: true }) {
-    console.warn("[Google Sync] La sincronización descendente desde Google Calendar hacia Stahlgraf está desactivada por regla de negocio: Stahlgraf es la única fuente de la verdad.");
+    console.warn("[Google Sync] Sincronización descendente desactivada: Stahlgraf es la única fuente de la verdad.");
     return { updated: 0, removed: 0 };
 }
 
@@ -2409,7 +2697,11 @@ async function syncFromGoogleCalendarToHub(options = { silent: true }) {
 
 let pendingRestoreCandidates = [];
 
-function closeRestoreAgendaModal() {
+function closeRestoreAgendaModal(e) {
+    if (e) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
     const modal = document.getElementById('restore-agenda-modal');
     if (modal) modal.classList.remove('active');
 }
@@ -2420,7 +2712,12 @@ function toggleAllRestoreChecks(isChecked) {
     });
 }
 
-async function openRestoreAgendaModal() {
+async function openRestoreAgendaModal(e) {
+    if (e) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
+
     const modal = document.getElementById('restore-agenda-modal');
     if (!modal) return;
     modal.classList.add('active');
@@ -2429,19 +2726,23 @@ async function openRestoreAgendaModal() {
     const tbody = document.getElementById('restore-table-body');
     const btnExecute = document.getElementById('btn-execute-restore');
 
-    statusBanner.style.background = 'rgba(234, 179, 8, 0.15)';
-    statusBanner.style.borderColor = 'rgba(234, 179, 8, 0.3)';
-    statusBanner.style.color = '#fef08a';
-    statusBanner.innerHTML = '⏳ Escaneando historial de auditoría y copias en la nube...';
-    tbody.innerHTML = '<tr><td colspan="6" style="padding: 25px; text-align: center; color: #94a3b8;">Consultando historial de auditoría y registros previos...</td></tr>';
-    btnExecute.disabled = true;
+    if (statusBanner) {
+        statusBanner.style.background = 'rgba(234, 179, 8, 0.15)';
+        statusBanner.style.borderColor = 'rgba(234, 179, 8, 0.3)';
+        statusBanner.style.color = '#fef08a';
+        statusBanner.innerHTML = '⏳ Escaneando historial de auditoría y copias en la nube...';
+    }
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="6" style="padding: 25px; text-align: center; color: #94a3b8;">Consultando historial de auditoría y registros previos...</td></tr>';
+    }
+    if (btnExecute) btnExecute.disabled = true;
     pendingRestoreCandidates = [];
 
     try {
         const ownerUid = getActiveUid();
         if (!ownerUid || !db) {
-            statusBanner.innerHTML = '⚠️ Debes iniciar sesión para consultar el historial en la nube.';
-            tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #f87171;">Sin sesión activa.</td></tr>';
+            if (statusBanner) statusBanner.innerHTML = '⚠️ Debes iniciar sesión para consultar el historial en la nube.';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #f87171;">Sin sesión activa.</td></tr>';
             return;
         }
 
@@ -2514,18 +2815,18 @@ async function openRestoreAgendaModal() {
 
             for (const log of cardLogs) {
                 if (log.actionType === 'date_changed' && log.details) {
-                    if (log.details.previousDate && log.details.previousDate !== 'Sin fecha' && log.details.previousDate !== card.date) {
+                    if (log.details.previousDate && log.details.previousDate !== 'Sin fecha' && log.details.previousDate.includes('-') && log.details.previousDate !== card.date) {
                         recoveredDate = log.details.previousDate;
                         source = 'Historial de auditoría (Fecha antes del cambio)';
                         break;
                     }
-                    if (log.details.newDate && log.details.newDate !== 'Sin fecha' && log.details.newDate !== card.date) {
+                    if (log.details.newDate && log.details.newDate !== 'Sin fecha' && log.details.newDate.includes('-') && log.details.newDate !== card.date) {
                         recoveredDate = log.details.newDate;
                         source = 'Historial de auditoría (Fecha asignada)';
                         break;
                     }
                 }
-                if (log.actionType === 'crm_created' && log.details && log.details.date && log.details.date !== card.date) {
+                if (log.actionType === 'crm_created' && log.details && log.details.date && log.details.date.includes('-') && log.details.date !== card.date) {
                     recoveredDate = log.details.date;
                     source = 'Historial de creación de cita';
                     break;
@@ -2583,45 +2884,70 @@ async function openRestoreAgendaModal() {
                     recoveredTime: recoveredTime,
                     source: source
                 });
+            } else if (!card.date || card.date.trim() === '') {
+                pendingRestoreCandidates.push({
+                    id: card.id,
+                    client: card.client || 'Cliente sin nombre',
+                    column: card.column || 'Cita',
+                    currentDate: 'Sin fecha (Borrada)',
+                    recoveredDate: formatDateStr(new Date()),
+                    recoveredTime: card.time || '10:00',
+                    source: 'Cita sin fecha (Lista para re-agendar)'
+                });
             }
         });
 
         if (pendingRestoreCandidates.length === 0) {
-            statusBanner.style.background = 'rgba(59, 130, 246, 0.15)';
-            statusBanner.style.borderColor = 'rgba(59, 130, 246, 0.3)';
-            statusBanner.style.color = '#93c5fd';
-            statusBanner.innerHTML = 'ℹ️ No se detectaron citas con fechas alteradas en el historial. Todas las citas actuales coinciden con los registros.';
-            tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #94a3b8;">No hay registros alterados pendientes por restaurar.</td></tr>';
-            btnExecute.disabled = true;
+            if (statusBanner) {
+                statusBanner.style.background = 'rgba(59, 130, 246, 0.15)';
+                statusBanner.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                statusBanner.style.color = '#93c5fd';
+                statusBanner.innerHTML = 'ℹ️ No se detectaron citas con fechas alteradas en el historial. Todas las citas actuales coinciden con los registros.';
+            }
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #94a3b8;">No hay registros alterados pendientes por restaurar.</td></tr>';
+            }
+            if (btnExecute) btnExecute.disabled = true;
             return;
         }
 
-        statusBanner.style.background = 'rgba(16, 185, 129, 0.15)';
-        statusBanner.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-        statusBanner.style.color = '#34d399';
-        statusBanner.innerHTML = `✅ Se encontraron <strong>${pendingRestoreCandidates.length}</strong> cita(s) con sus fechas originales recuperables desde el historial.`;
-        btnExecute.disabled = false;
+        if (statusBanner) {
+            statusBanner.style.background = 'rgba(16, 185, 129, 0.15)';
+            statusBanner.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+            statusBanner.style.color = '#34d399';
+            statusBanner.innerHTML = `✅ Se encontraron <strong>${pendingRestoreCandidates.length}</strong> cita(s) recuperables. Puedes ajustar la fecha u hora directamente en la tabla antes de restaurar:`;
+        }
+        if (btnExecute) btnExecute.disabled = false;
 
-        tbody.innerHTML = pendingRestoreCandidates.map((c, idx) => `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-                <td style="padding: 10px; text-align: center;">
-                    <input type="checkbox" class="restore-item-check" data-idx="${idx}" checked style="cursor: pointer;">
-                </td>
-                <td style="padding: 10px; font-weight: 500; color: #f1f5f9;">${c.client}</td>
-                <td style="padding: 10px;"><span class="event-chip ${getChipClass(c.column)}" style="font-size: 0.75rem; padding: 2px 6px;">${c.column}</span></td>
-                <td style="padding: 10px; color: #f87171; font-family: monospace;">${c.currentDate}</td>
-                <td style="padding: 10px; color: #4ade80; font-weight: 600; font-family: monospace;">${c.recoveredDate} ${c.recoveredTime || ''}</td>
-                <td style="padding: 10px; color: #94a3b8; font-size: 0.8rem;">${c.source}</td>
-            </tr>
-        `).join('');
+        if (tbody) {
+            tbody.innerHTML = pendingRestoreCandidates.map((c, idx) => `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                    <td style="padding: 10px; text-align: center;">
+                        <input type="checkbox" class="restore-item-check" data-idx="${idx}" checked style="cursor: pointer;">
+                    </td>
+                    <td style="padding: 10px; font-weight: 500; color: #f1f5f9;">${c.client}</td>
+                    <td style="padding: 10px;"><span class="event-chip ${getChipClass(c.column)}" style="font-size: 0.75rem; padding: 2px 6px;">${c.column}</span></td>
+                    <td style="padding: 10px; color: #f87171; font-family: monospace;">${c.currentDate}</td>
+                    <td style="padding: 10px;">
+                        <input type="date" class="restore-date-input" data-idx="${idx}" value="${c.recoveredDate}" style="background: rgba(0,0,0,0.5); border: 1px solid #10b981; color: #4ade80; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; font-weight: 600;">
+                        <input type="time" class="restore-time-input" data-idx="${idx}" value="${c.recoveredTime || ''}" style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: #f1f5f9; padding: 4px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; width: 85px; margin-left: 4px;">
+                    </td>
+                    <td style="padding: 10px; color: #94a3b8; font-size: 0.8rem;">${c.source}</td>
+                </tr>
+            `).join('');
+        }
 
     } catch (err) {
         console.error("Error analyzing agenda restore:", err);
-        statusBanner.style.background = 'rgba(239, 68, 68, 0.15)';
-        statusBanner.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-        statusBanner.style.color = '#f87171';
-        statusBanner.innerHTML = '❌ Ocurrió un error al consultar el historial: ' + (err.message || err);
-        tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #f87171;">Error al procesar.</td></tr>';
+        if (statusBanner) {
+            statusBanner.style.background = 'rgba(239, 68, 68, 0.15)';
+            statusBanner.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            statusBanner.style.color = '#f87171';
+            statusBanner.innerHTML = '❌ Ocurrió un error al consultar el historial: ' + (err.message || err);
+        }
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #f87171;">Error al procesar.</td></tr>';
+        }
     }
 }
 
@@ -2644,10 +2970,17 @@ async function executeRestoreAgenda() {
         const item = pendingRestoreCandidates[idx];
         if (!item) continue;
 
+        const dateInput = document.querySelector(`.restore-date-input[data-idx="${idx}"]`);
+        const timeInput = document.querySelector(`.restore-time-input[data-idx="${idx}"]`);
+        const chosenDate = (dateInput ? dateInput.value : item.recoveredDate) || item.recoveredDate;
+        const chosenTime = (timeInput ? timeInput.value : item.recoveredTime) || item.recoveredTime || '';
+
+        if (!chosenDate) continue;
+
         try {
             await db.collection('users').doc(ownerUid).collection('crm').doc(item.id).update({
-                date: item.recoveredDate,
-                time: item.recoveredTime || '',
+                date: chosenDate,
+                time: chosenTime,
                 needsGoogleSync: true,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -2655,8 +2988,8 @@ async function executeRestoreAgenda() {
             // Actualizar en memoria local
             const inMem = crmCards.find(c => c.id === item.id);
             if (inMem) {
-                inMem.date = item.recoveredDate;
-                inMem.time = item.recoveredTime || '';
+                inMem.date = chosenDate;
+                inMem.time = chosenTime;
                 inMem.needsGoogleSync = true;
             }
 
@@ -2666,9 +2999,14 @@ async function executeRestoreAgenda() {
         }
     }
 
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+
     renderCalendar(currentMonth, currentYear);
     closeRestoreAgendaModal();
-    alert(`🎉 ¡Agenda restaurada exitosamente!\n\nSe restablecieron ${restoredCount} cita(s) a sus fechas originales en Stahlgraf.`);
+    alert(`🎉 ¡Agenda restaurada exitosamente!\n\nSe restablecieron ${restoredCount} cita(s) en el calendario de Stahlgraf y se están enviando hacia Google Calendar (${getTargetCalendarId()}).`);
 
     // Enviar las fechas recuperadas hacia Google Calendar (unidireccional Stahlgraf -> Google)
     if (typeof debouncedAutoSyncPendingGcal === 'function') {
@@ -2680,6 +3018,10 @@ window.openRestoreAgendaModal = openRestoreAgendaModal;
 window.closeRestoreAgendaModal = closeRestoreAgendaModal;
 window.executeRestoreAgenda = executeRestoreAgenda;
 window.toggleAllRestoreChecks = toggleAllRestoreChecks;
+window._hubOpenRestoreAgendaModal = openRestoreAgendaModal;
+window._hubCloseRestoreAgendaModal = closeRestoreAgendaModal;
+window._hubExecuteRestoreAgenda = executeRestoreAgenda;
+window._hubToggleAllRestoreChecks = toggleAllRestoreChecks;
 
 window.STAHLGRAF_CENTRAL_CALENDAR_ID = STAHLGRAF_CENTRAL_CALENDAR_ID;
 window.getTargetCalendarId = getTargetCalendarId;
@@ -2687,6 +3029,7 @@ window.autoSyncPendingGoogleCalendarEvents = autoSyncPendingGoogleCalendarEvents
 window.debouncedAutoSyncPendingGcal = debouncedAutoSyncPendingGcal;
 window.initGisTokenClient = initGisTokenClient;
 window.initializeGapiClient = initializeGapiClient;
+window.ensureGapiCalendarReady = ensureGapiCalendarReady;
 window.handleAuthGcalClick = handleAuthGcalClick;
 window.syncCardToGoogleCalendar = syncCardToGoogleCalendar;
 window.deleteCardFromGoogleCalendar = deleteCardFromGoogleCalendar;
@@ -2934,7 +3277,7 @@ async function saveCard() {
             const oldDate = existingCard ? existingCard.date : null;
             const oldCol = existingCard ? existingCard.column : null;
 
-            if (oldDate !== date) {
+            if (oldDate !== date || (date && date.trim() !== '')) {
                 payload.needsGoogleSync = true;
             }
             payload.updatedByEmail = (userInfo && userInfo.email) || (currentUser ? currentUser.email : 'tech');
