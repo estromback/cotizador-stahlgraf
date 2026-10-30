@@ -337,32 +337,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (document.getElementById('cal-btn-refresh-gcal')) {
-        document.getElementById('cal-btn-refresh-gcal').addEventListener('click', () => {
-            if (typeof syncFromGoogleCalendarToHub === 'function') {
-                syncFromGoogleCalendarToHub({ silent: false });
-            }
+    if (document.getElementById('cal-btn-sync-to-gcal')) {
+        document.getElementById('cal-btn-sync-to-gcal').addEventListener('click', () => {
+            syncAllEventsToGoogleCalendar();
+        });
+    }
+    if (document.getElementById('cal-btn-restore-agenda')) {
+        document.getElementById('cal-btn-restore-agenda').addEventListener('click', () => {
+            openRestoreAgendaModal();
         });
     }
 
-    // Bidirectional Sync: Listen for window focus to pull changes made in Google Calendar & push pending events
+    // Unidirectional Auto-Sync (Stahlgraf -> Google Calendar ONLY):
+    // Listen for window focus to push pending Stahlgraf events to Google Calendar
     window.addEventListener('focus', () => {
         if (appData && appData.googleAutoSync && appData.googleClientId && checkGcalAuthStatus()) {
-            if (typeof syncFromGoogleCalendarToHub === 'function') {
-                syncFromGoogleCalendarToHub({ silent: true });
-            }
             if (typeof debouncedAutoSyncPendingGcal === 'function') {
                 debouncedAutoSyncPendingGcal();
             }
         }
     });
 
-    // Periodic sync: Check Google Calendar & push pending events every 3 minutes while tab is active
+    // Periodic sync: Push pending Stahlgraf events to Google Calendar every 3 minutes while tab is active
     setInterval(() => {
         if (document.visibilityState === 'visible' && appData && appData.googleAutoSync && appData.googleClientId && checkGcalAuthStatus()) {
-            if (typeof syncFromGoogleCalendarToHub === 'function') {
-                syncFromGoogleCalendarToHub({ silent: true });
-            }
             if (typeof debouncedAutoSyncPendingGcal === 'function') {
                 debouncedAutoSyncPendingGcal();
             }
@@ -1123,9 +1121,7 @@ function subscribeToCRM() {
             if (typeof debouncedSyncICalFeed === 'function') {
                 debouncedSyncICalFeed();
             }
-            if (typeof debouncedSyncFromGoogleCalendar === 'function') {
-                debouncedSyncFromGoogleCalendar();
-            }
+            // Unidirectional: Stahlgraf is master. Only push to Google Calendar.
             if (typeof debouncedAutoSyncPendingGcal === 'function') {
                 debouncedAutoSyncPendingGcal();
             }
@@ -2393,205 +2389,297 @@ async function syncAllEventsToGoogleCalendar() {
 }
 
 // ==========================================
-// BIDIRECTIONAL SYNC: GOOGLE CALENDAR -> HUB
+// ==========================================
+// SINCRONIZACIÓN UNIDIRECCIONAL ESTRICTA: STAHLGRAF -> GOOGLE CALENDAR
+// Google Calendar NUNCA modifica ni borra citas en Stahlgraf
 // ==========================================
 
-let isSyncingFromGoogle = false;
-let lastGcalInboundSyncTimestamp = 0;
-let debouncedInboundGcalTimeout = null;
-
 function debouncedSyncFromGoogleCalendar() {
-    if (debouncedInboundGcalTimeout) clearTimeout(debouncedInboundGcalTimeout);
-    debouncedInboundGcalTimeout = setTimeout(() => {
-        if (appData && appData.googleAutoSync && appData.googleClientId && typeof syncFromGoogleCalendarToHub === 'function' && checkGcalAuthStatus()) {
-            syncFromGoogleCalendarToHub({ silent: true });
-        }
-    }, 2500);
+    // Deshabilitado por regla de negocio estricta: Google Calendar es solo receptor.
 }
 
 async function syncFromGoogleCalendarToHub(options = { silent: true }) {
-    if (!currentUser || !db) return { updated: 0, removed: 0 };
-    if (!appData || !appData.googleClientId) return { updated: 0, removed: 0 };
-    if (isSyncingFromGoogle) return { updated: 0, removed: 0 };
+    console.warn("[Google Sync] La sincronización descendente desde Google Calendar hacia Stahlgraf está desactivada por regla de negocio: Stahlgraf es la única fuente de la verdad.");
+    return { updated: 0, removed: 0 };
+}
 
-    if (!gapiInited) {
-        initializeGapiClient();
-    }
-    if (!gcalAccessToken) {
-        restoreGcalToken();
-    }
-    if (!gcalAccessToken) {
-        await restoreGcalTokenAsync();
-    }
-    if (!gcalAccessToken) {
-        if (!options.silent) {
-            handleAuthGcalClick();
-        }
-        return { updated: 0, removed: 0 };
-    }
+// ==========================================
+// MOTOR DE RECUPERACIÓN DE AGENDA DESDE AUDITORÍA
+// ==========================================
 
-    const now = Date.now();
-    // Rate limit silent auto-sync to avoid flooding Google API (min 10s between calls)
-    if (options.silent && (now - lastGcalInboundSyncTimestamp < 10000)) {
-        return { updated: 0, removed: 0 };
-    }
+let pendingRestoreCandidates = [];
 
-    isSyncingFromGoogle = true;
-    lastGcalInboundSyncTimestamp = now;
+function closeRestoreAgendaModal() {
+    const modal = document.getElementById('restore-agenda-modal');
+    if (modal) modal.classList.remove('active');
+}
 
-    const refreshBtn = document.getElementById('cal-btn-refresh-gcal');
-    const originalBtnText = refreshBtn ? refreshBtn.innerHTML : '';
-    if (refreshBtn && !options.silent) {
-        refreshBtn.disabled = true;
-        refreshBtn.innerHTML = '<span>⏳</span> Leyendo Google...';
-    }
+function toggleAllRestoreChecks(isChecked) {
+    document.querySelectorAll('.restore-item-check').forEach(chk => {
+        chk.checked = isChecked;
+    });
+}
 
-    let updatedCount = 0;
-    let unscheduledCount = 0;
+async function openRestoreAgendaModal() {
+    const modal = document.getElementById('restore-agenda-modal');
+    if (!modal) return;
+    modal.classList.add('active');
+
+    const statusBanner = document.getElementById('restore-status-banner');
+    const tbody = document.getElementById('restore-table-body');
+    const btnExecute = document.getElementById('btn-execute-restore');
+
+    statusBanner.style.background = 'rgba(234, 179, 8, 0.15)';
+    statusBanner.style.borderColor = 'rgba(234, 179, 8, 0.3)';
+    statusBanner.style.color = '#fef08a';
+    statusBanner.innerHTML = '⏳ Escaneando historial de auditoría y copias en la nube...';
+    tbody.innerHTML = '<tr><td colspan="6" style="padding: 25px; text-align: center; color: #94a3b8;">Consultando historial de auditoría y registros previos...</td></tr>';
+    btnExecute.disabled = true;
+    pendingRestoreCandidates = [];
 
     try {
-        const calendarId = getTargetCalendarId();
+        const ownerUid = getActiveUid();
+        if (!ownerUid || !db) {
+            statusBanner.innerHTML = '⚠️ Debes iniciar sesión para consultar el historial en la nube.';
+            tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #f87171;">Sin sesión activa.</td></tr>';
+            return;
+        }
 
-        // Query active events window: from 60 days in past to 180 days in future
-        const timeMin = new Date();
-        timeMin.setDate(timeMin.getDate() - 60);
-        timeMin.setHours(0, 0, 0, 0);
+        // 1. Obtener logs de auditoría de actividad
+        let logs = [];
+        try {
+            const snap = await db.collection('users').doc(ownerUid).collection('activity_logs')
+                .orderBy('clientTimestamp', 'desc')
+                .limit(300)
+                .get();
+            snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
+        } catch (e) {
+            try {
+                const snap = await db.collection('users').doc(ownerUid).collection('activity_logs').limit(300).get();
+                snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
+                logs.sort((a,b) => (b.clientTimestamp || 0) - (a.clientTimestamp || 0));
+            } catch (err2) {
+                console.warn("No se pudo leer activity_logs:", err2);
+            }
+        }
 
-        const timeMax = new Date();
-        timeMax.setDate(timeMax.getDate() + 180);
-        timeMax.setHours(23, 59, 59, 999);
+        // 2. Obtener servicios para contrastar
+        let servicesList = [];
+        try {
+            const srvSnap = await db.collection('users').doc(ownerUid).collection('services').limit(200).get();
+            srvSnap.forEach(d => servicesList.push({ id: d.id, ...d.data() }));
+        } catch(e) {}
 
-        const resp = await gapi.client.calendar.events.list({
-            calendarId: calendarId,
-            timeMin: timeMin.toISOString(),
-            timeMax: timeMax.toISOString(),
-            showDeleted: true,
-            singleEvents: true,
-            maxResults: 250
+        // 3. Obtener cotizaciones
+        let quotesList = [];
+        try {
+            const qSnap = await db.collection('users').doc(ownerUid).collection('quotes').limit(200).get();
+            qSnap.forEach(d => quotesList.push({ id: d.id, ...d.data() }));
+        } catch(e) {}
+
+        // 4. Intentar parsear feed iCal previo si está en almacenamiento
+        let icsEvents = [];
+        try {
+            const feedUrl = localStorage.getItem('stahlgraf_calendar_feed_url') || (appData && appData.calendarFeedUrl);
+            if (feedUrl) {
+                const res = await fetch(feedUrl);
+                if (res.ok) {
+                    const icsText = await res.text();
+                    const vevents = icsText.split('BEGIN:VEVENT');
+                    for (const v of vevents) {
+                        const uidMatch = v.match(/UID:stahlgraf_crm_([a-zA-Z0-9_-]+)@/);
+                        const dtMatch = v.match(/DTSTART(?:;[^:]+)?:(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?/);
+                        if (uidMatch && dtMatch) {
+                            const cId = uidMatch[1];
+                            const dStr = `${dtMatch[1]}-${dtMatch[2]}-${dtMatch[3]}`;
+                            const tStr = dtMatch[4] ? `${dtMatch[4]}:${dtMatch[5]}` : '';
+                            icsEvents.push({ cardId: cId, date: dStr, time: tStr });
+                        }
+                    }
+                }
+            }
+        } catch(e) {}
+
+        // 5. Comparar cada tarjeta de CRM
+        crmCards.forEach(card => {
+            let recoveredDate = null;
+            let recoveredTime = card.time || '';
+            let source = '';
+
+            // A) Buscar en activity_logs
+            const cardLogs = logs.filter(l => 
+                (l.cardId && l.cardId === card.id) ||
+                (l.clientName && card.client && l.clientName.trim().toLowerCase() === card.client.trim().toLowerCase())
+            );
+
+            for (const log of cardLogs) {
+                if (log.actionType === 'date_changed' && log.details) {
+                    if (log.details.previousDate && log.details.previousDate !== 'Sin fecha' && log.details.previousDate !== card.date) {
+                        recoveredDate = log.details.previousDate;
+                        source = 'Historial de auditoría (Fecha antes del cambio)';
+                        break;
+                    }
+                    if (log.details.newDate && log.details.newDate !== 'Sin fecha' && log.details.newDate !== card.date) {
+                        recoveredDate = log.details.newDate;
+                        source = 'Historial de auditoría (Fecha asignada)';
+                        break;
+                    }
+                }
+                if (log.actionType === 'crm_created' && log.details && log.details.date && log.details.date !== card.date) {
+                    recoveredDate = log.details.date;
+                    source = 'Historial de creación de cita';
+                    break;
+                }
+            }
+
+            // B) Buscar en feed.ics
+            if (!recoveredDate) {
+                const icsEv = icsEvents.find(ev => ev.cardId === card.id);
+                if (icsEv && icsEv.date && icsEv.date !== card.date) {
+                    recoveredDate = icsEv.date;
+                    if (icsEv.time) recoveredTime = icsEv.time;
+                    source = 'Copia de respaldo feed iCal';
+                }
+            }
+
+            // C) Buscar en servicios
+            if (!recoveredDate && card.client) {
+                const srv = servicesList.find(s => s.clientName && s.clientName.trim().toLowerCase() === card.client.trim().toLowerCase() && s.date && s.date !== card.date);
+                if (srv) {
+                    recoveredDate = srv.date;
+                    source = `Servicio registrado (${srv.type || 'Servicio'})`;
+                }
+            }
+
+            // D) Buscar en cotizaciones
+            if (!recoveredDate && card.client) {
+                const q = quotesList.find(q => q.clientName && q.clientName.trim().toLowerCase() === card.client.trim().toLowerCase() && q.date && q.date !== card.date);
+                if (q) {
+                    recoveredDate = q.date;
+                    source = 'Fecha en cotización emitida';
+                }
+            }
+
+            // E) Buscar en comentarios internos de la tarjeta
+            if (!recoveredDate && card.comments && Array.isArray(card.comments)) {
+                for (const cm of card.comments) {
+                    const text = cm.text || '';
+                    const dateMatch = text.match(/\b(202\d-\d{2}-\d{2})\b/);
+                    if (dateMatch && dateMatch[1] !== card.date) {
+                        recoveredDate = dateMatch[1];
+                        source = 'Nota en comentarios de la cita';
+                        break;
+                    }
+                }
+            }
+
+            if (recoveredDate && recoveredDate !== card.date) {
+                pendingRestoreCandidates.push({
+                    id: card.id,
+                    client: card.client || 'Cliente sin nombre',
+                    column: card.column || 'Cita',
+                    currentDate: card.date || 'Sin fecha (Borrada)',
+                    recoveredDate: recoveredDate,
+                    recoveredTime: recoveredTime,
+                    source: source
+                });
+            }
         });
 
-        const items = (resp && resp.result && resp.result.items) || [];
-        const activeUid = getActiveUid();
-
-        for (const event of items) {
-            // Find corresponding card in Hub CRM:
-            // 1. By googleEventId
-            let matchedCard = crmCards.find(c => c && c.googleEventId === event.id);
-
-            // 2. By embedded Card ID in event description if googleEventId wasn't linked yet
-            if (!matchedCard && event.description) {
-                const idMatch = event.description.match(/Card ID:\s*([a-zA-Z0-9_-]+)/);
-                if (idMatch && idMatch[1] && idMatch[1] !== 'nuevo') {
-                    matchedCard = crmCards.find(c => c && c.id === idMatch[1]);
-                }
-            }
-
-            // Only synchronize cards that belong to Stahlgraf CRM (ignore dentist, private events, etc.)
-            if (!matchedCard) continue;
-
-            // Skip if modified in Hub within the last 6 seconds to avoid echo
-            if (matchedCard._lastLocalEdit && (now - matchedCard._lastLocalEdit < 6000)) {
-                continue;
-            }
-
-            // 1. Handle Cancelled / Deleted in Google Calendar:
-            if (event.status === 'cancelled') {
-                if (matchedCard.date || matchedCard.time) {
-                    console.log(`[Google->Hub] Evento cancelado en Google Calendar para "${matchedCard.client}". Limpiando fecha.`);
-                    matchedCard.date = '';
-                    matchedCard.time = '';
-                    matchedCard.googleEventId = null;
-
-                    await db.collection('users').doc(activeUid).collection('crm').doc(matchedCard.id).update({
-                        date: '',
-                        time: '',
-                        googleEventId: null,
-                        needsGoogleSync: false,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    unscheduledCount++;
-                }
-                continue;
-            }
-
-            // 2. Extract Date and Time in America/Santiago timezone
-            let gDate = '';
-            let gTime = '';
-
-            if (event.start) {
-                if (event.start.dateTime) {
-                    const dt = new Date(event.start.dateTime);
-                    const santiagoParts = new Intl.DateTimeFormat('en-CA', {
-                        timeZone: 'America/Santiago',
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false
-                    }).formatToParts(dt);
-
-                    const getP = (t) => santiagoParts.find(p => p.type === t)?.value || '';
-                    gDate = `${getP('year')}-${getP('month')}-${getP('day')}`;
-                    gTime = `${getP('hour')}:${getP('minute')}`;
-                } else if (event.start.date) {
-                    gDate = event.start.date;
-                    gTime = '';
-                }
-            }
-
-            if (!gDate) continue;
-
-            const dateChanged = gDate !== (matchedCard.date || '');
-            const timeChanged = (gTime || '') !== (matchedCard.time || '');
-            const idMissing = matchedCard.googleEventId !== event.id;
-
-            if (dateChanged || timeChanged || idMissing) {
-                console.log(`[Google->Hub] Actualizando tarjeta "${matchedCard.client}": fecha ${matchedCard.date}->${gDate}, hora ${matchedCard.time}->${gTime}`);
-                matchedCard.date = gDate;
-                matchedCard.time = gTime;
-                matchedCard.googleEventId = event.id;
-                matchedCard.needsGoogleSync = false;
-
-                await db.collection('users').doc(activeUid).collection('crm').doc(matchedCard.id).update({
-                    date: gDate,
-                    time: gTime,
-                    googleEventId: event.id,
-                    needsGoogleSync: false,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                updatedCount++;
-            }
+        if (pendingRestoreCandidates.length === 0) {
+            statusBanner.style.background = 'rgba(59, 130, 246, 0.15)';
+            statusBanner.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+            statusBanner.style.color = '#93c5fd';
+            statusBanner.innerHTML = 'ℹ️ No se detectaron citas con fechas alteradas en el historial. Todas las citas actuales coinciden con los registros.';
+            tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #94a3b8;">No hay registros alterados pendientes por restaurar.</td></tr>';
+            btnExecute.disabled = true;
+            return;
         }
 
-        if (updatedCount > 0 || unscheduledCount > 0) {
-            renderCalendar(currentMonth, currentYear);
-            if (typeof renderCRMColumnsSelect === 'function') renderCRMColumnsSelect();
-            if (typeof debouncedSyncICalFeed === 'function') debouncedSyncICalFeed();
-        }
+        statusBanner.style.background = 'rgba(16, 185, 129, 0.15)';
+        statusBanner.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+        statusBanner.style.color = '#34d399';
+        statusBanner.innerHTML = `✅ Se encontraron <strong>${pendingRestoreCandidates.length}</strong> cita(s) con sus fechas originales recuperables desde el historial.`;
+        btnExecute.disabled = false;
 
-        if (!options.silent) {
-            alert(`✅ Sincronización desde Google Calendar (${calendarId}) completada.\n\nCitas actualizadas: ${updatedCount}\nCitas desasendadas (eliminadas en Google): ${unscheduledCount}`);
-        }
+        tbody.innerHTML = pendingRestoreCandidates.map((c, idx) => `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+                <td style="padding: 10px; text-align: center;">
+                    <input type="checkbox" class="restore-item-check" data-idx="${idx}" checked style="cursor: pointer;">
+                </td>
+                <td style="padding: 10px; font-weight: 500; color: #f1f5f9;">${c.client}</td>
+                <td style="padding: 10px;"><span class="event-chip ${getChipClass(c.column)}" style="font-size: 0.75rem; padding: 2px 6px;">${c.column}</span></td>
+                <td style="padding: 10px; color: #f87171; font-family: monospace;">${c.currentDate}</td>
+                <td style="padding: 10px; color: #4ade80; font-weight: 600; font-family: monospace;">${c.recoveredDate} ${c.recoveredTime || ''}</td>
+                <td style="padding: 10px; color: #94a3b8; font-size: 0.8rem;">${c.source}</td>
+            </tr>
+        `).join('');
+
     } catch (err) {
-        console.error("[Google->Hub] Error syncing from Google Calendar:", err);
-        if (!options.silent) {
-            alert("⚠️ No se pudo sincronizar desde Google Calendar: " + (err.message || err));
-        }
-    } finally {
-        isSyncingFromGoogle = false;
-        if (refreshBtn && !options.silent) {
-            refreshBtn.disabled = false;
-            refreshBtn.innerHTML = originalBtnText;
+        console.error("Error analyzing agenda restore:", err);
+        statusBanner.style.background = 'rgba(239, 68, 68, 0.15)';
+        statusBanner.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+        statusBanner.style.color = '#f87171';
+        statusBanner.innerHTML = '❌ Ocurrió un error al consultar el historial: ' + (err.message || err);
+        tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #f87171;">Error al procesar.</td></tr>';
+    }
+}
+
+async function executeRestoreAgenda() {
+    const checks = document.querySelectorAll('.restore-item-check:checked');
+    if (checks.length === 0) return alert("Selecciona al menos una cita para restaurar.");
+
+    const btn = document.getElementById('btn-execute-restore');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Restaurando...';
+    }
+
+    const ownerUid = getActiveUid();
+    let restoredCount = 0;
+
+    for (const chk of checks) {
+        const idx = parseInt(chk.dataset.idx, 10);
+        const item = pendingRestoreCandidates[idx];
+        if (!item) continue;
+
+        try {
+            await db.collection('users').doc(ownerUid).collection('crm').doc(item.id).update({
+                date: item.recoveredDate,
+                time: item.recoveredTime || '',
+                needsGoogleSync: true,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // Actualizar en memoria local
+            const inMem = crmCards.find(c => c.id === item.id);
+            if (inMem) {
+                inMem.date = item.recoveredDate;
+                inMem.time = item.recoveredTime || '';
+                inMem.needsGoogleSync = true;
+            }
+
+            restoredCount++;
+        } catch(e) {
+            console.error("Error restaurando tarjeta:", item, e);
         }
     }
 
+    renderCalendar(currentMonth, currentYear);
+    closeRestoreAgendaModal();
+    alert(`🎉 ¡Agenda restaurada exitosamente!\n\nSe restablecieron ${restoredCount} cita(s) a sus fechas originales en Stahlgraf.`);
+
+    // Enviar las fechas recuperadas hacia Google Calendar (unidireccional Stahlgraf -> Google)
     if (typeof debouncedAutoSyncPendingGcal === 'function') {
         debouncedAutoSyncPendingGcal();
     }
-
-    return { updated: updatedCount, removed: unscheduledCount };
 }
+
+window.openRestoreAgendaModal = openRestoreAgendaModal;
+window.closeRestoreAgendaModal = closeRestoreAgendaModal;
+window.executeRestoreAgenda = executeRestoreAgenda;
+window.toggleAllRestoreChecks = toggleAllRestoreChecks;
 
 window.STAHLGRAF_CENTRAL_CALENDAR_ID = STAHLGRAF_CENTRAL_CALENDAR_ID;
 window.getTargetCalendarId = getTargetCalendarId;
