@@ -96,7 +96,7 @@ let appData = {
     asanaProject: '',
     crmColumns: 'Cotizados, Vendidos, Pago Pendiente, Contacto Futuro, Perdidos',
     googleClientId: '',
-    googleCalendarId: 'primary',
+    googleCalendarId: 'estromback@gmail.com',
     googleAutoSync: true
 };
 
@@ -109,6 +109,9 @@ function loadData() {
         } catch(e) {
             console.error("Error parsing local data", e);
         }
+    }
+    if (!appData.googleCalendarId || appData.googleCalendarId.toLowerCase() === 'primary') {
+        appData.googleCalendarId = 'estromback@gmail.com';
     }
     clientsList = appData.clients || [];
 }
@@ -342,17 +345,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Bidirectional Sync: Listen for window focus to pull changes made in Google Calendar
+    // Bidirectional Sync: Listen for window focus to pull changes made in Google Calendar & push pending events
     window.addEventListener('focus', () => {
-        if (appData && appData.googleAutoSync && appData.googleClientId && typeof syncFromGoogleCalendarToHub === 'function' && checkGcalAuthStatus()) {
-            syncFromGoogleCalendarToHub({ silent: true });
+        if (appData && appData.googleAutoSync && appData.googleClientId && checkGcalAuthStatus()) {
+            if (typeof syncFromGoogleCalendarToHub === 'function') {
+                syncFromGoogleCalendarToHub({ silent: true });
+            }
+            if (typeof debouncedAutoSyncPendingGcal === 'function') {
+                debouncedAutoSyncPendingGcal();
+            }
         }
     });
 
-    // Periodic sync: Check Google Calendar every 3 minutes while tab is active
+    // Periodic sync: Check Google Calendar & push pending events every 3 minutes while tab is active
     setInterval(() => {
-        if (document.visibilityState === 'visible' && appData && appData.googleAutoSync && appData.googleClientId && typeof syncFromGoogleCalendarToHub === 'function' && checkGcalAuthStatus()) {
-            syncFromGoogleCalendarToHub({ silent: true });
+        if (document.visibilityState === 'visible' && appData && appData.googleAutoSync && appData.googleClientId && checkGcalAuthStatus()) {
+            if (typeof syncFromGoogleCalendarToHub === 'function') {
+                syncFromGoogleCalendarToHub({ silent: true });
+            }
+            if (typeof debouncedAutoSyncPendingGcal === 'function') {
+                debouncedAutoSyncPendingGcal();
+            }
         }
     }, 180000);
     if (document.getElementById('btn-close-sync-modal')) {
@@ -804,7 +817,8 @@ function updateSettingsUI() {
         document.getElementById('setting-gcal-client-id').value = appData.googleClientId || '';
     }
     if (document.getElementById('setting-gcal-calendar-id')) {
-        document.getElementById('setting-gcal-calendar-id').value = appData.googleCalendarId || 'primary';
+        const calVal = (appData.googleCalendarId && appData.googleCalendarId.toLowerCase() !== 'primary') ? appData.googleCalendarId : 'estromback@gmail.com';
+        document.getElementById('setting-gcal-calendar-id').value = calVal;
     }
     if (document.getElementById('setting-gcal-auto-sync')) {
         document.getElementById('setting-gcal-auto-sync').checked = appData.googleAutoSync !== false;
@@ -933,7 +947,8 @@ function saveSettingsFromUI() {
         }
     }
     if (document.getElementById('setting-gcal-calendar-id')) {
-        appData.googleCalendarId = document.getElementById('setting-gcal-calendar-id').value.trim() || 'primary';
+        const calVal = document.getElementById('setting-gcal-calendar-id').value.trim();
+        appData.googleCalendarId = (!calVal || calVal.toLowerCase() === 'primary') ? 'estromback@gmail.com' : calVal;
     }
     if (document.getElementById('setting-gcal-auto-sync')) {
         appData.googleAutoSync = document.getElementById('setting-gcal-auto-sync').checked;
@@ -1111,6 +1126,9 @@ function subscribeToCRM() {
             if (typeof debouncedSyncFromGoogleCalendar === 'function') {
                 debouncedSyncFromGoogleCalendar();
             }
+            if (typeof debouncedAutoSyncPendingGcal === 'function') {
+                debouncedAutoSyncPendingGcal();
+            }
         }, err => {
             console.error("Error subscribing to CRM: ", err);
         });
@@ -1141,12 +1159,28 @@ function syncFromFirebase() {
                     localStorage.setItem('stahlgraf_calendar_feed_count', cloudData.calendarFeedEventsCount);
                 }
             }
+
+            // Restore shared Google Calendar token if available
+            if (cloudData.gcalSharedToken) {
+                appData.gcalSharedToken = cloudData.gcalSharedToken;
+                if (typeof restoreGcalToken === 'function') {
+                    restoreGcalToken();
+                }
+            }
+
+            // Enforce estromback@gmail.com rule for calendar ID
+            if (!appData.googleCalendarId || appData.googleCalendarId.toLowerCase() === 'primary') {
+                appData.googleCalendarId = 'estromback@gmail.com';
+            }
             
             // Save to local cache
             localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
             
             // Re-render UI elements
             updateSettingsUI();
+            if (typeof debouncedAutoSyncPendingGcal === 'function') {
+                debouncedAutoSyncPendingGcal();
+            }
             if (typeof renderCalendar === 'function') renderCalendar();
             if (appData.googleClientId) {
                 if (typeof initGisTokenClient === 'function') initGisTokenClient();
@@ -1352,12 +1386,16 @@ async function moveCardDate(cardId, newDate) {
 
     // Optimistic UI update
     card.date = newDate;
+    card.needsGoogleSync = true;
+    card.updatedByEmail = (currentUser && currentUser.email) || 'tech';
     card._lastLocalEdit = Date.now();
     renderCalendar(currentMonth, currentYear);
     
     try {
         await db.collection('users').doc(getActiveUid()).collection('crm').doc(cardId).update({
             date: newDate,
+            needsGoogleSync: true,
+            updatedByEmail: (currentUser && currentUser.email) || 'tech',
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
@@ -1741,7 +1779,8 @@ function openCardInGoogleCalendar(card) {
     if (card.desc) descLines.push(`Notas: ${card.desc}`);
     const detailsParam = encodeURIComponent(descLines.join('\n'));
 
-    const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${datesParam}&details=${detailsParam}&location=${locationParam}&ctz=America/Santiago`;
+    const targetCal = typeof getTargetCalendarId === 'function' ? getTargetCalendarId() : 'estromback@gmail.com';
+    const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${datesParam}&details=${detailsParam}&location=${locationParam}&ctz=America/Santiago&src=${encodeURIComponent(targetCal)}`;
     window.open(gcalUrl, '_blank');
 }
 
@@ -1754,8 +1793,22 @@ window.syncICalFeedToStorage = syncICalFeedToStorage;
 window.openCardInGoogleCalendar = openCardInGoogleCalendar;
 
 // ==========================================
-// GOOGLE CALENDAR API (REAL-TIME SYNC)
+// GOOGLE CALENDAR API (REAL-TIME CENTRALIZED SYNC: estromback@gmail.com)
 // ==========================================
+
+const STAHLGRAF_CENTRAL_CALENDAR_ID = 'estromback@gmail.com';
+
+function getTargetCalendarId() {
+    const configured = (appData && appData.googleCalendarId ? appData.googleCalendarId.trim() : '');
+    // Regla central inquebrantable:
+    // El calendario de destino central es siempre estromback@gmail.com.
+    // Si la configuración está vacía o dice 'primary', se redirige forzosamente a estromback@gmail.com
+    // para evitar que otros usuarios (ej. rloayza1212@gmail.com) sincronicen a su propio calendario primario.
+    if (!configured || configured.toLowerCase() === 'primary') {
+        return STAHLGRAF_CENTRAL_CALENDAR_ID;
+    }
+    return configured;
+}
 
 let tokenClient = null;
 let gapiInited = false;
@@ -1780,15 +1833,36 @@ function initGisTokenClient() {
                 gcalAccessToken = resp.access_token;
                 const expiresInSec = parseInt(resp.expires_in, 10) || 3600;
                 const expiresAt = Date.now() + (expiresInSec * 1000);
-                localStorage.setItem('stahlgraf_gcal_token', JSON.stringify({
+                const tokenRecord = {
                     token: gcalAccessToken,
-                    expiresAt: expiresAt
-                }));
+                    expiresAt: expiresAt,
+                    authorizedBy: currentUser ? currentUser.email : STAHLGRAF_CENTRAL_CALENDAR_ID,
+                    updatedAt: Date.now()
+                };
+                
+                // 1. Guardar en almacenamiento local
+                localStorage.setItem('stahlgraf_gcal_token', JSON.stringify(tokenRecord));
                 if (typeof gapi !== 'undefined' && gapi.client) {
                     gapi.client.setToken({ access_token: gcalAccessToken });
                 }
                 updateGcalAuthUI(true);
-                alert("✅ Google Calendar conectado y autorizado exitosamente en este navegador.");
+
+                // 2. Compartir token en Firestore para que otros usuarios (ej. rloayza1212) sincronicen directamente
+                const targetUid = getActiveUid();
+                if (db && targetUid) {
+                    db.collection('users').doc(targetUid).collection('config').doc('gcal_token').set(tokenRecord)
+                        .catch(e => console.warn("No se pudo guardar gcal_token en config:", e));
+                    db.collection('users').doc(targetUid).set({
+                        gcalSharedToken: tokenRecord
+                    }, { merge: true }).catch(e => console.warn("No se pudo actualizar gcalSharedToken en appData:", e));
+                }
+
+                alert(`✅ Google Calendar conectado y autorizado para "${getTargetCalendarId()}".`);
+
+                // 3. Ejecutar de inmediato la sincronización de citas pendientes
+                if (typeof debouncedAutoSyncPendingGcal === 'function') {
+                    debouncedAutoSyncPendingGcal();
+                }
             }
         });
         gisInited = true;
@@ -1812,10 +1886,11 @@ function initializeGapiClient() {
 
 function restoreGcalToken() {
     try {
+        // 1. Verificar token en localStorage
         const saved = localStorage.getItem('stahlgraf_gcal_token');
         if (saved) {
             const parsed = JSON.parse(saved);
-            if (parsed.token && parsed.expiresAt && parsed.expiresAt > Date.now()) {
+            if (parsed.token && parsed.expiresAt && parsed.expiresAt > (Date.now() + 10000)) {
                 gcalAccessToken = parsed.token;
                 if (typeof gapi !== 'undefined' && gapi.client) {
                     gapi.client.setToken({ access_token: gcalAccessToken });
@@ -1827,8 +1902,48 @@ function restoreGcalToken() {
                 gcalAccessToken = null;
             }
         }
-    } catch (e) {}
+
+        // 2. Verificar token compartido en appData (traído de Firestore)
+        if (appData && appData.gcalSharedToken && appData.gcalSharedToken.token) {
+            const shared = appData.gcalSharedToken;
+            if (shared.expiresAt && shared.expiresAt > (Date.now() + 10000)) {
+                gcalAccessToken = shared.token;
+                if (typeof gapi !== 'undefined' && gapi.client) {
+                    gapi.client.setToken({ access_token: gcalAccessToken });
+                }
+                updateGcalAuthUI(true);
+                return true;
+            }
+        }
+    } catch (e) {
+        console.warn("Error restoring GCal token:", e);
+    }
     updateGcalAuthUI(false);
+    return false;
+}
+
+async function restoreGcalTokenAsync() {
+    if (restoreGcalToken()) return true;
+    const targetUid = getActiveUid();
+    if (db && targetUid) {
+        try {
+            const doc = await db.collection('users').doc(targetUid).collection('config').doc('gcal_token').get();
+            if (doc.exists) {
+                const data = doc.data();
+                if (data && data.token && data.expiresAt && data.expiresAt > (Date.now() + 10000)) {
+                    gcalAccessToken = data.token;
+                    if (appData) appData.gcalSharedToken = data;
+                    if (typeof gapi !== 'undefined' && gapi.client) {
+                        gapi.client.setToken({ access_token: gcalAccessToken });
+                    }
+                    updateGcalAuthUI(true);
+                    return true;
+                }
+            }
+        } catch (e) {
+            console.warn("Could not retrieve remote gcal token:", e);
+        }
+    }
     return false;
 }
 
@@ -1848,10 +1963,12 @@ function updateGcalAuthUI(isConnected = null) {
         isConnected = checkGcalAuthStatus();
     }
 
+    const targetCal = getTargetCalendarId();
+
     if (isConnected) {
         statusEl.innerHTML = `
             <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
-            <span style="color: #34d399; font-weight: 500;">🟢 Autorizado y activo en este navegador</span>
+            <span style="color: #34d399; font-weight: 500;">🟢 Conectado con Google Calendar (${targetCal})</span>
         `;
         if (authBtn) {
             authBtn.innerHTML = '<span>🔄</span> Re-autorizar / Cambiar cuenta';
@@ -1861,7 +1978,7 @@ function updateGcalAuthUI(isConnected = null) {
     } else {
         statusEl.innerHTML = `
             <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #e74c3c;"></span>
-            <span style="color: #f87171;">🔴 No autorizado en este navegador</span>
+            <span style="color: #f87171;">🔴 Sin autorización activa para ${targetCal}</span>
         `;
         if (authBtn) {
             authBtn.innerHTML = '<span>🔑</span> Conectar / Autorizar Google Calendar';
@@ -1927,6 +2044,8 @@ function buildGoogleCalendarEventResource(card) {
         descLines.push(`💰 Saldo Pendiente: $${Number(card.balanceDue).toLocaleString('es-CL')}`);
     }
     if (card.desc) descLines.push(`📝 Observaciones: ${card.desc}`);
+    if (card.createdByEmail) descLines.push(`👤 Ingresado por: ${card.createdByEmail}`);
+    if (card.updatedByEmail && card.updatedByEmail !== card.createdByEmail) descLines.push(`✏️ Modificado por: ${card.updatedByEmail}`);
     if (card.formDetails) {
         const fd = card.formDetails;
         if (fd.propertyType) descLines.push(`🏠 Propiedad: ${fd.propertyType}`);
@@ -1940,7 +2059,7 @@ function buildGoogleCalendarEventResource(card) {
             descLines.push(`🎯 Área a tratar: ${areaStr}`);
         }
     }
-    descLines.push(`\n🔗 Sincronizado en tiempo real desde Stahlgraf Hub (Card ID: ${card.id || 'nuevo'})`);
+    descLines.push(`\n🔗 Sincronizado centralizadamente hacia Google Calendar (${getTargetCalendarId()}) | Card ID: ${card.id || 'nuevo'}`);
 
     const resource = {
         summary: `Stahlgraf: ${cardClient} [${card.column || 'Cita'}]`,
@@ -1981,6 +2100,81 @@ function buildGoogleCalendarEventResource(card) {
     return resource;
 }
 
+// ==========================================
+// AUTO-SYNC COLA DE PENDIENTES
+// ==========================================
+let isAutoSyncingPending = false;
+let autoSyncPendingTimeout = null;
+
+function debouncedAutoSyncPendingGcal() {
+    if (autoSyncPendingTimeout) clearTimeout(autoSyncPendingTimeout);
+    autoSyncPendingTimeout = setTimeout(() => {
+        autoSyncPendingGoogleCalendarEvents();
+    }, 1500);
+}
+
+async function autoSyncPendingGoogleCalendarEvents() {
+    if (isAutoSyncingPending) return;
+    if (!currentUser || !db) return;
+    if (!appData || !appData.googleAutoSync || !appData.googleClientId) return;
+
+    if (!checkGcalAuthStatus()) {
+        const restored = await restoreGcalTokenAsync();
+        if (!restored) return; // Se ejecutará cuando estromback o alguien con token active la sesión
+    }
+
+    isAutoSyncingPending = true;
+
+    try {
+        const activeUid = getActiveUid();
+        const targetCalId = getTargetCalendarId();
+
+        // 1. Procesar eliminaciones pendientes
+        try {
+            const delSnap = await db.collection('users').doc(activeUid).collection('gcal_pending_deletions').get();
+            if (!delSnap.empty) {
+                for (const d of delSnap.docs) {
+                    const eventId = d.id;
+                    try {
+                        await gapi.client.calendar.events.delete({
+                            calendarId: targetCalId,
+                            eventId: eventId
+                        });
+                        console.log(`[Auto-Sync GCal] Eliminado evento pendiente ${eventId} de ${targetCalId}`);
+                    } catch (delErr) {
+                        if (delErr.status !== 404 && delErr.status !== 410) {
+                            console.warn("No se pudo eliminar evento pendiente en Google:", delErr);
+                        }
+                    }
+                    await d.ref.delete().catch(e => console.warn(e));
+                }
+            }
+        } catch (delCatchErr) {
+            console.warn("Error procesando eliminaciones pendientes en GCal:", delCatchErr);
+        }
+
+        // 2. Sincronizar tarjetas que tengan fecha y que no tengan googleEventId o tengan needsGoogleSync === true
+        const cardsToSync = crmCards.filter(c => {
+            if (!c || !c.id || !c.date || c.date.trim() === '') return false;
+            return !c.googleEventId || c.needsGoogleSync === true;
+        });
+
+        if (cardsToSync.length > 0) {
+            console.log(`[Auto-Sync GCal] Sincronizando ${cardsToSync.length} cita(s) pendiente(s) hacia ${targetCalId}...`);
+            for (const card of cardsToSync) {
+                try {
+                    await syncCardToGoogleCalendar(card, { silent: true });
+                    await new Promise(r => setTimeout(r, 200));
+                } catch (cardErr) {
+                    console.error("[Auto-Sync GCal] Error sincronizando tarjeta:", card.client, cardErr);
+                }
+            }
+        }
+    } finally {
+        isAutoSyncingPending = false;
+    }
+}
+
 async function syncCardToGoogleCalendar(card, options = {}) {
     if (!card) return null;
     if (!appData.googleClientId) return null;
@@ -1992,24 +2186,43 @@ async function syncCardToGoogleCalendar(card, options = {}) {
         restoreGcalToken();
     }
     if (!gcalAccessToken) {
+        await restoreGcalTokenAsync();
+    }
+
+    const calendarId = getTargetCalendarId();
+    const activeUid = getActiveUid();
+
+    if (!gcalAccessToken) {
+        // No hay token disponible en este navegador en este momento (ej. técnico rloayza1212 sin sesión GCal)
+        // Dejamos marcada la tarjeta con needsGoogleSync para que la sesión de estromback la suba automáticamente
+        if (card.id && currentUser && db) {
+            await db.collection('users').doc(activeUid).collection('crm').doc(card.id).set({
+                needsGoogleSync: true
+            }, { merge: true });
+        }
         if (!options.silent) {
             handleAuthGcalClick();
         }
         return null;
     }
 
-    // If card doesn't have a date, delete any existing Google Calendar event
+    // Si la tarjeta no tiene fecha, eliminar cualquier evento previo en Google Calendar
     if (!card.date || card.date.trim() === '') {
         if (card.googleEventId) {
             await deleteCardFromGoogleCalendar(card);
+            if (card.id && currentUser && db) {
+                await db.collection('users').doc(activeUid).collection('crm').doc(card.id).set({
+                    googleEventId: null,
+                    needsGoogleSync: false
+                }, { merge: true });
+            }
         }
         return null;
     }
 
-    const calendarId = (appData.googleCalendarId || 'primary').trim() || 'primary';
     const eventResource = buildGoogleCalendarEventResource(card);
-
     card._lastLocalEdit = Date.now();
+
     try {
         let resp;
         if (card.googleEventId) {
@@ -2020,7 +2233,7 @@ async function syncCardToGoogleCalendar(card, options = {}) {
                     resource: eventResource
                 });
             } catch (patchErr) {
-                // If 404 Not Found, event was deleted in Google Calendar, re-insert
+                // Si da 404 Not Found, el evento fue borrado en Google Calendar, re-insertamos
                 if (patchErr.status === 404 || (patchErr.result && patchErr.result.error && patchErr.result.error.code === 404)) {
                     resp = await gapi.client.calendar.events.insert({
                         calendarId: calendarId,
@@ -2040,24 +2253,33 @@ async function syncCardToGoogleCalendar(card, options = {}) {
         if (resp && resp.result && resp.result.id) {
             const eventId = resp.result.id;
             card.googleEventId = eventId;
+            card.needsGoogleSync = false;
 
-            // Persist googleEventId to Firestore
+            // Persistir googleEventId y limpiar flag needsGoogleSync en Firestore
             if (card.id && currentUser && db) {
-                await db.collection('users').doc(getActiveUid()).collection('crm').doc(card.id).set({
-                    googleEventId: eventId
+                await db.collection('users').doc(activeUid).collection('crm').doc(card.id).set({
+                    googleEventId: eventId,
+                    needsGoogleSync: false,
+                    lastGoogleSyncedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
             }
-            console.log(`[Google Calendar Sync] Event synced successfully (${eventId})`);
+            console.log(`[Google Calendar Sync] Evento sincronizado exitosamente (${eventId}) en ${calendarId}`);
         }
 
         debouncedSyncICalFeed();
         return resp;
     } catch (err) {
-        console.error("[Google Calendar Sync] Error syncing event:", err);
+        console.error("[Google Calendar Sync] Error al sincronizar evento:", err);
         if (err.status === 401 || (err.result && err.result.error && err.result.error.code === 401)) {
             localStorage.removeItem('stahlgraf_gcal_token');
+            if (appData && appData.gcalSharedToken) appData.gcalSharedToken = null;
             gcalAccessToken = null;
             updateGcalAuthUI(false);
+            if (card.id && currentUser && db) {
+                await db.collection('users').doc(activeUid).collection('crm').doc(card.id).set({
+                    needsGoogleSync: true
+                }, { merge: true });
+            }
             if (!options.silent) {
                 alert("Tu sesión de Google Calendar ha expirado. Por favor conéctate nuevamente.");
                 handleAuthGcalClick();
@@ -2072,19 +2294,46 @@ async function deleteCardFromGoogleCalendar(card) {
     if (!gcalAccessToken) {
         restoreGcalToken();
     }
-    if (!gcalAccessToken) return;
+    if (!gcalAccessToken) {
+        await restoreGcalTokenAsync();
+    }
 
-    const calendarId = (appData.googleCalendarId || 'primary').trim() || 'primary';
+    const activeUid = getActiveUid();
+    const calendarId = getTargetCalendarId();
+
+    if (!gcalAccessToken) {
+        // Encolar eliminación para cuando haya sesión autorizada
+        if (db && activeUid && card.googleEventId) {
+            try {
+                await db.collection('users').doc(activeUid).collection('gcal_pending_deletions').doc(card.googleEventId).set({
+                    googleEventId: card.googleEventId,
+                    deletedAt: Date.now()
+                });
+            } catch (err) {
+                console.warn("No se pudo guardar eliminación pendiente:", err);
+            }
+        }
+        return;
+    }
+
     try {
         await gapi.client.calendar.events.delete({
             calendarId: calendarId,
             eventId: card.googleEventId
         });
-        console.log(`[Google Calendar Sync] Event ${card.googleEventId} deleted.`);
+        console.log(`[Google Calendar Sync] Evento ${card.googleEventId} eliminado en ${calendarId}.`);
         card.googleEventId = null;
     } catch (err) {
         if (err.status !== 404 && err.status !== 410) {
-            console.warn("[Google Calendar Sync] Error deleting event:", err);
+            console.warn("[Google Calendar Sync] Error eliminando evento:", err);
+            if (db && activeUid && card.googleEventId) {
+                try {
+                    await db.collection('users').doc(activeUid).collection('gcal_pending_deletions').doc(card.googleEventId).set({
+                        googleEventId: card.googleEventId,
+                        deletedAt: Date.now()
+                    });
+                } catch(e) {}
+            }
         }
     }
     debouncedSyncICalFeed();
@@ -2097,9 +2346,12 @@ async function syncAllEventsToGoogleCalendar() {
         return alert("Por favor ingresa primero tu ID de Cliente OAuth 2.0 en los Ajustes.");
     }
     if (!checkGcalAuthStatus()) {
-        handleAuthGcalClick();
-        alert("Por favor autoriza el acceso a Google Calendar en la ventana emergente y luego vuelve a presionar 'Sincronizar todos los eventos'.");
-        return;
+        const restored = await restoreGcalTokenAsync();
+        if (!restored) {
+            handleAuthGcalClick();
+            alert("Por favor autoriza el acceso a Google Calendar en la ventana emergente y luego vuelve a presionar 'Sincronizar todos los eventos'.");
+            return;
+        }
     }
 
     const cardsWithDate = crmCards.filter(c => c && c.date && c.date.trim() !== '');
@@ -2107,6 +2359,7 @@ async function syncAllEventsToGoogleCalendar() {
         return alert("No hay citas o servicios con fecha asignada en el calendario.");
     }
 
+    const targetCal = getTargetCalendarId();
     const btn = document.getElementById('btn-sync-all-gcal');
     const originalText = btn ? btn.innerHTML : '';
     if (btn) {
@@ -2136,7 +2389,7 @@ async function syncAllEventsToGoogleCalendar() {
         btn.innerHTML = originalText;
     }
 
-    alert(`✅ Sincronización con Google Calendar finalizada.\n\nEventos sincronizados: ${successCount}\nFallidos/Omitidos: ${failCount}`);
+    alert(`✅ Sincronización con Google Calendar (${targetCal}) finalizada.\n\nEventos sincronizados: ${successCount}\nFallidos/Omitidos: ${failCount}`);
 }
 
 // ==========================================
@@ -2168,6 +2421,9 @@ async function syncFromGoogleCalendarToHub(options = { silent: true }) {
         restoreGcalToken();
     }
     if (!gcalAccessToken) {
+        await restoreGcalTokenAsync();
+    }
+    if (!gcalAccessToken) {
         if (!options.silent) {
             handleAuthGcalClick();
         }
@@ -2194,7 +2450,7 @@ async function syncFromGoogleCalendarToHub(options = { silent: true }) {
     let unscheduledCount = 0;
 
     try {
-        const calendarId = (appData.googleCalendarId || 'primary').trim() || 'primary';
+        const calendarId = getTargetCalendarId();
 
         // Query active events window: from 60 days in past to 180 days in future
         const timeMin = new Date();
@@ -2239,10 +2495,9 @@ async function syncFromGoogleCalendarToHub(options = { silent: true }) {
             }
 
             // 1. Handle Cancelled / Deleted in Google Calendar:
-            // Recommendation: Clear date & time (unscheduled), do not delete customer card
             if (event.status === 'cancelled') {
                 if (matchedCard.date || matchedCard.time) {
-                    console.log(`[Google->Hub] Event cancelled in Google Calendar for "${matchedCard.client}". Unsetting scheduled date.`);
+                    console.log(`[Google->Hub] Evento cancelado en Google Calendar para "${matchedCard.client}". Limpiando fecha.`);
                     matchedCard.date = '';
                     matchedCard.time = '';
                     matchedCard.googleEventId = null;
@@ -2251,6 +2506,7 @@ async function syncFromGoogleCalendarToHub(options = { silent: true }) {
                         date: '',
                         time: '',
                         googleEventId: null,
+                        needsGoogleSync: false,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     unscheduledCount++;
@@ -2291,15 +2547,17 @@ async function syncFromGoogleCalendarToHub(options = { silent: true }) {
             const idMissing = matchedCard.googleEventId !== event.id;
 
             if (dateChanged || timeChanged || idMissing) {
-                console.log(`[Google->Hub] Updating card "${matchedCard.client}": date ${matchedCard.date}->${gDate}, time ${matchedCard.time}->${gTime}`);
+                console.log(`[Google->Hub] Actualizando tarjeta "${matchedCard.client}": fecha ${matchedCard.date}->${gDate}, hora ${matchedCard.time}->${gTime}`);
                 matchedCard.date = gDate;
                 matchedCard.time = gTime;
                 matchedCard.googleEventId = event.id;
+                matchedCard.needsGoogleSync = false;
 
                 await db.collection('users').doc(activeUid).collection('crm').doc(matchedCard.id).update({
                     date: gDate,
                     time: gTime,
                     googleEventId: event.id,
+                    needsGoogleSync: false,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 updatedCount++;
@@ -2313,7 +2571,7 @@ async function syncFromGoogleCalendarToHub(options = { silent: true }) {
         }
 
         if (!options.silent) {
-            alert(`✅ Sincronización desde Google Calendar completada.\n\nCitas actualizadas: ${updatedCount}\nCitas desasendadas (eliminadas en Google): ${unscheduledCount}`);
+            alert(`✅ Sincronización desde Google Calendar (${calendarId}) completada.\n\nCitas actualizadas: ${updatedCount}\nCitas desasendadas (eliminadas en Google): ${unscheduledCount}`);
         }
     } catch (err) {
         console.error("[Google->Hub] Error syncing from Google Calendar:", err);
@@ -2328,9 +2586,17 @@ async function syncFromGoogleCalendarToHub(options = { silent: true }) {
         }
     }
 
+    if (typeof debouncedAutoSyncPendingGcal === 'function') {
+        debouncedAutoSyncPendingGcal();
+    }
+
     return { updated: updatedCount, removed: unscheduledCount };
 }
 
+window.STAHLGRAF_CENTRAL_CALENDAR_ID = STAHLGRAF_CENTRAL_CALENDAR_ID;
+window.getTargetCalendarId = getTargetCalendarId;
+window.autoSyncPendingGoogleCalendarEvents = autoSyncPendingGoogleCalendarEvents;
+window.debouncedAutoSyncPendingGcal = debouncedAutoSyncPendingGcal;
 window.initGisTokenClient = initGisTokenClient;
 window.initializeGapiClient = initializeGapiClient;
 window.handleAuthGcalClick = handleAuthGcalClick;
@@ -2580,6 +2846,10 @@ async function saveCard() {
             const oldDate = existingCard ? existingCard.date : null;
             const oldCol = existingCard ? existingCard.column : null;
 
+            if (oldDate !== date) {
+                payload.needsGoogleSync = true;
+            }
+            payload.updatedByEmail = (userInfo && userInfo.email) || (currentUser ? currentUser.email : 'tech');
             if (commentObj) {
                 payload.comments = firebase.firestore.FieldValue.arrayUnion(commentObj);
             }
@@ -2646,6 +2916,10 @@ async function saveCard() {
         } else {
             payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
             payload._lastLocalEdit = Date.now();
+            payload.createdByEmail = (userInfo && userInfo.email) || (currentUser ? currentUser.email : 'tech');
+            if (date && date.trim() !== '') {
+                payload.needsGoogleSync = true;
+            }
             if (commentObj) {
                 payload.comments = [commentObj];
             } else {

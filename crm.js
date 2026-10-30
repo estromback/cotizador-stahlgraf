@@ -614,6 +614,10 @@ async function saveCard() {
             const oldDate = existingCard ? existingCard.date : null;
             const oldCol = existingCard ? existingCard.column : null;
 
+            if (oldDate !== date) {
+                payload.needsGoogleSync = true;
+            }
+            payload.updatedByEmail = (userInfo && userInfo.email) || (currentUser ? currentUser.email : 'tech');
             if (commentObj) {
                 payload.comments = firebase.firestore.FieldValue.arrayUnion(commentObj);
             }
@@ -672,6 +676,10 @@ async function saveCard() {
             }
         } else {
             payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            payload.createdByEmail = (userInfo && userInfo.email) || (currentUser ? currentUser.email : 'tech');
+            if (date && date.trim() !== '') {
+                payload.needsGoogleSync = true;
+            }
             if (commentObj) {
                 payload.comments = [commentObj];
             } else {
@@ -729,6 +737,12 @@ async function deleteCard() {
         const cardToDelete = crmCards.find(c => c.id === id);
         try {
             await db.collection('users').doc(activeUid).collection('crm').doc(id).delete();
+            if (cardToDelete && cardToDelete.googleEventId) {
+                db.collection('users').doc(activeUid).collection('gcal_pending_deletions').doc(cardToDelete.googleEventId).set({
+                    googleEventId: cardToDelete.googleEventId,
+                    deletedAt: Date.now()
+                }).catch(e => console.warn(e));
+            }
             document.getElementById('card-modal').classList.remove('active');
 
             if (typeof window.logSystemActivity === 'function' && cardToDelete) {

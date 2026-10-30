@@ -665,10 +665,10 @@
                             </div>
 
                             <div class="input-group" style="grid-column: 1 / -1;">
-                                <label for="setting-gcal-calendar-id">ID del Calendario de Google Destino</label>
-                                <input type="text" id="setting-gcal-calendar-id" placeholder="primary (o tu correo ej. contacto@stahlgraf.cl)" style="width: 100%; font-family: monospace; font-size: 0.85rem;">
+                                <label for="setting-gcal-calendar-id">ID del Calendario Central de Destino (Google Calendar)</label>
+                                <input type="text" id="setting-gcal-calendar-id" placeholder="estromback@gmail.com" value="estromback@gmail.com" style="width: 100%; font-family: monospace; font-size: 0.85rem;">
                                 <small style="color: #94a3b8; margin-top: 4px; display: block;">
-                                    Usa <code>primary</code> para tu calendario principal, o ingresa el ID del calendario compartido (ej: <code>contacto@stahlgraf.cl</code> o <code>c_xxxxxxxx@group.calendar.google.com</code>).
+                                    Regla central: Todas las citas y actividades de Stahlgraf se sincronizan con <code>estromback@gmail.com</code> sin importar qué usuario (ej: <code>rloayza1212@gmail.com</code>) las ingrese o modifique.
                                 </small>
                             </div>
 
@@ -700,8 +700,8 @@
                                 </div>
                             </div>
                             <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.8rem; color: #94a3b8; line-height: 1.5;">
-                                💡 <strong>¿Cómo compartir el calendario con tu equipo?</strong><br>
-                                Si otros usuarios (técnicos) usan el Hub, abre Google Calendar en tu computadora, ve a Configuración de tu calendario ➔ <em>"Compartir con personas específicas"</em> y añade sus correos con permiso de <strong>"Realizar cambios en eventos"</strong>. Así, cuando ellos inicien sesión en el Hub, sus cambios se registrarán en tu calendario automáticamente.
+                                💡 <strong>Sincronización multiusuario centralizada con estromback@gmail.com:</strong><br>
+                                Todas las citas creadas o modificadas por cualquier usuario o técnico (como <code>rloayza1212@gmail.com</code>) se envían al calendario de <code>estromback@gmail.com</code>. Si la sesión de otro usuario no cuenta con autorización inmediata, el sistema guarda la cita y la sincroniza automáticamente de fondo hacia tu Google Calendar en cuanto detecta sesión activa o conexión.
                             </div>
                         </div>
                     </div>
