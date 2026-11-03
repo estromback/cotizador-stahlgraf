@@ -763,11 +763,12 @@ function calculateQuote() {
         tbody.appendChild(trSum);
     } else {
         activeConstructions.forEach(c => {
+            const sizeSuffix = showDetailedValues ? ` (${c.size} m²)` : '';
             if (pdfDisplayMode === 'split-int-ext') {
                 if (c.intCost > 0) {
                     const trInt = document.createElement('tr');
                     trInt.innerHTML = `
-                        <td>Control de Insectos en Interior — <strong>${c.name}</strong> (${c.size} m²)</td>
+                        <td>Control de Insectos en Interior — <strong>${c.name}</strong>${sizeSuffix}</td>
                         <td>Técnica(s): ${interiorTech} para control de insectos rastreros y voladores en ${c.name}, utilizando producto ${selectedChem.name}.</td>
                         <td class="text-right">1</td>
                         <td class="text-right">${formatter.format(c.intCost)}</td>
@@ -778,7 +779,7 @@ function calculateQuote() {
                 if (c.extCost > 0) {
                     const trExt = document.createElement('tr');
                     trExt.innerHTML = `
-                        <td>Control de Insectos en Exterior — <strong>${c.name}</strong> (${c.size} m²)</td>
+                        <td>Control de Insectos en Exterior — <strong>${c.name}</strong>${sizeSuffix}</td>
                         <td>Técnica(s): ${exteriorTech} (${c.extZoneLabel}) para control perimetral/focalizado asegurando residualidad en ${c.name}, utilizando producto ${exteriorChem.name}.</td>
                         <td class="text-right">1</td>
                         <td class="text-right">${formatter.format(c.extCost)}</td>
@@ -796,14 +797,14 @@ function calculateQuote() {
                         descHtml = `<strong>Cobertura:</strong> Interior y Exterior (${c.extZoneLabel}). Aplicación interior (${interiorTech} con ${selectedChem.name}) y exterior (${exteriorTech} con ${exteriorChem.name}).`;
                     }
                 } else if (c.intCost > 0) {
-                    descHtml = `<strong>Cobertura:</strong> Solo Interior (${c.size} m²). Técnica(s): ${interiorTech} para control de insectos rastreros y voladores, utilizando producto ${selectedChem.name}.`;
+                    descHtml = `<strong>Cobertura:</strong> Solo Interior${sizeSuffix}. Técnica(s): ${interiorTech} para control de insectos rastreros y voladores, utilizando producto ${selectedChem.name}.`;
                 } else if (c.extCost > 0) {
-                    descHtml = `<strong>Cobertura:</strong> Solo Exterior (${c.size} m² — ${c.extZoneLabel}). Técnica(s): ${exteriorTech} para control perimetral/focalizado asegurando residualidad, utilizando producto ${exteriorChem.name}.`;
+                    descHtml = `<strong>Cobertura:</strong> Solo Exterior (${showDetailedValues ? `${c.size} m² — ` : ''}${c.extZoneLabel}). Técnica(s): ${exteriorTech} para control perimetral/focalizado asegurando residualidad, utilizando producto ${exteriorChem.name}.`;
                 }
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>Control de Insectos — <strong>${c.name}</strong> (${c.size} m²)</td>
+                    <td>Control de Insectos — <strong>${c.name}</strong>${sizeSuffix}</td>
                     <td>${descHtml}</td>
                     <td class="text-right">1</td>
                     <td class="text-right">${formatter.format(c.totalCost)}</td>
@@ -916,8 +917,13 @@ function calculateQuote() {
     methList.innerHTML = '';
 
     if (activeConstructions.length > 0) {
-        const constBreakdown = activeConstructions.map(c => `${c.name} (${c.size} m² - ${c.covShortLabel})`).join(', ');
-        methList.innerHTML += `<li><strong>Construcciones / Recintos Tratados (${totalAreaM2} m² totales):</strong> ${constBreakdown}.</li>`;
+        if (showDetailedValues) {
+            const constBreakdown = activeConstructions.map(c => `${c.name} (${c.size} m² - ${c.covShortLabel})`).join(', ');
+            methList.innerHTML += `<li><strong>Construcciones / Recintos Tratados (${totalAreaM2} m² totales):</strong> ${constBreakdown}.</li>`;
+        } else {
+            const constBreakdown = activeConstructions.map(c => `${c.name} (${c.covShortLabel})`).join(', ');
+            methList.innerHTML += `<li><strong>Construcciones / Recintos Tratados:</strong> ${constBreakdown}.</li>`;
+        }
     }
     
     // Techniques
