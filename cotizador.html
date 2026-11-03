@@ -17,7 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.4.2"></script>
+    <script src="core-sync.js?v=v4.5.0"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
@@ -105,57 +105,127 @@
 
                 <!-- Servicio Info -->
                 <div class="form-section">
-                    <h3>2. Detalles de Fumigación</h3>
-                    <div class="form-grid">
-                        <div class="input-group">
-                            <label for="property-size">Tamaño Aprox. Propiedad (m²)</label>
-                            <input type="number" id="property-size" placeholder="Ej. 120" min="1" required>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                        <h3 style="margin: 0;">2. Detalles de Fumigación por Construcción</h3>
+                        <span id="constructions-summary-badge" style="font-size: 0.8rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 6px; font-weight: 600;">1 construcción · 0 m² totales</span>
+                    </div>
+
+                    <p style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 12px;">
+                        Agrega y diferencia cada construcción o recinto dentro de la propiedad (Casa, Quincho, Bodega, Estacionamiento, Invernadero, etc.):
+                    </p>
+
+                    <!-- Botones rápidos para agregar construcciones -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px;">
+                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 5px 10px; font-size: 0.8rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd;" onclick="addConstruction({ name: 'Casa' })">🏠 + Casa</button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 5px 10px; font-size: 0.8rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd;" onclick="addConstruction({ name: 'Quincho' })">🍖 + Quincho</button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 5px 10px; font-size: 0.8rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd;" onclick="addConstruction({ name: 'Bodega', coverage: 'inside', exterior: 'none' })">📦 + Bodega</button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 5px 10px; font-size: 0.8rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd;" onclick="addConstruction({ name: 'Estacionamiento', coverage: 'outside', exterior: 'perimeter' })">🚗 + Estacionamiento</button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 5px 10px; font-size: 0.8rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd;" onclick="addConstruction({ name: 'Invernadero', coverage: 'outside', exterior: 'perimeter' })">🌱 + Invernadero</button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 5px 10px; font-size: 0.8rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd;" onclick="addConstruction({ name: 'Cabaña' })">🏡 + Cabaña</button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 5px 10px; font-size: 0.8rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd;" onclick="addConstruction({ name: 'Galpón' })">🏭 + Galpón</button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 5px 10px; font-size: 0.8rem; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #93c5fd;" onclick="addConstruction({ name: 'Terraza / Pérgola', coverage: 'outside', exterior: 'perimeter' })">🪵 + Terraza</button>
+                        <button type="button" id="btn-add-construction" class="btn btn-primary btn-sm" style="padding: 5px 12px; font-size: 0.8rem;" onclick="addConstruction()">➕ Otra Construcción</button>
+                    </div>
+
+                    <datalist id="construction-types-list">
+                        <option value="Casa Principal"></option>
+                        <option value="Casa"></option>
+                        <option value="Casa de Huéspedes"></option>
+                        <option value="Quincho"></option>
+                        <option value="Bodega"></option>
+                        <option value="Estacionamiento"></option>
+                        <option value="Invernadero"></option>
+                        <option value="Cabaña"></option>
+                        <option value="Galpón"></option>
+                        <option value="Terraza / Pérgola"></option>
+                        <option value="Oficina"></option>
+                        <option value="Sala de Máquinas"></option>
+                        <option value="Canil / Corral"></option>
+                        <option value="Leñera"></option>
+                        <option value="Taller"></option>
+                    </datalist>
+
+                    <!-- Contenedor dinámico de construcciones -->
+                    <div id="constructions-container">
+                        <div class="construction-row" style="position: relative; border: 1px solid rgba(59, 130, 246, 0.25); padding: 15px; border-radius: 10px; margin-bottom: 12px; background: rgba(15, 23, 42, 0.45);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                <span class="const-badge" style="font-size: 0.8rem; font-weight: 600; color: #60a5fa;">🏗️ Construcción #1</span>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span class="const-cost-preview" style="font-size: 0.8rem; color: #34d399; font-weight: 600;">$0</span>
+                                    <button type="button" class="btn btn-secondary btn-sm btn-remove-construction" style="padding: 2px 8px; font-size: 0.75rem; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171;" onclick="removeConstructionRow(this)" title="Eliminar o limpiar construcción">✕</button>
+                                </div>
+                            </div>
+                            <div class="form-grid">
+                                <div class="input-group">
+                                    <label>Nombre / Tipo de Construcción</label>
+                                    <input type="text" id="construction-name" class="const-name" list="construction-types-list" value="Casa Principal" placeholder="Ej. Casa Principal, Quincho, Bodega...">
+                                </div>
+                                <div class="input-group">
+                                    <label for="property-size">Tamaño Aprox. (m²)</label>
+                                    <input type="number" id="property-size" class="const-size" placeholder="Ej. 120" min="0">
+                                </div>
+                                <div class="input-group">
+                                    <label for="coverage-type">Cobertura</label>
+                                    <select id="coverage-type" class="const-coverage">
+                                        <option value="both">Interior y Exterior</option>
+                                        <option value="inside">Solo Interior</option>
+                                        <option value="outside">Solo Exterior</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label for="exterior-zones">Zonas de Exterior a Tratar</label>
+                                    <select id="exterior-zones" class="const-exterior">
+                                        <option value="full">Patio completo, árboles y terrazas</option>
+                                        <option value="perimeter">Solo perímetro de la construcción</option>
+                                        <option value="exact">Superficie exacta (sin recargo)</option>
+                                        <option value="none" disabled>No aplica</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <div class="input-group">
-                            <label for="coverage-type">Cobertura</label>
-                            <select id="coverage-type">
-                                <option value="both">Interior y Exterior</option>
-                                <option value="inside">Solo Interior</option>
-                                <option value="outside">Solo Exterior</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label for="exterior-zones">Zonas de Exterior a Tratar</label>
-                            <select id="exterior-zones">
-                                <option value="full">Patio completo, árboles y terrazas</option>
-                                <option value="perimeter">Solo perímetro de la casa</option>
-                                <option value="none" disabled>No aplica</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label for="interior-chem">Producto para Interior</label>
-                            <select id="interior-chem">
-                                <!-- Populated dynamically -->
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label for="interior-tech">Técnica para Interior</label>
-                            <select id="interior-tech">
-                                <option value="Nebulización ULV + Aspersión Manual">Nebulización ULV + Aspersión Manual</option>
-                                <option value="Aspersión Manual">Aspersión Manual</option>
-                                <option value="Nebulización ULV">Nebulización ULV</option>
-                                <option value="Motopulverización">Motopulverización</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label for="exterior-chem">Producto para Exterior</label>
-                            <select id="exterior-chem">
-                                <!-- Populated dynamically -->
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label for="exterior-tech">Técnica para Exterior</label>
-                            <select id="exterior-tech">
-                                <option value="Motopulverización + Aspersión Manual">Motopulverización + Aspersión Manual</option>
-                                <option value="Motopulverización">Motopulverización</option>
-                                <option value="Aspersión Manual">Aspersión Manual</option>
-                                <option value="Nebulización ULV">Nebulización ULV</option>
-                            </select>
+                    </div>
+
+                    <!-- Productos y Técnicas Globales de Fumigación -->
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.08);">
+                        <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;">Productos, Técnicas y Visualización</h4>
+                        <div class="form-grid">
+                            <div class="input-group">
+                                <label for="interior-chem">Producto para Interior</label>
+                                <select id="interior-chem">
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="interior-tech">Técnica para Interior</label>
+                                <select id="interior-tech">
+                                    <option value="Nebulización ULV + Aspersión Manual">Nebulización ULV + Aspersión Manual</option>
+                                    <option value="Aspersión Manual">Aspersión Manual</option>
+                                    <option value="Nebulización ULV">Nebulización ULV</option>
+                                    <option value="Motopulverización">Motopulverización</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="exterior-chem">Producto para Exterior</label>
+                                <select id="exterior-chem">
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="exterior-tech">Técnica para Exterior</label>
+                                <select id="exterior-tech">
+                                    <option value="Motopulverización + Aspersión Manual">Motopulverización + Aspersión Manual</option>
+                                    <option value="Motopulverización">Motopulverización</option>
+                                    <option value="Aspersión Manual">Aspersión Manual</option>
+                                    <option value="Nebulización ULV">Nebulización ULV</option>
+                                </select>
+                            </div>
+                            <div class="input-group" style="grid-column: 1 / -1;">
+                                <label for="constructions-pdf-display">Desglose de Construcciones en Tabla PDF</label>
+                                <select id="constructions-pdf-display">
+                                    <option value="per-construction" selected>Diferenciar construcción por construcción (1 fila por cada construcción)</option>
+                                    <option value="split-int-ext">Separar filas de Interior y Exterior por cada construcción</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -265,9 +335,9 @@
                     </div>
                 </div>
 
-                <!-- Impuestos / IVA -->
+                <!-- Impuestos / IVA y Descuentos -->
                 <div class="form-section">
-                    <h3>7. Impuestos y Condiciones Comerciales</h3>
+                    <h3>7. Descuentos, Impuestos y Condiciones Comerciales</h3>
                     <div class="form-grid">
                         <div class="input-group">
                             <label for="payment-term">Forma de Pago</label>
@@ -278,14 +348,30 @@
                             </select>
                         </div>
                         <div class="input-group">
-                            <label for="apply-iva">¿Agregar Impuesto?</label>
+                            <label for="apply-discount">¿Aplicar Descuento?</label>
+                            <select id="apply-discount">
+                                <option value="no" selected>No</option>
+                                <option value="yes">Sí (% Porcentaje)</option>
+                                <option value="fixed">Sí ($ Monto Fijo)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="discount-percentage" id="label-discount-input">Porcentaje de Descuento (%)</label>
+                            <input type="number" id="discount-percentage" value="0" min="0" step="0.5" placeholder="Ej. 10">
+                        </div>
+                        <div class="input-group">
+                            <label for="discount-reason">Motivo / Glosa Descuento (Opcional)</label>
+                            <input type="text" id="discount-reason" placeholder="Ej. Cliente frecuente / Promoción">
+                        </div>
+                        <div class="input-group">
+                            <label for="apply-iva">¿Agregar Impuesto (IVA)?</label>
                             <select id="apply-iva">
                                 <option value="yes" selected>Sí</option>
                                 <option value="no">No (Exento / Sin Factura)</option>
                             </select>
                         </div>
                         <div class="input-group">
-                            <label for="iva-percentage">Porcentaje (%)</label>
+                            <label for="iva-percentage">Porcentaje IVA (%)</label>
                             <input type="number" id="iva-percentage" value="19" min="0" step="0.1">
                         </div>
                     </div>
@@ -351,6 +437,14 @@
                                 <tr>
                                     <th colspan="4" class="text-right">Subtotal</th>
                                     <td class="text-right"><strong id="doc-subtotal">$0</strong></td>
+                                </tr>
+                                <tr id="row-discount" style="display: none; color: #15803d;">
+                                    <th colspan="4" class="text-right" id="label-discount">Descuento (0%)</th>
+                                    <td class="text-right"><strong id="doc-discount">-$0</strong></td>
+                                </tr>
+                                <tr id="row-neto" style="display: none;">
+                                    <th colspan="4" class="text-right">Subtotal c/ Descuento (Neto)</th>
+                                    <td class="text-right"><strong id="doc-neto">$0</strong></td>
                                 </tr>
                                 <tr id="row-iva" style="display: none;">
                                     <th colspan="4" class="text-right" id="label-iva">IVA (19%)</th>
@@ -478,6 +572,6 @@
     </div>
 
     <!-- Script Application -->
-    <script src="app.js?v=v4.4.2"></script>
+    <script src="app.js?v=v4.5.0"></script>
 </body>
 </html>

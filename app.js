@@ -300,6 +300,160 @@ function syncFromFirebase() {
     }).catch(err => console.error("Error fetching from Firebase:", err));
 }
 
+// --- Constructions (Multi-building within same property) Logic ---
+function bindConstructionRowEvents(row) {
+    if (!row) return;
+    const covSelect = row.querySelector('.const-coverage');
+    const extSelect = row.querySelector('.const-exterior');
+    if (covSelect && extSelect) {
+        covSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'inside') {
+                extSelect.value = 'none';
+                extSelect.disabled = true;
+            } else {
+                if (extSelect.value === 'none') extSelect.value = 'perimeter';
+                extSelect.disabled = false;
+            }
+            calculateQuote();
+        });
+    }
+    row.querySelectorAll('input, select').forEach(inp => {
+        inp.addEventListener('input', calculateQuote);
+        inp.addEventListener('change', calculateQuote);
+    });
+}
+
+function reindexConstructions() {
+    const rows = document.querySelectorAll('#constructions-container .construction-row');
+    rows.forEach((row, idx) => {
+        const badge = row.querySelector('.const-badge');
+        if (badge) badge.innerText = `🏗️ Construcción #${idx + 1}`;
+        const nameInp = row.querySelector('.const-name');
+        const sizeInp = row.querySelector('.const-size');
+        const covSel = row.querySelector('.const-coverage');
+        const extSel = row.querySelector('.const-exterior');
+        if (idx === 0) {
+            if (nameInp) nameInp.id = 'construction-name';
+            if (sizeInp) sizeInp.id = 'property-size';
+            if (covSel) covSel.id = 'coverage-type';
+            if (extSel) extSel.id = 'exterior-zones';
+        } else {
+            if (nameInp && nameInp.id === 'construction-name') nameInp.removeAttribute('id');
+            if (sizeInp && sizeInp.id === 'property-size') sizeInp.removeAttribute('id');
+            if (covSel && covSel.id === 'coverage-type') covSel.removeAttribute('id');
+            if (extSel && extSel.id === 'exterior-zones') extSel.removeAttribute('id');
+        }
+    });
+}
+
+window.addConstruction = function(data = null, focusSize = true) {
+    const container = document.getElementById('constructions-container');
+    if (!container) return;
+
+    const existingRows = container.querySelectorAll('.construction-row');
+    // Si solo hay 1 fila vacía y hacen clic en un botón rápido (ej. Casa, Quincho, Bodega) sin tamaño previo,
+    // si esa primera fila no tiene m2 ingresados y tenía el nombre por defecto "Casa Principal" y el usuario eligió "Casa", usamos esa misma fila:
+    if (existingRows.length === 1 && data && !data.size && focusSize) {
+        const firstRow = existingRows[0];
+        const firstSize = firstRow.querySelector('.const-size')?.value;
+        const firstName = firstRow.querySelector('.const-name')?.value;
+        if ((!firstSize || parseFloat(firstSize) === 0) && firstName === 'Casa Principal' && data.name === 'Casa') {
+            firstRow.querySelector('.const-size')?.focus();
+            return;
+        }
+    }
+
+    const idx = existingRows.length;
+    const nameVal = data && data.name !== undefined ? data.name : `Construcción ${idx + 1}`;
+    const sizeVal = data && data.size !== undefined ? data.size : '';
+    const covVal = data && data.coverage ? data.coverage : 'both';
+    const extVal = data && data.exterior ? data.exterior : (covVal === 'inside' ? 'none' : 'perimeter');
+
+    const div = document.createElement('div');
+    div.className = 'construction-row';
+    div.style.position = 'relative';
+    div.style.border = '1px solid rgba(59, 130, 246, 0.25)';
+    div.style.padding = '15px';
+    div.style.borderRadius = '10px';
+    div.style.marginBottom = '12px';
+    div.style.background = 'rgba(15, 23, 42, 0.45)';
+
+    div.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <span class="const-badge" style="font-size: 0.8rem; font-weight: 600; color: #60a5fa;">🏗️ Construcción #${idx + 1}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="const-cost-preview" style="font-size: 0.8rem; color: #34d399; font-weight: 600;">$0</span>
+                <button type="button" class="btn btn-secondary btn-sm btn-remove-construction" style="padding: 2px 8px; font-size: 0.75rem; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171;" onclick="removeConstructionRow(this)" title="Eliminar construcción">✕</button>
+            </div>
+        </div>
+        <div class="form-grid">
+            <div class="input-group">
+                <label>Nombre / Tipo de Construcción</label>
+                <input type="text" class="const-name" list="construction-types-list" value="${nameVal}" placeholder="Ej. Quincho, Bodega, Invernadero...">
+            </div>
+            <div class="input-group">
+                <label>Tamaño Aprox. (m²)</label>
+                <input type="number" class="const-size" placeholder="Ej. 45" min="0" value="${sizeVal}">
+            </div>
+            <div class="input-group">
+                <label>Cobertura</label>
+                <select class="const-coverage">
+                    <option value="both" ${covVal === 'both' ? 'selected' : ''}>Interior y Exterior</option>
+                    <option value="inside" ${covVal === 'inside' ? 'selected' : ''}>Solo Interior</option>
+                    <option value="outside" ${covVal === 'outside' ? 'selected' : ''}>Solo Exterior</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Zonas de Exterior a Tratar</label>
+                <select class="const-exterior" ${covVal === 'inside' ? 'disabled' : ''}>
+                    <option value="full" ${extVal === 'full' ? 'selected' : ''}>Patio completo, árboles y terrazas</option>
+                    <option value="perimeter" ${extVal === 'perimeter' ? 'selected' : ''}>Solo perímetro de la construcción</option>
+                    <option value="exact" ${extVal === 'exact' ? 'selected' : ''}>Superficie exacta (sin recargo)</option>
+                    <option value="none" ${extVal === 'none' ? 'selected' : ''} disabled>No aplica</option>
+                </select>
+            </div>
+        </div>
+    `;
+
+    container.appendChild(div);
+    bindConstructionRowEvents(div);
+    reindexConstructions();
+    calculateQuote();
+
+    if (focusSize) {
+        const sizeInput = div.querySelector('.const-size');
+        if (sizeInput) sizeInput.focus();
+    }
+};
+
+window.removeConstructionRow = function(btn) {
+    const container = document.getElementById('constructions-container');
+    if (!container) return;
+    const rows = container.querySelectorAll('.construction-row');
+    const targetRow = btn.closest('.construction-row');
+    if (!targetRow) return;
+
+    if (rows.length > 1) {
+        targetRow.remove();
+        reindexConstructions();
+        calculateQuote();
+    } else {
+        // Si es la única fila, limpiamos sus valores
+        const nameInp = targetRow.querySelector('.const-name');
+        const sizeInp = targetRow.querySelector('.const-size');
+        const covSel = targetRow.querySelector('.const-coverage');
+        const extSel = targetRow.querySelector('.const-exterior');
+        if (nameInp) nameInp.value = 'Casa Principal';
+        if (sizeInp) sizeInp.value = '';
+        if (covSel) covSel.value = 'both';
+        if (extSel) {
+            extSel.value = 'full';
+            extSel.disabled = false;
+        }
+        calculateQuote();
+    }
+};
+
 // Logic & Calculations
 function calculateQuote() {
     // 1. Get Inputs
@@ -308,10 +462,6 @@ function calculateQuote() {
     const clientPhone = document.getElementById('client-phone').value || '-';
     const clientEmail = document.getElementById('client-email')?.value || '-';
     const clientAddress = document.getElementById('client-address').value || '-';
-    
-    const size = parseFloat(document.getElementById('property-size').value) || 0;
-    const coverage = document.getElementById('coverage-type').value;
-    const exterior = document.getElementById('exterior-zones').value;
     
     const hasRodents = document.getElementById('rodent-control').value === 'yes';
     const baitStations = parseInt(document.getElementById('bait-stations').value) || 0;
@@ -329,26 +479,12 @@ function calculateQuote() {
     const saniChemId = document.getElementById('sanitization-chem')?.value;
     const saniTech = document.getElementById('sanitization-tech')?.value || 'Nebulización ULV';
 
-    // 2. Adjust effective size based on coverage
-    let interiorSize = 0;
-    let exteriorSize = 0;
+    // 2. Find suitable products & techniques for Fumigation
+    const interiorChemId = document.getElementById('interior-chem')?.value;
+    const exteriorChemId = document.getElementById('exterior-chem')?.value;
     
-    if (coverage === 'inside' || coverage === 'both') {
-        interiorSize = size;
-    }
-    if (coverage === 'outside' || coverage === 'both') {
-        exteriorSize = size;
-        if (exterior === 'full') exteriorSize *= 1.4; 
-        else if (exterior === 'perimeter') exteriorSize *= 1.1;
-    }
-
-    // 3. Find suitable product
-    const interiorChemId = document.getElementById('interior-chem').value;
-    const exteriorChemId = document.getElementById('exterior-chem').value;
-    
-    // Get Techniques
-    const interiorTech = document.getElementById('interior-tech').value || 'Nebulización ULV + Aspersión Manual';
-    const exteriorTech = document.getElementById('exterior-tech').value || 'Motopulverización + Aspersión Manual';
+    const interiorTech = document.getElementById('interior-tech')?.value || 'Nebulización ULV + Aspersión Manual';
+    const exteriorTech = document.getElementById('exterior-tech')?.value || 'Motopulverización + Aspersión Manual';
 
     const selectedChem = appData.chemicals.find(c => c.id === interiorChemId) || appData.chemicals[0] || defaultChemicals[0];
     const exteriorChem = appData.chemicals.find(c => c.id === exteriorChemId) || appData.chemicals[0] || defaultChemicals[0];
@@ -356,34 +492,103 @@ function calculateQuote() {
     // Apply Margin
     const marginMultiplier = 1 + (appData.margin / 100);
 
-    // Calculate Interior
-    let interiorCost = 0;
-    let interiorText = '';
-    if (interiorSize > 0) {
-        let interiorTime = interiorSize / appData.hhSpeed;
-        let cost_HH_interior = interiorTime * appData.hhPrice;
-        let cost_chem_interior = (interiorSize * selectedChem.dose / selectedChem.size) * selectedChem.price;
+    // 3. Process All Constructions
+    const constructionRows = document.querySelectorAll('#constructions-container .construction-row');
+    const activeConstructions = [];
+    let totalInteriorSize = 0;
+    let totalExteriorSize = 0;
+    let totalAreaM2 = 0;
+    let totalFumigationCost = 0;
+    let firstActiveAssigned = false;
 
-        let baseCostInterior = cost_HH_interior + cost_chem_interior;
-        interiorCost = Math.round(baseCostInterior * marginMultiplier);
-        if (interiorCost > 0 && interiorCost < appData.minRate) interiorCost = appData.minRate; 
-        
-        interiorText = `Técnica(s): ${interiorTech} para control de insectos rastreros y voladores, utilizando producto ${selectedChem.name}.`;
-    }
+    constructionRows.forEach((row, idx) => {
+        const cName = (row.querySelector('.const-name')?.value || '').trim() || `Construcción #${idx + 1}`;
+        const cSize = parseFloat(row.querySelector('.const-size')?.value) || 0;
+        const cCoverage = row.querySelector('.const-coverage')?.value || 'both';
+        const cExterior = row.querySelector('.const-exterior')?.value || 'full';
+        const previewBadge = row.querySelector('.const-cost-preview');
 
-    // Calculate Exterior
-    let exteriorCost = 0;
-    let exteriorText = '';
-    if (exteriorSize > 0) {
-        let exteriorTime = exteriorSize / appData.hhSpeed;
-        let cost_HH_exterior = exteriorTime * appData.hhPrice;
-        let cost_chem_exterior = (exteriorSize * exteriorChem.dose / exteriorChem.size) * exteriorChem.price;
+        if (cSize <= 0) {
+            if (previewBadge) previewBadge.innerText = '$0';
+            return;
+        }
 
-        let baseCostExterior = cost_HH_exterior + cost_chem_exterior;
-        exteriorCost = Math.round(baseCostExterior * marginMultiplier);
-        if (exteriorCost > 0 && exteriorCost < appData.minRate) exteriorCost = appData.minRate;
+        totalAreaM2 += cSize;
 
-        exteriorText = `Técnica(s): ${exteriorTech} para control perimetral/focalizado asegurando residualidad, utilizando producto ${exteriorChem.name}.`;
+        let intSize = 0;
+        let extSize = 0;
+
+        if (cCoverage === 'inside' || cCoverage === 'both') {
+            intSize = cSize;
+        }
+        if (cCoverage === 'outside' || cCoverage === 'both') {
+            extSize = cSize;
+            if (cExterior === 'full') extSize *= 1.4;
+            else if (cExterior === 'perimeter') extSize *= 1.1;
+        }
+
+        totalInteriorSize += intSize;
+        totalExteriorSize += extSize;
+
+        let intCost = 0;
+        if (intSize > 0) {
+            const intTime = intSize / appData.hhSpeed;
+            const costHHInt = intTime * appData.hhPrice;
+            const costChemInt = (intSize * selectedChem.dose / selectedChem.size) * selectedChem.price;
+            intCost = Math.round((costHHInt + costChemInt) * marginMultiplier);
+            if (!firstActiveAssigned && intCost > 0 && intCost < appData.minRate) {
+                intCost = appData.minRate;
+            }
+        }
+
+        let extCost = 0;
+        if (extSize > 0) {
+            const extTime = extSize / appData.hhSpeed;
+            const costHHExt = extTime * appData.hhPrice;
+            const costChemExt = (extSize * exteriorChem.dose / exteriorChem.size) * exteriorChem.price;
+            extCost = Math.round((costHHExt + costChemExt) * marginMultiplier);
+            if (!firstActiveAssigned && extCost > 0 && extCost < appData.minRate) {
+                extCost = appData.minRate;
+            }
+        }
+
+        firstActiveAssigned = true;
+
+        const cTotal = intCost + extCost;
+        totalFumigationCost += cTotal;
+
+        if (previewBadge) {
+            previewBadge.innerText = formatter.format(cTotal);
+        }
+
+        const extZoneLabel = cExterior === 'full'
+            ? 'Patio completo, árboles y terrazas'
+            : (cExterior === 'perimeter' ? 'Solo perímetro' : 'Superficie exacta');
+
+        const covShortLabel = cCoverage === 'both'
+            ? 'Int. y Ext.'
+            : (cCoverage === 'inside' ? 'Solo Interior' : 'Solo Exterior');
+
+        activeConstructions.push({
+            name: cName,
+            size: cSize,
+            coverage: cCoverage,
+            exterior: cExterior,
+            extZoneLabel,
+            covShortLabel,
+            intSize,
+            extSize,
+            intCost,
+            extCost,
+            totalCost: cTotal
+        });
+    });
+
+    // Update Summary Badge in Section 2
+    const summaryBadge = document.getElementById('constructions-summary-badge');
+    if (summaryBadge) {
+        const count = activeConstructions.length || constructionRows.length || 1;
+        summaryBadge.innerText = `${count} ${count === 1 ? 'construcción' : 'construcciones'} · ${totalAreaM2} m² totales`;
     }
 
     // Calculate Rodents
@@ -448,7 +653,7 @@ function calculateQuote() {
         }
     });
 
-    const totalCost = interiorCost + exteriorCost + rodentsCost + mothsCost + saniCost + genServicesCost;
+    const totalCost = totalFumigationCost + rodentsCost + mothsCost + saniCost + genServicesCost;
 
     // --- UPDATE UI DOCUMENT ---
     const displayCorr = loadedCorrelative !== null ? loadedCorrelative : appData.correlative;
@@ -532,29 +737,55 @@ function calculateQuote() {
         tbody.appendChild(tr);
     }
 
-    if (interiorSize > 0) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>Control de Insectos Rastreros y voladores en interior</td>
-            <td>${interiorText}</td>
-            <td class="text-right">1</td>
-            <td class="text-right">${formatter.format(interiorCost)}</td>
-            <td class="text-right"><strong>${formatter.format(interiorCost)}</strong></td>
-        `;
-        tbody.appendChild(tr);
-    }
+    // Render Fumigation Rows differentiated by Construction
+    const pdfDisplayMode = document.getElementById('constructions-pdf-display')?.value || 'per-construction';
 
-    if (exteriorSize > 0) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>Control de Insectos Rastreros y voladores en exterior</td>
-            <td>${exteriorText}</td>
-            <td class="text-right">1</td>
-            <td class="text-right">${formatter.format(exteriorCost)}</td>
-            <td class="text-right"><strong>${formatter.format(exteriorCost)}</strong></td>
-        `;
-        tbody.appendChild(tr);
-    }
+    activeConstructions.forEach(c => {
+        if (pdfDisplayMode === 'split-int-ext') {
+            if (c.intCost > 0) {
+                const trInt = document.createElement('tr');
+                trInt.innerHTML = `
+                    <td>Control de Insectos en Interior — <strong>${c.name}</strong> (${c.size} m²)</td>
+                    <td>Técnica(s): ${interiorTech} para control de insectos rastreros y voladores en ${c.name}, utilizando producto ${selectedChem.name}.</td>
+                    <td class="text-right">1</td>
+                    <td class="text-right">${formatter.format(c.intCost)}</td>
+                    <td class="text-right"><strong>${formatter.format(c.intCost)}</strong></td>
+                `;
+                tbody.appendChild(trInt);
+            }
+            if (c.extCost > 0) {
+                const trExt = document.createElement('tr');
+                trExt.innerHTML = `
+                    <td>Control de Insectos en Exterior — <strong>${c.name}</strong> (${c.size} m²)</td>
+                    <td>Técnica(s): ${exteriorTech} (${c.extZoneLabel}) para control perimetral/focalizado asegurando residualidad en ${c.name}, utilizando producto ${exteriorChem.name}.</td>
+                    <td class="text-right">1</td>
+                    <td class="text-right">${formatter.format(c.extCost)}</td>
+                    <td class="text-right"><strong>${formatter.format(c.extCost)}</strong></td>
+                `;
+                tbody.appendChild(trExt);
+            }
+        } else {
+            // 1 fila diferenciada por cada construcción
+            let descHtml = '';
+            if (c.intCost > 0 && c.extCost > 0) {
+                descHtml = `<strong>Cobertura:</strong> Interior y Exterior (${c.extZoneLabel}).<br><strong>Interior:</strong> ${interiorTech} con ${selectedChem.name} (${formatter.format(c.intCost)}) | <strong>Exterior:</strong> ${exteriorTech} con ${exteriorChem.name} (${formatter.format(c.extCost)}).`;
+            } else if (c.intCost > 0) {
+                descHtml = `<strong>Cobertura:</strong> Solo Interior (${c.size} m²). Técnica(s): ${interiorTech} para control de insectos rastreros y voladores, utilizando producto ${selectedChem.name}.`;
+            } else if (c.extCost > 0) {
+                descHtml = `<strong>Cobertura:</strong> Solo Exterior (${c.size} m² — ${c.extZoneLabel}). Técnica(s): ${exteriorTech} para control perimetral/focalizado asegurando residualidad, utilizando producto ${exteriorChem.name}.`;
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>Control de Insectos — <strong>${c.name}</strong> (${c.size} m²)</td>
+                <td>${descHtml}</td>
+                <td class="text-right">1</td>
+                <td class="text-right">${formatter.format(c.totalCost)}</td>
+                <td class="text-right"><strong>${formatter.format(c.totalCost)}</strong></td>
+            `;
+            tbody.appendChild(tr);
+        }
+    });
 
     genServicesData.forEach(gs => {
         const tr = document.createElement('tr');
@@ -568,22 +799,74 @@ function calculateQuote() {
         tbody.appendChild(tr);
     });
 
+    // --- Discount & IVA Calculations ---
+    const applyDiscountEl = document.getElementById('apply-discount');
+    const discountPercentageEl = document.getElementById('discount-percentage');
+    const discountReasonEl = document.getElementById('discount-reason');
+
+    const discountMode = applyDiscountEl ? applyDiscountEl.value : 'no';
+    const rawDiscountVal = discountPercentageEl ? (parseFloat(discountPercentageEl.value) || 0) : 0;
+    const discountReason = discountReasonEl ? discountReasonEl.value.trim() : '';
+
+    let subtotalCost = totalCost;
+    let discountCost = 0;
+
+    if (discountMode === 'yes' && rawDiscountVal > 0) {
+        const clampedPct = Math.min(100, Math.max(0, rawDiscountVal));
+        discountCost = Math.round(subtotalCost * (clampedPct / 100));
+    } else if (discountMode === 'fixed' && rawDiscountVal > 0) {
+        discountCost = Math.min(subtotalCost, Math.round(Math.max(0, rawDiscountVal)));
+    }
+
+    const netoAfterDiscount = Math.max(0, subtotalCost - discountCost);
+
     const applyIvaEl = document.getElementById('apply-iva');
     const ivaPercentageEl = document.getElementById('iva-percentage');
     
     const applyIva = applyIvaEl ? applyIvaEl.value === 'yes' : true;
     const ivaPercentage = ivaPercentageEl ? parseFloat(ivaPercentageEl.value) || 0 : 19;
     
-    let subtotalCost = totalCost;
     let ivaCost = 0;
-    let finalTotalCost = totalCost;
+    let finalTotalCost = netoAfterDiscount;
     
     if (applyIva) {
-        ivaCost = Math.round(subtotalCost * (ivaPercentage / 100));
-        finalTotalCost = subtotalCost + ivaCost;
+        ivaCost = Math.round(netoAfterDiscount * (ivaPercentage / 100));
+        finalTotalCost = netoAfterDiscount + ivaCost;
     }
 
     document.getElementById('doc-subtotal').innerText = formatter.format(subtotalCost);
+
+    // Discount Row in PDF
+    const rowDiscount = document.getElementById('row-discount');
+    const labelDiscount = document.getElementById('label-discount');
+    const docDiscount = document.getElementById('doc-discount');
+    if (rowDiscount) {
+        if (discountCost > 0) {
+            rowDiscount.style.display = 'table-row';
+            if (docDiscount) docDiscount.innerText = `-${formatter.format(discountCost)}`;
+            if (labelDiscount) {
+                if (discountMode === 'yes') {
+                    labelDiscount.innerText = `Descuento (${rawDiscountVal}%)${discountReason ? ' — ' + discountReason : ''}`;
+                } else {
+                    labelDiscount.innerText = `Descuento${discountReason ? ' (' + discountReason + ')' : ''}`;
+                }
+            }
+        } else {
+            rowDiscount.style.display = 'none';
+        }
+    }
+
+    // Neto c/ Descuento Row in PDF (shown when both Discount and IVA apply)
+    const rowNeto = document.getElementById('row-neto');
+    const docNeto = document.getElementById('doc-neto');
+    if (rowNeto) {
+        if (discountCost > 0 && applyIva) {
+            rowNeto.style.display = 'table-row';
+            if (docNeto) docNeto.innerText = formatter.format(netoAfterDiscount);
+        } else {
+            rowNeto.style.display = 'none';
+        }
+    }
     
     const rowIva = document.getElementById('row-iva');
     const labelIva = document.getElementById('label-iva');
@@ -599,18 +882,23 @@ function calculateQuote() {
     
     document.getElementById('doc-total').innerText = formatter.format(finalTotalCost);
 
-    const hasFumigation = interiorSize > 0 || exteriorSize > 0;
+    const hasFumigation = totalInteriorSize > 0 || totalExteriorSize > 0;
 
     // Metodología y Garantía
     const methList = document.getElementById('doc-methodology-list');
     methList.innerHTML = '';
+
+    if (activeConstructions.length > 0) {
+        const constBreakdown = activeConstructions.map(c => `${c.name} (${c.size} m² - ${c.covShortLabel})`).join(', ');
+        methList.innerHTML += `<li><strong>Construcciones / Recintos Tratados (${totalAreaM2} m² totales):</strong> ${constBreakdown}.</li>`;
+    }
     
     // Techniques
     let finalTech = '';
     if(hasFumigation) {
         let fumiTechs = [];
-        if(interiorSize > 0) fumiTechs.push(`Interior: ${interiorTech}`);
-        if(exteriorSize > 0) fumiTechs.push(`Exterior: ${exteriorTech}`);
+        if(totalInteriorSize > 0) fumiTechs.push(`Interior: ${interiorTech}`);
+        if(totalExteriorSize > 0) fumiTechs.push(`Exterior: ${exteriorTech}`);
         finalTech += fumiTechs.join(' | ') + '. ';
     }
     if(hasRodents) {
@@ -638,8 +926,8 @@ function calculateQuote() {
     let finalProd = '';
     if(hasFumigation) {
         let fumiProds = [];
-        if(interiorSize > 0) fumiProds.push(selectedChem.name);
-        if(exteriorSize > 0 && exteriorChem.id !== selectedChem.id) fumiProds.push(exteriorChem.name);
+        if(totalInteriorSize > 0) fumiProds.push(selectedChem.name);
+        if(totalExteriorSize > 0 && exteriorChem.id !== selectedChem.id) fumiProds.push(exteriorChem.name);
         finalProd += `Utilizamos insecticidas de grado profesional, biodegradables y autorizados por SAG (${fumiProds.join(' y ')}). `;
     }
     if(hasRodents) finalProd += `Para roedores: Rodenticida anticoagulante de segunda generación (Bromadiolona). `;
@@ -725,6 +1013,43 @@ function setupEventListeners() {
         input.addEventListener('change', calculateQuote);
     });
 
+    // Bind initial construction row(s)
+    document.querySelectorAll('#constructions-container .construction-row').forEach(row => {
+        bindConstructionRowEvents(row);
+    });
+
+    // Discount UX handlers
+    const applyDiscountEl = document.getElementById('apply-discount');
+    const discountPercentageEl = document.getElementById('discount-percentage');
+    const labelDiscountInput = document.getElementById('label-discount-input');
+
+    if (applyDiscountEl) {
+        applyDiscountEl.addEventListener('change', (e) => {
+            if (labelDiscountInput && discountPercentageEl) {
+                if (e.target.value === 'fixed') {
+                    labelDiscountInput.innerText = 'Monto de Descuento ($)';
+                    discountPercentageEl.step = '1000';
+                    discountPercentageEl.placeholder = 'Ej. 15000';
+                } else {
+                    labelDiscountInput.innerText = 'Porcentaje de Descuento (%)';
+                    discountPercentageEl.step = '0.5';
+                    discountPercentageEl.placeholder = 'Ej. 10';
+                }
+            }
+            calculateQuote();
+        });
+    }
+
+    if (discountPercentageEl && applyDiscountEl) {
+        discountPercentageEl.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value) || 0;
+            if (val > 0 && applyDiscountEl.value === 'no') {
+                applyDiscountEl.value = 'yes';
+            }
+            calculateQuote();
+        });
+    }
+
     // Sync Login Button
     document.getElementById('btn-sync-login').addEventListener('click', () => {
         if (!auth) return alert("Firebase no está configurado. Revisa la consola y las claves (firebaseConfig).");
@@ -744,19 +1069,6 @@ function setupEventListeners() {
                 alert("Error al iniciar sesión: " + err.message);
             });
         }
-    });
-
-    // Coverage changes (disable/enable exterior select)
-    document.getElementById('coverage-type').addEventListener('change', (e) => {
-        const extSelect = document.getElementById('exterior-zones');
-        if (e.target.value === 'inside') {
-            extSelect.value = 'none';
-            extSelect.disabled = true;
-        } else {
-            if(extSelect.value === 'none') extSelect.value = 'perimeter';
-            extSelect.disabled = false;
-        }
-        calculateQuote();
     });
 
     // Rodent changes
@@ -1326,6 +1638,21 @@ function resetFormSilently() {
     document.getElementById('quote-form').reset();
     const gsContainer = document.getElementById('general-services-container');
     if(gsContainer) gsContainer.innerHTML = '';
+
+    const constContainer = document.getElementById('constructions-container');
+    if (constContainer) {
+        constContainer.innerHTML = '';
+        window.addConstruction({ name: 'Casa Principal', size: '', coverage: 'both', exterior: 'full' }, false);
+    }
+
+    const labelDiscountInput = document.getElementById('label-discount-input');
+    const discountPercentageEl = document.getElementById('discount-percentage');
+    if (labelDiscountInput && discountPercentageEl) {
+        labelDiscountInput.innerText = 'Porcentaje de Descuento (%)';
+        discountPercentageEl.step = '0.5';
+        discountPercentageEl.placeholder = 'Ej. 10';
+    }
+
     currentQuoteId = null;
     loadedCorrelative = null;
     updateFormModeUI();
@@ -1375,6 +1702,25 @@ async function saveQuote(silent = false, explicitCorrelative = null) {
     quoteData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
     quoteData.clientName = document.getElementById('client-name').value || 'Sin nombre';
     quoteData.totalStr = document.getElementById('doc-total').innerText;
+    quoteData.total = parseInt((quoteData.totalStr || '').replace(/[^0-9]/g, '')) || 0;
+
+    // Guardar todas las construcciones de la propiedad
+    const constructions = [];
+    let totalAreaM2 = 0;
+    document.querySelectorAll('#constructions-container .construction-row').forEach((row, idx) => {
+        const name = (row.querySelector('.const-name')?.value || '').trim() || `Construcción #${idx + 1}`;
+        const sizeVal = row.querySelector('.const-size')?.value || '';
+        const sizeNum = parseFloat(sizeVal) || 0;
+        const coverage = row.querySelector('.const-coverage')?.value || 'both';
+        const exterior = row.querySelector('.const-exterior')?.value || 'full';
+        if (sizeNum > 0) totalAreaM2 += sizeNum;
+        constructions.push({ name, size: sizeVal, coverage, exterior });
+    });
+    quoteData.constructions = constructions;
+    quoteData.totalAreaM2 = totalAreaM2;
+    if (totalAreaM2 > 0) {
+        quoteData['property-size'] = String(totalAreaM2);
+    }
     
     const genServices = [];
     document.querySelectorAll('.general-service-row').forEach(row => {
@@ -1590,12 +1936,64 @@ window.loadQuoteFromDB = function(id, silent = false) {
     if (!doc) return;
     
     const data = doc.data();
+
+    // Reset discount defaults before populating so legacy quotes without discount don't inherit previous form state
+    if (document.getElementById('apply-discount')) document.getElementById('apply-discount').value = 'no';
+    if (document.getElementById('discount-percentage')) document.getElementById('discount-percentage').value = '0';
+    if (document.getElementById('discount-reason')) document.getElementById('discount-reason').value = '';
+
     Object.keys(data).forEach(key => {
         const input = document.getElementById(key);
         if (input) {
             input.value = data[key];
         }
     });
+
+    // Update discount label if fixed mode
+    const applyDiscountEl = document.getElementById('apply-discount');
+    const labelDiscountInput = document.getElementById('label-discount-input');
+    const discountPercentageEl = document.getElementById('discount-percentage');
+    if (applyDiscountEl && labelDiscountInput && discountPercentageEl) {
+        if (applyDiscountEl.value === 'fixed') {
+            labelDiscountInput.innerText = 'Monto de Descuento ($)';
+            discountPercentageEl.step = '1000';
+            discountPercentageEl.placeholder = 'Ej. 15000';
+        } else {
+            labelDiscountInput.innerText = 'Porcentaje de Descuento (%)';
+            discountPercentageEl.step = '0.5';
+            discountPercentageEl.placeholder = 'Ej. 10';
+        }
+    }
+
+    // Restore constructions
+    const constContainer = document.getElementById('constructions-container');
+    if (constContainer) {
+        constContainer.innerHTML = '';
+        if (Array.isArray(data.constructions) && data.constructions.length > 0) {
+            data.constructions.forEach(c => window.addConstruction(c, false));
+        } else {
+            window.addConstruction({
+                name: data['construction-name'] || 'Casa Principal',
+                size: data['property-size'] || '',
+                coverage: data['coverage-type'] || 'both',
+                exterior: data['exterior-zones'] || 'full'
+            }, false);
+        }
+    }
+
+    // Ensure conditional inputs enabled/disabled states match loaded values
+    const isRodent = document.getElementById('rodent-control')?.value === 'yes';
+    ['bait-stations', 'loose-stations', 'inspect-stations', 'snap-stations', 'rodent-extras'].forEach(f => {
+        const el = document.getElementById(f);
+        if (el) el.disabled = !isRodent;
+    });
+    const isMoth = document.getElementById('moth-control')?.value === 'yes';
+    if (document.getElementById('moth-prep-service')) document.getElementById('moth-prep-service').disabled = !isMoth;
+    if (document.getElementById('moth-traps')) document.getElementById('moth-traps').disabled = !isMoth;
+    const isSani = document.getElementById('sanitization-control')?.value === 'yes';
+    if (document.getElementById('sanitization-size')) document.getElementById('sanitization-size').disabled = !isSani;
+    if (document.getElementById('sanitization-chem')) document.getElementById('sanitization-chem').disabled = !isSani;
+    if (document.getElementById('sanitization-tech')) document.getElementById('sanitization-tech').disabled = !isSani;
     
     const gsContainer = document.getElementById('general-services-container');
     if(gsContainer) gsContainer.innerHTML = '';
