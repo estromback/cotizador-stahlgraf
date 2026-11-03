@@ -739,53 +739,80 @@ function calculateQuote() {
 
     // Render Fumigation Rows differentiated by Construction
     const pdfDisplayMode = document.getElementById('constructions-pdf-display')?.value || 'per-construction';
+    const showDetailedValues = (document.getElementById('pdf-show-detailed-values')?.value || 'yes') === 'yes';
 
-    activeConstructions.forEach(c => {
-        if (pdfDisplayMode === 'split-int-ext') {
-            if (c.intCost > 0) {
-                const trInt = document.createElement('tr');
-                trInt.innerHTML = `
-                    <td>Control de Insectos en Interior — <strong>${c.name}</strong> (${c.size} m²)</td>
-                    <td>Técnica(s): ${interiorTech} para control de insectos rastreros y voladores en ${c.name}, utilizando producto ${selectedChem.name}.</td>
-                    <td class="text-right">1</td>
-                    <td class="text-right">${formatter.format(c.intCost)}</td>
-                    <td class="text-right"><strong>${formatter.format(c.intCost)}</strong></td>
-                `;
-                tbody.appendChild(trInt);
-            }
-            if (c.extCost > 0) {
-                const trExt = document.createElement('tr');
-                trExt.innerHTML = `
-                    <td>Control de Insectos en Exterior — <strong>${c.name}</strong> (${c.size} m²)</td>
-                    <td>Técnica(s): ${exteriorTech} (${c.extZoneLabel}) para control perimetral/focalizado asegurando residualidad en ${c.name}, utilizando producto ${exteriorChem.name}.</td>
-                    <td class="text-right">1</td>
-                    <td class="text-right">${formatter.format(c.extCost)}</td>
-                    <td class="text-right"><strong>${formatter.format(c.extCost)}</strong></td>
-                `;
-                tbody.appendChild(trExt);
-            }
-        } else {
-            // 1 fila diferenciada por cada construcción
-            let descHtml = '';
-            if (c.intCost > 0 && c.extCost > 0) {
-                descHtml = `<strong>Cobertura:</strong> Interior y Exterior (${c.extZoneLabel}).<br><strong>Interior:</strong> ${interiorTech} con ${selectedChem.name} (${formatter.format(c.intCost)}) | <strong>Exterior:</strong> ${exteriorTech} con ${exteriorChem.name} (${formatter.format(c.extCost)}).`;
-            } else if (c.intCost > 0) {
-                descHtml = `<strong>Cobertura:</strong> Solo Interior (${c.size} m²). Técnica(s): ${interiorTech} para control de insectos rastreros y voladores, utilizando producto ${selectedChem.name}.`;
-            } else if (c.extCost > 0) {
-                descHtml = `<strong>Cobertura:</strong> Solo Exterior (${c.size} m² — ${c.extZoneLabel}). Técnica(s): ${exteriorTech} para control perimetral/focalizado asegurando residualidad, utilizando producto ${exteriorChem.name}.`;
-            }
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>Control de Insectos — <strong>${c.name}</strong> (${c.size} m²)</td>
-                <td>${descHtml}</td>
-                <td class="text-right">1</td>
-                <td class="text-right">${formatter.format(c.totalCost)}</td>
-                <td class="text-right"><strong>${formatter.format(c.totalCost)}</strong></td>
-            `;
-            tbody.appendChild(tr);
+    if (activeConstructions.length > 0 && pdfDisplayMode === 'summary-general') {
+        const namesList = activeConstructions.map(c => showDetailedValues ? `${c.name} (${c.size} m²)` : c.name).join(', ');
+        let summaryTechDesc = `Recintos incluidos: <strong>${namesList}</strong>. `;
+        if (totalInteriorSize > 0 && totalExteriorSize > 0) {
+            summaryTechDesc += `Cobertura en interior (${interiorTech} con ${selectedChem.name}) y exterior (${exteriorTech} con ${exteriorChem.name}).`;
+        } else if (totalInteriorSize > 0) {
+            summaryTechDesc += `Técnica(s): ${interiorTech} para control de insectos rastreros y voladores en interior, utilizando producto ${selectedChem.name}.`;
+        } else if (totalExteriorSize > 0) {
+            summaryTechDesc += `Técnica(s): ${exteriorTech} para control perimetral/focalizado en exterior, utilizando producto ${exteriorChem.name}.`;
         }
-    });
+
+        const trSum = document.createElement('tr');
+        trSum.innerHTML = `
+            <td>Control de Insectos Rastreros y Voladores${showDetailedValues ? ` (${totalAreaM2} m²)` : ''}</td>
+            <td>${summaryTechDesc}</td>
+            <td class="text-right">1</td>
+            <td class="text-right">${formatter.format(totalFumigationCost)}</td>
+            <td class="text-right"><strong>${formatter.format(totalFumigationCost)}</strong></td>
+        `;
+        tbody.appendChild(trSum);
+    } else {
+        activeConstructions.forEach(c => {
+            if (pdfDisplayMode === 'split-int-ext') {
+                if (c.intCost > 0) {
+                    const trInt = document.createElement('tr');
+                    trInt.innerHTML = `
+                        <td>Control de Insectos en Interior — <strong>${c.name}</strong> (${c.size} m²)</td>
+                        <td>Técnica(s): ${interiorTech} para control de insectos rastreros y voladores en ${c.name}, utilizando producto ${selectedChem.name}.</td>
+                        <td class="text-right">1</td>
+                        <td class="text-right">${formatter.format(c.intCost)}</td>
+                        <td class="text-right"><strong>${formatter.format(c.intCost)}</strong></td>
+                    `;
+                    tbody.appendChild(trInt);
+                }
+                if (c.extCost > 0) {
+                    const trExt = document.createElement('tr');
+                    trExt.innerHTML = `
+                        <td>Control de Insectos en Exterior — <strong>${c.name}</strong> (${c.size} m²)</td>
+                        <td>Técnica(s): ${exteriorTech} (${c.extZoneLabel}) para control perimetral/focalizado asegurando residualidad en ${c.name}, utilizando producto ${exteriorChem.name}.</td>
+                        <td class="text-right">1</td>
+                        <td class="text-right">${formatter.format(c.extCost)}</td>
+                        <td class="text-right"><strong>${formatter.format(c.extCost)}</strong></td>
+                    `;
+                    tbody.appendChild(trExt);
+                }
+            } else {
+                // 1 fila diferenciada por cada construcción
+                let descHtml = '';
+                if (c.intCost > 0 && c.extCost > 0) {
+                    if (showDetailedValues) {
+                        descHtml = `<strong>Cobertura:</strong> Interior y Exterior (${c.extZoneLabel}).<br><strong>Interior:</strong> ${interiorTech} con ${selectedChem.name} (${formatter.format(c.intCost)}) | <strong>Exterior:</strong> ${exteriorTech} con ${exteriorChem.name} (${formatter.format(c.extCost)}).`;
+                    } else {
+                        descHtml = `<strong>Cobertura:</strong> Interior y Exterior (${c.extZoneLabel}). Aplicación interior (${interiorTech} con ${selectedChem.name}) y exterior (${exteriorTech} con ${exteriorChem.name}).`;
+                    }
+                } else if (c.intCost > 0) {
+                    descHtml = `<strong>Cobertura:</strong> Solo Interior (${c.size} m²). Técnica(s): ${interiorTech} para control de insectos rastreros y voladores, utilizando producto ${selectedChem.name}.`;
+                } else if (c.extCost > 0) {
+                    descHtml = `<strong>Cobertura:</strong> Solo Exterior (${c.size} m² — ${c.extZoneLabel}). Técnica(s): ${exteriorTech} para control perimetral/focalizado asegurando residualidad, utilizando producto ${exteriorChem.name}.`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>Control de Insectos — <strong>${c.name}</strong> (${c.size} m²)</td>
+                    <td>${descHtml}</td>
+                    <td class="text-right">1</td>
+                    <td class="text-right">${formatter.format(c.totalCost)}</td>
+                    <td class="text-right"><strong>${formatter.format(c.totalCost)}</strong></td>
+                `;
+                tbody.appendChild(tr);
+            }
+        });
+    }
 
     genServicesData.forEach(gs => {
         const tr = document.createElement('tr');

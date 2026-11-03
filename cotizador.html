@@ -17,7 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.5.0"></script>
+    <script src="core-sync.js?v=v4.5.1"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
@@ -219,11 +219,19 @@
                                     <option value="Nebulización ULV">Nebulización ULV</option>
                                 </select>
                             </div>
-                            <div class="input-group" style="grid-column: 1 / -1;">
-                                <label for="constructions-pdf-display">Desglose de Construcciones en Tabla PDF</label>
+                            <div class="input-group">
+                                <label for="constructions-pdf-display">Formato de Construcciones en Tabla PDF</label>
                                 <select id="constructions-pdf-display">
-                                    <option value="per-construction" selected>Diferenciar construcción por construcción (1 fila por cada construcción)</option>
+                                    <option value="per-construction" selected>1 fila por cada construcción (Casa, Quincho, Bodega...)</option>
+                                    <option value="summary-general">Agrupar todo en 1 sola fila general (sin separar precios por construcción)</option>
                                     <option value="split-int-ext">Separar filas de Interior y Exterior por cada construcción</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="pdf-show-detailed-values">Detalle de Valores Int. / Ext. en PDF (Cliente)</label>
+                                <select id="pdf-show-detailed-values">
+                                    <option value="yes" selected>Activado (Mostrar desglose de $ Interior y Exterior en PDF)</option>
+                                    <option value="no">Desactivado (Ocultar valores $ de Interior y Exterior en PDF)</option>
                                 </select>
                             </div>
                         </div>
@@ -572,6 +580,6 @@
     </div>
 
     <!-- Script Application -->
-    <script src="app.js?v=v4.5.0"></script>
+    <script src="app.js?v=v4.5.1"></script>
 </body>
 </html>
