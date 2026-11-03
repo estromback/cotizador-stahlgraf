@@ -73,8 +73,10 @@ let globalAppData = {
     stationAssignments: []
 };
 
-// Seed mock data for demonstration if empty
+// Seed mock data for demonstration ONLY if explicitly requested via ?demo=true
 function seedMockDataIfEmpty() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('demo') !== 'true') return;
     const savedGlobal = localStorage.getItem('stahlgraf_data_v4');
     const savedInspections = localStorage.getItem('stahlgraf_qr_inspecciones');
     
@@ -269,22 +271,12 @@ function saveGlobalAppData() {
 
 // Sync global configuration from Firebase user document
 function syncGlobalDataFromFirebase() {
-    if (!currentUser || !db) return;
-    db.collection('users').doc(getActiveUid()).get().then(doc => {
+    if (!currentUser || !db) return Promise.resolve();
+    return db.collection('users').doc(getActiveUid()).get().then(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
             if (typeof mergeAppData === 'function') {
                 globalAppData = mergeAppData(globalAppData, cloudData);
-                // Preserve local clients added offline or pending sync
-                if (cloudData.clients && Array.isArray(cloudData.clients)) {
-                    const localClients = globalAppData.clients || [];
-                    cloudData.clients.forEach(cc => {
-                        if (!localClients.some(lc => lc.id === cc.id || lc.name === cc.name)) {
-                            localClients.push(cc);
-                        }
-                    });
-                    globalAppData.clients = localClients;
-                }
             } else {
                 globalAppData = { ...globalAppData, ...cloudData };
             }
@@ -356,20 +348,20 @@ if (auth) {
                     checkURLParameters();
                 }
                 
-                // Fetch central database configuration (clients & assignments) on login
-                syncGlobalDataFromFirebase();
-                
-                // Auto-sync when login status is detected and online
-                if (navigator.onLine) {
-                    syncWithCloud(true);
-                }
+                // Fetch central database configuration (clients & assignments) on login before pushing local state
+                syncGlobalDataFromFirebase().finally(() => {
+                    if (navigator.onLine) {
+                        syncWithCloud(true);
+                    }
+                });
             }).catch(err => {
                 console.error("Error retrieving user role:", err);
                 // Fallback (assume admin or whatever role is cached)
-                syncGlobalDataFromFirebase();
-                if (navigator.onLine) {
-                    syncWithCloud(true);
-                }
+                syncGlobalDataFromFirebase().finally(() => {
+                    if (navigator.onLine) {
+                        syncWithCloud(true);
+                    }
+                });
             });
         } else {
             syncText.innerText = "Ingresar para Sync";
@@ -4321,6 +4313,11 @@ function mergeClientContiguousRanges(clientId, clientNameEscaped) {
         return;
     }
     
+    const removedAsgIds = clientAsgs.map(asg => asg.id || `asg_${asg.clientId || asg.clientName}_${asg.start}_${asg.end}`);
+    if (typeof window.recordDeletedId === 'function') {
+        window.recordDeletedId(globalAppData, removedAsgIds);
+    }
+
     const otherAssignments = globalAppData.stationAssignments.filter(asg => 
         !((clientId && asg.clientId === clientId) || (!clientId && asg.clientName === clientName) || (asg.clientName === clientName))
     );
@@ -4351,6 +4348,15 @@ function deleteAllAssignmentsForClient(clientId, clientNameEscaped) {
     if (!confirm(`¿Estás seguro de que deseas eliminar TODAS las asignaciones de estaciones para "${clientName}"?`)) return;
     
     if (globalAppData.stationAssignments) {
+        const toDeleteIds = [];
+        globalAppData.stationAssignments.forEach(asg => {
+            if ((clientId && asg.clientId === clientId) || (!clientId && asg.clientName === clientName) || (asg.clientName === clientName)) {
+                toDeleteIds.push(asg.id || `asg_${asg.clientId || asg.clientName}_${asg.start}_${asg.end}`);
+            }
+        });
+        if (typeof window.recordDeletedId === 'function') {
+            window.recordDeletedId(globalAppData, toDeleteIds);
+        }
         globalAppData.stationAssignments = globalAppData.stationAssignments.filter(asg => 
             !((clientId && asg.clientId === clientId) || (!clientId && asg.clientName === clientName) || (asg.clientName === clientName))
         );
@@ -4659,6 +4665,10 @@ function deleteAssignment(id) {
     if (!confirm("¿Deseas eliminar este rango de estaciones?")) return;
     
     if (globalAppData.stationAssignments) {
+        const targetAsg = globalAppData.stationAssignments.find(item => item.id === id);
+        if (typeof window.recordDeletedId === 'function') {
+            window.recordDeletedId(globalAppData, targetAsg ? [id, `asg_${targetAsg.clientId || targetAsg.clientName}_${targetAsg.start}_${targetAsg.end}`] : id);
+        }
         globalAppData.stationAssignments = globalAppData.stationAssignments.filter(item => item.id !== id);
         saveGlobalAppData();
         

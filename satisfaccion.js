@@ -1,3 +1,11 @@
+(function() {
+    const role = localStorage.getItem('stahlgraf_user_role') || 'guest';
+    if (role !== 'admin') {
+        alert("⚠️ Acceso denegado: Se requiere perfil de Administrador.");
+        window.location.href = 'hub.html';
+    }
+})();
+
 // satisfaccion.js - Admin logic for Customer Satisfaction & Quality Control
 
 const firebaseConfig = {
@@ -19,7 +27,7 @@ let allClients = [];
 let currentResolvingDocId = null;
 
 function getActiveUid() {
-    return localStorage.getItem('stahlgraf_target_uid') || (currentUser ? currentUser.uid : null);
+    return localStorage.getItem('stahlgraf_target_uid') || (currentUser && !currentUser.isAnonymous ? currentUser.uid : 'H0jALdt26yWnLYUy3RvcVaEA5Nr1');
 }
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
@@ -256,10 +264,10 @@ function renderRecoveryAlerts() {
                 ${commentHtml}
 
                 <div class="alert-actions">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyAlertContactMsg('${escape(fb.clientName)}', '${escape(fb.serviceType || 'Servicio')}', '${escape(fb.serviceDate || '')}', '${cleanPhone}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.82rem; cursor: pointer;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyAlertContactMsg('${encodeURIComponent(fb.clientName || '')}', '${encodeURIComponent(fb.serviceType || 'Servicio')}', '${encodeURIComponent(fb.serviceDate || '')}', '${cleanPhone}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.82rem; cursor: pointer;">
                         📋 Copiar Mensaje de Contacto
                     </button>
-                    <button class="btn btn-primary btn-sm" style="padding: 6px 12px; font-size: 0.82rem;" onclick="openResolveModal('${fb.id}', '${escape(fb.clientName)}')">
+                    <button class="btn btn-primary btn-sm" style="padding: 6px 12px; font-size: 0.82rem;" onclick="openResolveModal('${fb.id}', '${encodeURIComponent(fb.clientName || '')}')">
                         ✅ Marcar como Resuelto
                     </button>
                 </div>
@@ -455,7 +463,11 @@ window.filterFeedbackList = function() {
 // --- Modal for Case Resolution ---
 window.openResolveModal = function(id, clientName) {
     currentResolvingDocId = id;
-    document.getElementById('modal-resolve-client-info').textContent = `Cliente: ${unescape(clientName)}`;
+    let decodedName = clientName || '';
+    try { decodedName = decodeURIComponent(clientName); } catch (e) {
+        try { decodedName = unescape(clientName); } catch (e2) {}
+    }
+    document.getElementById('modal-resolve-client-info').textContent = `Cliente: ${decodedName}`;
     document.getElementById('modal-resolve-notes').value = '';
     document.getElementById('modal-resolve-alert').classList.add('active');
 };
@@ -509,13 +521,11 @@ async function loadServicesData() {
         }
     } catch(e) {}
 
-    // Fetch clients to ensure phone numbers are accessible for sharing survey
+    // Fetch clients from root user doc (and legacy subcollection fallback) to ensure phone numbers are accessible for sharing survey
     try {
-        db.collection('users').doc(activeUid).collection('clients').get().then(snap => {
-            if (!snap.empty) {
-                const fetchedClients = [];
-                snap.forEach(d => fetchedClients.push({ id: d.id, ...d.data() }));
-                allClients = fetchedClients;
+        db.collection('users').doc(activeUid).get().then(doc => {
+            if (doc.exists && Array.isArray(doc.data().clients) && doc.data().clients.length > 0) {
+                allClients = doc.data().clients;
             }
         }).catch(() => {});
     } catch(e) {}
@@ -711,12 +721,19 @@ window.openSurveyInBrowser = function(serviceId) {
 };
 
 window.copyAlertContactMsg = function(clientName, serviceType, serviceDate, phone) {
-    const firstName = (clientName || 'Estimado(a)').split(' ')[0];
-    const msg = `Hola ${firstName}, te escribe la administración de Stahlgraf. Vimos tu evaluación respecto al servicio de ${serviceType || 'atención técnica'} del ${serviceDate || ''}. Queremos conversar contigo para entender qué ocurrió y darte una solución inmediata.`;
+    let decClient = clientName || 'Estimado(a)';
+    let decType = serviceType || 'atención técnica';
+    let decDate = serviceDate || '';
+    try { decClient = decodeURIComponent(decClient); } catch (e) { try { decClient = unescape(decClient); } catch (e2) {} }
+    try { decType = decodeURIComponent(decType); } catch (e) { try { decType = unescape(decType); } catch (e2) {} }
+    try { decDate = decodeURIComponent(decDate); } catch (e) { try { decDate = unescape(decDate); } catch (e2) {} }
+
+    const firstName = (decClient || 'Estimado(a)').split(' ')[0];
+    const msg = `Hola ${firstName}, te escribe la administración de Stahlgraf. Vimos tu evaluación respecto al servicio de ${decType || 'atención técnica'} del ${decDate || ''}. Queremos conversar contigo para entender qué ocurrió y darte una solución inmediata.`;
     
     if (typeof showShareSurveyModal === 'function') {
         showShareSurveyModal({
-            clientName: clientName || 'Cliente',
+            clientName: decClient || 'Cliente',
             message: msg,
             phone: phone
         });

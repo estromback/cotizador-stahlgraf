@@ -971,6 +971,9 @@ function saveChemical() {
 
 function deleteChemical(id) {
     if(confirm("¿Seguro que deseas eliminar este producto?")) {
+        if (typeof window.recordDeletedId === 'function') {
+            window.recordDeletedId(appData, id);
+        }
         appData.chemicals = appData.chemicals.filter(c => c.id !== id);
         saveData();
         renderChemicalsSettings();
@@ -3731,10 +3734,12 @@ async function loadClientToQuickService(client) {
 function saveClientToDirectorySilently(name, phone, email) {
     if (!name) return;
     
-    let appData = {};
     const savedData = localStorage.getItem('stahlgraf_data_v4');
     if (savedData) {
-        try { appData = JSON.parse(savedData); } catch(e) {}
+        try {
+            const parsed = JSON.parse(savedData);
+            appData = typeof mergeAppData === 'function' ? mergeAppData(appData, parsed) : { ...appData, ...parsed };
+        } catch(e) {}
     }
     if (!appData.clients) appData.clients = [];
 
@@ -3760,6 +3765,7 @@ function saveClientToDirectorySilently(name, phone, email) {
     }
 
     clientsList = appData.clients;
+    appData.lastModified = Date.now();
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
     
     if (currentUser && db) {
@@ -3772,12 +3778,14 @@ function syncCrmClientsToDirectory() {
     if (!currentUser || !db || !isUserConfigLoaded) return;
     if (crmCards.length === 0) return;
 
-    let appDataLocal = {};
     const savedData = localStorage.getItem('stahlgraf_data_v4');
     if (savedData) {
-        try { appDataLocal = JSON.parse(savedData); } catch(e) {}
+        try {
+            const parsed = JSON.parse(savedData);
+            appData = typeof mergeAppData === 'function' ? mergeAppData(appData, parsed) : { ...appData, ...parsed };
+        } catch(e) {}
     }
-    if (!appDataLocal.clients) appDataLocal.clients = [];
+    if (!appData.clients) appData.clients = [];
 
     let updated = false;
 
@@ -3785,7 +3793,7 @@ function syncCrmClientsToDirectory() {
         const clientName = (card.client || '').trim();
         if (!clientName) return;
 
-        const existingIndex = appDataLocal.clients.findIndex(c => (c.name || '').toLowerCase() === clientName.toLowerCase());
+        const existingIndex = appData.clients.findIndex(c => (c.name || '').toLowerCase() === clientName.toLowerCase());
 
         let phone = (card.phone || '').trim();
         let email = (card.email || '').trim();
@@ -3798,7 +3806,7 @@ function syncCrmClientsToDirectory() {
         }
 
         if (existingIndex >= 0) {
-            const existing = appDataLocal.clients[existingIndex];
+            const existing = appData.clients[existingIndex];
             let needsUpdate = false;
             if (phone && !existing.phone) {
                 existing.phone = phone;
@@ -3813,7 +3821,7 @@ function syncCrmClientsToDirectory() {
                 needsUpdate = true;
             }
             if (needsUpdate) {
-                appDataLocal.clients[existingIndex] = existing;
+                appData.clients[existingIndex] = existing;
                 updated = true;
             }
         } else {
@@ -3825,16 +3833,17 @@ function syncCrmClientsToDirectory() {
                 email: email,
                 address: address
             };
-            appDataLocal.clients.push(newClient);
+            appData.clients.push(newClient);
             updated = true;
         }
     });
 
     if (updated) {
-        clientsList = appDataLocal.clients;
-        localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appDataLocal));
+        clientsList = appData.clients;
+        appData.lastModified = Date.now();
+        localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
         
-        db.collection('users').doc(getActiveUid()).set(appDataLocal, { merge: true })
+        db.collection('users').doc(getActiveUid()).set(appData, { merge: true })
             .then(() => {
                 console.log("Client directory auto-synchronized with Hub CRM cards.");
             })

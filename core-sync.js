@@ -2,7 +2,7 @@
 // Handles intelligent merging of appData arrays (clients, services, chemicals, etc.)
 // Prevents offline data loss during synchronization
 
-const STAHLGRAF_VERSION = "v4.5.2";
+const STAHLGRAF_VERSION = "v4.5.3";
 
 if (typeof window !== 'undefined') {
     window.STAHLGRAF_VERSION = STAHLGRAF_VERSION;
@@ -51,11 +51,58 @@ window.resolveDbInstance = function() {
     return null;
 };
 
+window.recordDeletedId = function(appDataObj, idOrIds) {
+    if (!appDataObj || !idOrIds) return;
+    if (!appDataObj.deletedIds || typeof appDataObj.deletedIds !== 'object') {
+        appDataObj.deletedIds = {};
+    }
+    const now = Date.now();
+    const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds];
+    ids.forEach(id => {
+        if (id) appDataObj.deletedIds[String(id)] = now;
+    });
+    appDataObj.lastModified = now;
+};
+
 function mergeAppData(localData, cloudData) {
     if (!localData) return cloudData || {};
     if (!cloudData) return localData || {};
 
     const merged = { ...localData, ...cloudData };
+    const localTime = localData.lastModified || 0;
+    const cloudTime = cloudData.lastModified || 0;
+
+    // Merge deletedIds tombstones across local and cloud
+    const mergedDeletedIds = { ...(cloudData.deletedIds || {}), ...(localData.deletedIds || {}) };
+    if (localData.deletedIds && cloudData.deletedIds) {
+        Object.keys(cloudData.deletedIds).forEach(k => {
+            mergedDeletedIds[k] = Math.max(localData.deletedIds[k] || 0, cloudData.deletedIds[k] || 0);
+        });
+    }
+    if (Object.keys(mergedDeletedIds).length > 0) {
+        merged.deletedIds = mergedDeletedIds;
+    }
+
+    const getItemTimestamp = (item) => {
+        if (!item) return 0;
+        if (item.updatedAt) {
+            return item.updatedAt.toMillis ? item.updatedAt.toMillis() : (new Date(item.updatedAt).getTime() || 0);
+        }
+        if (item.lastModified) return Number(item.lastModified) || 0;
+        if (typeof item.id === 'string') {
+            const match = item.id.match(/_(\d{13})/);
+            if (match) return parseInt(match[1], 10);
+        }
+        return 0;
+    };
+
+    const isItemDeleted = (id, item) => {
+        if (!id) return false;
+        const delTs = mergedDeletedIds[String(id)];
+        if (!delTs) return false;
+        const itemTs = getItemTimestamp(item);
+        return !(itemTs > delTs);
+    };
     
     // List of arrays we need to deep merge by ID
     const arrayKeys = ['clients', 'chemicals', 'services', 'reportsSent', 'stationAssignments'];
@@ -69,12 +116,21 @@ function mergeAppData(localData, cloudData) {
             const noIdItems = [];
             
             // Helper to get a unique identifier
-            const getIdentifier = (item) => item.id || item.clientId || (key === 'clients' ? item.name : null);
+            const getIdentifier = (item) => {
+                if (item.id) return item.id;
+                if (key === 'stationAssignments' && (item.clientId || item.clientName) && item.start !== undefined) {
+                    return `asg_${item.clientId || item.clientName}_${item.start}_${item.end}`;
+                }
+                return item.clientId || (key === 'clients' ? item.name : null);
+            };
             
-            // Add cloud items first (source of truth)
+            // Add cloud items first (source of truth), skipping tombstoned items
             cloudArr.forEach(item => {
                 if (!item) return;
                 const id = getIdentifier(item);
+                if (isItemDeleted(id, item) || (key !== 'clients' && item.clientId && isItemDeleted(item.clientId, item))) {
+                    return;
+                }
                 if (id) {
                     map.set(id, item);
                 } else {
@@ -87,8 +143,12 @@ function mergeAppData(localData, cloudData) {
                 if (!item) return;
                 
                 const id = getIdentifier(item);
+                if (isItemDeleted(id, item) || (key !== 'clients' && item.clientId && isItemDeleted(item.clientId, item))) {
+                    return;
+                }
                 if (!id) {
-                    // If no identifier, avoid adding exact duplicates
+                    // If no identifier, avoid adding exact duplicates unless cloud is newer and removed it
+                    if (cloudTime > localTime && localTime > 0) return;
                     const str = JSON.stringify(item);
                     if (!noIdItems.some(ci => JSON.stringify(ci) === str)) {
                         noIdItems.push(item);
@@ -98,19 +158,26 @@ function mergeAppData(localData, cloudData) {
                 
                 const cloudItem = map.get(id);
                 if (!cloudItem) {
-                    // Local addition that hasn't synced yet! Preserve it.
-                    map.set(id, item);
+                    // Check if cloud is strictly newer than a previously synced local state
+                    const itemTs = getItemTimestamp(item);
+                    const wasDeletedInNewerCloud = cloudTime > localTime && localTime > 0 && !(itemTs > localTime);
+                    if (!wasDeletedInNewerCloud) {
+                        // Local addition that hasn't synced yet! Preserve it.
+                        map.set(id, item);
+                    }
                 } else {
                     // Conflict resolution based on optional timestamps
                     let preferLocal = false;
                     
                     if (item.updatedAt && cloudItem.updatedAt) {
-                        const localTime = item.updatedAt.toMillis ? item.updatedAt.toMillis() : new Date(item.updatedAt).getTime();
-                        const cloudTime = cloudItem.updatedAt.toMillis ? cloudItem.updatedAt.toMillis() : new Date(cloudItem.updatedAt).getTime();
+                        const lItemTime = item.updatedAt.toMillis ? item.updatedAt.toMillis() : new Date(item.updatedAt).getTime();
+                        const cItemTime = cloudItem.updatedAt.toMillis ? cloudItem.updatedAt.toMillis() : new Date(cloudItem.updatedAt).getTime();
                         
-                        if (localTime > cloudTime) preferLocal = true;
+                        if (lItemTime > cItemTime) preferLocal = true;
                     } else if (item.lastModified && cloudItem.lastModified) {
                         if (item.lastModified > cloudItem.lastModified) preferLocal = true;
+                    } else if (localTime > cloudTime) {
+                        preferLocal = true;
                     }
                     
                     if (preferLocal) {
@@ -123,17 +190,16 @@ function mergeAppData(localData, cloudData) {
         }
     });
 
-    // Use a global lastModified for resolving scalar properties if available
-    const localTime = localData.lastModified || 0;
-    const cloudTime = cloudData.lastModified || 0;
-    
     if (localTime > cloudTime) {
         // Keep local scalar properties if local is explicitly newer
         Object.keys(localData).forEach(k => {
-            if (!arrayKeys.includes(k)) {
+            if (!arrayKeys.includes(k) && k !== 'deletedIds') {
                 merged[k] = localData[k];
             }
         });
+    }
+    if (localTime > 0 || cloudTime > 0) {
+        merged.lastModified = Math.max(localTime, cloudTime);
     }
 
     // Monotonically increasing counters must NEVER roll back
@@ -589,9 +655,13 @@ window.openActivityAuditModal = function(options = {}) {
         }
 
         if (options && options.clientName) {
-            auditActiveFilterClient = options.clientName;
+            let decodedClient = options.clientName;
+            try { decodedClient = decodeURIComponent(options.clientName); } catch (e) {
+                try { decodedClient = unescape(options.clientName); } catch (e2) {}
+            }
+            auditActiveFilterClient = decodedClient;
             const searchInput = document.getElementById('audit-filter-search');
-            if (searchInput) searchInput.value = options.clientName;
+            if (searchInput) searchInput.value = decodedClient;
         } else {
             auditActiveFilterClient = null;
         }
@@ -889,7 +959,7 @@ window.renderClientAuditTimeline = function(containerElOrId, targetClientName) {
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <span style="font-size: 0.85rem; color: #94a3b8;">Mostrando <strong>${logs.length}</strong> eventos registrados para <strong>${escapeHTML(targetClientName)}</strong></span>
-                    <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 3px 8px;" onclick="window.openActivityAuditModal({ clientName: '${escape(targetClientName)}' })">
+                    <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 3px 8px;" onclick="window.openActivityAuditModal({ clientName: '${encodeURIComponent(targetClientName)}' })">
                         ⚡ Abrir en Pantalla Completa
                     </button>
                 </div>

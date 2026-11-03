@@ -418,12 +418,39 @@ async function deleteClientCascading(id) {
         }
     }
 
+    // Record tombstones for client and all its cascaded items so mergeAppData never resurrects them
+    const tombstoneIds = [id];
+    if (appData.stationAssignments) {
+        appData.stationAssignments.forEach(asg => {
+            if (asg.clientId === id || asg.clientName === c.name) {
+                tombstoneIds.push(asg.id || `asg_${asg.clientId || asg.clientName}_${asg.start}_${asg.end}`);
+            }
+        });
+        appData.stationAssignments = appData.stationAssignments.filter(asg => asg.clientId !== id && asg.clientName !== c.name);
+    }
+    if (appData.services) {
+        appData.services.forEach(s => {
+            if (s.clientId === id || s.clientName === c.name) tombstoneIds.push(s.id);
+        });
+        appData.services = appData.services.filter(s => s.clientId !== id && s.clientName !== c.name);
+    }
+    if (appData.reportsSent) {
+        appData.reportsSent.forEach(r => {
+            if (r.clientId === id || r.clientName === c.name) tombstoneIds.push(r.id);
+        });
+        appData.reportsSent = appData.reportsSent.filter(r => r.clientId !== id && r.clientName !== c.name);
+    }
+    if (typeof window.recordDeletedId === 'function') {
+        window.recordDeletedId(appData, tombstoneIds);
+    }
+
     // Always remove from client directory list
     appData.clients = appData.clients.filter(c => c.id !== id);
     
-    // Remove station assignments linked to this client
-    if (appData.stationAssignments) {
-        appData.stationAssignments = appData.stationAssignments.filter(asg => asg.clientId !== id);
+    if (activeUid && db && appData.stationAssignments) {
+        db.collection('users').doc(activeUid).collection('inspecciones').doc('assignments_config').set({
+            stationAssignments: appData.stationAssignments
+        }, { merge: true }).catch(err => console.error("Error updating assignments_config on client delete:", err));
     }
     
     saveData();
@@ -1528,8 +1555,11 @@ async function deleteRecordedService(serviceId) {
     try {
         if (appData.services) {
             appData.services = appData.services.filter(s => s.id !== serviceId);
-            localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
         }
+        if (typeof window.recordDeletedId === 'function') {
+            window.recordDeletedId(appData, serviceId);
+        }
+        saveData();
         
         const activeUid = getActiveUid();
         if (activeUid && db) {
@@ -1566,8 +1596,11 @@ async function deleteReportSent(reportSentId) {
     try {
         if (appData.reportsSent) {
             appData.reportsSent = appData.reportsSent.filter(r => r.id !== reportSentId);
-            localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
         }
+        if (typeof window.recordDeletedId === 'function') {
+            window.recordDeletedId(appData, reportSentId);
+        }
+        saveData();
         
         const activeUid = getActiveUid();
         if (activeUid && db) {

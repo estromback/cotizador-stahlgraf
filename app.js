@@ -1481,6 +1481,9 @@ function saveChemical() {
 
 window.deleteChemical = function(id) {
     if (confirm("¿Seguro que deseas eliminar este producto?")) {
+        if (typeof window.recordDeletedId === 'function') {
+            window.recordDeletedId(appData, id);
+        }
         appData.chemicals = appData.chemicals.filter(c => c.id !== id);
         saveData();
         renderChemicalsList();
@@ -2228,6 +2231,9 @@ window.loadClientToForm = function(id) {
 
 window.deleteClient = function(id) {
     if (confirm("¿Estás seguro de eliminar a este cliente del directorio?")) {
+        if (typeof window.recordDeletedId === 'function') {
+            window.recordDeletedId(appData, id);
+        }
         appData.clients = appData.clients.filter(c => c.id !== id);
         saveData();
         renderClientsList();

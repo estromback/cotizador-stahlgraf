@@ -1319,6 +1319,7 @@ function saveClientToDirectorySilently(name, phone, email) {
     }
 
     clientsList = appData.clients;
+    appData.lastModified = Date.now();
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
     
     const activeUid = getActiveUid();
@@ -1393,6 +1394,7 @@ function syncCrmClientsToDirectory() {
 
     if (updated) {
         clientsList = appDataLocal.clients;
+        appDataLocal.lastModified = Date.now();
         localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appDataLocal));
         
         db.collection('users').doc(activeUid).set(appDataLocal, { merge: true })

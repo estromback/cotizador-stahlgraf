@@ -332,6 +332,9 @@ async function saveReportToCloud(silent = false) {
             nestingPlaces: document.getElementById('nesting-places').value,
             weakPoints: document.getElementById('weak-points').value,
             recommendations: document.getElementById('recommendations').value,
+            photoUrls: photoUrls,
+            timestamp: timestamp
+        };
         const userInfo = typeof window.getCurrentUserInfo === 'function' ? window.getCurrentUserInfo() : null;
         if (userInfo) {
             reportData.createdBy = userInfo.email;
@@ -349,6 +352,7 @@ async function saveReportToCloud(silent = false) {
             appData = JSON.parse(savedData);
         }
         appData.reportCorrelative = (appData.reportCorrelative || 1) + 1;
+        appData.lastModified = Date.now();
         localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
         
         if (activeUid && db) {
@@ -395,7 +399,8 @@ async function saveReportToCloud(silent = false) {
 }
 
 async function syncReportToCRM(reportData, reportId, correlative) {
-    if (!currentUser || !db) return;
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) return;
     
     const clientName = reportData.clientName;
     const phone = (reportData.clientPhone || '').trim();
@@ -417,14 +422,14 @@ async function syncReportToCRM(reportData, reportId, correlative) {
     
     try {
         // First check if a card already has this reportId (either in legacy reportId or in reportIds array)
-        let snapReport = await db.collection('users').doc(currentUser.uid).collection('crm').where('reportId', '==', reportId).limit(1).get();
+        let snapReport = await db.collection('users').doc(activeUid).collection('crm').where('reportId', '==', reportId).limit(1).get();
         if (snapReport.empty) {
-            snapReport = await db.collection('users').doc(currentUser.uid).collection('crm').where('reportIds', 'array-contains', reportId).limit(1).get();
+            snapReport = await db.collection('users').doc(activeUid).collection('crm').where('reportIds', 'array-contains', reportId).limit(1).get();
         }
         
         if (!snapReport.empty) {
             const docId = snapReport.docs[0].id;
-            await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
+            await db.collection('users').doc(activeUid).collection('crm').doc(docId).update({
                 client: clientName,
                 phone: phone,
                 email: email,
@@ -434,7 +439,7 @@ async function syncReportToCRM(reportData, reportId, correlative) {
         }
 
         // Search for an existing CRM card for this client in the entire CRM board
-        const crmSnap = await db.collection('users').doc(currentUser.uid).collection('crm').get();
+        const crmSnap = await db.collection('users').doc(activeUid).collection('crm').get();
         let targetDoc = null;
         
         if (!crmSnap.empty) {
@@ -451,7 +456,7 @@ async function syncReportToCRM(reportData, reportId, correlative) {
 
         if (targetDoc) {
             const docId = targetDoc.id;
-            await db.collection('users').doc(currentUser.uid).collection('crm').doc(docId).update({
+            await db.collection('users').doc(activeUid).collection('crm').doc(docId).update({
                 email: email,
                 comments: firebase.firestore.FieldValue.arrayUnion({
                     text: `Se generó el Informe Técnico #${correlative}.\nRecomendaciones: ${reportData.recommendations || 'Sin recomendaciones'}`,
@@ -477,7 +482,7 @@ async function syncReportToCRM(reportData, reportId, correlative) {
                     date: dateStr
                 }]
             };
-            await db.collection('users').doc(currentUser.uid).collection('crm').add(payload);
+            await db.collection('users').doc(activeUid).collection('crm').add(payload);
         }
     } catch(e) {
         console.error("No se pudo sincronizar el informe con CRM", e);
@@ -568,7 +573,7 @@ async function generatePDF(isShare = false) {
                 .then(saved => {
                     if (saved && storage && lastSavedReportId) {
                         const uploadReportId = lastSavedReportId;
-                        const uploadUid = currentUser.uid;
+                        const uploadUid = getActiveUid();
                         storage.ref().child(`users/${uploadUid}/reports/${uploadReportId}.pdf`).put(pdfBlob)
                             .then(snapshot => snapshot.ref.getDownloadURL())
                             .then(downloadUrl => {
@@ -625,10 +630,13 @@ function loadClientsFromFirebase() {
     // Load local cache if available from other app
     const savedData = localStorage.getItem('stahlgraf_data_v4');
     if (savedData) {
-        const appData = JSON.parse(savedData);
-        if (appData.clients) {
-            clientsList = appData.clients;
-        }
+        try {
+            const appData = JSON.parse(savedData);
+            if (appData.clients) {
+                clientsList = appData.clients;
+            }
+        } catch (e) {}
+    }
     const activeUid = getActiveUid();
     if (!activeUid || !db) return;
     
@@ -636,10 +644,13 @@ function loadClientsFromFirebase() {
     db.collection('users').doc(activeUid).get().then(doc => {
         if (doc.exists) {
             const cloudData = doc.data();
-            if (cloudData.clients) {
-                clientsList = cloudData.clients;
-                localStorage.setItem('stahlgraf_data_v4', JSON.stringify({ ...JSON.parse(localStorage.getItem('stahlgraf_data_v4') || '{}'), clients: clientsList }));
+            let localObj = {};
+            try { localObj = JSON.parse(localStorage.getItem('stahlgraf_data_v4') || '{}'); } catch (e) {}
+            const merged = typeof mergeAppData === 'function' ? mergeAppData(localObj, cloudData) : { ...localObj, ...(cloudData.clients ? { clients: cloudData.clients } : {}) };
+            if (merged.clients) {
+                clientsList = merged.clients;
             }
+            localStorage.setItem('stahlgraf_data_v4', JSON.stringify(merged));
         }
     });
 }
@@ -713,6 +724,7 @@ function saveClientToDirectorySilently(name, address, phone, email) {
     }
 
     clientsList = appData.clients;
+    appData.lastModified = Date.now();
     localStorage.setItem('stahlgraf_data_v4', JSON.stringify(appData));
     
     const activeUid = getActiveUid();
@@ -792,7 +804,7 @@ async function loadHistoryUI() {
                                 actionType: 'report_deleted',
                                 category: 'reports',
                                 summary: `Informe Técnico #${id ? id.slice(-6) : ''} eliminado`,
-                                details: `Se eliminó permanentemente el informe técnico${clientName ? ` de ${clientName}` : ''}`,
+                                details: { reportId: id, clientName: clientName || 'Sin Nombre' },
                                 reportId: id,
                                 clientName: clientName
                             });
@@ -811,7 +823,7 @@ async function loadHistoryUI() {
             btn.addEventListener('click', async (e) => {
                 const id = e.target.getAttribute('data-id');
                 try {
-                    const docInfo = await db.collection('users').doc(currentUser.uid).collection('reports').doc(id).get();
+                    const docInfo = await db.collection('users').doc(getActiveUid()).collection('reports').doc(id).get();
                     if(docInfo.exists) {
                         const rData = docInfo.data();
                         document.getElementById('client-name').value = rData.clientName || '';
@@ -869,10 +881,11 @@ async function loadDashboardUI() {
     statsContainer.innerHTML = '<p>Cargando estadísticas...</p>';
     barsContainer.innerHTML = '';
 
-    if (!currentUser || !db) return;
+    const activeUid = getActiveUid();
+    if (!activeUid || !db) return;
 
     try {
-        const snapshot = await db.collection('users').doc(currentUser.uid).collection('reports').get();
+        const snapshot = await db.collection('users').doc(activeUid).collection('reports').get();
         const totalReports = snapshot.size;
         
         if (totalReports === 0) {
