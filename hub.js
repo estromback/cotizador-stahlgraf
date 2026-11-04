@@ -390,6 +390,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('btn-close-card')) {
         document.getElementById('btn-close-card').addEventListener('click', closeCardModal);
     }
+
+    // Day Events Modal Listeners
+    const dayModal = document.getElementById('day-events-modal');
+    if (dayModal) {
+        const closeDayModal = () => dayModal.classList.remove('active');
+        const btnCloseDay = document.getElementById('btn-close-day-events');
+        const btnCloseDayFooter = document.getElementById('btn-day-events-close');
+        if (btnCloseDay) btnCloseDay.addEventListener('click', closeDayModal);
+        if (btnCloseDayFooter) btnCloseDayFooter.addEventListener('click', closeDayModal);
+        dayModal.addEventListener('click', (e) => {
+            if (e.target === dayModal) closeDayModal();
+        });
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && dayModal.classList.contains('active')) {
+                closeDayModal();
+            }
+        });
+    }
     if (document.getElementById('btn-save-card')) {
         document.getElementById('btn-save-card').addEventListener('click', saveCard);
     }
@@ -1302,12 +1320,36 @@ function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
     if (isOtherMonth) cell.classList.add('other-month');
     if (isToday) cell.classList.add('today-cell');
     
+    const dayEvents = crmCards.filter(c => c.date === dateStr);
+    // Ordenar cronológicamente por hora (si la tienen)
+    dayEvents.sort((a, b) => {
+        if (a.time && b.time) return a.time.localeCompare(b.time);
+        if (a.time) return -1;
+        if (b.time) return 1;
+        return (a.client || '').localeCompare(b.client || '');
+    });
+
+    const badgeHTML = dayEvents.length > 0 
+        ? `<span class="day-count-badge ${dayEvents.length > 3 ? 'has-overflow' : ''}" title="${dayEvents.length} eventos">${dayEvents.length}</span>` 
+        : '';
+    
     cell.innerHTML = `
         <div class="day-header">
             <span class="day-number">${dayNum}</span>
+            ${badgeHTML}
         </div>
         <div class="day-events"></div>
     `;
+
+    const dayHeader = cell.querySelector('.day-header');
+    if (dayHeader && dayEvents.length > 0) {
+        dayHeader.style.cursor = 'pointer';
+        dayHeader.title = `Ver ${dayEvents.length} eventos de este día`;
+        dayHeader.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openDayEventsModal(dateStr, dayEvents);
+        });
+    }
     
     cell.addEventListener('click', (e) => {
         if (draggingCardId) return;
@@ -1327,16 +1369,18 @@ function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
     cell.addEventListener('drop', async (e) => {
         e.preventDefault();
         cell.classList.remove('drag-over');
-        const cardId = e.dataTransfer.getData('text/plain') || draggingCardId;
+        const cardId = (e.dataTransfer && e.dataTransfer.getData('text/plain')) || draggingCardId;
         if (cardId) {
             await moveCardDate(cardId, dateStr);
         }
     });
     
-    const dayEvents = crmCards.filter(c => c.date === dateStr);
     const eventsContainer = cell.querySelector('.day-events');
+    const MAX_VISIBLE = 3;
+    const visibleEvents = dayEvents.slice(0, MAX_VISIBLE);
+    const overflowCount = dayEvents.length - MAX_VISIBLE;
     
-    dayEvents.forEach(event => {
+    visibleEvents.forEach(event => {
         const chip = document.createElement('div');
         chip.className = `event-chip ${getChipClass(event.column)}`;
         chip.innerText = (event.time ? `${event.time} | ` : '') + event.client;
@@ -1347,7 +1391,7 @@ function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
         chip.addEventListener('dragstart', (e) => {
             draggingCardId = event.id;
             chip.style.opacity = '0.5';
-            e.dataTransfer.setData('text/plain', event.id);
+            if (e.dataTransfer) e.dataTransfer.setData('text/plain', event.id);
         });
 
         chip.addEventListener('dragend', () => {
@@ -1364,8 +1408,115 @@ function createCell(dayNum, isOtherMonth, dateStr, container, isToday = false) {
         
         eventsContainer.appendChild(chip);
     });
+
+    if (overflowCount > 0) {
+        const moreChip = document.createElement('div');
+        moreChip.className = 'event-chip event-more-chip';
+        moreChip.innerText = `+${overflowCount} más`;
+        moreChip.title = `Ver los ${dayEvents.length} eventos de este día`;
+        moreChip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openDayEventsModal(dateStr, dayEvents);
+        });
+        eventsContainer.appendChild(moreChip);
+    }
     
     container.appendChild(cell);
+}
+
+function openDayEventsModal(dateStr, events) {
+    const modal = document.getElementById('day-events-modal');
+    if (!modal) return;
+    
+    let formattedDate = dateStr;
+    if (dateStr) {
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            const dObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            formattedDate = `${days[dObj.getDay()]}, ${dObj.getDate()} de ${months[dObj.getMonth()]} de ${dObj.getFullYear()}`;
+        }
+    }
+    
+    const titleEl = document.getElementById('day-events-modal-title');
+    const subtitleEl = document.getElementById('day-events-modal-subtitle');
+    if (titleEl) titleEl.innerText = formattedDate;
+    
+    const count = (events && events.length) || 0;
+    if (subtitleEl) {
+        subtitleEl.innerText = `${count} ${count === 1 ? 'evento programado' : 'eventos programados'}`;
+    }
+    
+    const listContainer = document.getElementById('day-events-modal-list');
+    if (listContainer) {
+        listContainer.innerHTML = '';
+        
+        if (!events || events.length === 0) {
+            listContainer.innerHTML = `
+                <div style="text-align: center; padding: 30px 10px; color: #94a3b8; font-size: 0.9rem;">
+                    No hay eventos programados para este día.
+                </div>
+            `;
+        } else {
+            const sorted = [...events].sort((a, b) => {
+                if (a.time && b.time) return a.time.localeCompare(b.time);
+                if (a.time) return -1;
+                if (b.time) return 1;
+                return (a.client || '').localeCompare(b.client || '');
+            });
+            
+            sorted.forEach(ev => {
+                const item = document.createElement('div');
+                const chipClass = getChipClass(ev.column);
+                item.className = `day-modal-event-item ${chipClass}`;
+                
+                const timeTag = ev.time 
+                    ? `<span class="day-modal-event-time">⏰ ${ev.time}</span>` 
+                    : '<span class="day-modal-event-time" style="opacity:0.6;">Sin hora</span>';
+                const colTag = `<span class="day-modal-col-badge">${ev.column || 'General'}</span>`;
+                
+                const detailParts = [];
+                if (ev.phone) detailParts.push(`<span>📞 ${ev.phone}</span>`);
+                if (ev.value) detailParts.push(`<span>💰 $${Number(ev.value).toLocaleString('es-CL')}</span>`);
+                if (ev.notes) {
+                    const cleanNotes = String(ev.notes).replace(/\n/g, ' ').trim();
+                    detailParts.push(`<span style="font-style: italic;">📝 ${cleanNotes.substring(0, 50)}${cleanNotes.length > 50 ? '...' : ''}</span>`);
+                }
+                const extraDetails = detailParts.length > 0
+                    ? `<div style="font-size: 0.78rem; opacity: 0.85; margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap;">${detailParts.join('')}</div>`
+                    : '';
+                
+                item.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+                            ${timeTag}
+                            <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.92rem;">${ev.client || 'Sin cliente'}</strong>
+                        </div>
+                        ${colTag}
+                    </div>
+                    ${extraDetails}
+                `;
+                
+                item.addEventListener('click', () => {
+                    modal.classList.remove('active');
+                    openCardModal(ev);
+                });
+                
+                listContainer.appendChild(item);
+            });
+        }
+    }
+    
+    const addBtn = document.getElementById('btn-day-events-add');
+    if (addBtn) {
+        addBtn.onclick = () => {
+            modal.classList.remove('active');
+            openCardModal(null, dateStr);
+        };
+    }
+    
+    modal.classList.add('active');
 }
 
 async function moveCardDate(cardId, newDate) {

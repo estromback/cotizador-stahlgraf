@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.5.3"></script>
+    <script src="core-sync.js?v=v4.5.4"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
 
@@ -232,10 +232,77 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
-            overflow-y: auto;
-            overflow-x: hidden;
+            overflow: hidden;
             flex-grow: 1;
-            max-height: 120px;
+        }
+        .day-count-badge {
+            font-size: 0.68rem;
+            padding: 1px 6px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+            font-weight: 600;
+            line-height: 1.2;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .day-count-badge:hover {
+            background: rgba(59, 130, 246, 0.25);
+            color: #93c5fd;
+        }
+        .day-count-badge.has-overflow {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+        }
+        .event-more-chip {
+            background: rgba(59, 130, 246, 0.12) !important;
+            color: #93c5fd !important;
+            border-left: 3px solid #3b82f6 !important;
+            font-weight: 600 !important;
+            text-align: center;
+            font-size: 0.72rem !important;
+            padding: 3px 6px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 2px;
+            transition: all 0.15s ease;
+        }
+        .event-more-chip:hover {
+            background: rgba(59, 130, 246, 0.28) !important;
+            color: #ffffff !important;
+            transform: scale(1.02);
+            filter: brightness(1.2);
+        }
+        .day-modal-event-item {
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            border-left: 4px solid transparent;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+        }
+        .day-modal-event-item:hover {
+            transform: translateX(3px);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .day-modal-event-time {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            white-space: nowrap;
+        }
+        .day-modal-col-badge {
+            font-size: 0.72rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
+            font-weight: 500;
         }
         .event-chip {
             font-size: 0.75rem;
@@ -474,6 +541,30 @@
         </div>
     </div>
 
-    <script src="crm.js?v=v4.5.3"></script>
+    <!-- Day Events Detail Modal -->
+    <div id="day-events-modal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 520px; max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 12px; margin-bottom: 15px;">
+                <div>
+                    <h3 id="day-events-modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #fff;">Eventos del Día</h3>
+                    <span id="day-events-modal-subtitle" style="font-size: 0.82rem; color: #94a3b8;"></span>
+                </div>
+                <button id="btn-close-day-events" class="close-btn">&times;</button>
+            </div>
+            <div id="day-events-modal-list" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; margin-bottom: 15px; max-height: 50vh;">
+                <!-- Dinámico -->
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px;">
+                <button type="button" id="btn-day-events-add" class="btn btn-primary" style="font-size: 0.85rem; padding: 7px 14px; display: inline-flex; align-items: center; gap: 6px;">
+                    <span>➕ Nuevo Evento</span>
+                </button>
+                <button type="button" id="btn-day-events-close" class="btn btn-secondary" style="font-size: 0.85rem; padding: 7px 14px;">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="crm.js?v=v4.5.4"></script>
 </body>
 </html>
