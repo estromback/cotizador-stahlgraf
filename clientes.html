@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.5.6"></script>
+    <script src="core-sync.js?v=v4.5.7"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
 
@@ -381,6 +381,11 @@
                 <button id="btn-open-audit-log" class="btn btn-secondary btn-open-audit-log" onclick="window.openActivityAuditModal()" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.9rem; padding: 6px 12px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa; cursor: pointer;" title="Registro de actividades estilo Asana">
                     <span>⚡</span> <span>Auditoría & Actividad</span>
                 </button>
+                <button id="btn-open-merge-modal" class="btn btn-secondary" style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 6px 12px; position: relative;">
+                    <span>🔀</span>
+                    <span>Combinar Duplicados</span>
+                    <span id="merge-badge" style="display:none; background:#ef4444; color:#fff; font-size:0.75rem; font-weight:700; padding:2px 7px; border-radius:10px; margin-left:4px;">0</span>
+                </button>
                 <button id="btn-export-emails" class="btn btn-secondary" style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 6px 12px;">
                     <span>✉️</span>
                     <span>Exportar Correos</span>
@@ -451,6 +456,104 @@
                 </div>
                 <div class="flex-actions" style="margin-top: 20px;">
                     <button id="btn-copy-emails" class="btn btn-primary" style="width:100%;">Copiar al Portapapeles</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Modal Combinar y Corregir Duplicados (Estilo Google Contacts) -->
+    <div id="merge-modal" class="modal">
+        <div class="modal-content glass-panel" style="max-width: 920px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px;">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 8px;">
+                        <span>🔀</span> Combinar y Corregir Duplicados
+                    </h2>
+                    <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                        Revisa las coincidencias detectadas y combina de a uno por vez, o realiza fusiones manuales.
+                    </p>
+                </div>
+                <button id="btn-close-merge-modal" class="close-btn">&times;</button>
+            </div>
+
+            <!-- Modal Navigation Tabs -->
+            <div style="display: flex; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 10px 0 0 0; margin-bottom: 15px;">
+                <button id="tab-btn-suggestions" class="tab-btn active" style="padding: 8px 16px; border: none; background: transparent; color: #fff; cursor: pointer; border-bottom: 2px solid var(--primary); font-weight: 600;">
+                    Sugerencias Detectadas (<span id="merge-suggestions-count">0</span>)
+                </button>
+                <button id="tab-btn-manual-merge" class="tab-btn" style="padding: 8px 16px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500;">
+                    Fusión Manual
+                </button>
+            </div>
+
+            <div class="modal-body" style="overflow-y: auto; flex: 1; padding-right: 5px;">
+                <!-- Tab View 1: Sugerencias Automáticas estilo Google Contacts -->
+                <div id="view-merge-suggestions">
+                    <div id="merge-suggestions-container" style="display: flex; flex-direction: column; gap: 15px;">
+                        <p style="text-align: center; color: #888; padding: 30px 0;">Buscando posibles duplicados...</p>
+                    </div>
+                </div>
+
+                <!-- Tab View 2: Fusión Manual -->
+                <div id="view-merge-manual" style="display: none;">
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 20px;">
+                        <p style="font-size: 0.9rem; color: #e2e8f0; margin-top: 0; margin-bottom: 15px;">
+                            Selecciona el cliente que deseas conservar y el que deseas absorber. Se transferirá todo el historial al cliente principal y el duplicado será eliminado de forma segura.
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="input-group">
+                                <label style="color: #60a5fa; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; display: block;">⭐ Cliente Principal (Conservar)</label>
+                                <select id="manual-primary-client" style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); color: #fff;">
+                                    <option value="">Selecciona cliente principal...</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label style="color: #f87171; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; display: block;">⚠️ Cliente a Absorber (Se eliminará)</label>
+                                <select id="manual-secondary-client" style="width: 100%; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); color: #fff;">
+                                    <option value="">Selecciona cliente duplicado...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="manual-merge-preview" style="margin-top: 20px; display: none;"></div>
+
+                        <div style="margin-top: 25px; display: flex; justify-content: flex-end; gap: 10px;">
+                            <button id="btn-execute-manual-merge" class="btn btn-primary" disabled style="display: flex; align-items: center; gap: 6px;">
+                                <span>🔀</span> Combinar estos 2 Clientes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmar Fusión de Pareja (Resolución de Campos) -->
+    <div id="merge-confirm-modal" class="modal" style="z-index: 10001;">
+        <div class="modal-content glass-panel" style="max-width: 650px; width: 95%;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 1.25rem;">Confirmar Combinación de Clientes</h3>
+                <button id="btn-close-merge-confirm-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body" style="padding-top: 15px;">
+                <p style="font-size: 0.9rem; color: #cbd5e1; margin-top: 0; margin-bottom: 15px;">
+                    Se unificarán los siguientes datos. Elige cómo deseas que queden los datos finales del cliente:
+                </p>
+
+                <div id="merge-resolve-fields-container" style="display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 15px;">
+                    <!-- Injected dynamically -->
+                </div>
+
+                <div style="margin-top: 15px; padding: 12px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; font-size: 0.85rem; color: #93c5fd;">
+                    ℹ️ <strong>Historial unificado:</strong> Todas las cotizaciones, informes técnicos, tarjetas CRM y asignaciones del cliente secundario pasarán automáticamente al cliente principal.
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button id="btn-cancel-merge-confirm" class="btn btn-secondary">Cancelar</button>
+                    <button id="btn-proceed-merge-confirm" class="btn btn-primary" style="display: flex; align-items: center; gap: 6px;">
+                        <span>🔀</span> Confirmar y Combinar
+                    </button>
                 </div>
             </div>
         </div>
@@ -740,6 +843,6 @@
         </div>
     </div>
 
-    <script src="clientes.js?v=v4.5.6"></script>
+    <script src="clientes.js?v=v4.5.7"></script>
 </body>
 </html>

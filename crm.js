@@ -1487,7 +1487,11 @@ function saveClientToDirectorySilently(name, phone, email) {
         address: ''
     };
 
-    const existingIndex = appData.clients.findIndex(c => (c.name || '').toLowerCase() === name.toLowerCase());
+    const normTarget = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(name) : (name || '').toLowerCase().trim();
+    const existingIndex = appData.clients.findIndex(c => {
+        const cNorm = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(c.name) : (c.name || '').toLowerCase().trim();
+        return cNorm === normTarget;
+    });
     if (existingIndex >= 0) {
         newClient.id = appData.clients[existingIndex].id; // preserve ID
         newClient.attention = appData.clients[existingIndex].attention || '';
@@ -1528,7 +1532,11 @@ function syncCrmClientsToDirectory() {
         const clientName = (card.client || '').trim();
         if (!clientName) return;
 
-        const existingIndex = appDataLocal.clients.findIndex(c => (c.name || '').toLowerCase() === clientName.toLowerCase());
+        const normTarget = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(clientName) : (clientName || '').toLowerCase().trim();
+        const existingIndex = appDataLocal.clients.findIndex(c => {
+            const cNorm = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(c.name) : (c.name || '').toLowerCase().trim();
+            return cNorm === normTarget;
+        });
 
         let phone = (card.phone || '').trim();
         let email = (card.email || '').trim();

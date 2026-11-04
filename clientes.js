@@ -149,6 +149,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-close-emails-modal').addEventListener('click', closeEmailsModal);
     document.getElementById('btn-copy-emails').addEventListener('click', copyEmailsToClipboard);
 
+    // Merge Clients Event Listeners
+    initMergeEventListeners();
+
     // Client History Modal Event Listeners
     document.getElementById('btn-close-history-modal').addEventListener('click', closeHistoryModal);
     
@@ -256,12 +259,14 @@ function renderClients() {
             </div>
             <div class="client-actions">
                 <button class="btn btn-secondary btn-sm" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3);" onclick="openHistoryModal('${c.id}')">🔎 Historial</button>
+                <button class="btn btn-secondary btn-sm" onclick="openManualMergeFor('${c.id}')" title="Combinar este cliente con otro">🔀 Combinar</button>
                 <button class="btn btn-secondary btn-sm" onclick="openModal('${c.id}')">Editar</button>
                 <button class="btn btn-secondary btn-sm" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; border-color: rgba(231, 76, 60, 0.3);" onclick="deleteClientCascading('${c.id}')">Eliminar</button>
             </div>
         `;
         container.appendChild(div);
     });
+    if (typeof updateMergeBadge === 'function') updateMergeBadge();
 }
 
 function openModal(id = null) {
@@ -314,10 +319,14 @@ function saveClient() {
         const idx = appData.clients.findIndex(c => c.id === id);
         if (idx > -1) appData.clients[idx] = payload;
     } else {
-        // Prevent duplicate names
-        const exists = appData.clients.some(c => c.name.toLowerCase() === name.toLowerCase());
-        if (exists) {
-            return alert("Ya existe un cliente con este nombre en tu directorio.");
+        // Prevent duplicate names with normalization
+        const normName = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(name) : name.toLowerCase().trim();
+        const existing = (appData.clients || []).find(c => {
+            const cNorm = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(c.name) : (c.name || '').toLowerCase().trim();
+            return cNorm === normName;
+        });
+        if (existing) {
+            return alert(`Ya existe un cliente con este nombre ("${existing.name}") en tu directorio.`);
         }
         appData.clients.push(payload);
     }
@@ -1668,3 +1677,638 @@ window.viewPDF = function(pdfData, filename) {
         window.open(pdfData, '_blank');
     }
 };
+
+
+// =========================================================================
+// GOOGLE CONTACTS STYLE CLIENT DEDUPLICATION & MERGE ENGINE
+// =========================================================================
+
+const dismissedMergePairs = new Set();
+let currentCandidatePairs = [];
+let pendingMergeResolution = null;
+
+function cleanPhoneNumber(p) {
+    if (!p || typeof p !== 'string') return '';
+    const digits = p.replace(/\D/g, '');
+    if (digits.length >= 8) return digits.slice(-8); // compare last 8 digits
+    return digits;
+}
+
+function detectDuplicateClients() {
+    const clients = appData.clients || [];
+    const suggestions = [];
+
+    for (let i = 0; i < clients.length; i++) {
+        for (let j = i + 1; j < clients.length; j++) {
+            const c1 = clients[i];
+            const c2 = clients[j];
+            if (!c1 || !c2 || !c1.id || !c2.id) continue;
+
+            const pairKey = [c1.id, c2.id].sort().join('___');
+            if (dismissedMergePairs.has(pairKey)) continue;
+
+            const norm1 = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(c1.name) : (c1.name || '').toLowerCase().trim();
+            const norm2 = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(c2.name) : (c2.name || '').toLowerCase().trim();
+
+            const p1 = cleanPhoneNumber(c1.phone);
+            const p2 = cleanPhoneNumber(c2.phone);
+
+            const e1 = (c1.email || '').trim().toLowerCase();
+            const e2 = (c2.email || '').trim().toLowerCase();
+
+            let match = false;
+            let reasonBadge = '';
+            let reasonText = '';
+
+            // Check 1: Identical normalized name
+            if (norm1 && norm2 && norm1 === norm2) {
+                match = true;
+                reasonBadge = 'Nombre idéntico';
+                reasonText = 'Mismo nombre con ligeras variaciones de tildes o espacios';
+            }
+            // Check 2: Same phone number (min 8 digits match)
+            else if (p1 && p2 && p1.length >= 8 && p1 === p2) {
+                match = true;
+                reasonBadge = 'Mismo teléfono';
+                reasonText = `Comparten el mismo teléfono (${c1.phone || c2.phone})`;
+            }
+            // Check 3: Same email address
+            else if (e1 && e2 && e1.length >= 5 && e1 === e2) {
+                match = true;
+                reasonBadge = 'Mismo email';
+                reasonText = `Comparten el mismo correo (${c1.email})`;
+            }
+            // Check 4: High name containment / prefix match
+            else if (norm1 && norm2 && (norm1.startsWith(norm2) || norm2.startsWith(norm1)) && Math.abs(norm1.length - norm2.length) <= 12 && Math.min(norm1.length, norm2.length) >= 4) {
+                match = true;
+                reasonBadge = 'Nombre similar';
+                reasonText = 'Nombres casi idénticos (posible razón social o sucursal)';
+            }
+
+            if (match) {
+                // Score completeness to suggest primary candidate
+                const score1 = (c1.phone ? 2 : 0) + (c1.email ? 2 : 0) + (c1.address ? 2 : 0) + (c1.attention ? 1 : 0);
+                const score2 = (c2.phone ? 2 : 0) + (c2.email ? 2 : 0) + (c2.address ? 2 : 0) + (c2.attention ? 1 : 0);
+
+                let primary = c1;
+                let secondary = c2;
+                if (score2 > score1) {
+                    primary = c2;
+                    secondary = c1;
+                }
+
+                suggestions.push({
+                    pairKey,
+                    primary,
+                    secondary,
+                    reasonBadge,
+                    reasonText
+                });
+            }
+        }
+    }
+
+    currentCandidatePairs = suggestions;
+    return suggestions;
+}
+
+function updateMergeBadge() {
+    const badge = document.getElementById('merge-badge');
+    const countEl = document.getElementById('merge-suggestions-count');
+    const suggestions = detectDuplicateClients();
+    
+    if (countEl) countEl.innerText = suggestions.length;
+    if (badge) {
+        if (suggestions.length > 0) {
+            badge.innerText = suggestions.length;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+function renderMergeSuggestions() {
+    const container = document.getElementById('merge-suggestions-container');
+    if (!container) return;
+
+    const suggestions = detectDuplicateClients();
+    container.innerHTML = '';
+
+    if (suggestions.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+                <div style="font-size: 3rem; margin-bottom: 10px;">🎉</div>
+                <h3 style="color: #fff; margin-bottom: 6px; font-size: 1.25rem;">¡No hay contactos duplicados detectados!</h3>
+                <p style="font-size: 0.9rem; margin: 0; color: var(--text-muted);">
+                    Tu directorio de clientes está limpio y sin duplicados en este momento.
+                </p>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-secondary btn-sm" onclick="switchMergeTab('manual')" style="font-size: 0.85rem;">
+                        Ir a Fusión Manual
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    suggestions.forEach(s => {
+        const p = s.primary;
+        const sec = s.secondary;
+
+        const card = document.createElement('div');
+        card.className = 'merge-candidate-card';
+        card.id = `merge-card-${s.pairKey}`;
+        card.style.cssText = 'background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 16px; transition: all 0.2s ease;';
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="background: rgba(234, 179, 8, 0.2); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.35); font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 12px;">
+                        ${s.reasonBadge}
+                    </span>
+                    <span style="font-size: 0.85rem; color: #cbd5e1;">${s.reasonText}</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="dismissMergeSuggestion('${s.pairKey}')" style="font-size: 0.8rem; padding: 4px 10px;">
+                        Descartar
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="openConfirmMergeModal('${s.pairKey}')" style="font-size: 0.8rem; padding: 4px 12px; display: flex; align-items: center; gap: 5px;">
+                        <span>🔀</span> Combinar
+                    </button>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <!-- Columna 1: Cliente Principal (Conservar) -->
+                <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #60a5fa; text-transform: uppercase;">⭐ Conservar (Principal)</span>
+                        <span style="font-size: 0.75rem; color: #94a3b8; font-family: monospace;">${p.id}</span>
+                    </div>
+                    <div style="font-weight: 600; font-size: 1.05rem; color: #fff; margin-bottom: 8px;">${p.name}</div>
+                    <div style="font-size: 0.85rem; color: #e2e8f0; display: flex; flex-direction: column; gap: 4px;">
+                        <div><span style="color: #94a3b8; width: 75px; display: inline-block;">Contacto:</span> ${p.attention || '<span style="color:#64748b;">(Vacío)</span>'}</div>
+                        <div><span style="color: #94a3b8; width: 75px; display: inline-block;">Teléfono:</span> ${p.phone || '<span style="color:#64748b;">(Vacío)</span>'}</div>
+                        <div><span style="color: #94a3b8; width: 75px; display: inline-block;">Email:</span> ${p.email || '<span style="color:#64748b;">(Vacío)</span>'}</div>
+                        <div><span style="color: #94a3b8; width: 75px; display: inline-block;">Dirección:</span> ${p.address || '<span style="color:#64748b;">(Vacío)</span>'}</div>
+                    </div>
+                </div>
+
+                <!-- Columna 2: Cliente Secundario (Absorber) -->
+                <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #f87171; text-transform: uppercase;">⚠️ Absorber (Se eliminará)</span>
+                        <span style="font-size: 0.75rem; color: #94a3b8; font-family: monospace;">${sec.id}</span>
+                    </div>
+                    <div style="font-weight: 600; font-size: 1.05rem; color: #fff; margin-bottom: 8px;">${sec.name}</div>
+                    <div style="font-size: 0.85rem; color: #e2e8f0; display: flex; flex-direction: column; gap: 4px;">
+                        <div><span style="color: #94a3b8; width: 75px; display: inline-block;">Contacto:</span> ${sec.attention || '<span style="color:#64748b;">(Vacío)</span>'}</div>
+                        <div><span style="color: #94a3b8; width: 75px; display: inline-block;">Teléfono:</span> ${sec.phone || '<span style="color:#64748b;">(Vacío)</span>'}</div>
+                        <div><span style="color: #94a3b8; width: 75px; display: inline-block;">Email:</span> ${sec.email || '<span style="color:#64748b;">(Vacío)</span>'}</div>
+                        <div><span style="color: #94a3b8; width: 75px; display: inline-block;">Dirección:</span> ${sec.address || '<span style="color:#64748b;">(Vacío)</span>'}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function dismissMergeSuggestion(pairKey) {
+    dismissedMergePairs.add(pairKey);
+    const card = document.getElementById(`merge-card-${pairKey}`);
+    if (card) {
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            renderMergeSuggestions();
+            updateMergeBadge();
+        }, 200);
+    } else {
+        renderMergeSuggestions();
+        updateMergeBadge();
+    }
+}
+
+function openConfirmMergeModal(pairKeyOrPrimaryId, optionalSecondaryId = null) {
+    let primary = null;
+    let secondary = null;
+
+    if (optionalSecondaryId) {
+        primary = (appData.clients || []).find(c => c.id === pairKeyOrPrimaryId);
+        secondary = (appData.clients || []).find(c => c.id === optionalSecondaryId);
+    } else {
+        const found = currentCandidatePairs.find(s => s.pairKey === pairKeyOrPrimaryId);
+        if (found) {
+            primary = found.primary;
+            secondary = found.secondary;
+        }
+    }
+
+    if (!primary || !secondary) {
+        return alert("No se pudo localizar los clientes seleccionados.");
+    }
+
+    pendingMergeResolution = { primary, secondary };
+
+    const container = document.getElementById('merge-resolve-fields-container');
+    container.innerHTML = '';
+
+    const fields = [
+        { key: 'name', label: 'Nombre Principal' },
+        { key: 'attention', label: 'Persona de Contacto' },
+        { key: 'phone', label: 'Teléfono' },
+        { key: 'email', label: 'Correo Electrónico' },
+        { key: 'address', label: 'Dirección' }
+    ];
+
+    fields.forEach(f => {
+        const valA = (primary[f.key] || '').trim();
+        const valB = (secondary[f.key] || '').trim();
+
+        const row = document.createElement('div');
+        row.style.cssText = 'border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px;';
+
+        if (valA === valB) {
+            row.innerHTML = `
+                <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 500;">${f.label}:</div>
+                <div style="font-size: 0.95rem; color: #fff; font-weight: 500;">${valA || '<span style="color:#64748b;">(Sin datos)</span>'}</div>
+                <input type="hidden" name="resolve_${f.key}" value="${valA}">
+            `;
+        } else {
+            // Options to pick
+            const defVal = valA || valB;
+            row.innerHTML = `
+                <div style="font-size: 0.8rem; color: #94a3b8; font-weight: 500; margin-bottom: 4px;">${f.label} (Elige cuál conservar):</div>
+                <div style="display: flex; gap: 12px; font-size: 0.85rem; flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #e2e8f0; background: rgba(59,130,246,0.1); padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(59,130,246,0.25);">
+                        <input type="radio" name="resolve_${f.key}" value="${valA}" ${valA ? 'checked' : ''}>
+                        <span><strong>De "${primary.name}":</strong> ${valA || '(Vacío)'}</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: #e2e8f0; background: rgba(239,68,68,0.1); padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(239,68,68,0.25);">
+                        <input type="radio" name="resolve_${f.key}" value="${valB}" ${!valA && valB ? 'checked' : ''}>
+                        <span><strong>De "${secondary.name}":</strong> ${valB || '(Vacío)'}</span>
+                    </label>
+                </div>
+            `;
+        }
+        container.appendChild(row);
+    });
+
+    document.getElementById('merge-confirm-modal').classList.add('active');
+}
+
+async function proceedWithMerge() {
+    if (!pendingMergeResolution) return;
+    const { primary, secondary } = pendingMergeResolution;
+
+    const btn = document.getElementById('btn-proceed-merge-confirm');
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Combinando registros...';
+
+    try {
+        const resolvedFields = {};
+        ['name', 'attention', 'phone', 'email', 'address'].forEach(k => {
+            const radio = document.querySelector(`input[name="resolve_${k}"]:checked`);
+            if (radio) {
+                resolvedFields[k] = radio.value;
+            } else {
+                const hidden = document.querySelector(`input[name="resolve_${k}"][type="hidden"]`);
+                resolvedFields[k] = hidden ? hidden.value : (primary[k] || secondary[k] || '');
+            }
+        });
+
+        await executeClientMerge(primary.id, secondary.id, resolvedFields);
+
+        document.getElementById('merge-confirm-modal').classList.remove('active');
+        pendingMergeResolution = null;
+        alert(`✅ El cliente "${secondary.name}" ha sido combinado exitosamente dentro de "${primary.name}".`);
+    } catch (err) {
+        console.error("Error executing client merge:", err);
+        alert("Ocurrió un error al fusionar los clientes: " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+    }
+}
+
+async function executeClientMerge(primaryId, secondaryId, resolvedFields) {
+    const primary = (appData.clients || []).find(c => c.id === primaryId);
+    const secondary = (appData.clients || []).find(c => c.id === secondaryId);
+    if (!primary || !secondary) throw new Error("Uno de los clientes ya no existe.");
+
+    const oldSecondaryName = secondary.name;
+    const newPrimaryName = resolvedFields.name || primary.name;
+
+    // 1. Update Primary Client fields
+    primary.name = newPrimaryName;
+    primary.attention = resolvedFields.attention || '';
+    primary.phone = resolvedFields.phone || '';
+    primary.email = resolvedFields.email || '';
+    primary.address = resolvedFields.address || '';
+    primary.updatedAt = new Date().toISOString();
+
+    const activeUid = getActiveUid();
+
+    // 2. Reassign Firestore collections if connected
+    if (activeUid && db) {
+        try {
+            // CRM cards: where client == oldSecondaryName
+            const crmSnap = await db.collection('users').doc(activeUid).collection('crm').where('client', '==', oldSecondaryName).get();
+            if (!crmSnap.empty) {
+                const batch = db.batch();
+                crmSnap.forEach(doc => {
+                    batch.update(doc.ref, {
+                        client: newPrimaryName,
+                        'formDetails.clientName': newPrimaryName,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+                await batch.commit();
+            }
+
+            // Quotes: where clientName == oldSecondaryName
+            const quotesSnap = await db.collection('users').doc(activeUid).collection('quotes').where('clientName', '==', oldSecondaryName).get();
+            if (!quotesSnap.empty) {
+                const batch = db.batch();
+                quotesSnap.forEach(doc => {
+                    batch.update(doc.ref, {
+                        clientName: newPrimaryName,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+                await batch.commit();
+            }
+
+            // Reports: where clientName == oldSecondaryName
+            const reportsSnap = await db.collection('users').doc(activeUid).collection('reports').where('clientName', '==', oldSecondaryName).get();
+            if (!reportsSnap.empty) {
+                const batch = db.batch();
+                reportsSnap.forEach(doc => {
+                    batch.update(doc.ref, {
+                        clientName: newPrimaryName,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+                await batch.commit();
+            }
+
+            // Station Reports Sent: where clientName == oldSecondaryName
+            const srSnap = await db.collection('users').doc(activeUid).collection('station_reports_sent').where('clientName', '==', oldSecondaryName).get();
+            if (!srSnap.empty) {
+                const batch = db.batch();
+                srSnap.forEach(doc => {
+                    batch.update(doc.ref, {
+                        clientName: newPrimaryName,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+                await batch.commit();
+            }
+
+            // User roles: reassign linkedClientId
+            const rolesSnap = await db.collection('user_roles').where('linkedClientId', '==', secondaryId).get();
+            if (!rolesSnap.empty) {
+                const batch = db.batch();
+                rolesSnap.forEach(doc => {
+                    batch.update(doc.ref, {
+                        linkedClientId: primaryId,
+                        clientName: newPrimaryName
+                    });
+                });
+                await batch.commit();
+            }
+        } catch (e) {
+            console.warn("Notice: Non-critical error while updating cloud references:", e);
+        }
+    }
+
+    // 3. Reassign references in appData
+    if (appData.stationAssignments) {
+        appData.stationAssignments.forEach(asg => {
+            if (asg.clientId === secondaryId || asg.clientName === oldSecondaryName) {
+                asg.clientId = primaryId;
+                asg.clientName = newPrimaryName;
+            }
+        });
+    }
+    if (appData.services) {
+        appData.services.forEach(s => {
+            if (s.clientId === secondaryId || s.clientName === oldSecondaryName) {
+                s.clientId = primaryId;
+                s.clientName = newPrimaryName;
+            }
+        });
+    }
+    if (appData.reportsSent) {
+        appData.reportsSent.forEach(r => {
+            if (r.clientId === secondaryId || r.clientName === oldSecondaryName) {
+                r.clientId = primaryId;
+                r.clientName = newPrimaryName;
+            }
+        });
+    }
+
+    // 4. Remove secondary from appData.clients and tombstone its ID
+    appData.clients = (appData.clients || []).filter(c => c.id !== secondaryId);
+    if (typeof window.recordDeletedId === 'function') {
+        window.recordDeletedId(appData, secondaryId);
+    }
+
+    // 5. Save unified data
+    saveData();
+
+    // 6. Log system activity (Asana style audit)
+    if (typeof window.logSystemActivity === 'function') {
+        window.logSystemActivity({
+            actionType: 'client_merged',
+            category: 'clients',
+            summary: `Combinó al cliente "${oldSecondaryName}" dentro de "${newPrimaryName}"`,
+            details: {
+                primaryId,
+                secondaryId,
+                oldSecondaryName,
+                newPrimaryName,
+                resolvedFields
+            },
+            clientName: newPrimaryName,
+            clientId: primaryId
+        });
+    }
+
+    // 7. Refresh UI
+    renderClients();
+    updateMergeBadge();
+    renderMergeSuggestions();
+    populateManualMergeDropdowns();
+}
+
+function switchMergeTab(tab) {
+    const btnSugg = document.getElementById('tab-btn-suggestions');
+    const btnManual = document.getElementById('tab-btn-manual-merge');
+    const viewSugg = document.getElementById('view-merge-suggestions');
+    const viewManual = document.getElementById('view-merge-manual');
+
+    if (tab === 'suggestions') {
+        btnSugg.classList.add('active');
+        btnSugg.style.color = '#fff';
+        btnSugg.style.borderBottom = '2px solid var(--primary)';
+        btnManual.classList.remove('active');
+        btnManual.style.color = 'var(--text-muted)';
+        btnManual.style.borderBottom = '2px solid transparent';
+        viewSugg.style.display = 'block';
+        viewManual.style.display = 'none';
+        renderMergeSuggestions();
+    } else {
+        btnManual.classList.add('active');
+        btnManual.style.color = '#fff';
+        btnManual.style.borderBottom = '2px solid var(--primary)';
+        btnSugg.classList.remove('active');
+        btnSugg.style.color = 'var(--text-muted)';
+        btnSugg.style.borderBottom = '2px solid transparent';
+        viewManual.style.display = 'block';
+        viewSugg.style.display = 'none';
+        populateManualMergeDropdowns();
+    }
+}
+
+function populateManualMergeDropdowns(preselectPrimaryId = null) {
+    const selPrimary = document.getElementById('manual-primary-client');
+    const selSecondary = document.getElementById('manual-secondary-client');
+    if (!selPrimary || !selSecondary) return;
+
+    const list = [...(appData.clients || [])].sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+
+    selPrimary.innerHTML = '<option value="">Selecciona cliente principal...</option>';
+    selSecondary.innerHTML = '<option value="">Selecciona cliente duplicado...</option>';
+
+    list.forEach(c => {
+        selPrimary.innerHTML += `<option value="${c.id}">${c.name} (${c.phone || c.email || 'Sin contacto'})</option>`;
+        selSecondary.innerHTML += `<option value="${c.id}">${c.name} (${c.phone || c.email || 'Sin contacto'})</option>`;
+    });
+
+    if (preselectPrimaryId) {
+        selPrimary.value = preselectPrimaryId;
+    }
+
+    updateManualMergePreview();
+}
+
+function updateManualMergePreview() {
+    const selPrimary = document.getElementById('manual-primary-client');
+    const selSecondary = document.getElementById('manual-secondary-client');
+    const previewDiv = document.getElementById('manual-merge-preview');
+    const btnMerge = document.getElementById('btn-execute-manual-merge');
+
+    const idA = selPrimary ? selPrimary.value : '';
+    const idB = selSecondary ? selSecondary.value : '';
+
+    if (!idA || !idB || idA === idB) {
+        if (previewDiv) previewDiv.style.display = 'none';
+        if (btnMerge) btnMerge.disabled = true;
+        if (idA && idB && idA === idB) {
+            alert("No puedes fusionar un cliente consigo mismo.");
+            selSecondary.value = '';
+        }
+        return;
+    }
+
+    const cA = (appData.clients || []).find(c => c.id === idA);
+    const cB = (appData.clients || []).find(c => c.id === idB);
+    if (!cA || !cB) return;
+
+    if (previewDiv) {
+        previewDiv.style.display = 'block';
+        previewDiv.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; padding: 12px; font-size: 0.85rem;">
+                    <div style="font-weight: 700; color: #60a5fa; margin-bottom: 4px;">⭐ PRINCIPAL: ${cA.name}</div>
+                    <div>Tel: ${cA.phone || '-'} | Email: ${cA.email || '-'}</div>
+                    <div>Dir: ${cA.address || '-'}</div>
+                </div>
+                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; padding: 12px; font-size: 0.85rem;">
+                    <div style="font-weight: 700; color: #f87171; margin-bottom: 4px;">⚠️ SE ABSORBERÁ: ${cB.name}</div>
+                    <div>Tel: ${cB.phone || '-'} | Email: ${cB.email || '-'}</div>
+                    <div>Dir: ${cB.address || '-'}</div>
+                </div>
+            </div>
+        `;
+    }
+    if (btnMerge) btnMerge.disabled = false;
+}
+
+function openManualMergeFor(clientId) {
+    const modal = document.getElementById('merge-modal');
+    if (!modal) return;
+    modal.classList.add('active');
+    switchMergeTab('manual');
+    populateManualMergeDropdowns(clientId);
+}
+
+function initMergeEventListeners() {
+    const btnOpen = document.getElementById('btn-open-merge-modal');
+    const btnClose = document.getElementById('btn-close-merge-modal');
+    const modal = document.getElementById('merge-modal');
+
+    if (btnOpen) {
+        btnOpen.addEventListener('click', () => {
+            modal.classList.add('active');
+            switchMergeTab('suggestions');
+        });
+    }
+
+    if (btnClose) {
+        btnClose.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+    }
+
+    // Tabs
+    const tabSugg = document.getElementById('tab-btn-suggestions');
+    const tabManual = document.getElementById('tab-btn-manual-merge');
+    if (tabSugg) tabSugg.addEventListener('click', () => switchMergeTab('suggestions'));
+    if (tabManual) tabManual.addEventListener('click', () => switchMergeTab('manual'));
+
+    // Manual select changes
+    const selPrimary = document.getElementById('manual-primary-client');
+    const selSecondary = document.getElementById('manual-secondary-client');
+    if (selPrimary) selPrimary.addEventListener('change', updateManualMergePreview);
+    if (selSecondary) selSecondary.addEventListener('change', updateManualMergePreview);
+
+    const btnExecManual = document.getElementById('btn-execute-manual-merge');
+    if (btnExecManual) {
+        btnExecManual.addEventListener('click', () => {
+            const idA = selPrimary ? selPrimary.value : '';
+            const idB = selSecondary ? selSecondary.value : '';
+            if (idA && idB) openConfirmMergeModal(idA, idB);
+        });
+    }
+
+    // Confirm Modal
+    const btnCloseConfirm = document.getElementById('btn-close-merge-confirm-modal');
+    const btnCancelConfirm = document.getElementById('btn-cancel-merge-confirm');
+    const btnProceedConfirm = document.getElementById('btn-proceed-merge-confirm');
+    const confirmModal = document.getElementById('merge-confirm-modal');
+
+    if (btnCloseConfirm) {
+        btnCloseConfirm.addEventListener('click', () => confirmModal.classList.remove('active'));
+    }
+    if (btnCancelConfirm) {
+        btnCancelConfirm.addEventListener('click', () => confirmModal.classList.remove('active'));
+    }
+    if (btnProceedConfirm) {
+        btnProceedConfirm.addEventListener('click', proceedWithMerge);
+    }
+
+    // Initial badge check
+    updateMergeBadge();
+}
+
+window.openManualMergeFor = openManualMergeFor;
+window.dismissMergeSuggestion = dismissMergeSuggestion;
+window.openConfirmMergeModal = openConfirmMergeModal;
+window.switchMergeTab = switchMergeTab;
+window.updateMergeBadge = updateMergeBadge;

@@ -711,7 +711,11 @@ function saveClientToDirectorySilently(name, address, phone, email) {
         address: address || ''
     };
 
-    const existingIndex = appData.clients.findIndex(c => (c.name || '').toLowerCase() === name.toLowerCase());
+    const normTarget = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(name) : (name || '').toLowerCase().trim();
+    const existingIndex = appData.clients.findIndex(c => {
+        const cNorm = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(c.name) : (c.name || '').toLowerCase().trim();
+        return cNorm === normTarget;
+    });
     if (existingIndex >= 0) {
         newClient.id = appData.clients[existingIndex].id; // preserve ID
         newClient.attention = appData.clients[existingIndex].attention || '';

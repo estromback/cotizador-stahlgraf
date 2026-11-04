@@ -2,7 +2,7 @@
 // Handles intelligent merging of appData arrays (clients, services, chemicals, etc.)
 // Prevents offline data loss during synchronization
 
-const STAHLGRAF_VERSION = "v4.5.6";
+const STAHLGRAF_VERSION = "v4.5.7";
 
 if (typeof window !== 'undefined') {
     window.STAHLGRAF_VERSION = STAHLGRAF_VERSION;
@@ -19,6 +19,29 @@ if (typeof window !== 'undefined') {
 }
 
 // Global safe resolver helpers
+window.normalizeClientName = function(name) {
+    if (!name || typeof name !== 'string') return '';
+    return name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+window.findClientInList = function(list, nameOrId) {
+    if (!Array.isArray(list) || !nameOrId) return null;
+    const query = String(nameOrId).trim();
+    const norm = window.normalizeClientName(query);
+    return list.find(c => {
+        if (!c) return false;
+        if (c.id && c.id === query) return true;
+        if (c.name && window.normalizeClientName(c.name) === norm) return true;
+        return false;
+    }) || null;
+};
+
 window.resolveOwnerUid = function() {
     let uid = null;
     try {
@@ -114,6 +137,7 @@ function mergeAppData(localData, cloudData) {
             
             const map = new Map();
             const noIdItems = [];
+            const clientNormMap = new Map();
             
             // Helper to get a unique identifier
             const getIdentifier = (item) => {
@@ -133,6 +157,10 @@ function mergeAppData(localData, cloudData) {
                 }
                 if (id) {
                     map.set(id, item);
+                    if (key === 'clients' && item.name && typeof window.normalizeClientName === 'function') {
+                        const norm = window.normalizeClientName(item.name);
+                        if (norm && !clientNormMap.has(norm)) clientNormMap.set(norm, id);
+                    }
                 } else {
                     noIdItems.push(item);
                 }
@@ -146,6 +174,24 @@ function mergeAppData(localData, cloudData) {
                 if (isItemDeleted(id, item) || (key !== 'clients' && item.clientId && isItemDeleted(item.clientId, item))) {
                     return;
                 }
+
+                // Deduplicate clients by normalized name across divergent IDs
+                if (key === 'clients' && item.name && typeof window.normalizeClientName === 'function') {
+                    const norm = window.normalizeClientName(item.name);
+                    const existingCloudId = norm ? clientNormMap.get(norm) : null;
+                    if (existingCloudId && existingCloudId !== id) {
+                        const targetItem = map.get(existingCloudId);
+                        if (targetItem) {
+                            if (!targetItem.phone && item.phone) targetItem.phone = item.phone;
+                            if (!targetItem.email && item.email) targetItem.email = item.email;
+                            if (!targetItem.address && item.address) targetItem.address = item.address;
+                            if (!targetItem.attention && item.attention) targetItem.attention = item.attention;
+                            mergedDeletedIds[String(id)] = Date.now();
+                        }
+                        return;
+                    }
+                }
+
                 if (!id) {
                     // If no identifier, avoid adding exact duplicates unless cloud is newer and removed it
                     if (cloudTime > localTime && localTime > 0) return;
@@ -189,6 +235,10 @@ function mergeAppData(localData, cloudData) {
             merged[key] = [...Array.from(map.values()), ...noIdItems];
         }
     });
+
+    if (Object.keys(mergedDeletedIds).length > 0) {
+        merged.deletedIds = mergedDeletedIds;
+    }
 
     if (localTime > cloudTime) {
         // Keep local scalar properties if local is explicitly newer

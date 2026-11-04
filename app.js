@@ -1309,7 +1309,11 @@ function setupEventListeners() {
                     const name = (data['client-name'] || data.clientName || '').trim();
                     if (!name || name.toLowerCase() === 'sin nombre' || name === '-') return;
                     
-                    const existingIndex = appData.clients.findIndex(c => (c.name || '').toLowerCase() === name.toLowerCase());
+                    const normTarget = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(name) : (name || '').toLowerCase().trim();
+                    const existingIndex = appData.clients.findIndex(c => {
+                        const cNorm = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(c.name) : (c.name || '').toLowerCase().trim();
+                        return cNorm === normTarget;
+                    });
                     if (existingIndex === -1) {
                         appData.clients.push({
                             id: 'cl_' + Date.now() + Math.floor(Math.random() * 10000),
@@ -2112,7 +2116,11 @@ window.saveClientToDirectory = function(silent = false) {
     };
 
     // Check if client with same name already exists to update it instead of duplicate
-    const existingIndex = appData.clients.findIndex(c => (c.name || '').toLowerCase() === name.toLowerCase());
+    const normTarget = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(name) : (name || '').toLowerCase().trim();
+    const existingIndex = appData.clients.findIndex(c => {
+        const cNorm = typeof window.normalizeClientName === 'function' ? window.normalizeClientName(c.name) : (c.name || '').toLowerCase().trim();
+        return cNorm === normTarget;
+    });
     if (existingIndex >= 0) {
         if (!silent) {
             if(confirm(`El cliente "${name}" ya existe en tu directorio. ¿Deseas actualizar sus datos?`)) {
