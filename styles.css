@@ -791,3 +791,24 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
 .audit-action-chip.quotes { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
 .audit-action-chip.reports { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
 .audit-action-chip.clients { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+
+/* Mobile Global Adaptations */
+@media (max-width: 768px) {
+    .modal-content {
+        max-width: 95vw !important;
+        width: 95vw !important;
+        max-height: 90vh !important;
+        margin: 10px auto !important;
+        padding: 16px !important;
+    }
+    input[type="text"],
+    input[type="tel"],
+    input[type="email"],
+    input[type="number"],
+    input[type="date"],
+    input[type="time"],
+    select,
+    textarea {
+        font-size: 16px !important; /* Prevents auto-zoom in iOS Safari */
+    }
+}

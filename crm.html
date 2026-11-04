@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.5.4"></script>
+    <script src="core-sync.js?v=v4.5.5"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
 
@@ -352,6 +352,234 @@
             color: #cbd5e1;
             border-left-color: #94a3b8;
         }
+
+        /* Mobile Navigation Tabs (Default hidden on desktop) */
+        .crm-mobile-nav {
+            display: none;
+        }
+        .mobile-calendar-hint {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            /* Mobile Logo & Navbar */
+            .navbar {
+                padding: 10px 14px !important;
+            }
+            .navbar img[src*="logo.png"],
+            nav img {
+                height: 38px !important;
+            }
+            .nav-content {
+                flex-direction: column !important;
+                gap: 10px !important;
+                align-items: stretch !important;
+            }
+            .nav-content > div:first-child {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                width: 100% !important;
+            }
+            .nav-actions {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+                width: 100% !important;
+                justify-content: stretch !important;
+            }
+            .nav-actions .btn {
+                flex: 1 1 calc(50% - 6px) !important;
+                font-size: 0.78rem !important;
+                padding: 7px 8px !important;
+                min-height: 38px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                text-align: center !important;
+            }
+
+            /* Mobile View Switcher (Segmented Tabs) */
+            .crm-mobile-nav {
+                display: flex !important;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+                background: rgba(15, 23, 42, 0.96);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                padding: 8px 12px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+                gap: 6px;
+            }
+            .crm-mobile-tab {
+                flex: 1;
+                padding: 9px 4px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: #94a3b8;
+                border-radius: 8px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                text-align: center;
+                white-space: nowrap;
+                user-select: none;
+            }
+            .crm-mobile-tab.active {
+                background: rgba(59, 130, 246, 0.25);
+                border-color: #3b82f6;
+                color: #ffffff;
+                box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+            }
+
+            /* Container and Display Toggling on Mobile */
+            .crm-container {
+                display: block !important;
+                height: auto !important;
+                min-height: auto !important;
+                overflow: visible !important;
+                padding: 0 !important;
+            }
+
+            /* Views Visibility depending on active tab */
+            body.tab-view-kanban .kanban-board {
+                display: flex !important;
+            }
+            body.tab-view-kanban .calendar-sidebar {
+                display: none !important;
+            }
+            body.tab-view-kanban .crm-calendar-wrapper {
+                display: none !important;
+            }
+
+            body.tab-view-calendar .kanban-board {
+                display: none !important;
+            }
+            body.tab-view-calendar .calendar-sidebar {
+                display: none !important;
+            }
+            body.tab-view-calendar .crm-calendar-wrapper {
+                display: block !important;
+            }
+
+            body.tab-view-sidebar .kanban-board {
+                display: none !important;
+            }
+            body.tab-view-sidebar .calendar-sidebar {
+                display: block !important;
+            }
+            body.tab-view-sidebar .crm-calendar-wrapper {
+                display: none !important;
+            }
+
+            /* Kanban Board on Mobile */
+            .kanban-board {
+                padding: 14px 12px 30px 12px !important;
+                gap: 12px !important;
+                overflow-x: auto !important;
+                scroll-snap-type: x mandatory;
+                -webkit-overflow-scrolling: touch;
+            }
+            .kanban-column {
+                min-width: 84vw !important;
+                max-width: 86vw !important;
+                scroll-snap-align: center;
+                max-height: 75vh !important;
+            }
+
+            /* Calendar Sidebar (Próximos Pasos) on Mobile */
+            .calendar-sidebar {
+                width: 100% !important;
+                box-sizing: border-box !important;
+                border-left: none !important;
+                padding: 16px 14px 40px 14px !important;
+                background: transparent !important;
+                max-height: none !important;
+            }
+
+            /* Calendar Panel on Mobile */
+            .crm-calendar-wrapper {
+                padding: 12px 10px 40px 10px !important;
+            }
+            #calendar-panel {
+                padding: 15px 12px !important;
+            }
+            #calendar-panel h3 {
+                font-size: 1.15rem !important;
+            }
+            #calendar-panel p {
+                font-size: 0.8rem !important;
+            }
+            #cal-month-title {
+                font-size: 1.05rem !important;
+            }
+
+            /* Horizontally scrollable calendar grid */
+            .calendar-grid-container {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+                border-radius: 10px;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(59, 130, 246, 0.4) rgba(0, 0, 0, 0.2);
+            }
+            .calendar-weekdays,
+            .calendar-days-grid {
+                min-width: 660px !important;
+            }
+            .calendar-weekdays div {
+                font-size: 0.78rem !important;
+                padding: 8px 0 !important;
+            }
+            .calendar-day-cell {
+                min-height: 95px !important;
+                padding: 6px 4px !important;
+            }
+            .day-number {
+                font-size: 0.8rem !important;
+            }
+            .event-chip {
+                font-size: 0.7rem !important;
+                padding: 3px 6px !important;
+            }
+
+            /* Mobile calendar scroll hint */
+            .mobile-calendar-hint {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                font-size: 0.75rem;
+                color: #93c5fd;
+                background: rgba(59, 130, 246, 0.12);
+                border: 1px dashed rgba(59, 130, 246, 0.35);
+                padding: 6px 10px;
+                border-radius: 6px;
+                margin-bottom: 12px;
+                text-align: center;
+                font-weight: 500;
+            }
+
+            /* Modals on Mobile */
+            .modal-content {
+                max-width: 95vw !important;
+                width: 95vw !important;
+                max-height: 90vh !important;
+                padding: 16px !important;
+                margin: 10px auto !important;
+            }
+            input[type="text"],
+            input[type="tel"],
+            input[type="email"],
+            input[type="number"],
+            input[type="date"],
+            input[type="time"],
+            select,
+            textarea {
+                font-size: 16px !important; /* Prevents auto-zoom on iOS */
+            }
+        }
     </style>
 </head>
 <body>
@@ -381,6 +609,19 @@
             </div>
         </div>
     </nav>
+
+    <!-- Mobile View Switcher (Solo visible en móviles <= 768px) -->
+    <div class="crm-mobile-nav" id="crm-mobile-nav">
+        <button type="button" class="crm-mobile-tab active" data-tab="kanban">
+            <span>📋 Tablero</span>
+        </button>
+        <button type="button" class="crm-mobile-tab" data-tab="calendar">
+            <span>📅 Calendario</span>
+        </button>
+        <button type="button" class="crm-mobile-tab" data-tab="sidebar">
+            <span id="tab-label-sidebar">⚡ Próximos Pasos</span>
+        </button>
+    </div>
 
     <div class="crm-container">
         <!-- Kanban Board -->
@@ -420,6 +661,9 @@
                 <h4 id="cal-month-title" style="margin: 0; font-size: 1.25rem; text-transform: capitalize; font-weight: 600; color: #fff;">Octubre 2026</h4>
             </div>
             
+            <div class="mobile-calendar-hint">
+                <span>👈</span> Desliza para ver la semana completa <span>👉</span>
+            </div>
             <div class="calendar-grid-container">
                 <div class="calendar-weekdays">
                     <div>Lun</div>
@@ -565,6 +809,6 @@
         </div>
     </div>
 
-    <script src="crm.js?v=v4.5.4"></script>
+    <script src="crm.js?v=v4.5.5"></script>
 </body>
 </html>

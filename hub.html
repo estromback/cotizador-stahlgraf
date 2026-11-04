@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.5.4"></script>
+    <script src="core-sync.js?v=v4.5.5"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
@@ -410,6 +410,172 @@
             color: var(--text-muted);
             font-weight: 500;
         }
+
+        .mobile-calendar-hint {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            /* Mobile Logo & Navbar */
+            .navbar {
+                padding: 10px 14px !important;
+            }
+            .navbar img[src*="logo.png"],
+            nav img {
+                height: 38px !important;
+            }
+            .nav-content {
+                flex-direction: column !important;
+                gap: 10px !important;
+                align-items: stretch !important;
+            }
+            .nav-content > div:first-child {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                width: 100% !important;
+            }
+            .nav-actions {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+                width: 100% !important;
+                justify-content: stretch !important;
+            }
+            .nav-actions .btn {
+                flex: 1 1 calc(50% - 6px) !important;
+                font-size: 0.78rem !important;
+                padding: 7px 8px !important;
+                min-height: 38px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                text-align: center !important;
+            }
+
+            /* Main container */
+            main.hub-container {
+                padding: 10px 12px 40px 12px !important;
+            }
+            .hub-header h2 {
+                font-size: 1.4rem !important;
+            }
+            .hub-header p {
+                font-size: 0.85rem !important;
+            }
+
+            /* Apps Grid on Mobile: 2 clean columns */
+            .apps-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 10px !important;
+                margin-top: 15px !important;
+                margin-bottom: 20px !important;
+            }
+            .app-card {
+                padding: 12px 10px !important;
+                min-height: 110px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+            }
+            .app-icon {
+                font-size: 1.6rem !important;
+                margin-bottom: 5px !important;
+            }
+            .app-title {
+                font-size: 0.88rem !important;
+                font-weight: 600 !important;
+                margin-bottom: 3px !important;
+                line-height: 1.2 !important;
+            }
+            .app-desc {
+                font-size: 0.7rem !important;
+                line-height: 1.25 !important;
+                display: -webkit-box !important;
+                -webkit-line-clamp: 2 !important;
+                -webkit-box-orient: vertical !important;
+                overflow: hidden !important;
+                opacity: 0.85 !important;
+            }
+
+            /* Calendar Panel on Mobile */
+            #calendar-panel {
+                padding: 15px 12px !important;
+            }
+            #calendar-panel h3 {
+                font-size: 1.15rem !important;
+            }
+            #calendar-panel p {
+                font-size: 0.8rem !important;
+            }
+            #cal-month-title {
+                font-size: 1.05rem !important;
+            }
+
+            /* Horizontally scrollable calendar grid */
+            .calendar-grid-container {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch;
+                border-radius: 10px;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(59, 130, 246, 0.4) rgba(0, 0, 0, 0.2);
+            }
+            .calendar-weekdays,
+            .calendar-days-grid {
+                min-width: 660px !important;
+            }
+            .calendar-weekdays div {
+                font-size: 0.78rem !important;
+                padding: 8px 0 !important;
+            }
+            .calendar-day-cell {
+                min-height: 95px !important;
+                padding: 6px 4px !important;
+            }
+            .day-number {
+                font-size: 0.8rem !important;
+            }
+            .event-chip {
+                font-size: 0.7rem !important;
+                padding: 3px 6px !important;
+            }
+
+            /* Mobile calendar scroll hint */
+            .mobile-calendar-hint {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                font-size: 0.75rem;
+                color: #93c5fd;
+                background: rgba(59, 130, 246, 0.12);
+                border: 1px dashed rgba(59, 130, 246, 0.35);
+                padding: 6px 10px;
+                border-radius: 6px;
+                margin-bottom: 12px;
+                text-align: center;
+                font-weight: 500;
+            }
+
+            /* Modals on Mobile */
+            .modal-content {
+                max-width: 95vw !important;
+                width: 95vw !important;
+                max-height: 90vh !important;
+                padding: 16px !important;
+                margin: 10px auto !important;
+            }
+            input[type="text"],
+            input[type="tel"],
+            input[type="email"],
+            input[type="number"],
+            input[type="date"],
+            input[type="time"],
+            select,
+            textarea {
+                font-size: 16px !important; /* Prevents auto-zoom on iOS */
+            }
+        }
     </style>
 </head>
 <body>
@@ -526,6 +692,9 @@
                 <h4 id="cal-month-title" style="margin: 0; font-size: 1.25rem; text-transform: capitalize; font-weight: 600; color: #fff;">Junio 2026</h4>
             </div>
             
+            <div class="mobile-calendar-hint">
+                <span>👈</span> Desliza para ver la semana completa <span>👉</span>
+            </div>
             <div class="calendar-grid-container">
                 <div class="calendar-weekdays">
                     <div>Lun</div>
@@ -1171,6 +1340,6 @@
         </div>
     </div>
 
-    <script src="hub.js?v=v4.5.4"></script>
+    <script src="hub.js?v=v4.5.5"></script>
 </body>
 </html>

@@ -156,6 +156,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // Setup Mobile Navigation Tabs
+    const mobileTabs = document.querySelectorAll('.crm-mobile-tab');
+    if (mobileTabs.length > 0) {
+        document.body.classList.add('tab-view-kanban'); // Default mobile view
+        mobileTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                mobileTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                document.body.classList.remove('tab-view-kanban', 'tab-view-calendar', 'tab-view-sidebar');
+                document.body.classList.add(`tab-view-${targetTab}`);
+
+                if (targetTab === 'calendar') {
+                    renderCalendar(currentMonth, currentYear);
+                } else if (targetTab === 'sidebar') {
+                    renderSidebar();
+                } else if (targetTab === 'kanban') {
+                    renderCards();
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+    }
+
     // Modal Listeners
     const modal = document.getElementById('card-modal');
     document.getElementById('btn-add-card').addEventListener('click', () => openCardModal());
@@ -425,6 +450,11 @@ function renderSidebar() {
     let datedCards = crmCards.filter(c => c.date).sort((a,b) => {
         return new Date(a.date) - new Date(b.date);
     });
+
+    const tabLabel = document.getElementById('tab-label-sidebar');
+    if (tabLabel) {
+        tabLabel.innerText = datedCards.length > 0 ? `⚡ Próximos (${datedCards.length})` : '⚡ Próximos Pasos';
+    }
 
     const today = new Date();
     today.setHours(0,0,0,0);
