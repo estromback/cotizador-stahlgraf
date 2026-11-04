@@ -14,7 +14,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
     <!-- Core Sync Utilities -->
-    <script src="core-sync.js?v=v4.5.5"></script>
+    <script src="core-sync.js?v=v4.5.6"></script>
 
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage-compat.js"></script>
@@ -108,9 +108,12 @@
             flex-direction: column;
             margin-top: 15px;
         }
+        .calendar-scroll-inner {
+            width: 100%;
+        }
         .calendar-weekdays {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
+            grid-template-columns: repeat(7, minmax(0, 1fr));
             text-align: center;
             font-weight: 600;
             font-size: 0.85rem;
@@ -118,11 +121,22 @@
             background: rgba(255, 255, 255, 0.03);
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             padding: 10px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .calendar-weekdays div {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+            box-sizing: border-box;
         }
         .calendar-days-grid {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
+            grid-template-columns: repeat(7, minmax(0, 1fr));
             grid-auto-rows: minmax(100px, auto);
+            width: 100%;
+            box-sizing: border-box;
         }
         .calendar-day-cell {
             border-right: 1px solid rgba(255, 255, 255, 0.05);
@@ -132,6 +146,9 @@
             flex-direction: column;
             gap: 5px;
             min-height: 100px;
+            min-width: 0;
+            overflow: hidden;
+            box-sizing: border-box;
             transition: background 0.2s;
             cursor: pointer;
         }
@@ -519,18 +536,34 @@
                 border-radius: 10px;
                 scrollbar-width: thin;
                 scrollbar-color: rgba(59, 130, 246, 0.4) rgba(0, 0, 0, 0.2);
+                width: 100% !important;
             }
-            .calendar-weekdays,
-            .calendar-days-grid {
-                min-width: 660px !important;
+            .calendar-scroll-inner {
+                min-width: 700px !important;
+                width: 700px !important;
+                display: block !important;
+            }
+            .calendar-weekdays {
+                display: grid !important;
+                grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+                width: 100% !important;
             }
             .calendar-weekdays div {
                 font-size: 0.78rem !important;
                 padding: 8px 0 !important;
+                min-width: 0 !important;
+                text-align: center !important;
+            }
+            .calendar-days-grid {
+                display: grid !important;
+                grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+                width: 100% !important;
             }
             .calendar-day-cell {
                 min-height: 95px !important;
                 padding: 6px 4px !important;
+                min-width: 0 !important;
+                overflow: hidden !important;
             }
             .day-number {
                 font-size: 0.8rem !important;
@@ -696,17 +729,19 @@
                 <span>👈</span> Desliza para ver la semana completa <span>👉</span>
             </div>
             <div class="calendar-grid-container">
-                <div class="calendar-weekdays">
-                    <div>Lun</div>
-                    <div>Mar</div>
-                    <div>Mié</div>
-                    <div>Jue</div>
-                    <div>Vie</div>
-                    <div>Sáb</div>
-                    <div>Dom</div>
-                </div>
-                <div id="calendar-days" class="calendar-days-grid">
-                    <!-- Dynamic cells will be injected here by JS -->
+                <div class="calendar-scroll-inner">
+                    <div class="calendar-weekdays">
+                        <div>Lun</div>
+                        <div>Mar</div>
+                        <div>Mié</div>
+                        <div>Jue</div>
+                        <div>Vie</div>
+                        <div>Sáb</div>
+                        <div>Dom</div>
+                    </div>
+                    <div id="calendar-days" class="calendar-days-grid">
+                        <!-- Dynamic cells will be injected here by JS -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -1340,6 +1375,6 @@
         </div>
     </div>
 
-    <script src="hub.js?v=v4.5.5"></script>
+    <script src="hub.js?v=v4.5.6"></script>
 </body>
 </html>
