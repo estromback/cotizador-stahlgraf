@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>¡Super Repaso Leo Primero! - 2° Básico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+    }
+    h1, h2, h3, .font-fun {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    .custom-shadow {
+      box-shadow: 0 8px 0 rgba(0,0,0,0.12);
+    }
+    .custom-shadow-sm {
+      box-shadow: 0 4px 0 rgba(0,0,0,0.12);
+    }
+    .btn-press:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 rgba(0,0,0,0.12);
+    }
+    /* Estrellitas flotantes */
+    @keyframes floatUp {
+      0% { transform: translateY(0px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(-50px) rotate(20deg); opacity: 0; }
+    }
+    .star-pop {
+      animation: floatUp 0.8s ease-out forwards;
+    }
+    /* Tarjeta flip suave */
+    .card-bounce {
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .card-bounce:hover {
+      transform: translateY(-4px) scale(1.02);
+    }
+  </style>
+</head>
+<body class="bg-amber-50 text-slate-800 min-h-screen flex flex-col selection:bg-pink-300 selection:text-pink-900">
+
+  <!-- Audio Context Synthesizer (No external dependencies) -->
+  <script>
+    const soundFx = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+      playCorrect() {
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc1.type = 'triangle';
+        osc2.type = 'sine';
+
+        osc1.frequency.setValueAtTime(523.25, now); // C5
+        osc1.frequency.exponentialRampToValueAtTime(659.25, now + 0.1); // E5
+        osc1.frequency.exponentialRampToValueAtTime(783.99, now + 0.2); // G5
+        osc1.frequency.exponentialRampToValueAtTime(1046.50, now + 0.35); // C6
+
+        osc2.frequency.setValueAtTime(261.63, now);
+        osc2.frequency.exponentialRampToValueAtTime(523.25, now + 0.35);
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.5);
+        osc2.stop(now + 0.5);
+      },
+      playWrong() {
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(280, now);
+        osc.frequency.linearRampToValueAtTime(160, now + 0.28);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.3);
+      },
+      playPop() {
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.09);
+      },
+      playFanfare() {
+        this.init();
+        const notes = [440, 554.37, 659.25, 880];
+        notes.forEach((freq, i) => {
+          const now = this.ctx.currentTime + (i * 0.12);
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        });
+      }
+    };
+  </script>
+
+  <!-- ENCABEZADO PRINCIPAL -->
+  <header class="bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 text-white shadow-md relative overflow-hidden">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="showSection('inicio')">
+        <div class="w-12 h-12 bg-yellow-300 text-amber-900 rounded-2xl flex items-center justify-center text-3xl font-bold shadow-inner border-2 border-yellow-200 transform -rotate-3">
+          📖
+        </div>
+        <div>
+          <span class="bg-amber-300 text-amber-900 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+            2° Básico • Evaluación N°3
+          </span>
+          <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-white drop-shadow">
+            ¡Super Repaso Leo Primero!
+          </h1>
+        </div>
+      </div>
+
+      <!-- Barra de Navegación -->
+      <nav class="flex items-center gap-2 flex-wrap justify-center">
+        <button onclick="showSection('inicio')" id="btn-nav-inicio" class="nav-btn px-4 py-2 rounded-xl font-bold text-sm bg-white/20 hover:bg-white/30 text-white transition flex items-center gap-1.5 border border-white/20">
+          <span>🏠</span> Inicio
+        </button>
+        <button onclick="showSection('repaso')" id="btn-nav-repaso" class="nav-btn px-4 py-2 rounded-xl font-bold text-sm bg-white/20 hover:bg-white/30 text-white transition flex items-center gap-1.5 border border-white/20">
+          <span>📚</span> Fichas de Repaso
+        </button>
+        <button onclick="showSection('clasificador')" id="btn-nav-clasificador" class="nav-btn px-4 py-2 rounded-xl font-bold text-sm bg-white/20 hover:bg-white/30 text-white transition flex items-center gap-1.5 border border-white/20">
+          <span>🎮</span> Mini-Juego
+        </button>
+        <button onclick="startQuiz()" id="btn-nav-quiz" class="nav-btn px-5 py-2 rounded-xl font-extrabold text-sm bg-yellow-400 hover:bg-yellow-300 text-amber-950 transition flex items-center gap-1.5 shadow-md border-2 border-yellow-200">
+          <span>⭐</span> Test 35 Preguntas
+        </button>
+      </nav>
+    </div>
+    <!-- Decoración de fondo -->
+    <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+    <div class="absolute left-1/3 -top-10 w-40 h-40 bg-yellow-300/20 rounded-full blur-2xl pointer-events-none"></div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main class="max-w-6xl mx-auto px-4 py-6 flex-1 w-full">
+
+    <!-- SECCIÓN 1: INICIO / BIENVENIDA -->
+    <section id="sec-inicio" class="space-y-8 animate-fade">
+      <!-- Banner Motivacional -->
+      <div class="bg-gradient-to-br from-amber-400 via-orange-400 to-rose-400 rounded-3xl p-6 md:p-10 text-white custom-shadow relative overflow-hidden">
+        <div class="relative z-10 max-w-2xl">
+          <div class="inline-flex items-center gap-2 bg-white/25 backdrop-blur-md px-3 py-1 rounded-full text-xs font-black uppercase mb-3">
+            <span>🎒</span> Mañana triunfamos en la prueba
+          </div>
+          <h2 class="text-3xl md:text-5xl font-extrabold leading-tight mb-3">
+            ¡Prepárate jugando para tu prueba de Lenguaje!
+          </h2>
+          <p class="text-amber-100 text-base md:text-lg mb-6 leading-relaxed font-semibold">
+            Repasaremos las lecciones 9 a la 12 del libro <strong>Leo Primero (Tomo 1)</strong>:
+            tipos de texto, el ave del paraíso, poemas y rimas, sustantivos, artículos, adjetivos, signos de interrogación y mayúsculas.
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <button onclick="startQuiz()" class="btn-press bg-white text-orange-600 px-6 py-3.5 rounded-2xl font-black text-lg custom-shadow-sm flex items-center gap-2 hover:bg-amber-50 transition border-2 border-orange-200">
+              <span>🚀</span> ¡Comenzar Quiz de 35 Preguntas!
+            </button>
+            <button onclick="showSection('repaso')" class="btn-press bg-orange-600/80 hover:bg-orange-600 text-white px-5 py-3.5 rounded-2xl font-bold text-base border border-orange-300 transition">
+              <span>📖</span> Repasar primero
+            </button>
+          </div>
+        </div>
+        <div class="hidden lg:block absolute right-8 top-1/2 -translate-y-1/2 text-9xl select-none opacity-90 filter drop-shadow-lg">
+          🦉
+        </div>
+      </div>
+
+      <!-- Tarjetas de Temas Evaluados -->
+      <div>
+        <h3 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <span>🎯</span> Contenidos de la Evaluación N°3:
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Lección 9 -->
+          <div class="bg-white rounded-2xl p-5 border-2 border-sky-200 custom-shadow-sm flex flex-col justify-between card-bounce">
+            <div>
+              <span class="text-xs font-black text-sky-700 bg-sky-100 px-2.5 py-1 rounded-lg">Lección 9</span>
+              <h4 class="font-bold text-lg text-slate-800 mt-2">El Ave del Paraíso</h4>
+              <p class="text-xs text-slate-600 mt-1">Artículo informativo, adjetivos calificativos (vistoso, brillante), hábitat en Oceanía y nidos.</p>
+            </div>
+            <button onclick="openCardTopic('lec9')" class="mt-4 text-xs font-bold text-sky-600 hover:text-sky-800 flex items-center gap-1">
+              Ver resumen ➔
+            </button>
+          </div>
+
+          <!-- Lección 10 -->
+          <div class="bg-white rounded-2xl p-5 border-2 border-emerald-200 custom-shadow-sm flex flex-col justify-between card-bounce">
+            <div>
+              <span class="text-xs font-black text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-lg">Lección 10</span>
+              <h4 class="font-bold text-lg text-slate-800 mt-2">Poema "Pastorcita"</h4>
+              <p class="text-xs text-slate-600 mt-1">Poema, versos, estrofas y rimas. Vocabulario: balar, rebaño, remendar. Signos (¿? y ¡!).</p>
+            </div>
+            <button onclick="openCardTopic('lec10')" class="mt-4 text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center gap-1">
+              Ver resumen ➔
+            </button>
+          </div>
+
+          <!-- Lección 11 -->
+          <div class="bg-white rounded-2xl p-5 border-2 border-purple-200 custom-shadow-sm flex flex-col justify-between card-bounce">
+            <div>
+              <span class="text-xs font-black text-purple-700 bg-purple-100 px-2.5 py-1 rounded-lg">Lección 11</span>
+              <h4 class="font-bold text-lg text-slate-800 mt-2">Correo e Invitación</h4>
+              <p class="text-xs text-slate-600 mt-1">Carta/email (De, Para, Asunto), invitación formal (fecha, lugar, hora), sustantivos y familia de palabras.</p>
+            </div>
+            <button onclick="openCardTopic('lec11')" class="mt-4 text-xs font-bold text-purple-600 hover:text-purple-800 flex items-center gap-1">
+              Ver resumen ➔
+            </button>
+          </div>
+
+          <!-- Lección 12 -->
+          <div class="bg-white rounded-2xl p-5 border-2 border-rose-200 custom-shadow-sm flex flex-col justify-between card-bounce">
+            <div>
+              <span class="text-xs font-black text-rose-700 bg-rose-100 px-2.5 py-1 rounded-lg">Lección 12</span>
+              <h4 class="font-bold text-lg text-slate-800 mt-2">Parques en Peligro</h4>
+              <p class="text-xs text-slate-600 mt-1">Artículo informativo, género y número, artículos definidos e indefinidos, mayúscula y punto final.</p>
+            </div>
+            <button onclick="openCardTopic('lec12')" class="mt-4 text-xs font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1">
+              Ver resumen ➔
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tips Rápidos para el Niño -->
+      <div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 flex items-start gap-4">
+        <div class="text-3xl">💡</div>
+        <div>
+          <h4 class="font-bold text-blue-900 text-sm md:text-base">Consejo de oro para tu prueba:</h4>
+          <p class="text-xs md:text-sm text-blue-800 mt-0.5">
+            Lee siempre con calma cada pregunta. Recuerda que los <strong>sustantivos propios</strong> (como nombres de amigos o ciudades como <em>Quilpué</em>) ¡siempre se escriben con mayúscula! Y toda oración empieza con mayúscula y termina con un <strong>punto final</strong>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 2: ZONA DE REPASO INTERACTIVA (FICHAS) -->
+    <section id="sec-repaso" class="hidden space-y-6 animate-fade">
+      <div class="flex items-center justify-between flex-wrap gap-2 border-b-2 border-slate-200 pb-3">
+        <div>
+          <h2 class="text-2xl md:text-3xl font-extrabold text-slate-800 flex items-center gap-2">
+            <span>📚</span> Fichas Clave de Estudio
+          </h2>
+          <p class="text-slate-600 text-sm">Haz clic en cada botón para explorar los conceptos y ejemplos reales de tu libro.</p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="filterFichas('todas')" class="tab-fichas px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500 text-white">Todas</button>
+          <button onclick="filterFichas('textos')" class="tab-fichas px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300">Tipos de Texto</button>
+          <button onclick="filterFichas('gramatica')" class="tab-fichas px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300">Sustantivos y Artículos</button>
+          <button onclick="filterFichas('poema')" class="tab-fichas px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300">Poemas y Rimas</button>
+          <button onclick="filterFichas('ortografia')" class="tab-fichas px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300">Puntación y Mayúsculas</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="fichas-container">
+        <!-- Ficha 1: Tipos de Texto -->
+        <div class="ficha-card bg-white p-5 rounded-2xl border-2 border-amber-300 custom-shadow-sm" data-category="textos">
+          <div class="flex items-center gap-2 text-amber-700 font-bold mb-2">
+            <span class="text-2xl">📑</span> Tipos de Texto
+          </div>
+          <ul class="text-xs text-slate-700 space-y-2">
+            <li><strong>Cuento:</strong> Narra hechos imaginarios con personajes (Inicio, desarrollo y desenlace). Ej: <em>Ema y Pajarito</em>.</li>
+            <li><strong>Poema:</strong> Expresa sentimientos y emociones en versos y estrofas, con rimas. Ej: <em>Pastorcita</em>.</li>
+            <li><strong>Artículo Informativo:</strong> Entrega datos reales sobre un tema de interés. Ej: <em>El ave del paraíso</em>, <em>Los Parques Naturales en peligro</em>.</li>
+            <li><strong>Correo Electrónico e Invitación:</strong> Mensajes para invitar o informar a alguien (lleva fecha, hora y lugar).</li>
+          </ul>
+        </div>
+
+        <!-- Ficha 2: El Poema: Versos, Estrofas y Rimas -->
+        <div class="ficha-card bg-white p-5 rounded-2xl border-2 border-emerald-300 custom-shadow-sm" data-category="poema">
+          <div class="flex items-center gap-2 text-emerald-700 font-bold mb-2">
+            <span class="text-2xl">🎵</span> Partes de un Poema
+          </div>
+          <div class="text-xs text-slate-700 space-y-2">
+            <p><strong>Verso:</strong> Cada una de las líneas cortas del poema.</p>
+            <p><strong>Estrofa:</strong> Es el conjunto o grupito de versos.</p>
+            <p><strong>Rima:</strong> Cuando las palabras terminan con un sonido parecido o igual al final de los versos.</p>
+            <div class="bg-emerald-50 p-2 rounded-xl border border-emerald-200 italic text-[11px]">
+              "Pastorcita perdió sus <strong>ovejas</strong><br>
+              y no te enfades que oyeron tus <strong>quejas</strong>"<br>
+              <span class="text-emerald-800 font-bold">¡Ovejas rima con quejas!</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ficha 3: Sustantivos Comunes vs Propios -->
+        <div class="ficha-card bg-white p-5 rounded-2xl border-2 border-blue-300 custom-shadow-sm" data-category="gramatica">
+          <div class="flex items-center gap-2 text-blue-700 font-bold mb-2">
+            <span class="text-2xl">🏷️</span> Sustantivos: Comunes y Propios
+          </div>
+          <div class="text-xs text-slate-700 space-y-2">
+            <p><strong>Sustantivos Comunes:</strong> Nombran personas, animales o cosas en general. Se escriben con minúscula.</p>
+            <p class="text-slate-500 italic">Ejemplos: niño, torta, parque, guitarra, volcán, perro.</p>
+            <p><strong>Sustantivos Propios:</strong> Nombran a personas, mascotas o lugares en particular. <strong>¡Siempre comienzan con mayúscula!</strong></p>
+            <p class="text-slate-500 italic">Ejemplos: Rodrigo, Marina, Daniel, Chile, Quilpué.</p>
+          </div>
+        </div>
+
+        <!-- Ficha 4: Género y Número -->
+        <div class="ficha-card bg-white p-5 rounded-2xl border-2 border-pink-300 custom-shadow-sm" data-category="gramatica">
+          <div class="flex items-center gap-2 text-pink-700 font-bold mb-2">
+            <span class="text-2xl">⚖️</span> Género y Número
+          </div>
+          <div class="text-xs text-slate-700 space-y-2">
+            <p><strong>Género:</strong></p>
+            <ul class="list-disc list-inside pl-1 space-y-0.5">
+              <li><strong>Femenino:</strong> Usa <em>la</em>, <em>las</em>, <em>una</em>, <em>unas</em> (ej: la chinchilla, las flores).</li>
+              <li><strong>Masculino:</strong> Usa <em>el</em>, <em>los</em>, <em>un</em>, <em>unos</em> (ej: el nido, los árboles).</li>
+            </ul>
+            <p><strong>Número:</strong></p>
+            <ul class="list-disc list-inside pl-1 space-y-0.5">
+              <li><strong>Singular:</strong> Nombra a uno solo (ej: fogata).</li>
+              <li><strong>Plural:</strong> Nombra a más de uno (termina casi siempre en -s o -es: fogatas, parques).</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Ficha 5: Artículos Definidos e Indefinidos -->
+        <div class="ficha-card bg-white p-5 rounded-2xl border-2 border-indigo-300 custom-shadow-sm" data-category="gramatica">
+          <div class="flex items-center gap-2 text-indigo-700 font-bold mb-2">
+            <span class="text-2xl">✨</span> Artículos
+          </div>
+          <div class="text-xs text-slate-700 space-y-2">
+            <div class="bg-indigo-50 p-2.5 rounded-xl border border-indigo-200">
+              <strong class="text-indigo-900 block">Artículos Definidos:</strong>
+              Se usan cuando conocemos el objeto exacto:
+              <span class="font-extrabold text-indigo-700 block text-sm mt-0.5">EL - LA - LOS - LAS</span>
+            </div>
+            <div class="bg-purple-50 p-2.5 rounded-xl border border-purple-200">
+              <strong class="text-purple-900 block">Artículos Indefinidos:</strong>
+              Se usan cuando no nos referimos a uno específico:
+              <span class="font-extrabold text-purple-700 block text-sm mt-0.5">UN - UNA - UNOS - UNAS</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ficha 6: Adjetivos Calificativos -->
+        <div class="ficha-card bg-white p-5 rounded-2xl border-2 border-yellow-300 custom-shadow-sm" data-category="gramatica">
+          <div class="flex items-center gap-2 text-yellow-800 font-bold mb-2">
+            <span class="text-2xl">🎨</span> Adjetivos Calificativos
+          </div>
+          <div class="text-xs text-slate-700 space-y-2">
+            <p>Son palabras que nos dicen <strong>cómo es</strong> o <strong>cómo está</strong> una persona, animal o cosa (responden a: ¿cómo es?).</p>
+            <div class="bg-yellow-50 p-2.5 rounded-xl border border-yellow-200 space-y-1">
+              <p>• El ave tiene plumas <span class="font-bold text-amber-700">brillantes</span> y <span class="font-bold text-amber-700">vistosas</span>.</p>
+              <p>• El hilo de volantín es <span class="font-bold text-amber-700">peligroso</span>.</p>
+              <p>• La torta es <span class="font-bold text-amber-700">fácil</span> y <span class="font-bold text-amber-700">deliciosa</span>.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ficha 7: Signos ¿? y ¡! -->
+        <div class="ficha-card bg-white p-5 rounded-2xl border-2 border-teal-300 custom-shadow-sm" data-category="ortografia">
+          <div class="flex items-center gap-2 text-teal-800 font-bold mb-2">
+            <span class="text-2xl">❓</span> Signos de Interrogación y Exclamación
+          </div>
+          <div class="text-xs text-slate-700 space-y-2">
+            <p><strong>Signos de Interrogación (¿?):</strong> Se usan para hacer <strong>preguntas</strong>.</p>
+            <p class="italic text-teal-900 bg-teal-50 p-1.5 rounded-lg border border-teal-200">
+              Ejemplo: <em>¿Dónde están mis colas?</em>
+            </p>
+            <p><strong>Signos de Exclamación (¡!):</strong> Se usan para expresar emociones fuertes como alegría, sorpresa, miedo o dolor.</p>
+            <p class="italic text-teal-900 bg-teal-50 p-1.5 rounded-lg border border-teal-200">
+              Ejemplo: <em>¡Colgadas las vio!</em> / <em>¡Qué rico!</em>
+            </p>
+            <p class="text-[11px] text-slate-500 font-bold">En español SIEMPRE se coloca uno al inicio (¿ / ¡) y otro al final (? / !).</p>
+          </div>
+        </div>
+
+        <!-- Ficha 8: Mayúscula y Punto Final -->
+        <div class="ficha-card bg-white p-5 rounded-2xl border-2 border-orange-300 custom-shadow-sm" data-category="ortografia">
+          <div class="flex items-center gap-2 text-orange-800 font-bold mb-2">
+            <span class="text-2xl">✏️</span> Regla de Escritura de Oraciones
+          </div>
+          <div class="text-xs text-slate-700 space-y-3">
+            <div class="bg-orange-50 p-2.5 rounded-xl border border-orange-200">
+              <p class="font-bold text-orange-900">1. Mayúscula Inicial:</p>
+              <p>Toda oración DEBE comenzar con letra mayúscula.</p>
+            </div>
+            <div class="bg-orange-50 p-2.5 rounded-xl border border-orange-200">
+              <p class="font-bold text-orange-900">2. Punto Final:</p>
+              <p>Toda oración DEBE terminar con un punto final (.).</p>
+            </div>
+            <p class="text-xs font-semibold text-slate-600 bg-slate-100 p-2 rounded-xl">
+              <span class="text-emerald-600 font-bold">L</span>os niños cuidan los parques de Chile<span class="text-rose-600 font-black">.</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Ficha 9: Estructura del Correo e Invitación -->
+        <div class="ficha-card bg-white p-5 rounded-2xl border-2 border-rose-300 custom-shadow-sm" data-category="textos">
+          <div class="flex items-center gap-2 text-rose-800 font-bold mb-2">
+            <span class="text-2xl">💌</span> El Correo y la Invitación
+          </div>
+          <div class="text-xs text-slate-700 space-y-2">
+            <p><strong>En el correo electrónico:</strong></p>
+            <p class="bg-rose-50 p-1.5 rounded-lg text-slate-700">
+              • <strong>De:</strong> Quién lo envía.<br>
+              • <strong>Para:</strong> Quién lo recibe.<br>
+              • <strong>Asunto:</strong> El tema o título del mensaje.
+            </p>
+            <p><strong>En la invitación nunca deben faltar:</strong></p>
+            <p class="font-bold text-rose-900">Lugar (dirección), Fecha (día) y Hora.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 3: MINI-JUEGO DE CLASIFICACIÓN RÁPIDA -->
+    <section id="sec-clasificador" class="hidden space-y-6 animate-fade">
+      <div class="bg-white rounded-3xl p-6 border-2 border-purple-200 custom-shadow text-center max-w-3xl mx-auto">
+        <span class="bg-purple-100 text-purple-800 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+          🎮 Mini-Juego de Entrenamiento
+        </span>
+        <h2 class="text-2xl md:text-3xl font-extrabold text-slate-800 mt-2">
+          ¡El Clasificador de Palabras!
+        </h2>
+        <p class="text-slate-600 text-sm mt-1">
+          Elige qué quieres clasificar y pon a prueba tu rapidez mental antes del gran quiz.
+        </p>
+
+        <!-- Selector de Modo de Juego -->
+        <div class="flex justify-center gap-2 my-5 flex-wrap">
+          <button onclick="setGameMode('sustantivos')" id="gmode-sustantivos" class="px-4 py-2 rounded-xl font-bold text-xs bg-purple-600 text-white shadow">
+            Sustantivo Común vs Propio
+          </button>
+          <button onclick="setGameMode('articulos')" id="gmode-articulos" class="px-4 py-2 rounded-xl font-bold text-xs bg-slate-200 text-slate-700 hover:bg-slate-300">
+            Artículo Definido vs Indefinido
+          </button>
+          <button onclick="setGameMode('genero')" id="gmode-genero" class="px-4 py-2 rounded-xl font-bold text-xs bg-slate-200 text-slate-700 hover:bg-slate-300">
+            Género: Femenino vs Masculino
+          </button>
+          <button onclick="setGameMode('numero')" id="gmode-numero" class="px-4 py-2 rounded-xl font-bold text-xs bg-slate-200 text-slate-700 hover:bg-slate-300">
+            Número: Singular vs Plural
+          </button>
+        </div>
+
+        <!-- Área de la Palabra a Clasificar -->
+        <div class="bg-amber-100/70 border-2 border-dashed border-amber-300 rounded-3xl p-6 my-6 min-h-[160px] flex flex-col items-center justify-center relative">
+          <div class="text-xs uppercase font-extrabold text-amber-800 tracking-wider mb-2">Clasifica esta palabra:</div>
+          <div id="game-word" class="text-3xl md:text-5xl font-black text-indigo-950 font-fun tracking-wide bg-white px-8 py-3 rounded-2xl shadow-sm border-2 border-amber-200">
+            Cargando...
+          </div>
+          <div id="game-hint" class="text-xs text-slate-500 font-semibold mt-2">
+            (Pista: Observa si tiene mayúscula o minúscula)
+          </div>
+        </div>
+
+        <!-- Cestas / Botones de Clasificación -->
+        <div class="grid grid-cols-2 gap-4 max-w-lg mx-auto">
+          <button onclick="submitClassification(0)" id="btn-bin-left" class="btn-press bg-emerald-500 hover:bg-emerald-600 text-white p-5 rounded-2xl font-black text-lg custom-shadow-sm flex flex-col items-center justify-center gap-1">
+            <span id="bin-left-icon" class="text-2xl">📦</span>
+            <span id="bin-left-label">Opción 1</span>
+          </button>
+          <button onclick="submitClassification(1)" id="btn-bin-right" class="btn-press bg-sky-500 hover:bg-sky-600 text-white p-5 rounded-2xl font-black text-lg custom-shadow-sm flex flex-col items-center justify-center gap-1">
+            <span id="bin-right-icon" class="text-2xl">🏷️</span>
+            <span id="bin-right-label">Opción 2</span>
+          </button>
+        </div>
+
+        <!-- Marcador del Mini Juego -->
+        <div class="mt-6 pt-4 border-t border-slate-200 flex justify-between items-center text-sm font-bold text-slate-600 px-4">
+          <div>Aciertos seguidos: <span id="game-streak" class="text-emerald-600 font-black text-base">0</span> 🔥</div>
+          <div>Total clasificados: <span id="game-total" class="text-purple-600 font-black text-base">0</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 4: GRAN QUIZ DE 35 PREGUNTAS -->
+    <section id="sec-quiz" class="hidden max-w-3xl mx-auto space-y-6 animate-fade">
+      <!-- Barra Superior de Estado del Quiz -->
+      <div class="bg-white rounded-2xl p-4 border-2 border-slate-200 custom-shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <span class="w-10 h-10 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center font-black text-lg">
+            ⭐
+          </span>
+          <div>
+            <span class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Pregunta</span>
+            <div class="text-lg font-black text-slate-800 leading-none">
+              <span id="quiz-current-num">1</span> <span class="text-slate-400 font-normal">de 35</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Progreso Visual -->
+        <div class="w-full sm:w-1/2 bg-slate-100 rounded-full h-4 overflow-hidden border border-slate-200">
+          <div id="quiz-progress-bar" class="bg-gradient-to-r from-emerald-400 to-teal-500 h-full rounded-full transition-all duration-300" style="width: 2.85%;"></div>
+        </div>
+
+        <div class="text-right">
+          <span class="text-xs uppercase font-extrabold text-slate-400 tracking-wider">Aciertos</span>
+          <div class="text-lg font-black text-emerald-600 leading-none" id="quiz-score-badge">
+            0 / 35
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjeta Principal de la Pregunta -->
+      <div class="bg-white rounded-3xl p-6 md:p-8 border-2 border-amber-300 custom-shadow relative">
+        <div class="flex items-center gap-2 mb-3">
+          <span id="quiz-category-tag" class="text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider bg-sky-100 text-sky-800">
+            Comprensión Lectora
+          </span>
+          <span id="quiz-source-tag" class="text-xs font-bold text-slate-400">
+            Lección 9
+          </span>
+        </div>
+
+        <!-- Texto / Enunciado de la Pregunta -->
+        <h3 id="quiz-question-text" class="text-xl md:text-2xl font-bold text-slate-900 leading-snug mb-6">
+          ¿En qué continente viven principalmente las hermosas aves del paraíso?
+        </h3>
+
+        <!-- Opciones de Respuesta -->
+        <div id="quiz-options-container" class="space-y-3">
+          <!-- Se generan por JS -->
+        </div>
+
+        <!-- Caja de Retroalimentación Inmediata -->
+        <div id="quiz-feedback-box" class="hidden mt-6 p-4 rounded-2xl border-2 text-sm">
+          <div class="flex items-start gap-3">
+            <span id="feedback-icon" class="text-3xl">🎉</span>
+            <div>
+              <h4 id="feedback-title" class="font-bold text-base mb-1">¡Muy bien hecho!</h4>
+              <p id="feedback-text" class="leading-relaxed font-semibold">Explicación didáctica aquí...</p>
+            </div>
+          </div>
+          <div class="mt-4 text-right">
+            <button onclick="nextQuestion()" id="btn-next-question" class="btn-press bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow inline-flex items-center gap-1.5">
+              <span>Siguiente</span> ➔
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 5: RESULTADOS DEL QUIZ (INFORME FINAL CON NOTA CHILENA) -->
+    <section id="sec-resultados" class="hidden max-w-3xl mx-auto space-y-6 animate-fade">
+      <div class="bg-white rounded-3xl p-8 border-2 border-amber-300 custom-shadow text-center relative overflow-hidden">
+        <div id="result-trophy" class="text-7xl mb-2 animate-bounce">
+          🏆
+        </div>
+        <h2 id="result-title" class="text-3xl md:text-4xl font-extrabold text-slate-800">
+          ¡Felicitaciones por completar el Quiz!
+        </h2>
+        <p id="result-subtitle" class="text-slate-600 font-semibold text-base mt-2">
+          Estás listísimo para dar una prueba excelente mañana.
+        </p>
+
+        <!-- Tarjetas de Calificación y Escala Chilena -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 my-8">
+          <div class="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-4">
+            <div class="text-xs font-bold text-emerald-800 uppercase">Nota Estimada (1.0 a 7.0)</div>
+            <div id="result-grade" class="text-4xl md:text-5xl font-black text-emerald-600 mt-1 font-fun">
+              7.0
+            </div>
+            <div class="text-[11px] text-emerald-700 mt-1 font-bold">Exigencia 60%</div>
+          </div>
+          <div class="bg-sky-50 border-2 border-sky-200 rounded-2xl p-4">
+            <div class="text-xs font-bold text-sky-800 uppercase">Aciertos Correctos</div>
+            <div id="result-correct-count" class="text-4xl md:text-5xl font-black text-sky-600 mt-1 font-fun">
+              35 / 35
+            </div>
+            <div id="result-percent" class="text-[11px] text-sky-700 mt-1 font-bold">100% de logro</div>
+          </div>
+          <div class="bg-purple-50 border-2 border-purple-200 rounded-2xl p-4">
+            <div class="text-xs font-bold text-purple-800 uppercase">Nivel de Logro</div>
+            <div id="result-level" class="text-xl md:text-2xl font-black text-purple-700 mt-3 font-fun">
+              ¡Sobresaliente!
+            </div>
+          </div>
+        </div>
+
+        <div id="result-advice" class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs md:text-sm text-amber-900 font-semibold text-left mb-6">
+          <!-- Mensaje personalizado según la nota -->
+        </div>
+
+        <div class="flex justify-center gap-3 flex-wrap">
+          <button onclick="startQuiz()" class="btn-press bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-2xl font-black text-base custom-shadow-sm flex items-center gap-2">
+            <span>🔄</span> Repetir el Quiz
+          </button>
+          <button onclick="showSection('repaso')" class="btn-press bg-slate-200 hover:bg-slate-300 text-slate-800 px-5 py-3 rounded-2xl font-bold text-base flex items-center gap-2">
+            <span>📚</span> Ver Fichas de Repaso
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- PIE DE PÁGINA -->
+  <footer class="bg-white border-t border-slate-200 py-5 text-center text-xs text-slate-500 font-medium">
+    <div class="max-w-4xl mx-auto px-4">
+      Preparado con cariño para repasar la <strong>Evaluación de Contenidos N°3</strong> de 2° Básico • Basado en el libro <em>Leo Primero (Tomo 1)</em>, Ministerio de Educación de Chile.
+    </div>
+  </footer>
+
+  <!-- CONFETTI CANVAS -->
+  <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50 w-full h-full"></canvas>
+
+  <!-- JAVASCRIPT: LOGICA COMPLETA DE LA APP -->
+  <script>
+    /* ========================================================
+       1. BANCO COMPLETO DE LAS 35 PREGUNTAS DEL QUIZ
+       Basadas fielmente en Lecciones 9, 10, 11 y 12 (Tomo 1)
+       ======================================================== */
+    const quizDatabase = [
+      // --- LECCIÓN 9: El ave del paraíso & Cuentos / Adjetivos ---
+      {
+        id: 1,
+        category: "Comprensión Lectora",
+        source: "Lección 9: El ave del paraíso",
+        question: "¿Qué tipo de texto es 'El ave del paraíso'?",
+        options: [
+          "Un cuento inventado con personajes de fantasía.",
+          "Un artículo informativo que entrega datos reales de la naturaleza.",
+          "Un poema con rimas y estrofas."
+        ],
+        correct: 1,
+        explanation: "'El ave del paraíso' es un artículo informativo porque nos entrega información real sobre las características, hábitat y forma de vida de este animal."
+      },
+      {
+        id: 2,
+        category: "Información Explícita",
+        source: "Lección 9: El ave del paraíso",
+        question: "¿En qué continente viven principalmente las aves del paraíso?",
+        options: [
+          "En América del Sur, cerca de Chile.",
+          "En los bosques tropicales de Oceanía.",
+          "En la Antártida fría."
+        ],
+        correct: 1,
+        explanation: "El texto señala de manera explícita que casi todas las especies del ave del paraíso habitan en los bosques tropicales de Oceanía."
+      },
+      {
+        id: 3,
+        category: "Información Explícita",
+        source: "Lección 9: El ave del paraíso",
+        question: "¿Por qué el plumaje de la hembra del ave del paraíso es opaco y menos colorido que el del macho?",
+        options: [
+          "Porque no le gusta el sol brillante.",
+          "Para pasar desapercibida mientras incuba sus huevos y alejar depredadores.",
+          "Porque todavía no aprende a volar bien."
+        ],
+        correct: 1,
+        explanation: "La hembra tiene plumas opacas para camuflarse y pasar desapercibida mientras cuida sus huevos, protegiéndose de los depredadores."
+      },
+      {
+        id: 4,
+        category: "Vocabulario en Contexto",
+        source: "Lección 9: El ave del paraíso",
+        question: "En la frase: 'El macho recolecta frutas secas', ¿cuál de estas palabras NO significa lo mismo que recolectar?",
+        options: [
+          "Juntar",
+          "Recoger",
+          "Reclamar"
+        ],
+        correct: 2,
+        explanation: "'Reclamar' es la palabra intrusa. Recolectar significa recoger, juntar o reunir alimentos o cosas."
+      },
+      {
+        id: 5,
+        category: "Adjetivos Calificativos",
+        source: "Lección 9: El ave del paraíso",
+        question: "En la oración: 'El ave macho tiene plumas coloridas y brillantes', ¿cuáles son los adjetivos calificativos?",
+        options: [
+          "El - ave",
+          "plumas - macho",
+          "coloridas - brillantes"
+        ],
+        correct: 2,
+        explanation: "'Coloridas' y 'brillantes' son adjetivos calificativos porque nos indican cómo son las plumas del ave."
+      },
+      {
+        id: 6,
+        category: "Comprensión e Inferencia",
+        source: "Lección 9: El ave del paraíso",
+        question: "¿Qué curiosidad muy especial hace el ave del paraíso macho con su nido?",
+        options: [
+          "Pinta las piedras con témpera de colores.",
+          "Cultiva plantas dejando caer semillas para que crezcan y decoren su nido.",
+          "Construye una chimenea de barro para el frío."
+        ],
+        correct: 1,
+        explanation: "Es el único animal conocido (junto con el ser humano) que utiliza y cultiva semillas de frutas para que crezcan plantas y decoren su nido."
+      },
+      {
+        id: 7,
+        category: "Adjetivos Calificativos",
+        source: "Lección 9: Gramática",
+        question: "¿Para qué nos sirven los adjetivos calificativos?",
+        options: [
+          "Para nombrar a personas o ciudades en mayúscula.",
+          "Para decir las cualidades o características de una persona, animal o cosa.",
+          "Para poner un punto al terminar la oración."
+        ],
+        correct: 1,
+        explanation: "Los adjetivos calificativos nos dicen cómo es o cómo está un sustantivo (grande, lindo, suave, rápido)."
+      },
+      {
+        id: 8,
+        category: "Comprensión de Cuento",
+        source: "Lección 9: Cuento Ema y Pajarito",
+        question: "En el cuento 'Ema y Pajarito', ¿por qué Pajarito no podía volar al principio?",
+        options: [
+          "Porque era una gallina que no vuela.",
+          "Porque se había lastimado y Ema lo cuidó hasta que sanara.",
+          "Porque tenía mucho miedo de las nubes."
+        ],
+        correct: 1,
+        explanation: "Pajarito necesitaba ayuda y cuidado de Ema hasta recuperarse y estar listo para volver a ser libre."
+      },
+
+      // --- LECCIÓN 10: Poema "Pastorcita", Rimas, Signos ¿? y ¡! ---
+      {
+        id: 9,
+        category: "Tipo de Texto",
+        source: "Lección 10: Poema Pastorcita",
+        question: "¿Qué tipo de texto es 'Pastorcita' de Rafael Pombo?",
+        options: [
+          "Un poema",
+          "Una carta",
+          "Una receta de cocina"
+        ],
+        correct: 0,
+        explanation: "'Pastorcita' es un poema que está escrito en versos y estrofas, con bellas rimas y musicalidad."
+      },
+      {
+        id: 10,
+        category: "Estructura del Poema",
+        source: "Lección 10: Poemas",
+        question: "¿Cómo se llama cada una de las líneas o renglones que forman un poema?",
+        options: [
+          "Párrafo",
+          "Verso",
+          "Título"
+        ],
+        correct: 1,
+        explanation: "Cada renglón o línea de un poema se llama verso. Al juntar varios versos se forma una estrofa."
+      },
+      {
+        id: 11,
+        category: "Estructura del Poema",
+        source: "Lección 10: Poemas",
+        question: "¿Cómo se llama el grupo o conjunto de varios versos?",
+        options: [
+          "Estrofa",
+          "Capítulo",
+          "Oración"
+        ],
+        correct: 0,
+        explanation: "La estrofa es el grupito de versos en un poema, separados normalmente por un espacio."
+      },
+      {
+        id: 12,
+        category: "Rimas",
+        source: "Lección 10: Poemas",
+        question: "En los versos: 'Pastorcita perdió sus ovejas, y oyeron sus quejas', ¿cuáles palabras riman entre sí?",
+        options: [
+          "perdió y oyeron",
+          "ovejas y quejas",
+          "Pastorcita y sus"
+        ],
+        correct: 1,
+        explanation: "'Ovejas' y 'quejas' riman porque terminan con el mismo sonido exacto (-ejas)."
+      },
+      {
+        id: 13,
+        category: "Vocabulario en Contexto",
+        source: "Lección 10: Pastorcita",
+        question: "En el poema, Pastorcita cuidaba a su 'rebaño'. ¿Qué significa la palabra rebaño?",
+        options: [
+          "Un conjunto o grupo de ovejas reunidas.",
+          "Una montaña muy alta con nieve.",
+          "Una cerca rota de madera."
+        ],
+        correct: 0,
+        explanation: "Un rebaño es un grupo grande de animales (como ovejas o cabras) que andan y pastan juntos."
+      },
+      {
+        id: 14,
+        category: "Vocabulario en Contexto",
+        source: "Lección 10: Pastorcita",
+        question: "¿Cuál es el sonido que hacen las ovejas cuando el texto dice que Pastorcita 'las oye balar'?",
+        options: [
+          "Ladrar como un perro.",
+          "El sonido típico de las ovejas (¡beee!).",
+          "Cantar como un loro."
+        ],
+        correct: 1,
+        explanation: "'Balar' es dar balidos, es decir, la voz o sonido característico que emiten las ovejas y corderos."
+      },
+      {
+        id: 15,
+        category: "Vocabulario en Contexto",
+        source: "Lección 10: Pastorcita",
+        question: "Pastorcita buscó hilo y aguja para 'remendar' las colas. ¿Qué significa remendar?",
+        options: [
+          "Romper algo en muchos pedazos.",
+          "Arreglar, coser o reparar lo que está roto o descosido.",
+          "Pintar con plumones."
+        ],
+        correct: 1,
+        explanation: "Remendar significa componer, coser o remendar algo dañado para que vuelva a quedar bien."
+      },
+      {
+        id: 16,
+        category: "Signos de Puntuación",
+        source: "Lección 10: Signos ¿? y ¡!",
+        question: "¿Para qué se usan los signos de interrogación (¿ ?)?",
+        options: [
+          "Para hacer preguntas.",
+          "Para gritar de sorpresa.",
+          "Para separar las estrofas del poema."
+        ],
+        correct: 0,
+        explanation: "Los signos de interrogación (¿ ?) se abren al principio y se cierran al final para formular una pregunta."
+      },
+      {
+        id: 17,
+        category: "Signos de Puntuación",
+        source: "Lección 10: Signos ¿? y ¡!",
+        question: "En la frase: '¡Pobres raboncitas!', ¿qué signos se utilizaron y qué expresan?",
+        options: [
+          "Signos de interrogación para hacer una pregunta.",
+          "Signos de exclamación para expresar una emoción de dolor o asombro.",
+          "Comillas para citar un libro."
+        ],
+        correct: 1,
+        explanation: "Los signos ¡ ! son de exclamación y se usan para expresar asombro, pena, alegría o sorpresa."
+      },
+
+      // --- LECCIÓN 11: Correo electrónico, Invitaciones, Sustantivos & Familia ---
+      {
+        id: 18,
+        category: "Textos No Literarios",
+        source: "Lección 11: Correo Electrónico",
+        question: "En el correo de Rodrigo a Marina, ¿qué significa el campo 'Asunto'?",
+        options: [
+          "El nombre de la persona que escribe la carta.",
+          "El tema breve o motivo del mensaje (de qué se trata).",
+          "La contraseña del computador."
+        ],
+        correct: 1,
+        explanation: "El 'Asunto' en un correo electrónico indica brevemente de qué se trata el mensaje (por ejemplo: 'Invitación a una fiesta')."
+      },
+      {
+        id: 19,
+        category: "Información Explícita",
+        source: "Lección 11: Correo de Rodrigo",
+        question: "¿Para qué le escribió Rodrigo a su amiga Marina?",
+        options: [
+          "Para pedirle prestado un libro de ciencias.",
+          "Para invitarla a una fiesta en su nueva casa en Quilpué.",
+          "Para contarle que vio un cocodrilo en el río."
+        ],
+        correct: 1,
+        explanation: "Rodrigo le envió una invitación a Marina para celebrar una fiesta el sábado a las 4 de la tarde en Quilpué."
+      },
+      {
+        id: 20,
+        category: "Textos de la Vida Diaria",
+        source: "Lección 11: La Invitación",
+        question: "¿Cuáles son los 3 datos fundamentales que NUNCA deben faltar en una tarjeta de invitación?",
+        options: [
+          "Lugar (dirección), Fecha (día) y Hora.",
+          "Número de zapatos, color de ojos y comida favorita.",
+          "Nombre de la mascota, clima y precio del regalo."
+        ],
+        correct: 0,
+        explanation: "Para que una invitación sirva, debe indicar claramente DÓNDE es (lugar), QUÉ DÍA (fecha) y A QUÉ HORA."
+      },
+      {
+        id: 21,
+        category: "Sustantivos Propios",
+        source: "Lección 11: Gramática",
+        question: "En la frase: 'Daniel y Pilar viven en Quilpué', ¿cuáles son sustantivos propios?",
+        options: [
+          "viven - en",
+          "Daniel - Pilar - Quilpué",
+          "fiesta - casa"
+        ],
+        correct: 1,
+        explanation: "Daniel y Pilar son nombres de personas, y Quilpué es el nombre de una ciudad; todos son sustantivos propios y se escriben con mayúscula."
+      },
+      {
+        id: 22,
+        category: "Sustantivos Comunes",
+        source: "Lección 11: Gramática",
+        question: "¿Cuál de las siguientes palabras es un sustantivo común?",
+        options: [
+          "guitarra",
+          "Chile",
+          "Rodrigo"
+        ],
+        correct: 0,
+        explanation: "'Guitarra' es un sustantivo común porque nombra a un objeto o instrumento en general."
+      },
+      {
+        id: 23,
+        category: "Familia de Palabras",
+        source: "Lección 11: Familias de palabras",
+        question: "¿Qué palabras forman parte de la misma familia de la palabra 'invitar'?",
+        options: [
+          "invitación - invitado",
+          "invento - inventor",
+          "invierno - invernal"
+        ],
+        correct: 0,
+        explanation: "'Invitar', 'invitación' e 'invitado' comparten la misma raíz y se relacionan con invitar a alguien."
+      },
+      {
+        id: 24,
+        category: "Familia de Palabras",
+        source: "Lección 11: Familias de palabras",
+        question: "En la familia de la palabra 'pollo', ¿cuál palabra pertenece a ella?",
+        options: [
+          "polvo",
+          "pollito",
+          "polera"
+        ],
+        correct: 1,
+        explanation: "'Pollito' y 'polluelo' vienen de la palabra 'pollo'."
+      },
+
+      // --- LECCIÓN 12: Parques Naturales en peligro, Género, Número, Artículos y Mayúsculas ---
+      {
+        id: 25,
+        category: "Comprensión Lectora",
+        source: "Lección 12: Parques en peligro",
+        question: "Según el texto 'Los Parques Naturales en peligro', ¿por qué NO debemos hacer fogatas en los parques?",
+        options: [
+          "Porque el humo atrae a los osos.",
+          "Porque queman el suelo y pueden provocar un gran incendio forestal.",
+          "Porque la comida no se cocina bien."
+        ],
+        correct: 1,
+        explanation: "Las fogatas matan el suelo y un fuego descontrolado puede causar un incendio forestal que destruya el parque para siempre."
+      },
+      {
+        id: 26,
+        category: "Información Explícita",
+        source: "Lección 12: Parques en peligro",
+        question: "¿Por qué es muy peligroso dejar hilos de volantines botados en los árboles o el suelo del parque?",
+        options: [
+          "Porque las personas y animales se pueden enredar y cortar con ellos.",
+          "Porque cambian el color de las hojas.",
+          "Porque no dejan que el viento sople."
+        ],
+        correct: 0,
+        explanation: "Los hilos de volantines contaminan y son sumamente peligrosos porque personas y animales pueden cortarse o enredarse."
+      },
+      {
+        id: 27,
+        category: "Vocabulario en Contexto",
+        source: "Lección 12: Parques en peligro",
+        question: "En la frase: 'El fuego puede provocar un incendio', la palabra 'provocar' significa:",
+        options: [
+          "Apagar",
+          "Causar o producir",
+          "Detener"
+        ],
+        correct: 1,
+        explanation: "Provocar significa ser la causa de que algo ocurra (en este caso, causar un incendio)."
+      },
+      {
+        id: 28,
+        category: "Género del Sustantivo",
+        source: "Lección 12: Gramática",
+        question: "El sustantivo 'fogatas' tiene género:",
+        options: [
+          "Femenino (decimos 'las fogatas')",
+          "Masculino (decimos 'los fogatas')",
+          "Neutro"
+        ],
+        correct: 0,
+        explanation: "Decimos 'la fogata' o 'las fogatas', por lo tanto su género es femenino."
+      },
+      {
+        id: 29,
+        category: "Número del Sustantivo",
+        source: "Lección 12: Gramática",
+        question: "El sustantivo 'parques' está en número:",
+        options: [
+          "Singular (indica uno solo)",
+          "Plural (indica más de uno)",
+          "Masculino"
+        ],
+        correct: 1,
+        explanation: "Como termina en -s y nombra a varios parques, su número es plural."
+      },
+      {
+        id: 30,
+        category: "Artículos Definidos",
+        source: "Lección 12: Artículos",
+        question: "¿Cuáles son los artículos DEFINIDOS?",
+        options: [
+          "un, una, unos, unas",
+          "el, la, los, las",
+          "yo, tú, él, ella"
+        ],
+        correct: 1,
+        explanation: "Los artículos definidos son: el, la, los, las. Los usamos cuando conocemos el objeto o persona de quien hablamos."
+      },
+      {
+        id: 31,
+        category: "Artículos Indefinidos",
+        source: "Lección 12: Artículos",
+        question: "¿Cuáles son los artículos INDEFINIDOS?",
+        options: [
+          "el, la, los, las",
+          "un, una, unos, unas",
+          "este, ese, aquel"
+        ],
+        correct: 1,
+        explanation: "Los artículos indefinidos son: un, una, unos, unas."
+      },
+      {
+        id: 32,
+        category: "Uso de Artículos",
+        source: "Lección 12: Gramática",
+        question: "¿Qué artículo indefinido completa correctamente la oración?: 'En el bosque vimos _____ chinchillas descansando'.",
+        options: [
+          "un",
+          "unos",
+          "unas"
+        ],
+        correct: 2,
+        explanation: "Decimos 'unas chinchillas' porque concuerda en femenino y plural."
+      },
+      {
+        id: 33,
+        category: "Ortografía y Escritura",
+        source: "Lección 12: Escritura de oraciones",
+        question: "¿Con qué debe comenzar SIEMPRE toda oración al escribir?",
+        options: [
+          "Con un dibujo pequeño.",
+          "Con letra mayúscula.",
+          "Con un signo de pregunta."
+        ],
+        correct: 1,
+        explanation: "Toda oración en español debe comenzar de forma obligatoria con letra mayúscula."
+      },
+      {
+        id: 34,
+        category: "Ortografía y Escritura",
+        source: "Lección 12: Escritura de oraciones",
+        question: "¿Cómo debe terminar SIEMPRE una oración bien escrita?",
+        options: [
+          "Con una coma.",
+          "Con un punto final.",
+          "Con dos rayas."
+        ],
+        correct: 1,
+        explanation: "Las oraciones terminan con un punto final (.) para señalar que la idea está completa."
+      },
+      {
+        id: 35,
+        category: "Ortografía y Escritura",
+        source: "Lección 12: Escritura de oraciones",
+        question: "¿Cuál de estas tres oraciones está escrita de forma 100% CORRECTA?",
+        options: [
+          "los niños fueron a Quilpué",
+          "Los niños fueron a quilpué.",
+          "Los niños fueron a Quilpué."
+        ],
+        correct: 2,
+        explanation: "La tercera oración es correcta porque comienza con mayúscula ('Los'), el sustantivo propio de ciudad lleva mayúscula ('Quilpué') y termina con punto final (.)."
+      }
+    ];
+
+    /* ========================================================
+       2. CONTROLADOR DE ESTADO DE LA APLICACIÓN
+       ======================================================== */
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+    let userAnswers = [];
+    let hasAnsweredCurrent = false;
+
+    // Mini-juego Clasificador Data
+    const miniGameData = {
+      sustantivos: [
+        { word: "Quilpué", correct: 1, hint: "Es el nombre de una ciudad chilena." },
+        { word: "guitarra", correct: 0, hint: "Nombra un instrumento común." },
+        { word: "Marina", correct: 1, hint: "Es el nombre de una persona." },
+        { word: "volantín", correct: 0, hint: "Nombra un juguete típico." },
+        { word: "Rodrigo", correct: 1, hint: "Es el nombre propio de un amigo." },
+        { word: "bosque", correct: 0, hint: "Nombra un lugar común de la naturaleza." },
+        { word: "Chile", correct: 1, hint: "Es el país donde vivimos." },
+        { word: "chinchilla", correct: 0, hint: "Nombra a un animalito." }
+      ],
+      articulos: [
+        { word: "la", correct: 0, hint: "Artículo definido femenino singular." },
+        { word: "un", correct: 1, hint: "Artículo indefinido masculino singular." },
+        { word: "los", correct: 0, hint: "Artículo definido masculino plural." },
+        { word: "unas", correct: 1, hint: "Artículo indefinido femenino plural." },
+        { word: "el", correct: 0, hint: "Artículo definido masculino singular." },
+        { word: "una", correct: 1, hint: "Artículo indefinido femenino singular." },
+        { word: "las", correct: 0, hint: "Artículo definido femenino plural." },
+        { word: "unos", correct: 1, hint: "Artículo indefinido masculino plural." }
+      ],
+      genero: [
+        { word: "la oveja", correct: 0, hint: "Usa el artículo 'la'." },
+        { word: "el fuego", correct: 1, hint: "Usa el artículo 'el'." },
+        { word: "las flores", correct: 0, hint: "Femenino plural." },
+        { word: "los parques", correct: 1, hint: "Masculino plural." },
+        { word: "la torta", correct: 0, hint: "Femenino singular." },
+        { word: "el nido", correct: 1, hint: "Masculino singular." }
+      ],
+      numero: [
+        { word: "árbol", correct: 0, hint: "Nombra a uno solo." },
+        { word: "volantines", correct: 1, hint: "Nombra a más de uno." },
+        { word: "fogata", correct: 0, hint: "Singular." },
+        { word: "chinchillas", correct: 1, hint: "Plural." },
+        { word: "correo", correct: 0, hint: "Singular." },
+        { word: "plumas", correct: 1, hint: "Plural." }
+      ]
+    };
+
+    let currentMode = 'sustantivos';
+    let currentWordIndex = 0;
+    let gameStreak = 0;
+    let gameTotal = 0;
+
+    /* ========================================================
+       3. NAVEGACIÓN ENTRE SECCIONES
+       ======================================================== */
+    function showSection(sectionId) {
+      soundFx.playPop();
+      ['inicio', 'repaso', 'clasificador', 'quiz', 'resultados'].forEach(sec => {
+        const el = document.getElementById(`sec-${sec}`);
+        if (el) el.classList.add('hidden');
+      });
+
+      const target = document.getElementById(`sec-${sectionId}`);
+      if (target) {
+        target.classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // Estilo de botones de navegación
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-white/40');
+      });
+      const activeNav = document.getElementById(`btn-nav-${sectionId}`);
+      if (activeNav && sectionId !== 'quiz') {
+        activeNav.classList.add('bg-white/40');
+      }
+
+      if (sectionId === 'clasificador') {
+        loadGameWord();
+      }
+    }
+
+    function openCardTopic(topicKey) {
+      showSection('repaso');
+      filterFichas('todas');
+    }
+
+    function filterFichas(cat) {
+      soundFx.playPop();
+      document.querySelectorAll('.tab-fichas').forEach(b => {
+        b.classList.remove('bg-amber-500', 'text-white');
+        b.classList.add('bg-slate-200', 'text-slate-700');
+      });
+      event.target.classList.remove('bg-slate-200', 'text-slate-700');
+      event.target.classList.add('bg-amber-500', 'text-white');
+
+      const cards = document.querySelectorAll('.ficha-card');
+      cards.forEach(card => {
+        if (cat === 'todas' || card.dataset.category === cat) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    /* ========================================================
+       4. MINI-JUEGO DE CLASIFICACIÓN
+       ======================================================== */
+    function setGameMode(mode) {
+      soundFx.playPop();
+      currentMode = mode;
+      currentWordIndex = 0;
+
+      // Actualizar botones de modo
+      ['sustantivos', 'articulos', 'genero', 'numero'].forEach(m => {
+        const btn = document.getElementById(`gmode-${m}`);
+        btn.className = (m === mode)
+          ? "px-4 py-2 rounded-xl font-bold text-xs bg-purple-600 text-white shadow"
+          : "px-4 py-2 rounded-xl font-bold text-xs bg-slate-200 text-slate-700 hover:bg-slate-300";
+      });
+
+      // Configurar etiquetas de las cestas
+      const leftLabel = document.getElementById('bin-left-label');
+      const rightLabel = document.getElementById('bin-right-label');
+      const leftIcon = document.getElementById('bin-left-icon');
+      const rightIcon = document.getElementById('bin-right-icon');
+
+      if (mode === 'sustantivos') {
+        leftLabel.textContent = "Sustantivo Común";
+        leftIcon.textContent = "📦";
+        rightLabel.textContent = "Sustantivo Propio";
+        rightIcon.textContent = "🏷️ (Mayúscula)";
+      } else if (mode === 'articulos') {
+        leftLabel.textContent = "Artículo Definido";
+        leftIcon.textContent = "🎯 (El, La, Los, Las)";
+        rightLabel.textContent = "Artículo Indefinido";
+        rightIcon.textContent = "🎲 (Un, Una, Unos...)";
+      } else if (mode === 'genero') {
+        leftLabel.textContent = "Femenino";
+        leftIcon.textContent = "🌸";
+        rightLabel.textContent = "Masculino";
+        rightIcon.textContent = "🦁";
+      } else if (mode === 'numero') {
+        leftLabel.textContent = "Singular (Uno)";
+        leftIcon.textContent = "☝️";
+        rightLabel.textContent = "Plural (Varios)";
+        rightIcon.textContent = "👥";
+      }
+
+      loadGameWord();
+    }
+
+    function loadGameWord() {
+      const list = miniGameData[currentMode];
+      if (!list || list.length === 0) return;
+      const currentItem = list[currentWordIndex % list.length];
+      const wordBox = document.getElementById('game-word');
+      const hintBox = document.getElementById('game-hint');
+
+      wordBox.textContent = currentItem.word;
+      hintBox.textContent = `Pista: ${currentItem.hint}`;
+      wordBox.classList.remove('bg-emerald-100', 'bg-rose-100');
+      wordBox.classList.add('bg-white');
+    }
+
+    function submitClassification(chosenIndex) {
+      const list = miniGameData[currentMode];
+      const currentItem = list[currentWordIndex % list.length];
+      const wordBox = document.getElementById('game-word');
+
+      gameTotal++;
+      if (chosenIndex === currentItem.correct) {
+        soundFx.playCorrect();
+        gameStreak++;
+        wordBox.classList.add('bg-emerald-100');
+        spawnMiniConfetti();
+      } else {
+        soundFx.playWrong();
+        gameStreak = 0;
+        wordBox.classList.add('bg-rose-100');
+      }
+
+      document.getElementById('game-streak').textContent = gameStreak;
+      document.getElementById('game-total').textContent = gameTotal;
+
+      setTimeout(() => {
+        currentWordIndex++;
+        loadGameWord();
+      }, 400);
+    }
+
+    /* ========================================================
+       5. SISTEMA DEL QUIZ (35 PREGUNTAS)
+       ======================================================== */
+    function startQuiz() {
+      soundFx.playFanfare();
+      currentQuizIndex = 0;
+      quizScore = 0;
+      userAnswers = [];
+      hasAnsweredCurrent = false;
+
+      showSection('quiz');
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      hasAnsweredCurrent = false;
+      const q = quizDatabase[currentQuizIndex];
+
+      // Actualizar encabezados
+      document.getElementById('quiz-current-num').textContent = currentQuizIndex + 1;
+      document.getElementById('quiz-category-tag').textContent = q.category;
+      document.getElementById('quiz-source-tag').textContent = q.source;
+      document.getElementById('quiz-question-text').textContent = q.question;
+      document.getElementById('quiz-score-badge').textContent = `${quizScore} / 35`;
+
+      // Barra de progreso
+      const progressPercent = ((currentQuizIndex + 1) / 35) * 100;
+      document.getElementById('quiz-progress-bar').style.width = `${progressPercent}%`;
+
+      // Ocultar caja de retroalimentación
+      const fbBox = document.getElementById('quiz-feedback-box');
+      fbBox.classList.add('hidden');
+
+      // Generar Opciones
+      const container = document.getElementById('quiz-options-container');
+      container.innerHTML = '';
+
+      const letters = ['A', 'B', 'C'];
+      q.options.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.className = "quiz-opt-btn w-full text-left p-4 rounded-2xl border-2 border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/60 font-semibold text-slate-800 transition flex items-center gap-3.5 btn-press";
+        btn.onclick = () => selectOption(idx);
+
+        btn.innerHTML = `
+          <span class="w-8 h-8 rounded-xl bg-white border border-slate-300 font-extrabold text-amber-900 flex items-center justify-center flex-shrink-0 text-sm shadow-sm">
+            ${letters[idx]}
+          </span>
+          <span class="text-sm md:text-base leading-snug">${optText}</span>
+        `;
+        container.appendChild(btn);
+      });
+    }
+
+    function selectOption(selectedIndex) {
+      if (hasAnsweredCurrent) return;
+      hasAnsweredCurrent = true;
+
+      const q = quizDatabase[currentQuizIndex];
+      const isCorrect = (selectedIndex === q.correct);
+      const optionButtons = document.querySelectorAll('.quiz-opt-btn');
+
+      if (isCorrect) {
+        soundFx.playCorrect();
+        quizScore++;
+        spawnMiniConfetti();
+      } else {
+        soundFx.playWrong();
+      }
+
+      // Marcar botones visualmente
+      optionButtons.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === q.correct) {
+          btn.className = "quiz-opt-btn w-full text-left p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-100/80 font-bold text-emerald-950 flex items-center gap-3.5";
+        } else if (idx === selectedIndex && !isCorrect) {
+          btn.className = "quiz-opt-btn w-full text-left p-4 rounded-2xl border-2 border-rose-400 bg-rose-100/80 font-bold text-rose-950 flex items-center gap-3.5";
+        } else {
+          btn.classList.add('opacity-40');
+        }
+      });
+
+      // Mostrar caja de feedback didáctico
+      const fbBox = document.getElementById('quiz-feedback-box');
+      const fbIcon = document.getElementById('feedback-icon');
+      const fbTitle = document.getElementById('feedback-title');
+      const fbText = document.getElementById('feedback-text');
+
+      fbBox.classList.remove('hidden');
+      if (isCorrect) {
+        fbBox.className = "mt-6 p-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 text-sm";
+        fbIcon.textContent = "🌟";
+        fbTitle.textContent = "¡Excelente respuesta! ¡Muy bien!";
+      } else {
+        fbBox.className = "mt-6 p-4 rounded-2xl border-2 border-amber-300 bg-amber-50 text-amber-900 text-sm";
+        fbIcon.textContent = "💡";
+        fbTitle.textContent = "¡Ánimo! Vamos a aprender juntos:";
+      }
+      fbText.textContent = q.explanation;
+
+      // Actualizar marcador de cabecera
+      document.getElementById('quiz-score-badge').textContent = `${quizScore} / 35`;
+    }
+
+    function nextQuestion() {
+      soundFx.playPop();
+      currentQuizIndex++;
+      if (currentQuizIndex < quizDatabase.length) {
+        renderQuestion();
+      } else {
+        finishQuiz();
+      }
+    }
+
+    /* ========================================================
+       6. FINAL DEL QUIZ & CÁLCULO DE NOTA CHILENA (1.0 - 7.0)
+       ======================================================== */
+    function finishQuiz() {
+      soundFx.playFanfare();
+      showSection('resultados');
+      triggerBigConfetti();
+
+      const total = quizDatabase.length; // 35
+      const correct = quizScore;
+      const exigencia = 0.6; // 60%
+      const puntajeAprobacion = total * exigencia; // 21 puntos para el 4.0
+
+      let nota = 1.0;
+      if (correct < puntajeAprobacion) {
+        // Escala reprobación: 1.0 a 4.0
+        nota = 1.0 + 3.0 * (correct / puntajeAprobacion);
+      } else {
+        // Escala aprobación: 4.0 a 7.0
+        nota = 4.0 + 3.0 * ((correct - puntajeAprobacion) / (total - puntajeAprobacion));
+      }
+      nota = Math.round(nota * 10) / 10;
+      if (nota > 7.0) nota = 7.0;
+      if (nota < 1.0) nota = 1.0;
+
+      const percent = Math.round((correct / total) * 100);
+
+      document.getElementById('result-grade').textContent = nota.toFixed(1);
+      document.getElementById('result-correct-count').textContent = `${correct} / ${total}`;
+      document.getElementById('result-percent').textContent = `${percent}% de respuestas correctas`;
+
+      // Nivel de logro y consejos
+      const trophy = document.getElementById('result-trophy');
+      const title = document.getElementById('result-title');
+      const level = document.getElementById('result-level');
+      const advice = document.getElementById('result-advice');
+
+      if (nota >= 6.0) {
+        trophy.textContent = "🏆";
+        title.textContent = "¡Eres un Súper Campeón de Lenguaje!";
+        level.textContent = "Sobresaliente";
+        advice.innerHTML = `
+          <strong class="text-emerald-800 text-sm block mb-1">¡Felicitaciones gigantes!</strong>
+          Demostraste dominar perfectamente las lecturas ("El ave del paraíso", "Pastorcita", "El correo a Marina" y "Los Parques"). Conoces muy bien los sustantivos propios y comunes, los artículos, adjetivos y el uso de mayúsculas y puntos. ¡Mañana te irá increíble!
+        `;
+      } else if (nota >= 5.0) {
+        trophy.textContent = "🥈";
+        title.textContent = "¡Muy buen trabajo!";
+        level.textContent = "Nivel Bueno";
+        advice.innerHTML = `
+          <strong class="text-sky-800 text-sm block mb-1">¡Gran esfuerzo!</strong>
+          Aprobaste con muy buen puntaje. Puedes darle una mirada rápida a las <strong>Fichas de Repaso</strong> en los temas de rimas o sustantivos propios para asegurar un 7.0 mañana. ¡Tú puedes lograrlo!
+        `;
+      } else if (nota >= 4.0) {
+        trophy.textContent = "⭐";
+        title.textContent = "¡Aprobado con éxito!";
+        level.textContent = "Suficiente";
+        advice.innerHTML = `
+          <strong class="text-amber-800 text-sm block mb-1">¡Buen camino!</strong>
+          Lograste el puntaje de aprobación. Te recomendamos revisar las fichas de <strong>Sustantivos propios (mayúsculas)</strong> y <strong>Artículos definidos e indefinidos</strong>, ¡y luego repetir el quiz para sacar la máxima nota!
+        `;
+      } else {
+        trophy.textContent = "🌱";
+        title.textContent = "¡Ánimo, sigamos practicando!";
+        level.textContent = "En Proceso";
+        advice.innerHTML = `
+          <strong class="text-rose-800 text-sm block mb-1">¡No te preocupes, el estudio te hará campeón!</strong>
+          Lee con atención las fichas en la sección <strong>Fichas de Repaso</strong> y juega en el <strong>Mini-Juego</strong>. Verás que al intentar el quiz nuevamente tus respuestas saldrán excelentes.
+        `;
+      }
+    }
+
+    /* ========================================================
+       7. EFECTOS VISUALES: CONFETTI NATIVO EN CANVAS
+       ======================================================== */
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let confettiPieces = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function spawnMiniConfetti() {
+      const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6'];
+      for (let i = 0; i < 20; i++) {
+        confettiPieces.push({
+          x: window.innerWidth / 2 + (Math.random() * 200 - 100),
+          y: window.innerHeight * 0.4,
+          r: Math.random() * 6 + 3,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          vx: (Math.random() - 0.5) * 8,
+          vy: Math.random() * -6 - 2,
+          alpha: 1
+        });
+      }
+    }
+
+    function triggerBigConfetti() {
+      const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#e11d48'];
+      for (let i = 0; i < 120; i++) {
+        confettiPieces.push({
+          x: Math.random() * window.innerWidth,
+          y: -10,
+          r: Math.random() * 7 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          vx: (Math.random() - 0.5) * 4,
+          vy: Math.random() * 5 + 3,
+          alpha: 1
+        });
+      }
+    }
+
+    function renderConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      confettiPieces.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15; // gravedad
+        p.alpha -= 0.008;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(p.alpha, 0);
+        ctx.fill();
+
+        if (p.alpha <= 0 || p.y > window.innerHeight) {
+          confettiPieces.splice(idx, 1);
+        }
+      });
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(renderConfetti);
+    }
+    requestAnimationFrame(renderConfetti);
+
+    // Inicialización al cargar la ventana
+    window.onload = function() {
+      setGameMode('sustantivos');
+    };
+  </script>
+</body>
+</html>
