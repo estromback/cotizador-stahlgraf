@@ -188,6 +188,47 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-save-card').addEventListener('click', saveCard);
     document.getElementById('btn-delete-card').addEventListener('click', deleteCard);
 
+    // Clear Date & Time Listeners (for mobile and desktop)
+    const btnClearDate = document.getElementById('btn-clear-date');
+    if (btnClearDate) {
+        btnClearDate.addEventListener('click', () => {
+            const dateInput = document.getElementById('card-date');
+            const timeInput = document.getElementById('card-time');
+            if (dateInput) {
+                dateInput.value = '';
+                dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (timeInput) {
+                timeInput.value = '';
+                timeInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            updateDateClearButtons();
+        });
+    }
+
+    const btnClearTime = document.getElementById('btn-clear-time');
+    if (btnClearTime) {
+        btnClearTime.addEventListener('click', () => {
+            const timeInput = document.getElementById('card-time');
+            if (timeInput) {
+                timeInput.value = '';
+                timeInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            updateDateClearButtons();
+        });
+    }
+
+    const cardDateInput = document.getElementById('card-date');
+    if (cardDateInput) {
+        cardDateInput.addEventListener('input', updateDateClearButtons);
+        cardDateInput.addEventListener('change', updateDateClearButtons);
+    }
+    const cardTimeInput = document.getElementById('card-time');
+    if (cardTimeInput) {
+        cardTimeInput.addEventListener('input', updateDateClearButtons);
+        cardTimeInput.addEventListener('change', updateDateClearButtons);
+    }
+
     // Day Events Modal Listeners
     const dayModal = document.getElementById('day-events-modal');
     if (dayModal) {
@@ -959,6 +1000,22 @@ function openCardModal(card = null, defaultDate = '') {
         formContent.innerHTML = '';
         
         commentsList.innerHTML = '<p style="color:#666; font-size:0.9rem;">Guarda la tarjeta para poder agregar comentarios.</p>';
+    }
+
+    updateDateClearButtons();
+}
+
+function updateDateClearButtons() {
+    const dateInput = document.getElementById('card-date');
+    const timeInput = document.getElementById('card-time');
+    const btnClearDate = document.getElementById('btn-clear-date');
+    const btnClearTime = document.getElementById('btn-clear-time');
+    
+    if (btnClearDate) {
+        btnClearDate.style.display = (dateInput && dateInput.value) ? 'inline-flex' : 'none';
+    }
+    if (btnClearTime) {
+        btnClearTime.style.display = (timeInput && timeInput.value) ? 'inline-flex' : 'none';
     }
 }
 
